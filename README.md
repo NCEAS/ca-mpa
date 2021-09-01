@@ -1,2 +1,2 @@
 # ca-mpa
-OPC California MPA project
+OPC California MPA network project
