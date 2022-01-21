@@ -6,11 +6,15 @@
 # Clear workspace
 rm(list = ls())
 
-# Initialization ----------------------------------------------------------
+
+### Initialization ----------------------------------------------------------
 
 # Packages
 library(ggplot2)
 library(tidyverse)
+# install.packages("janitor")
+library(janitor)
+library(stringr)
 
 # Read data - Aurora
 data_path <- "/home/shares/ca-mpa/" # [JB, I had to add this in manually via cyberduck, can you get the GD_data to auto sync?]
@@ -18,10 +22,35 @@ input_file <- "Technical_report_synthesis_20Jan22.xlsx"
 data_orig <- readxl::read_excel(file.path(data_path, input_file), sheet=2, skip = 0, na="NA")
 
 # Read data - JE local drive
-# setwd("~/Documents/ACTIVE Research/NCEAS Postdoc/Data/Technical report synthesis")
+setwd("~/Documents/ACTIVE Research/NCEAS Postdoc/Data/Technical report synthesis")
 datadir <- "data"
 datafile <- "Technical_report_synthesis_20Jan22.xlsx"
-data_orig <- readxl::read_excel(file.path(datadir, datafile), sheet=2, skip = 0, na="NA")
+data_raw <- readxl::read_excel(file.path(datadir, datafile), sheet=2, skip = 0, na="NA")
 
-# Format data ----------------------------------------------------------
+
+### Format data ----------------------------------------------------------
+
+# Clean data
+data <- data_raw %>% 
+  # simplify
+  select(Question_ID, DEWG_dimension, Question, Habitat, Indicator, Variable, Method, California, North, Central, N_Channel_Islands, South) %>% # note: not including north central  
+  # arrange
+  arrange(Habitat, Question_ID, Variable)
+
+# Remove notes - "NS; ..." to "NS"
+data$Indicator <- gsub(";.*","",data$Indicator, perl=TRUE)
+data$Variable <- gsub(";.*","",data$Variable, perl=TRUE)
+data$California <- gsub(";.*","",data$California, perl=TRUE)
+data$North <- gsub(";.*","",data$North, perl=TRUE)
+data$Central <- gsub(";.*","",data$Central, perl=TRUE)
+data$N_Channel_Islands <- gsub(";.*","",data$N_Channel_Islands, perl=TRUE)
+data$South <- gsub(";.*","",data$South, perl=TRUE)
+
+
+### Inspect  ----------------------------------------------------------
+colnames(data)
+str(data)
+table(data$Habitat)
+table(data$Question_ID)
+table(data$DEWG_dimension)
 
