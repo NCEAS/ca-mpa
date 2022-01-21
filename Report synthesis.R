@@ -17,10 +17,11 @@ library(janitor)
 library(stringr)
 
 # Read data - Aurora
-data_path <- "/home/shares/ca-mpa/" # [JB, I had to add this in manually via cyberduck, can you get the GD_data to auto sync?]
-input_file <- "Technical_report_synthesis_20Jan22.xlsx"
-data_orig <- readxl::read_excel(file.path(data_path, input_file), sheet=2, skip = 0, na="NA")
-
+data_path <- "/home/shares/ca-mpa" # JB, I had to add the file manually via cyberduck, can you get the GD_data to auto sync?]
+input_file <- "Technical_report_synthesis_20Jan22.xlsx" # added manually, date to note that it's not our live version
+# data_path <- "/home/shares/ca-mpa/GD_data" # JB, ideally this would work
+# input_file <- "Technical_report_synthesis.xlsx" # JB, ideally this would work
+data_raw <- readxl::read_excel(file.path(data_path, input_file), sheet=2, skip = 0, na="NA")
 # Read data - JE local drive
 setwd("~/Documents/ACTIVE Research/NCEAS Postdoc/Data/Technical report synthesis")
 datadir <- "data"
