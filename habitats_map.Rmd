@@ -1,0 +1,26 @@
+---
+title: "maps"
+author: "Julien Brun, NCEAS"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+library(tidyverse)
+library(sf)
+library(tmap)
+```
+
+
+## Reading the data
+
+```{r}
+path_aurora <- "/home/shares/ca-mpa/GD_data/Raw-Data/"
+
+
+```
+
