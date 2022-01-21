@@ -12,11 +12,13 @@ rm(list = ls())
 library(ggplot2)
 library(tidyverse)
 
-# Directories
-# data_path <- "/home/shares/ca-mpa/GD_data/" [couldn't get this to work Julien]
-# input_file <- "Technical_report_synthesis_20Jan22.xlsx"
+# Read data - Aurora
+data_path <- "/home/shares/ca-mpa/" # [JB, I had to add this in manually via cyberduck, can you get the GD_data to auto sync?]
+input_file <- "Technical_report_synthesis_20Jan22.xlsx"
+data_orig <- readxl::read_excel(file.path(data_path, input_file), sheet=2, skip = 0, na="NA")
 
-# Read data
+# Read data - JE local drive
+# setwd("~/Documents/ACTIVE Research/NCEAS Postdoc/Data/Technical report synthesis")
 datadir <- "data"
 datafile <- "Technical_report_synthesis_20Jan22.xlsx"
 data_orig <- readxl::read_excel(file.path(datadir, datafile), sheet=2, skip = 0, na="NA")
