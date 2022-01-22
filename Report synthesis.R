@@ -92,6 +92,7 @@ Q_pie = aggregate(Count ~ Question_ID, data, sum)
 # Variables
 table(data$Variable)
 Var_pie = aggregate(Count ~ Variable, data, sum)
+# -- NOTE -- wonder if this would be helpful (when cleaned; i.e., all biomass refs to 'biomass')
 
 # Method
 table(data$Method)
@@ -113,6 +114,8 @@ ggplot(Method_pie, aes(x = "", y = Count, fill = Method)) +
   theme_void() +
   labs(fill="Methods used")
 
+
+### Plot  ----------------------------------------------------------
 
 
 
