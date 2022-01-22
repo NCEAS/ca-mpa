@@ -15,6 +15,7 @@ library(tidyverse)
 # install.packages("janitor")
 library(janitor)
 library(stringr)
+library(ggrepel)
 
 # Read data - Aurora
 data_path <- "/home/shares/ca-mpa" # 
@@ -49,6 +50,10 @@ data <- data_raw %>%
   # arrange
   arrange(Habitat, Question_ID, Variable)
 
+# Count column
+data = cbind(data,1)
+names(data)[13] = "Count"
+
 # Remove notes - "NS; ..." to "NS"
 data$Indicator <- gsub(";.*","",data$Indicator, perl=TRUE)
 data$Variable <- gsub(";.*","",data$Variable, perl=TRUE)
@@ -62,7 +67,45 @@ data$South <- gsub(";.*","",data$South, perl=TRUE)
 ### Inspect  ----------------------------------------------------------
 colnames(data)
 str(data)
-table(data$Habitat)
 table(data$Question_ID)
+table(data$Habitat)
+
+# DEWG dimension
 table(data$DEWG_dimension)
+DEWG_pie = aggregate(Count ~ DEWG_dimension, data, sum)
+DEWG_pie = DEWG_pie %>% mutate(Percentage = Count/sum(Count)*100)
+DEWG_pie$Percentage <- round(DEWG_pie$Percentage)
+
+ggplot(DEWG_pie, aes(x = "", y = Count, fill = DEWG_dimension)) +
+  geom_col(color = "black") +
+  coord_polar(theta = "y") +
+  scale_fill_brewer() +
+  theme_void() +
+  geom_label_repel(data = DEWG_pie,
+    aes(y = Percentage, label = paste0(Percentage, "%")),
+    size = 3.5, nudge_x = 0, show.legend = FALSE) +
+  labs(fill="DEWG dimension")
+
+# Method
+table(data$Method)
+Method_pie = aggregate(Count ~ Method, data, sum)
+Method_pie[2, 1] <- "ROV/HOV/BRUV"
+Method_pie[4, 1] <- "ROV/HOV/BRUV"
+Method_pie[5, 1] <- "ROV/HOV/BRUV"
+Method_pie[6, 1] <- "ROV/HOV/BRUV"
+Method_pie[7, 1] <- "ROV/HOV/BRUV"
+Method_pie = aggregate(Count ~ Method, Method_pie, sum)
+
+Method_pie = Method_pie %>% mutate(Percentage = Count/sum(Count)*100)
+Method_pie$Percentage <- round(Method_pie$Percentage)
+
+ggplot(Method_pie, aes(x = "", y = Count, fill = Method)) +
+  geom_col(color = "black") +
+  coord_polar(theta = "y") +
+  scale_fill_brewer() +
+  theme_void() +
+  labs(fill="Methods used")
+
+
+
 
