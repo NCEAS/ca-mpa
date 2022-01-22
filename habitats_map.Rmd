@@ -1,6 +1,11 @@
 ---
 title: "maps"
 author: "Julien Brun, NCEAS"
+knit: (function(input_file, encoding) {
+  out_dir <- 'docs';
+  rmarkdown::render(input_file,
+ encoding=encoding,
+ output_file=file.path(dirname(input_file), out_dir, 'ca-mpa_overview_maps.html'))})
 output: html_document
 ---
 
@@ -9,8 +14,9 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 
-```{r}
+```{r libraries, warning=FALSE, message=FALSE}
 library(tidyverse)
+library(purrr)
 library(sf)
 library(tmap)
 ```
@@ -18,9 +24,46 @@ library(tmap)
 
 ## Reading the data
 
-```{r}
+```{r paths}
+
+# Define the paths and file names
+
 path_aurora <- "/home/shares/ca-mpa/GD_data/Raw-Data/"
+shp_dir <- "CeNCOOS_shapefiles/Ecological_Monitoring_Sites"
+shp_path <- file.path(path_aurora, shp_dir)
 
+shp_habitats <- list.files(path = shp_path, pattern = "shp", full.names = TRUE)
 
+shp_ca <- file.path(path_aurora, "CeNCOOS_shapefiles/ca_boundary_wgs84.shp")
+```
+```{r read inputs}
+
+# Read California border
+ca <- st_read(shp_ca)
+
+# Read Habitats sites
+habitat_sites_list <- local_datasets <- map(shp_habitats, ~st_read(.x))
+
+# Make it a named list
+hs_name <- basename(shp_habitats) %>% 
+  str_split(.,"_", n=2) %>% 
+  map_chr(.,1)
+
+habitat_sites_list <- set_names(habitat_sites_list, hs_name)
+
+# Merge into one spatial dataframe
+habitat_sites_all <- habitat_sites_list %>%
+  bind_rows(.id = "source")
+
+```
+
+## Mapping
+
+```{r}
+tm_shape(ca) + 
+  tm_borders("black", lwd = .5) +
+tm_shape(habitat_sites_all) + 
+  tm_symbols(col = "reserve_st", size = "number_sam", scale = .6) + 
+  tm_facets(by = "source", ncol = 3)
 ```
 
