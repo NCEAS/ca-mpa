@@ -67,7 +67,6 @@ data$South <- gsub(";.*","",data$South, perl=TRUE)
 ### Inspect  ----------------------------------------------------------
 colnames(data)
 str(data)
-table(data$Question_ID)
 table(data$Habitat)
 
 # DEWG dimension
@@ -85,6 +84,14 @@ ggplot(DEWG_pie, aes(x = "", y = Count, fill = DEWG_dimension)) +
     aes(y = Percentage, label = paste0(Percentage, "%")),
     size = 3.5, nudge_x = 0, show.legend = FALSE) +
   labs(fill="DEWG dimension")
+
+# DEWG questions
+table(data$Question_ID)
+Q_pie = aggregate(Count ~ Question_ID, data, sum)
+
+# Variables
+table(data$Variable)
+Var_pie = aggregate(Count ~ Variable, data, sum)
 
 # Method
 table(data$Method)
