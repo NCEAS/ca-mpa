@@ -16,6 +16,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r libraries, warning=FALSE, message=FALSE}
 library(tidyverse)
+library(lubridate)
 library(purrr)
 library(sf)
 library(tmap)
@@ -36,6 +37,9 @@ shp_habitats <- list.files(path = shp_path, pattern = "shp", full.names = TRUE)
 
 shp_ca <- file.path(path_aurora, "CeNCOOS_shapefiles/ca_boundary_wgs84.shp")
 ```
+
+
+
 ```{r read inputs}
 
 # Read California border
@@ -51,9 +55,56 @@ hs_name <- basename(shp_habitats) %>%
 
 habitat_sites_list <- set_names(habitat_sites_list, hs_name)
 
+# fix marine names (to be improved)
+names(habitat_sites_list$marine)[1] <- "site_name"
+habitat_sites_list$pisco <- habitat_sites_list$pisco %>%
+  mutate(MPA_REGION = mlpa_regio)
+
+```
+
+```{r clean data}
+# Create missing fields
+
+# estimate site status
+habitat_sites_list$marine <- habitat_sites_list$marine %>%
+  mutate(reserve_st = ifelse(mpa_design == "reference", "REF", "MPA"))
+
+# Region acronym
+habitat_sites_list$marine <- habitat_sites_list$marine %>%
+  mutate(MPA_REGION = case_when( mpa_region == "North Central Coast" ~ "NCCSR",
+                                 mpa_region == "Central Coast" ~ "CCSR",
+                                 mpa_region == "South Coast" ~ "SCSR"
+                                 )
+    )
+
+# Start and en year
+habitat_sites_list$marine <- habitat_sites_list$marine %>%
+  mutate(start_year = year(start_date),
+         end_year = year(end_date)
+         )
+
+
+
+
 # Merge into one spatial dataframe
 habitat_sites_all <- habitat_sites_list %>%
   bind_rows(.id = "source")
+
+
+# Create habitat column from data source
+habitat_sites_all <- habitat_sites_all %>%
+  mutate(habitat = case_when( source == "pisco" ~ "kelp",
+                              source == "marine" ~ "rocky",
+                              source == "ccfrp" ~ "sandy"
+                              )
+         )
+
+# Order the regions from North to South using factors
+habitat_sites_all <- habitat_sites_all %>%
+  mutate(mpa_reg_fact = factor(MPA_REGION, ordered = TRUE, 
+                                levels = c("NCSR", "NCCSR", "CCSR", "SCSR")
+                               )
+         )
 
 ```
 
@@ -64,6 +115,14 @@ tm_shape(ca) +
   tm_borders("black", lwd = .5) +
 tm_shape(habitat_sites_all) + 
   tm_symbols(col = "reserve_st", size = "number_sam", scale = .6) + 
-  tm_facets(by = "source", ncol = 3)
+  tm_facets(by = "habitat", ncol = 3)
 ```
 
+
+```{r}
+tm_shape(ca) + 
+  tm_borders("black", lwd = .5) +
+tm_shape(habitat_sites_all) + 
+  tm_symbols(col = "reserve_st", size = "number_sam", scale = .6) + 
+  tm_facets(by = "mpa_reg_fact", ncol = 2)
+```
