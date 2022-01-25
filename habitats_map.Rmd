@@ -213,7 +213,7 @@ tmap_mode("plot")
 tm_ncsr <- tm_shape(ca) + 
   tm_borders("black", lwd = .5)+ 
 tm_shape(habitat_NCSR_plot) + 
-  tm_symbols(col = "habitat", alpha = 0.3, border.lwd = 0, size = .25, legend.col.show = FALSE, palette= "-Set1") + 
+  tm_symbols(col = "habitat", alpha = 0.3, border.lwd = 0, size = .25, legend.col.show = FALSE, palette= "Dark2") + 
   tm_facets(by = c("reserve_st"), sync = TRUE)
 
 tm_nccsr <- tm_shape(ca) + 
