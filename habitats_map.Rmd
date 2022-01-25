@@ -201,6 +201,8 @@ tm_shape(habitat_SCSR_plot) +
 
 tm_all <- tmap_arrange(tm_ncsr, tm_nccsr, tm_ccsr, tm_scsr)
 
+tm_all
+
 tmap_save(tm_all, filename = "figs/mpa_statussplit_regions.png")
 ```
 
