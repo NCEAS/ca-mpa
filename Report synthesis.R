@@ -124,7 +124,7 @@ ggplot(Method_pie, aes(x = "", y = Count, fill = Method)) +
   labs(fill="Methods used")
 
 
-### Plot  ----------------------------------------------------------
+### Plot CA and Regional trends ----------------------------------------------------------
 
 ### CA-wide
 table(data$California)
@@ -259,3 +259,108 @@ ggplot(S_reg_var, aes(x = South, y = Count, fill = Variable_simplified)) + geom_
   theme(axis.title.y = element_text(vjust=2.5)) +
   theme(axis.text = element_text(color="black")) +
   scale_fill_brewer(palette="Spectral", direction = -1, name = "Variables") + theme(text = element_text(size=15)) + ggtitle("South")
+
+
+### Plot habitat trends ----------------------------------------------------------
+
+### Beach
+beach = subset(data, Habitat == 'Beach')
+
+table(beach$Indicator)
+beach$N_Channel_Islands <- NULL
+beach_long = gather(beach, Region, Significance, California:South, factor_key=TRUE)
+beach_long_reg = aggregate(Count ~ Region + Significance, beach_long, sum)
+beach_long_reg$Significance = factor(beach_long_reg$Significance, levels = c("S decrease", "NS", "S increase"))
+
+ggplot(beach_long_reg, aes(x = Region, y = Count, fill = Significance)) + geom_bar(position="stack", stat = "summary") +
+  theme_classic() +
+  labs(y = expression ("Count of indicators")) + xlab("") +
+  scale_y_continuous(expand= c(0,0)) +
+  theme(axis.text.x = element_text(angle=45,  hjust = 1)) +
+  theme(axis.title.y = element_text(vjust=2.5)) +
+  theme(axis.text = element_text(color="black")) +
+  scale_fill_brewer(palette="RdBu", direction = 1, name = "Significance") + theme(text = element_text(size=15)) + ggtitle("Beach")
+
+
+### Rocky intertidal
+rockint = subset(data, Habitat == 'Rocky intertidal')
+
+table(rockint$Indicator)
+rockint$N_Channel_Islands <- NULL
+rockint_long = gather(rockint, Region, Significance, California:South, factor_key=TRUE)
+rockint_long_reg = aggregate(Count ~ Region + Significance, rockint_long, sum)
+rockint_long_reg$Significance = factor(rockint_long_reg$Significance, levels = c("S decrease", "NS", "S increase"))
+
+ggplot(rockint_long_reg, aes(x = Region, y = Count, fill = Significance)) + geom_bar(position="stack", stat = "summary") +
+  theme_classic() +
+  labs(y = expression ("Count of indicators")) + xlab("") +
+  scale_y_continuous(expand= c(0,0)) +
+  theme(axis.text.x = element_text(angle=45,  hjust = 1)) +
+  theme(axis.title.y = element_text(vjust=2.5)) +
+  theme(axis.text = element_text(color="black")) +
+  scale_fill_brewer(palette="RdBu", direction = 1, name = "Significance") + theme(text = element_text(size=15)) + ggtitle("Rocky intertidal")
+
+
+### Kelp forest
+kelp = subset(data, Habitat == 'Kelp forest')
+names(kelp)[12] = "N Channel Is"
+
+table(kelp$Indicator)
+kelp$California <- NULL
+kelp_long = gather(kelp, Region, Significance, North:South, factor_key=TRUE)
+kelp_long_reg = aggregate(Count ~ Region + Significance, kelp_long, sum)
+kelp_long_reg$Significance = factor(kelp_long_reg$Significance, levels = c("S decrease", "NS decrease", "NS", "NS increase", "S increase"))
+
+ggplot(kelp_long_reg, aes(x = Region, y = Count, fill = Significance)) + geom_bar(position="stack", stat = "summary") +
+  theme_classic() +
+  labs(y = expression ("Count of indicators")) + xlab("") +
+  scale_y_continuous(expand= c(0,0)) +
+  theme(axis.text.x = element_text(angle=45,  hjust = 1)) +
+  theme(axis.title.y = element_text(vjust=2.5)) +
+  theme(axis.text = element_text(color="black")) +
+  scale_fill_brewer(palette="RdBu", direction = 1, name = "Significance") + theme(text = element_text(size=15)) + ggtitle("Kelp forest")
+
+
+### Deep reef
+deep = subset(data, Habitat == 'Deep reef')
+
+table(deep$Indicator)
+deep$N_Channel_Islands <- NULL
+deep_long = gather(deep, Region, Significance, North:South, factor_key=TRUE)
+deep_long = deep_long[-c(23:25), ] # omit 'S difference'
+deep_long_reg = aggregate(Count ~ Region + Significance, deep_long, sum)
+deep_long_reg$Significance = factor(deep_long_reg$Significance, levels = c("S decrease", "NS decrease", "NS", "NS increase", "S increase"))
+
+ggplot(deep_long_reg, aes(x = Region, y = Count, fill = Significance)) + geom_bar(position="stack", stat = "summary") +
+  theme_classic() +
+  labs(y = expression ("Count of indicators")) + xlab("") +
+  scale_y_continuous(expand= c(0,0)) +
+  theme(axis.text.x = element_text(angle=45,  hjust = 1)) +
+  theme(axis.title.y = element_text(vjust=2.5)) +
+  theme(axis.text = element_text(color="black")) +
+  scale_fill_brewer(palette="RdBu", direction = 1, name = "Significance") + theme(text = element_text(size=15)) + ggtitle("Deep reef")
+
+
+### CCFRP
+ccfrp = subset(data, Habitat == 'CCFRP')
+
+table(ccfrp$Indicator)
+ccfrp$N_Channel_Islands <- NULL
+ccfrp_long = gather(ccfrp, Region, Significance, North:South, factor_key=TRUE)
+ccfrp_long_reg = aggregate(Count ~ Region + Significance, ccfrp_long, sum)
+ccfrp_long_reg<-ccfrp_long_reg[!(ccfrp_long_reg$Significance=="NA" | ccfrp_long_reg$Significance=="S difference"),]
+ccfrp_long_reg$Significance = factor(ccfrp_long_reg$Significance, levels = c("S decrease", "NS", "NS increase", "S increase"))
+
+ggplot(ccfrp_long_reg, aes(x = Region, y = Count, fill = Significance)) + geom_bar(position="stack", stat = "summary") +
+  theme_classic() +
+  labs(y = expression ("Count of indicators")) + xlab("") +
+  scale_y_continuous(expand= c(0,0)) +
+  theme(axis.text.x = element_text(angle=45,  hjust = 1)) +
+  theme(axis.title.y = element_text(vjust=2.5)) +
+  theme(axis.text = element_text(color="black")) +
+  scale_fill_manual(name = "Significance", values = c("S decrease"="coral2", "NS"="gray95", "NS increase"="skyblue2", "S increase"="dodgerblue4")) +
+  theme(text = element_text(size=15)) + ggtitle("CCFRP")
+
+
+
+
