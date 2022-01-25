@@ -219,19 +219,19 @@ tm_shape(habitat_NCSR_plot) +
 tm_nccsr <- tm_shape(ca) + 
   tm_borders("black", lwd = .5)+ 
 tm_shape(habitat_NCCSR_plot) + 
-  tm_symbols(col = "habitat", alpha = 0.3, border.lwd = 0, size = .25, legend.col.show = FALSE, palette= "-Set1") + 
+  tm_symbols(col = "habitat", alpha = 0.3, border.lwd = 0, size = .25, legend.col.show = FALSE, palette= "Dark2") + 
   tm_facets(by = c("reserve_st"))
 
 tm_ccsr <- tm_shape(ca) + 
   tm_borders("black", lwd = .5)+ 
 tm_shape(habitat_CCSR_plot) + 
-  tm_symbols(col = "habitat", alpha = 0.3, border.lwd = 0, size = .25, legend.col.show = FALSE, palette= "-Set1") + 
+  tm_symbols(col = "habitat", alpha = 0.3, border.lwd = 0, size = .25, legend.col.show = FALSE, palette= "Dark2") + 
   tm_facets(by = c("reserve_st"), )
 
 tm_scsr <- tm_shape(ca) + 
   tm_borders("black", lwd = .5)+ 
 tm_shape(habitat_SCSR_plot) + 
-  tm_symbols(col = "habitat", alpha = 0.3, border.lwd = 0, size = .25, legend.col.show = FALSE, palette= "-Set1") + 
+  tm_symbols(col = "habitat", alpha = 0.3, border.lwd = 0, size = .25, legend.col.show = FALSE, palette= "Dark2") + 
   tm_facets(by = c("reserve_st"), free.coords = T, inside.original.bbox = F)
 
 tm_all <- tmap_arrange(tm_ncsr, tm_nccsr, tm_ccsr, tm_scsr)
@@ -242,6 +242,41 @@ tmap_save(tm_all, filename = "figs/mpa_habitatsplit_regions.png")
 
 ```
 
+```{r, message=FALSE}
+
+tmap_mode("plot")
+
+tm_ncsr <- tm_shape(ca) + 
+  tm_borders("black", lwd = .5)+ 
+tm_shape(habitat_NCSR_plot) + 
+  tm_symbols(col = "habitat", alpha = 0.3, border.lwd = 0, size = "time_period", scale = .8, legend.col.show = FALSE, legend.size.show = FALSE, palette= "Dark2") + 
+  tm_facets(by = c("reserve_st"), sync = TRUE)
+
+tm_nccsr <- tm_shape(ca) + 
+  tm_borders("black", lwd = .5)+ 
+tm_shape(habitat_NCCSR_plot) + 
+  tm_symbols(col = "habitat", alpha = 0.3, border.lwd = 0, size = "time_period", scale = .8, legend.col.show = FALSE, legend.size.show = FALSE, palette= "Dark2") + 
+  tm_facets(by = c("reserve_st"))
+
+tm_ccsr <- tm_shape(ca) + 
+  tm_borders("black", lwd = .5)+ 
+tm_shape(habitat_CCSR_plot) + 
+  tm_symbols(col = "habitat", alpha = 0.3, border.lwd = 0, size = "time_period", scale = .8, legend.col.show = FALSE, legend.size.show = FALSE, palette= "Dark2") + 
+  tm_facets(by = c("reserve_st"), )
+
+tm_scsr <- tm_shape(ca) + 
+  tm_borders("black", lwd = .5)+ 
+tm_shape(habitat_SCSR_plot) + 
+  tm_symbols(col = "habitat", alpha = 0.3, border.lwd = 0, size = "time_period", title.size = "Time period in years", scale = .8, legend.col.show = F, legend.size.show = F, palette= "Dark2") + 
+  tm_facets(by = c("reserve_st"), free.coords = T, inside.original.bbox = F)
+
+tm_all <- tmap_arrange(tm_ncsr, tm_nccsr, tm_ccsr, tm_scsr)
+
+tm_all
+
+tmap_save(tm_all, filename = "figs/mpa_habitatsplit_regions_tp.png")
+
+```
 
 
 ```{r, message=FALSE}
