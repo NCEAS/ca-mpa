@@ -1,0 +1,307 @@
+---
+title: "maps"
+author: "Julien Brun, NCEAS"
+knit: (function(input_file, encoding) {
+  out_dir <- 'docs';
+  rmarkdown::render(input_file,
+ encoding=encoding,
+ output_file=file.path(dirname(input_file), out_dir, 'ca-mpa_overview_maps.html'))})
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r libraries, warning=FALSE, message=FALSE}
+library(tidyverse)
+library(lubridate)
+library(purrr)
+library(sf)
+library(tmap)
+library(RColorBrewer)
+```
+
+
+## Reading the data
+
+```{r paths}
+
+# Define the paths and file names
+
+path_aurora <- "/home/shares/ca-mpa/GD_data/Raw-Data/"
+shp_dir <- "CeNCOOS_shapefiles/Ecological_Monitoring_Sites"
+shp_path <- file.path(path_aurora, shp_dir)
+
+shp_habitats <- list.files(path = shp_path, pattern = "shp", full.names = TRUE)
+
+shp_ca <- file.path(path_aurora, "CeNCOOS_shapefiles/ca_boundary_wgs84.shp")
+```
+
+
+
+```{r read inputs}
+
+# Read California border
+ca <- st_read(shp_ca)
+
+# Read Habitats sites
+habitat_sites_list <- local_datasets <- map(shp_habitats, ~st_read(.x))
+
+# Make it a named list
+hs_name <- basename(shp_habitats) %>% 
+  str_split(.,"_", n=2) %>% 
+  map_chr(.,1)
+
+habitat_sites_list <- set_names(habitat_sites_list, hs_name)
+
+# fix marine names (to be improved)
+names(habitat_sites_list$marine)[1] <- "site_name"
+habitat_sites_list$pisco <- habitat_sites_list$pisco %>%
+  mutate(MPA_REGION = mlpa_regio)
+
+```
+
+```{r clean data}
+# Create missing fields
+
+# estimate site status
+habitat_sites_list$marine <- habitat_sites_list$marine %>%
+  mutate(reserve_st = ifelse(mpa_design == "reference", "REF", "MPA"))
+
+# Region acronym
+habitat_sites_list$marine <- habitat_sites_list$marine %>%
+  mutate(MPA_REGION = case_when( mpa_region == "North Central Coast" ~ "NCCSR",
+                                 mpa_region == "Central Coast" ~ "CCSR",
+                                 mpa_region == "South Coast" ~ "SCSR"
+                                 )
+    )
+
+# Start and en year
+habitat_sites_list$marine <- habitat_sites_list$marine %>%
+  mutate(start_year = year(start_date),
+         end_year = year(end_date)
+         )
+
+
+
+
+# Merge into one spatial dataframe
+habitat_sites_all <- habitat_sites_list %>%
+  bind_rows(.id = "source")
+
+
+# Create habitat column from data source
+habitat_sites_all <- habitat_sites_all %>%
+  mutate(habitat = case_when( source == "pisco" ~ "kelp",
+                              source == "marine" ~ "rocky",
+                              source == "ccfrp" ~ "sandy"
+                              )
+         )
+
+# Order the regions from North to South using factors
+habitat_sites_all <- habitat_sites_all %>%
+  mutate(mpa_reg_fact = factor(MPA_REGION, ordered = TRUE, 
+                                levels = c("NCSR", "NCCSR", "CCSR", "SCSR")
+                               )
+         )
+
+# Compute the number of years each site has been active
+habitat_sites_all <- habitat_sites_all %>%
+  mutate(time_period = end_year - start_year + 1)
+
+```
+
+## Mapping
+
+### Regions
+
+There are 4 main regions:
+
+```{r, message = FALSE}
+tmap_mode("plot")
+
+tm_reg <- tm_shape(ca) + 
+  tm_borders("black", lwd = .5) +
+tm_shape(habitat_sites_all) + 
+  tm_symbols(col = "mpa_reg_fact",  alpha = 0.8, border.lwd = 0, size = .1, title.col = "Main Regions", palette = "PiYG")
+
+tm_reg
+
+
+tmap_save(tm_reg, filename = "figs/mpa_regions.png")
+
+```
+
+```{r, message = FALSE}
+tmap_mode("plot")
+
+tm_hab <- tm_shape(ca) + 
+  tm_borders("black", lwd = .5) +
+tm_shape(habitat_sites_all) + 
+  tm_symbols(col = "time_period",  alpha = 0.5, border.lwd = 0, size = .25, title.col = "Time period in years", palette = "-Spectral") +
+  tm_facets(by = "habitat", ncol = 3)
+
+tm_hab
+
+
+tmap_save(tm_hab, filename = "figs/mpa_timeperiod_habitats.png")
+
+```
+
+
+```{r}
+habitat_NCSR_plot <- habitat_sites_all %>% 
+  # filter(!is.na(mpa_reg_fact)) #%>%
+  filter(mpa_reg_fact == "NCSR")
+
+habitat_NCCSR_plot <- habitat_sites_all %>% 
+  # filter(!is.na(mpa_reg_fact)) #%>%
+  filter(mpa_reg_fact == "NCCSR") 
+  
+
+habitat_CCSR_plot <- habitat_sites_all %>% 
+  # filter(!is.na(mpa_reg_fact)) #%>%
+  filter(mpa_reg_fact == "CCSR") %>%
+  filter(reserve_st != "MPA/REF") 
+
+
+habitat_SCSR_plot <- habitat_sites_all %>% 
+  # filter(!is.na(mpa_reg_fact)) #%>%
+  filter(mpa_reg_fact == "SCSR") %>%
+  filter(reserve_st != "MPA/REF") 
+
+
+
+tmap_mode("plot")
+
+tm_ncsr <- tm_shape(ca) + 
+  tm_borders("black", lwd = .5)+ 
+tm_shape(habitat_NCSR_plot) + 
+  tm_symbols(col = "reserve_st", alpha = 0.3, border.lwd = 0, size = .25, legend.col.show = FALSE, palette= "-Set2") + 
+  tm_facets(by = c("reserve_st"), sync = TRUE)
+
+tm_nccsr <- tm_shape(ca) + 
+  tm_borders("black", lwd = .5)+ 
+tm_shape(habitat_NCCSR_plot) + 
+  tm_symbols(col = "reserve_st", alpha = 0.3, border.lwd = 0, size = .25, legend.col.show = FALSE, palette= "-Set2") + 
+  tm_facets(by = c("reserve_st"))
+
+tm_ccsr <- tm_shape(ca) + 
+  tm_borders("black", lwd = .5)+ 
+tm_shape(habitat_CCSR_plot) + 
+  tm_symbols(col = "reserve_st", alpha = 0.3, border.lwd = 0, size = .25, legend.col.show = FALSE, palette= "-Set2") + 
+  tm_facets(by = c("reserve_st"), )
+
+tm_scsr <- tm_shape(ca) + 
+  tm_borders("black", lwd = .5)+ 
+tm_shape(habitat_SCSR_plot) + 
+  tm_symbols(col = "reserve_st", alpha = 0.3, border.lwd = 0, size = .25, legend.col.show = FALSE, palette= "-Set2") + 
+  tm_facets(by = c("reserve_st"), free.coords = T, inside.original.bbox = F)
+
+tm_all <- tmap_arrange(tm_ncsr, tm_nccsr, tm_ccsr, tm_scsr)
+
+tm_all
+
+tmap_save(tm_all, filename = "figs/mpa_statussplit_regions.png")
+```
+
+```{r, message=FALSE}
+
+tmap_mode("plot")
+
+color_ramp <- c("mediumaquamarine", "purple", "red3")
+
+tm_ncsr <- tm_shape(ca) + 
+  tm_borders("black", lwd = .5)+ 
+tm_shape(habitat_NCSR_plot) + 
+  tm_symbols(col = "habitat", alpha = 0.3, border.lwd = 0, size = .25, legend.col.show = FALSE, palette= color_ramp) + 
+  tm_facets(by = c("reserve_st"), sync = TRUE)
+
+tm_nccsr <- tm_shape(ca) + 
+  tm_borders("black", lwd = .5)+ 
+tm_shape(habitat_NCCSR_plot) + 
+  tm_symbols(col = "habitat", alpha = 0.3, border.lwd = 0, size = .25, legend.col.show = FALSE, palette= color_ramp) + 
+  tm_facets(by = c("reserve_st"))
+
+tm_ccsr <- tm_shape(ca) + 
+  tm_borders("black", lwd = .5)+ 
+tm_shape(habitat_CCSR_plot) + 
+  tm_symbols(col = "habitat", alpha = 0.3, border.lwd = 0, size = .25, legend.col.show = FALSE, palette= color_ramp) + 
+  tm_facets(by = c("reserve_st"), )
+
+tm_scsr <- tm_shape(ca) + 
+  tm_borders("black", lwd = .5)+ 
+tm_shape(habitat_SCSR_plot) + 
+  tm_symbols(col = "habitat", alpha = 0.3, border.lwd = 0, size = .25, legend.col.show = FALSE, palette= color_ramp) + 
+  tm_facets(by = c("reserve_st"), free.coords = T, inside.original.bbox = F)
+
+tm_all <- tmap_arrange(tm_ncsr, tm_nccsr, tm_ccsr, tm_scsr)
+
+tm_all
+
+tmap_save(tm_all, filename = "figs/mpa_habitatsplit_regions.png")
+
+```
+
+```{r, message=FALSE, warning=FALSE}
+
+tmap_mode("plot")
+
+color_ramp <- c("mediumaquamarine", "purple", "red3")
+
+tm_ncsr <- tm_shape(ca) + 
+  tm_borders("black", lwd = .5)+ 
+tm_shape(habitat_NCSR_plot) + 
+  tm_symbols(col = "habitat", alpha = 0.3, border.lwd = 0, size = "time_period", scale = .8, legend.col.show = FALSE, legend.size.show = FALSE, palette= color_ramp) + 
+  tm_facets(by = c("reserve_st"), sync = TRUE)
+
+tm_nccsr <- tm_shape(ca) + 
+  tm_borders("black", lwd = .5)+ 
+tm_shape(habitat_NCCSR_plot) + 
+  tm_symbols(col = "habitat", alpha = 0.3, border.lwd = 0, size = "time_period", scale = .8, legend.col.show = FALSE, legend.size.show = FALSE, palette= color_ramp) + 
+  tm_facets(by = c("reserve_st"))
+
+tm_ccsr <- tm_shape(ca) + 
+  tm_borders("black", lwd = .5)+ 
+tm_shape(habitat_CCSR_plot) + 
+  tm_symbols(col = "habitat", alpha = 0.3, border.lwd = 0, size = "time_period", scale = .8, legend.col.show = FALSE, legend.size.show = FALSE, palette= color_ramp) + 
+  tm_facets(by = c("reserve_st"), )
+
+tm_scsr <- tm_shape(ca) + 
+  tm_borders("black", lwd = .5)+ 
+tm_shape(habitat_SCSR_plot) + 
+  tm_symbols(col = "habitat", alpha = 0.3, border.lwd = 0, size = "time_period", title.size = "Time period in years", scale = .8, legend.col.show = FALSE, legend.size.show = FALSE, palette= color_ramp) + 
+  tm_facets(by = c("reserve_st"), free.coords = , inside.original.bbox = F)
+
+tm_all <- tmap_arrange(tm_ncsr, tm_nccsr, tm_ccsr, tm_scsr)
+
+tm_all
+
+tmap_save(tm_all, filename = "figs/mpa_habitatsplit_regions_tp.png")
+
+```
+
+
+```{r, message=FALSE}
+
+tmap_mode("plot")
+
+habitat_reg_plot <- habitat_sites_all %>% 
+  filter(!is.na(mpa_reg_fact)) %>%
+  filter(reserve_st != "MPA/REF") 
+  
+  
+
+tm_starreg <- tm_shape(ca) + 
+  tm_borders("black", lwd = .5) +
+    tm_shape(habitat_reg_plot) + 
+  tm_symbols(col = "reserve_st", alpha = 0.8, border.lwd = 0, size = .1, title.col = "Site Status", palette= "-Set2") + 
+    tm_facets(by = "mpa_reg_fact", ncol = 2, sync = TRUE, scale.factor = 6)
+
+tm_starreg
+
+tmap_save(tm_starreg, filename = "figs/mpa_status_regions.png")
+```
+
