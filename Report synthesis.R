@@ -6,7 +6,6 @@
 # Clear workspace
 rm(list = ls())
 
-
 ### Initialization ----------------------------------------------------------
 
 # Packages
@@ -24,21 +23,11 @@ input_file <- "Technical_report_synthesis_21Jan22.xlsx"
 # input_file <- "Technical_report_synthesis.xlsx"
 data_raw <- readxl::read_excel(file.path(data_path, input_file), sheet=2, skip = 0, na="NA")
 
-# Read data - JE local drive
+# Read data - Jacob's local drive [ok to delete]
 setwd("~/Documents/ACTIVE Research/NCEAS Postdoc/Data/Technical report synthesis")
 datadir <- "data"
 datafile <- "Technical_report_synthesis_24Jan22.xlsx"
 data_raw <- readxl::read_excel(file.path(datadir, datafile), sheet=2, skip = 0, na="NA")
-
-# Read data - Google Drive [didn't work]
-# install.packages("googlesheets4")
-# library("googlesheets4")
-# install.packages("devtools")
-# library("devtools")
-# install.packages("cli")
-# library("cli")
-# devtools::install_github("tidyverse/googlesheets4")
-# read_sheet("https://docs.google.com/spreadsheets/d/11jLgsWK0MufVpPq3j1YZQn0ClBLep-twFu3mcgHZ87U/edit#gid=2010159463")
 
 
 ### Format data ----------------------------------------------------------
