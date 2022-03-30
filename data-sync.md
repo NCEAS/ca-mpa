@@ -13,7 +13,7 @@ The folder on Aurora it is syncing to is:
 ### Update Aurora's content
 
 The command to update the folder on Aurora from Google Drive: 
- **Should be run inside the `Raw-Data` folder on Aurora**
+ **Should be run inside the `sync-data` folder on Aurora**
 
 `rclone --config="rclone_mpa.conf" copy mpa-gd-data: .`
 
