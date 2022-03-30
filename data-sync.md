@@ -8,7 +8,7 @@ Path on the WG Google Drive:
 
 The folder on Aurora it is syncing to is:  
 
-`/home/shares/ca-mpa/GD_data/Raw-Data`
+`/home/shares/ca-mpa/data/sync-data`
 
 ### Update Aurora's content
 
