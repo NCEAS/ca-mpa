@@ -8,12 +8,12 @@ Path on the WG Google Drive:
 
 The folder on Aurora it is syncing to is:  
 
-`/home/shares/ca-mpa/GD_data/Raw-Data`
+`/home/shares/ca-mpa/data/sync-data`
 
 ### Update Aurora's content
 
 The command to update the folder on Aurora from Google Drive: 
- **Should be run inside the `Raw-Data` folder on Aurora**
+ **Should be run inside the `sync-data` folder on Aurora**
 
-`rclone copy mpa-gd-data: .`
+`rclone --config="rclone_mpa.conf" copy mpa-gd-data: .`
 
