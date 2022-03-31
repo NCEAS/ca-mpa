@@ -21,19 +21,20 @@ library(reshape2)
 ```
 
 Import and initialize data
-**replace with actual data**
 ```{r}
-setwd("/home/joshsmith/MPA Project data")
-test.data <- read.csv("Q1_test_data.csv")
-head(test.data)
+data_path <- "/home/shares/ca-mpa/data/sync-data"
+input_file <- "Ecol_perform_metrics.xlsx" 
+
+meta.data <- readxl::read_excel(file.path(data_path, input_file), sheet=1, skip = 0, na="NA")
+
 ```
 
 
 Calculate means for each variable and indicator at the state and regional level
 ```{r}
 #calculate state level means 
-test.data$mpa_designation<- recode_factor(test.data$mpa_designation,SMCA="MPA",SMR="MPA") ###========consider "SMCA" and "SMR" as "MPA"========##
-state.means<- test.data%>% 
+meta.data$mpa_designation<- recode_factor(meta.data$mpa_designation, SC="MPA", SMR_SMCA="MPA", SMCA="MPA",SMR="MPA") ###========consider "SMCA" and "SMR" as "MPA"========##
+state.means<- meta.data%>% 
               group_by(group,mpa_designation,variable,indicator)%>%
               summarize(group.mean = mean(mean,na.rm=TRUE), 
                         sd=sd(mean), # standard deviation of across MPAs where indicator was observed/recorded. 
@@ -45,37 +46,101 @@ state.means<- test.data%>%
 
 #calculate region level means
 
-region.means<- test.data%>%
+region.means<- meta.data%>%
   group_by(group,mlpa_region, mpa_designation,variable,indicator)%>%
-  summarize(MPA_mean = mean(mean,na.rm=TRUE), 
+  summarize(group.mean = mean(mean,na.rm=TRUE), 
             sd=sd(mean), # standard deviation of across MPAs where indicator was observed/recorded
-            n=n())#no. MPA 'sites' where year is unit of rep
+            n=n()) %>%
+  pivot_wider(names_from = mpa_designation,
+              values_from = c(group.mean, sd, n)
+  )
+     
 region.means
 ```
 
-***Part 1 - Meta analyses using SMD***
+***Part 1 - Meta analyses using SMD on state-level and regional regulatory status***
+
 
 #subset focal response metrics of interest
 ```{r}
-state.biomass<- state.means %>%
-  filter(variable=="Targetted Fish", indicator == "Biomass")
+#state.biomass<- state.means %>%
+  #filter(variable=="Targetted Fish", indicator == "Biomass")
 
-state.richness<- state.means %>%
-  filter(variable=="all species", indicator == "richness")
+#Diversity state level
+state.means$indicator<- recode_factor(state.means$indicator, Diversity="diversity")
+
+diversity.statelevel<- state.means %>%
+  filter(variable=="all species"| variable=="All Fish",
+           indicator == "diversity")
+
+#Diversity region level
+region.means$indicator<- recode_factor(region.means$indicator, Diversity="diversity")
+
+diversity.north<- region.means %>%
+  filter(mlpa_region=="North",
+    variable=="all species"| variable=="All Fish",
+           indicator == "diversity")
+
+diversity.cen<- region.means %>%
+  filter(mlpa_region=="Central",
+    variable=="all species"| variable=="All Fish",
+           indicator == "diversity")
+
+diversity.south<- region.means %>%
+  filter(mlpa_region=="South",
+    variable=="all species"| variable=="All Fish",
+           indicator == "diversity")
 
 
-state.diversity<- state.means %>%
-  filter(variable=="all species", indicator == "diversity")
+#Richness state level
+state.means$indicator<- recode_factor(state.means$indicator, Richness="richness")
+
+richness.statelevel<- state.means %>%
+  filter(variable=="all species"| variable=="All Fish",
+           indicator == "richness")
+
+#Richness region level
+region.means$indicator<- recode_factor(region.means$indicator, Richness="richness")
+
+richness.north<- region.means %>%
+  filter(mlpa_region=="North",
+    variable=="all species"| variable=="All Fish",
+           indicator == "richness")
+
+richness.cen<- region.means %>%
+  filter(mlpa_region=="Central",
+    variable=="all species"| variable=="All Fish",
+           indicator == "richness")
+
+richness.south<- region.means %>%
+  filter(mlpa_region=="South",
+    variable=="all species"| variable=="All Fish",
+           indicator == "richness")
 
 ```
 
-#prepare SMD and calculate effect size
+#prepare SMD and calculate effect size for Diversity
 #replace "data=" with subset data of interest. 
 ```{r}
+#Diversity
+#Overall state level
+smd_state.H <- escalc(measure="SMD", m1i=group.mean_MPA, m2i=group.mean_REF, sd1i=sd_MPA, sd2i=sd_REF, n1i=n_MPA, n2i=n_REF, data=diversity.statelevel) 
+smd.reml.H <- rma(yi,vi,method="REML", data=smd_state.H, slab=paste(group)) 
 
-smd_state <- escalc(measure="SMD", m1i=group.mean_MPA, m2i=group.mean_reference, sd1i=sd_MPA, sd2i=sd_reference, n1i=n_MPA, n2i=n_reference, data=state.biomass) 
 
-smd.state.reml <- rma(yi,vi,method="REML", data=smd_state, slab=paste(group)) 
+#North
+smd_regionNorth.H <- escalc(measure="SMD", m1i=group.mean_MPA, m2i=group.mean_REF, sd1i=sd_MPA, sd2i=sd_REF, n1i=n_MPA, n2i=n_REF, data=diversity.north) 
+smd.remlN.H <- rma(yi,vi,method="REML", data=smd_regionNorth.H, slab=paste(group)) 
+
+
+#Central
+smd_regionCen.H <- escalc(measure="SMD", m1i=group.mean_MPA, m2i=group.mean_REF, sd1i=sd_MPA, sd2i=sd_REF, n1i=n_MPA, n2i=n_REF, data=diversity.cen) 
+smd.remlC.H <- rma(yi,vi,method="REML", data=smd_regionCen, slab=paste(group)) 
+
+#South
+smd_regionSouth.H <- escalc(measure="SMD", m1i=group.mean_MPA, m2i=group.mean_REF, sd1i=sd_MPA, sd2i=sd_REF, n1i=n_MPA, n2i=n_REF, data=diversity.south) 
+smd.remlS.H <- rma(yi,vi,method="REML", data=smd_regionSouth, slab=paste(group)) 
+
 
 predint<-function(x,pi){
   alpha<-(1-(pi*.01))/2
@@ -86,19 +151,119 @@ predint<-function(x,pi){
   paste(pi, "%prediction interval:",round(lo, digits=2), ",",round(hi, digits=2))
 }
 
-predint(smd.state.reml,95) 
+predint(smd.reml.H,95) 
+predint(smd.remlN.H,95) 
+predint(smd.remlC.H,95)
+predint(smd.remlS.H,95)
 
 ```
 
-#generate forest plot
+
+
+#prepare SMD and calculate effect size for richness
+#replace "data=" with subset data of interest. 
 ```{r}
-forest(smd.state.reml, order="obs")  
-text(x =-2, y = 7.2, "Biomass",  pos=2, font=4)
-text(x =-1, y = 6.5, "MPA",  pos=2, col="red", font=2)
-text(x =2, y = 6.5, "REF",  pos=2, col="blue", font=2)
-text(x=8.6, y=6.5,pos=2, "SMD", font=2)
-text(x=11, y=6.5,pos=2, "[95% CI]", font=2)
+#Overall state level
+smd_state.R <- escalc(measure="SMD", m1i=group.mean_MPA, m2i=group.mean_REF, sd1i=sd_MPA, sd2i=sd_REF, n1i=n_MPA, n2i=n_REF, data=richness.statelevel) 
+smd.reml.R <- rma(yi,vi,method="REML", data=smd_state.R, slab=paste(group)) 
+
+
+#North
+smd_regionNorth.R <- escalc(measure="SMD", m1i=group.mean_MPA, m2i=group.mean_REF, sd1i=sd_MPA, sd2i=sd_REF, n1i=n_MPA, n2i=n_REF, data=richness.north) 
+smd.remlN.R <- rma(yi,vi,method="REML", data=smd_regionNorth.R, slab=paste(group)) 
+
+
+#Central
+smd_regionCen.R <- escalc(measure="SMD", m1i=group.mean_MPA, m2i=group.mean_REF, sd1i=sd_MPA, sd2i=sd_REF, n1i=n_MPA, n2i=n_REF, data=richness.cen) 
+smd.remlC.R <- rma(yi,vi,method="REML", data=smd_regionCen.R, slab=paste(group)) 
+
+#South
+smd_regionSouth.R <- escalc(measure="SMD", m1i=group.mean_MPA, m2i=group.mean_REF, sd1i=sd_MPA, sd2i=sd_REF, n1i=n_MPA, n2i=n_REF, data=richness.south) 
+smd.remlS.R <- rma(yi,vi,method="REML", data=smd_regionSouth.R, slab=paste(group)) 
+
+
+predint<-function(x,pi){
+  alpha<-(1-(pi*.01))/2
+  t<-abs(qt(alpha,(x$k-1)))
+  sdp<- sqrt(x$se^2+x$tau2)
+  lo<- x$b-(sdp*t)
+  hi<- x$b+(sdp*t)
+  paste(pi, "%prediction interval:",round(lo, digits=2), ",",round(hi, digits=2))
+}
+
+predint(smd.reml.R,95) 
+predint(smd.remlN.R,95) 
+predint(smd.remlC.R,95)
+predint(smd.remlS.R,95)
+
 ```
+
+
+
+#generate forest plots for diversity
+```{r}
+
+forest(smd.reml.H, order="obs", xlim=c(-1.7,2.5), ylim=c(-2,8), cex=1)  
+text(x =-0.8, y = 7, "Diversity Overall",  pos=2, font=4, cex=1)
+text(x =-0.3, y = 6.5, "REF",  pos=2, col="blue", font=2)
+text(x =0.6, y = 6.5, "MPA",  pos=2, col="red ", font=2)
+text(x=1.95, y=6.5,pos=2, "SMD", font=2)
+text(x=2.5, y=6.5,pos=2, "[95% CI]", font=2)
+
+forest(smd.remlN.H, order="obs", xlim=c(-1.7,2.5), ylim=c(-2,8), cex=1)  
+text(x =-1, y = 7, "Diversity North",  pos=2, font=4, cex=1)
+text(x =-0.3, y = 6.5, "REF",  pos=2, col="blue", font=2)
+text(x =0.6, y = 6.5, "MPA",  pos=2, col="red ", font=2)
+text(x=1.95, y=6.5,pos=2, "SMD", font=2)
+text(x=2.5, y=6.5,pos=2, "[95% CI]", font=2)
+
+forest(smd.remlC.H, order="obs", xlim=c(-1.6,2.5), ylim=c(-2,8), cex=1)  
+text(x =-0.6, y = 7, "Diversity Central",  pos=2, font=4, cex=1)
+text(x =-0.3, y = 6.5, "REF",  pos=2, col="blue", font=2)
+text(x =0.6, y = 6.5, "MPA",  pos=2, col="red ", font=2)
+text(x=1.95, y=6.5,pos=2, "SMD", font=2)
+text(x=2.5, y=6.5,pos=2, "[95% CI]", font=2)
+
+forest(smd.remlS.H, order="obs", xlim=c(-1.6,2.5), ylim=c(-2,8), cex=1)  
+text(x =-0.6, y = 7, "Diversity South",  pos=2, font=4, cex=1)
+text(x =-0.3, y = 6.5, "REF",  pos=2, col="blue", font=2)
+text(x =0.6, y = 6.5, "MPA",  pos=2, col="red ", font=2)
+text(x=1.95, y=6.5,pos=2, "SMD", font=2)
+text(x=2.5, y=6.5,pos=2, "[95% CI]", font=2)
+```
+
+#generate forest plots for richness
+```{r}
+
+forest(smd.reml.R, order="obs", xlim=c(-1.7,2.5), ylim=c(-2,8), cex=1)  
+text(x =-0.8, y = 7, "Richness Overall",  pos=2, font=4, cex=1)
+text(x =-0.3, y = 6.5, "REF",  pos=2, col="blue", font=2)
+text(x =0.6, y = 6.5, "MPA",  pos=2, col="red ", font=2)
+text(x=1.95, y=6.5,pos=2, "SMD", font=2)
+text(x=2.5, y=6.5,pos=2, "[95% CI]", font=2)
+
+forest(smd.remlN.R, order="obs", xlim=c(-1.7,2.5), ylim=c(-2,8), cex=1)  
+text(x =-1, y = 7, "Richness North",  pos=2, font=4, cex=1)
+text(x =-0.3, y = 6.5, "REF",  pos=2, col="blue", font=2)
+text(x =0.6, y = 6.5, "MPA",  pos=2, col="red ", font=2)
+text(x=1.95, y=6.5,pos=2, "SMD", font=2)
+text(x=2.5, y=6.5,pos=2, "[95% CI]", font=2)
+
+forest(smd.remlC.R, order="obs", xlim=c(-1.6,2.5), ylim=c(-2,8), cex=1)  
+text(x =-0.6, y = 7, "Richness Central",  pos=2, font=4, cex=1)
+text(x =-0.3, y = 6.5, "REF",  pos=2, col="blue", font=2)
+text(x =0.6, y = 6.5, "MPA",  pos=2, col="red ", font=2)
+text(x=1.95, y=6.5,pos=2, "SMD", font=2)
+text(x=2.5, y=6.5,pos=2, "[95% CI]", font=2)
+
+forest(smd.remlS.R, order="obs", xlim=c(-1.6,2.5), ylim=c(-2,8), cex=1)  
+text(x =-0.6, y = 7, "Richness South",  pos=2, font=4, cex=1)
+text(x =-0.3, y = 6.5, "REF",  pos=2, col="blue", font=2)
+text(x =0.6, y = 6.5, "MPA",  pos=2, col="red ", font=2)
+text(x=1.95, y=6.5,pos=2, "SMD", font=2)
+text(x=2.5, y=6.5,pos=2, "[95% CI]", font=2)
+```
+
 
 
 
@@ -109,7 +274,7 @@ This analysis uses a t-test on before/after means and compares treatment (MPA) a
 
 #calculate MPA-level means across all years 
 ```{r}
-MPA.means<- test.data%>%
+MPA.means<- meta.data%>%
   group_by(group,mlpa_region, affiliated_mpa, mpa_designation,variable,indicator)%>%
   summarize(MPA_mean = mean(mean,na.rm=TRUE), 
             sd=sd(mean), # standard deviation of across MPAs where indicator was observed/recorded
@@ -118,10 +283,11 @@ MPA.means<- test.data%>%
             values_from = c(MPA_mean, sd, n)
             #names_glue = "{mpa_designation}_{value}")
 )
+MPA.means
 ```
 
 #create function to calculate t statistic using input means, rather than point data.
-#one-tailed test for m2>m1 where m1=REF and m2=MPA
+#function is for one-tailed test for m2>m1 where m1=REF and m2=MPA
 ```{r}
 
 # m1, m2: the sample means
@@ -159,7 +325,7 @@ t.test2 <- function(m1,m2,s1,s2,n1,n2,m0=0,equal.variance=FALSE)
 #t-test on m2>m1. Results could be structural or emergent effects. 
 ```{r}
 
-t.output<-t.test2(MPA.means$MPA_mean_reference, MPA.means$MPA_mean_MPA, MPA.means$sd_reference, MPA.means$sd_MPA, MPA.means$n_reference, MPA.means$n_MPA)
+t.output<-t.test2(MPA.means$MPA_mean_REF, MPA.means$MPA_mean_MPA, MPA.means$sd_REF, MPA.means$sd_MPA, MPA.means$n_REF, MPA.means$n_MPA)
 
 (model.output<-as.data.frame(cbind(MPA.means,t.output)))
 ```
@@ -168,7 +334,7 @@ t.output<-t.test2(MPA.means$MPA_mean_reference, MPA.means$MPA_mean_MPA, MPA.mean
 ```{r}
 
 #calculate MPA means before and after regulatory implementation. n= no. years sampled. 
-pre.post.means<- as.data.frame(test.data%>% 
+pre.post.means<- as.data.frame(meta.data%>% 
   group_by(group, mlpa_region, affiliated_mpa, mpa_designation,variable,indicator,survey_period)%>%
   summarize(group.mean = mean(mean,na.rm=TRUE), 
             sd=sd(mean), # standard deviation of across MPA survey years. 
@@ -180,11 +346,12 @@ pre.post.means<- as.data.frame(test.data%>%
 
 
 #conduct t-test and store results
-t.output<-t.test2(pre.post.means$group.mean_Before, pre.post.means$group.mean_After, pre.post.means$sd_Before, pre.post.means$sd_After, pre.post.means$n_Before, pre.post.means$n_After)
+t.output<-t.test2(pre.post.means$group.mean_before, pre.post.means$group.mean_after, pre.post.means$sd_before, pre.post.means$sd_after, pre.post.means$n_before, pre.post.means$n_after)
 
 (model.output<-as.data.frame(cbind(pre.post.means,t.output)))
 
 #restructure model output for "OR" {metafor}
+
 OR.table<- model.output%>%
   group_by(group,mpa_designation,variable,indicator)%>%
             summarise(
@@ -197,14 +364,18 @@ OR.table<- model.output%>%
 
 #select focal response variable and indicators
 ```{r}
-OR.biomass<- OR.table %>%
-  filter(variable=="Targetted Fish", indicator == "Biomass")
+OR.table$indicator<- recode_factor(state.means$indicator, Diversity="diversity")
+OR.table$indicator<- recode_factor(state.means$indicator, Richness="richness")
+OR.diversity<- OR.table %>%
+  filter(variable=="All Fish", 
+         variable=="all species",
+         indicator == "Diversity")
 ```
 
 #odds ratio meta analysis
 ```{r}
 #OR_state <- escalc(measure="OR", ai=sig_MPA, bi=(n_rep_MPA-sig_MPA), ci=sig_reference, di=(n_rep_reference-sig_reference), data=OR.biomass)
-OR_state <- escalc(measure="OR", ai=sig_reference, bi=(n_rep_reference), ci=sig_MPA, di=n_rep_MPA, data=OR.biomass)
+OR_state <- escalc(measure="OR", ai=sig_REF, bi=n_rep_REF, ci=sig_MPA, di=n_rep_MPA, data=OR.diversity)
 or.rma <- rma(yi,vi,method="REML", data=OR_state, slab=paste(group))
 forest(or.rma)
 or.state.reml <- rma(yi,vi,method="REML", data=OR_state, slab=paste(group))
@@ -218,6 +389,7 @@ text(x =2.5, y = 6.5, "REF",  pos=2, col="blue", font=2)
 text(x=8.6, y=6.5,pos=2, "SMD", font=2)
 text(x=11, y=6.5,pos=2, "[95% CI]", font=2)
 ```
+
 
 
 
