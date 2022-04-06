@@ -13,7 +13,7 @@ library(readxl)
 library(janitor)
 library(here)
 
-share_path <- "/home/shares/ca-mpa/GD_data/Raw-Data"
+share_path <- "/home/shares/ca-mpa/data/sync-data"
 ```
 
 # About
@@ -21,6 +21,9 @@ share_path <- "/home/shares/ca-mpa/GD_data/Raw-Data"
 This document contains the code for analyzing the questions related to habitat and functional diversity.
 
 # Data
+
+- 
+- 
 
 # MPA-Level Habitat Characteristics
 
@@ -93,6 +96,22 @@ ggplot(data = habitat_long) +
   facet_wrap(~bioregion)
 ```
 
+# MPA-Level Monitoring Sites/Years
+
+```{r}
+monitor_raw <- read_excel(here::here(share_path, "ltm-site-table-cleaned.xlsx"))
+```
+
+## Create Site Table
+
+```{r}
+monitor <- monitor_raw %>% 
+  clean_names() %>% 
+  filter(mlpa_region == "SOUTH")
+
+ggplot(data = monitor) +
+  geom_point(aes(
+```
 
 
 To do:
