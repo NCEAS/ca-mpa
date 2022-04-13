@@ -1,0 +1,147 @@
+---
+title: "means-map"
+author: "Julien Brun"
+knit: (function(input_file, encoding) {
+  out_dir <- 'docs';
+  rmarkdown::render(input_file,
+ encoding=encoding,
+ output_file=file.path(dirname(input_file), out_dir, 'means_maps.html'))})
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r libraries, warning=FALSE, message=FALSE}
+library(tidyverse)
+library(lubridate)
+library(purrr)
+library(sf)
+library(tmap)
+library(RColorBrewer)
+```
+
+## Reading the data
+
+```{r paths}
+
+# Define the paths and file names
+
+path_aurora <- "/home/shares/ca-mpa/data/sync-data/"
+shp_dir <- "CeNCOOS_shapefiles/Ecological_Monitoring_Sites"
+shp_path <- file.path(path_aurora, shp_dir)
+
+shp_habitats <- list.files(path = shp_path, pattern = "shp", full.names = TRUE)
+
+shp_ca <- file.path(path_aurora, "CeNCOOS_shapefiles/ca_boundary_wgs84.shp")
+```
+
+
+
+```{r read inputs}
+
+# Read California border
+ca <- st_read(shp_ca)
+
+# Read Habitats sites
+habitat_sites_list <- local_datasets <- map(shp_habitats, ~st_read(.x))
+
+# Make it a named list
+hs_name <- basename(shp_habitats) %>% 
+  str_split(.,"_", n=2) %>% 
+  map_chr(.,1)
+
+habitat_sites_list <- set_names(habitat_sites_list, hs_name)
+
+# fix marine names (to be improved)
+names(habitat_sites_list$marine)[1] <- "site_name"
+habitat_sites_list$pisco <- habitat_sites_list$pisco %>%
+  mutate(MPA_REGION = mlpa_regio)
+
+```
+
+```{r clean data}
+# Create missing fields
+
+# estimate site status
+habitat_sites_list$marine <- habitat_sites_list$marine %>%
+  mutate(reserve_st = ifelse(mpa_design == "reference", "REF", "MPA"))
+
+# Region acronym
+habitat_sites_list$marine <- habitat_sites_list$marine %>%
+  mutate(MPA_REGION = case_when( mpa_region == "North Central Coast" ~ "NCCSR",
+                                 mpa_region == "Central Coast" ~ "CCSR",
+                                 mpa_region == "South Coast" ~ "SCSR"
+                                 )
+    )
+
+# Start and en year
+habitat_sites_list$marine <- habitat_sites_list$marine %>%
+  mutate(start_year = year(start_date),
+         end_year = year(end_date)
+         )
+
+
+
+
+# Merge into one spatial dataframe
+habitat_sites_all <- habitat_sites_list %>%
+  bind_rows(.id = "source")
+
+
+# Create habitat column from data source
+habitat_sites_all <- habitat_sites_all %>%
+  mutate(habitat = case_when( source == "pisco" ~ "kelp",
+                              source == "marine" ~ "rocky",
+                              source == "ccfrp" ~ "sandy"
+                              )
+         )
+
+# Order the regions from North to South using factors
+habitat_sites_all <- habitat_sites_all %>%
+  mutate(mpa_reg_fact = factor(MPA_REGION, ordered = TRUE, 
+                                levels = c("NCSR", "NCCSR", "CCSR", "SCSR")
+                               )
+         )
+
+# Compute the number of years each site has been active
+habitat_sites_all <- habitat_sites_all %>%
+  mutate(time_period = end_year - start_year + 1)
+
+```
+
+
+```{r join}
+# Join the shapefile and the means data frames
+
+habitat_sites_all_means <- left_join(habitat_sites_all, means_t, c("MPA_NAME"="affiliated_mpa"))
+
+```
+
+
+
+```{r map, message = FALSE}
+# tmap_mode("plot")
+
+tt <- habitat_sites_all_means %>% 
+  filter(indicator %in% c("shannon", "Diversity")) %>% 
+  filter(variable %in% c("INVALG", "All Fish")) %>%
+  filter(year > 2015 & year < 2020) %>% 
+  group_by(MPA_NAME, group) %>%
+  summarise(mean_logRR = mean(log_RR))
+
+tm_reg <- tm_shape(ca) + 
+  tm_borders("black", lwd = .5) +
+tm_shape(tt) + 
+  tm_symbols(col = "mean_logRR",  alpha = 0.5, border.lwd = 0, palette = "-viridis") +
+  tm_facets(by=c("group"))
+
+tm_reg
+
+
+# tmap_save(tm_reg, filename = "figs/mpa_regions.png")
+
+```
+```
+
