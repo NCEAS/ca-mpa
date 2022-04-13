@@ -22,7 +22,9 @@ means <- readxl::read_excel(file.path(data_path, input_file),
 ## Manually Calculate T Score and P Value
 
 Reformat the data by the affiliated MPA to calculate the difference in means between the MPA and its reference sites.
+
 ```{r}
+## Cleaning
 means_format <- means %>% 
   mutate(mpa_designation = if_else(mpa_designation %in% c("reference", "REF"), "REF", "MPA")) %>% 
   filter(!(group %in% c("rocky-bio", "rocky-LT"))) %>% 
@@ -31,8 +33,7 @@ means_format <- means %>%
               values_from = c(mean, sd, n)) %>% 
   drop_na()
 
-dat <- escalc(measure="SMD", m1i=group.avg_MPA, m2i=group.avg_REF, sd1i=sd_MPA, sd2i=sd_REF, n1i=n_MPA, n2i=n_REF, data=smd.final, slab=paste(group)) 
-
+# Dataframe that calculates mean difference, t-score, etc.
 means_t <- means_format %>% 
   mutate(mean_diff = mean_MPA-mean_REF,
          se        = sqrt((sd_MPA^2/n_MPA)+(sd_REF^2/n_REF)),
@@ -42,31 +43,29 @@ means_t <- means_format %>%
          sig       = if_else(p_value < 0.05, 1, 0),
          cohens_d  = abs(mean_diff)/(sqrt(((sd_MPA^2*(n_MPA-1))+(sd_REF^2*(n_REF-1)))/df)))
 
-#cohens_d  = abs(mean_diff)/(sqrt((sd_MPA^2*(n_MPA-1)+sd_REF^2*(n_REF-1) )/df)
-dat <- metafor::escalc(measure="SMD", m1i=mean_MPA, m2i=mean_REF, sd1i=sd_MPA, sd2i=sd_REF, n1i=n_MPA, n2i=n_REF, data=means_format, slab=paste(group)) 
-
 ```
 
-
+# Some Rough Exploratory Plots
 
 ```{r}
 t_significance <- means_t %>% 
   filter(indicator %in% c("shannon", "Diversity")) %>% 
-  group_by(affiliated_mpa, group) %>% 
+  filter(year == 2019) %>% 
+  group_by(affiliated_mpa, group, mlpa_region, indicator, variable) %>% 
   summarize(n_sig = sum(sig, na.rm = TRUE))
 
 
 ggplot(data = means_t %>% 
-         filter(se > 0)) +
+        filter(indicator %in% c("shannon", "Diversity")) %>% 
+         filter(se > 0) %>% 
+         filter(year == 2019)) +
   geom_point(aes(x = year, y = mean_diff, color = sig)) +
-  scale_color_manual(values = c("blue4", "dodgerblue")) +
-  facet_wrap(~group, scales = "free")
+  facet_wrap(~group+mlpa_region, scales = "free")
 
 
 ggplot(data = means_t %>% 
          filter(se > 0)) +
   geom_point(aes(x = year, y = mean_diff, color = sig)) +
-  scale_color_manual(values = c("blue4", "dodgerblue")) +
   facet_wrap(~group+mlpa_region)
 
 
@@ -81,7 +80,8 @@ ccfrp <- means_t %>%
   filter(group == "CCFRP" & variable == "All Fish" & mlpa_region == "Central")
 
 ggplot(data = means_t %>% 
-         filter(affiliated_mpa == "Point Lobos SMR")) +
+         filter(affiliated_mpa == "Point Lobos SMR") %>% 
+         filter(indicator %in% c("shannon", "Diversity"))) +
   geom_point(aes(x = year, y = mean_diff, color = sig)) +
   facet_wrap(~group+indicator, scales = "free")
 
@@ -96,3 +96,5 @@ ggplot(data = means_t %>%
   
 ```
 
+- Consider following similar methods but aggregating across years
+- Slicing the data in a more informative way (e.g. all fish)
