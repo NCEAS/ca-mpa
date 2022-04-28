@@ -31,7 +31,7 @@ library(RColorBrewer)
 
 # Define the paths and file names
 
-path_aurora <- "/home/shares/ca-mpa/GD_data/Raw-Data/"
+path_aurora <- "/home/shares/ca-mpa/data/sync-data/"
 shp_dir <- "CeNCOOS_shapefiles/Ecological_Monitoring_Sites"
 shp_path <- file.path(path_aurora, shp_dir)
 
