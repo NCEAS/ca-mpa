@@ -49,8 +49,7 @@ map_file <- "mpa-attributes.xlsx"
 
 ```{r read inputs, message=FALSE, warning=FALSE}
 
-perform_metrics <- readxl::read_excel(file.path(path_aurora, input_file), 
-                            sheet=1, na = c("NA", "na"), trim_ws = T)
+st_perform_metrics_ci <- st_read(dsn = file.path(path_aurora, cencoos_dir, "sampling_sites_4regions.geojson"))
 
 # map_attributes <-  readxl::read_excel(file.path(data_path, map_file), 
 #                             sheet=1, na = c("NA", "."), trim_ws = T)
@@ -66,74 +65,9 @@ st_crs(ca)
 
 
 ```
-We have some sites without coordinates. Also the precision of the location seems to vary betwee sites. **What should be our reference file?**
 
-```{r, eval=FALSE}
-perform_metrics %>% 
-  filter(is.na(lat_wgs84) | is.na(lon_wgs84)) %>% 
-  distinct(affiliated_mpa)
-```
-`gull island smr`, `carmel bay smca`, `anacapa island smr` are missing lat/long info. Dropping for now.
-
-
-Still fails. There are character in the longitude column. Let's find which rows are affected
 
 ```{r}
-perform_metrics %>% 
-  filter(is.na(as.numeric(lon_wgs84))) %>% 
-  distinct(affiliated_mpa)
-```
-`bodega head smca` seems to have some strange values for the longitude. Dropping for now.
-
-```{r}
-perform_metrics_cleaned <- perform_metrics %>% 
-  filter(!is.na(lat_wgs84) | !is.na(lon_wgs84)) %>% 
-  filter(!is.na(as.numeric(lon_wgs84))) 
-
-
-# perform_metrics_static <- perform_metrics_cleaned %>%
-#   select(group,mlpa_region, affiliated_mpa, mpa_class, mpa_designation, lat_wgs84, lon_wgs84) %>%
-#   distinct()
-# 
-# dim(perform_metrics_static)
-
-# st_perform_metrics <- perform_metrics %>% 
-  # st_as_sf(.,coords=c("lon_wgs84", "lat_wgs84"), crs=4326)
-
-```
-
-```{r}
-
-st_perform_metrics <- perform_metrics_cleaned %>% 
-  st_as_sf(.,coords=c("lon_wgs84", "lat_wgs84"), crs=4326)
-
-
-tm_reg <- tm_shape(ca) + 
-  tm_borders("black", lwd = .5) +
-tm_shape(st_perform_metrics) + 
-  tm_symbols(col = "mlpa_region",  alpha = 0.8, border.lwd = 0, size = .2, title.col = "Main Regions")
-
-tm_reg
-```
-Export as shapefile
-```{r}
-# Write combined shapefile
-st_write(st_perform_metrics, dsn = file.path(path_aurora, cencoos_dir, "most_sampling_sites.geojson"), delete_dsn =TRUE)
-```
-
-Manually select the Island in QGIS and add a `channel_island` column coded with `1` (is a channel island site) and `0`.
-
-```{r}
-
-# read the new file in
-st_perform_metrics_ci <- st_read(dsn = file.path(path_aurora, cencoos_dir, "most_sampling_sites_island.geojson"))
-
-# Update the mlpa_region using this flag
-st_perform_metrics_ci <- st_perform_metrics_ci %>%
-  mutate(mlpa_region = ifelse(channel_island==1, "island", mlpa_region)) %>%
-  select(-channel_island)
-
-
 tm_reg4 <- tm_shape(ca) + 
   tm_borders("black", lwd = .5) +
 tm_shape(st_perform_metrics_ci) + 
@@ -141,104 +75,6 @@ tm_shape(st_perform_metrics_ci) +
 
 tm_reg4
 
-# save the file
-st_write(st_perform_metrics_ci,file.path(path_aurora, "Ecol_perform_metrics_means_4regions.csv"), delete_dsn =TRUE)
-
-
 ```
-
-
-```{r clean data}
-# Create missing fields
-
-# estimate site status
-habitat_sites_list$marine <- habitat_sites_list$marine %>%
-  mutate(reserve_st = ifelse(mpa_design == "reference", "REF", "MPA"))
-
-# Region acronym
-habitat_sites_list$marine <- habitat_sites_list$marine %>%
-  mutate(MPA_REGION = case_when( mpa_region == "North Central Coast" ~ "NCCSR",
-                                 mpa_region == "Central Coast" ~ "CCSR",
-                                 mpa_region == "South Coast" ~ "SCSR"
-                                 )
-    )
-
-# Start and en year
-habitat_sites_list$marine <- habitat_sites_list$marine %>%
-  mutate(start_year = year(start_date),
-         end_year = year(end_date)
-         )
-
-
-
-
-# Merge into one spatial dataframe
-habitat_sites_all <- habitat_sites_list %>%
-  bind_rows(.id = "source")
-
-
-# Create habitat column from data source
-habitat_sites_all <- habitat_sites_all %>%
-  mutate(habitat = case_when( source == "pisco" ~ "kelp",
-                              source == "marine" ~ "rocky",
-                              source == "ccfrp" ~ "sandy"
-                              )
-         )
-
-# Order the regions from North to South using factors
-habitat_sites_all <- habitat_sites_all %>%
-  mutate(mpa_reg_fact = factor(MPA_REGION, ordered = TRUE,
-                                levels = c("NCSR", "NCCSR", "CCSR", "SCSR")
-                               )
-         )
-
-# Compute the number of years each site has been active
-habitat_sites_all <- habitat_sites_all %>%
-  mutate(time_period = end_year - start_year + 1)
-
-# Write combined shapefile
-# st_write(habitat_sites_all, file.path(shp_path, "all_sampling_sites.shp"))
-
-# Here I used QGIS to spatially select all the sites that were located around the channel island. I created a new column `chanIsland` where 1 means channel island site and 0 means coastal sites.
-
-# I reread the data in
-# habitat_sites_all <- st_read(file.path(shp_path, "all_sampling_sites.shp"))
-
-```
-
-
-```{r join}
-# Join the shapefile and the means data frames
-
-# Means_t come from Cori's code  `means-explore.Rmd`
-
-habitat_sites_all_means <- left_join(habitat_sites_all, means_t, c("MPA_NAM"="affiliated_mpa"))
-
-```
-
-
-
-```{r map, message = FALSE}
-# tmap_mode("plot")
-
-tt <- habitat_sites_all_means %>% 
-  filter(indicator %in% c("shannon", "Diversity")) %>% 
-  filter(variable %in% c("INVALG", "All Fish")) %>%
-  filter(year > 2015 & year < 2020) %>% 
-  group_by(MPA_NAME, group) %>%
-  summarise(mean_logRR = mean(log_RR))
-
-tm_reg <- tm_shape(ca) + 
-  tm_borders("black", lwd = .5) +
-tm_shape(tt) + 
-  tm_symbols(col = "mean_logRR",  alpha = 0.5, border.lwd = 0, palette = "-viridis") +
-  tm_facets(by=c("group"))
-
-tm_reg
-
-
-# tmap_save(tm_reg, filename = "figs/mpa_regions.png")
-
-```
-```
+## Compute the stats
 
