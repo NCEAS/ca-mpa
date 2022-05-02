@@ -10,7 +10,7 @@ require(tidyverse)
 data_path <- "/home/shares/ca-mpa/data/sync-data/CA_MPA_boundaries/ds582"
 input_file <- "ds582.shp" 
 
-location.data <- st_read(input_file, stringsAsFactors = F)
+location.data <- st_read(file.path(data_path,input_file), stringsAsFactors = F)
 
 data.sf <- st_transform(x = location.data, crs=4326) #transform to WGS84
 
