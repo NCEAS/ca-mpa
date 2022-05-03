@@ -2,19 +2,19 @@ rm(list = ls())
 
 
 
-require(sf)
-require(tidyverse)
+library(tidyverse)
+library(sf)
 
 
 #load CDFW mpa polygons
-data_path <- "/home/shares/ca-mpa/data/sync-data/CA_MPA_boundaries/ds582"
-input_file <- "ds582.shp" 
+data_path <- "/home/shares/ca-mpa/data/sync-data/"
+input_file <- "CA_MPA_boundaries/ds582/ds582.shp" 
 
 location.data <- st_read(file.path(data_path,input_file), stringsAsFactors = F)
 
 data.sf <- st_transform(x = location.data, crs=4326) #transform to WGS84
 
-#calcualte centroids
+#calculate centroids
 data.sf$centroids <- data.sf %>%
                             st_centroid() %>%
                             st_geometry() 
@@ -38,16 +38,13 @@ separated_coord <- data.sf %>%
 
 
 #read in mpa-attribute table and port locations
-
-data_path <- "/home/shares/ca-mpa/data/sync-data"
 input_file <- "mpa-attributes.xlsx" 
-
 mpa.attributes <- readxl::read_excel(file.path(data_path, input_file), sheet=1, skip = 0, na="NA")
 
 input_file <- "ports_and_harbors.xlsx" 
 port.locations <- readxl::read_excel(file.path(data_path, input_file), sheet=1, skip = 0, na="NA")
 
-mpa.coords <- left_join(mpa.attributes,separated_coord,
+mpa.coords <- left_join(separated_coord, mpa.attributes,
                         by = 'Name')  %>%
               drop_na("lat")
 
@@ -63,11 +60,11 @@ mpa.attrib <- mpa.coords %>%
 
 #================calculate closest port for each MPA
 
-mpa.attrib.sp <- st_as_sf(mpa.attrib, coords = c("long","lat"), crs = 4326) #load into WGS84
+# mpa.attrib.sp <- st_as_sf(mpa.attrib, coords = c("long","lat"), crs = 4326) #load into WGS84
 
 #transform to TA
 
-mpa.attrib.albers <- st_transform(mpa.attrib.sp, crs=3310)
+mpa.attrib.albers <- st_transform(mpa.attrib, crs=3310)
 st_crs(mpa.attrib.albers)
 
 
