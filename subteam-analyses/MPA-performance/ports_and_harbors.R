@@ -60,11 +60,11 @@ mpa.attrib <- mpa.coords %>%
 
 #================calculate closest port for each MPA
 
-# mpa.attrib.sp <- st_as_sf(mpa.attrib, coords = c("long","lat"), crs = 4326) #load into WGS84
+mpa.attrib.sp <- st_as_sf(mpa.attrib, coords = c("long","lat"), crs = 4326) #load into WGS84
 
 #transform to TA
 
-mpa.attrib.albers <- st_transform(mpa.attrib, crs=3310)
+mpa.attrib.albers <- st_transform(mpa.attrib.sp, crs=3310)
 st_crs(mpa.attrib.albers)
 
 
@@ -88,6 +88,11 @@ A_B <- a %>%
             rename(B_X = X, B_Y = Y), join = st_nearest_feature)
 
 
+
+tt <- st_join(mpa.attrib.albers, ports.albers, join = st_nearest_feature)
+
+
+
 #create a WKT from the coords of A and closes feature in B ---------------------
 
 A_B$line_wkt <- paste('linestring(',A_B$X,A_B$Y,',',A_B$B_X, A_B$B_Y,')')
@@ -103,6 +108,8 @@ A_B <- A_B %>%
 #Get the length (distance of each line in meters)-------------------------------
 
 A_B$length <- as.numeric(st_length(A_B))
+
+ttt <- st_distance(mpa.attrib.albers,ports.albers)
 
 #Join results with original A---------------------------------------------------
 mpa_attributes <- a %>%
