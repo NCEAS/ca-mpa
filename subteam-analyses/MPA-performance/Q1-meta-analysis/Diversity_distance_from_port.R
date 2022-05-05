@@ -84,26 +84,54 @@ eco_metrics <- eco_metrics %>%
 
 
 
-# Part 2 - calculate response by distance from port -----------------------
+# Part 2 - calculate response ratio by distance from port -----------------------
 
-
-#First, calculate raw mean for ref vs smr per monitoring group averaged 2016-2019
 
 region.yr.means<- eco_metrics%>%
   filter(variable=="all species"| variable=="all fish"| variable=="invalg",
          indicator == "diversity",
-         mpa_designation == "ref"|mpa_designation =="smr",
-         year=="2016" | year=="2017" | year=="2018" | year=="2019")%>%
-  group_by(group,mlpa_region, affiliated_mpa, mpa_designation,variable,indicator)%>%
+         mpa_class == "ref"|mpa_class =="smr",
+         #year=="2016" | year=="2017" | year=="2018" | year=="2019"
+         )%>%
+  group_by(group,mlpa_region, affiliated_mpa, mpa_designation,variable,indicator,year,port_distance)%>%
   dplyr::summarize(yr.mean = mean(mean,na.rm=TRUE), 
                    sd=sd(mean),
                    m.port_distance=mean(port_distance),# standard deviation of across MPAs where indicator was observed/recorded
-                   n=n()) 
+                   n=n()) %>%
+  pivot_wider(id_cols = c(affiliated_mpa, group, mlpa_region, variable, indicator, year),
+              names_from = mpa_designation,
+              values_from = c(yr.mean, sd, n, port_distance)) 
 
 
+region.yr.means$yr.mean_ref <- as.numeric(as.character(region.yr.means$yr.mean_ref))
+region.yr.means$yr.mean_smr <- as.numeric(as.character(region.yr.means$yr.mean_smr))
 
+mu_site <- region.yr.means %>% 
+  drop_na(yr.mean_ref)%>%
+  drop_na(yr.mean_smr)%>%
+  mutate(RR        = log(yr.mean_smr/yr.mean_ref)
+         #lower.CI  = log((RR - (qt(0.975, df)*n_total/sqrt(n_total))+1)+1),
+         #upper.CI  = log((RR + (qt(0.975, df)*n_total/sqrt(n_total)))+1)
+  )
 
-ggplot(region.yr.means, aes(x=m.port_distance, y=yr.mean, color=mpa_designation))+
+mu_site$RR <- as.numeric(as.character(mu_site$RR))
+
+mu_site <- mu_site %>%
+  mutate(group = reorder_within(group, RR, mlpa_region)) %>%
+  #filter(year=="2016" | year=="2017" | year=="2018" | year=="2019") %>%
+  group_by(group,mlpa_region, affiliated_mpa,variable,indicator)%>%
+  mutate_if(is.numeric, list(~na_if(RR, Inf))) %>% 
+  mutate_if(is.numeric, list(~na_if(RR, -Inf))) %>%
+  drop_na(RR)%>%
+  summarize(mean = mean(RR),
+            port_distance = mean(as.numeric(port_distance_smr)))
+
+View(mu_site)
+
+mu_site$mlpa_region <- factor(mu_site$mlpa_region, levels = c("north","central","south"))
+
+ggplot(mu_site, aes(x=port_distance, y=mean))+
+  geom_hline(yintercept=0, linetype="dashed", color = "gray", size = 0.5) +
   geom_point(shape=19, size=3) +
   geom_smooth(method='lm', se = T, formula=y~x, linetype='solid', size=0.5) +
   stat_poly_eq(formula = y ~ x, 
@@ -114,64 +142,12 @@ ggplot(region.yr.means, aes(x=m.port_distance, y=yr.mean, color=mpa_designation)
   scale_color_manual(values=c("blue", "red"), drop = FALSE) +
   scale_fill_manual(values=c("blue", "red"), drop = FALSE) +
   scale_linetype_manual(values=c("solid","twodash"), drop = FALSE) +
-  labs(x="MPA age", y="mean diversity (Shannon-Weiner)") +
+  labs(x="distance from port (km)", y="diversity log-RR (Shannon-Wiener)") +
   labs(colour = 'Site type', linetype = 'Slope') +
-  facet_wrap(mlpa_region~group, scales="fixed", nrow=3)+
+  facet_wrap(mlpa_region~group, scales="free_x", nrow=3)+
   scale_x_continuous()+
-  lims(y=c(0.5,2.5))+
+  lims(y=c(-0.5,0.5))+
   theme_classic() 
-
-
-
-
-
-
-
-
-
-
-
-
-# Log ratios --------------------------------------------------------------
-
-
-region.yr.means<- eco_metrics%>%
-  filter(variable=="all species"| variable=="all fish"| variable=="invalg",
-         indicator == "diversity",
-         mpa_class == "ref"|mpa_class =="smr",
-         #year=="2016" | year=="2017" | year=="2018" | year=="2019"
-         )%>%
-  group_by(group,mlpa_region, affiliated_mpa, mpa_designation,variable,indicator,year, port_distance)%>%
-  dplyr::summarize(yr.mean = mean(mean,na.rm=TRUE), 
-                   sd=sd(mean),
-                   m.port_distance=mean(port_distance),# standard deviation of across MPAs where indicator was observed/recorded
-                   n=n()) %>%
-  pivot_wider(id_cols = c(affiliated_mpa, group, mlpa_region, variable, indicator, year),
-              names_from = mpa_designation,
-              values_from = c(yr.mean, sd, n)) 
-
-
-
-
-mu_site <- region.yr.means %>% 
-  mutate(HedgeG    = sqrt((sd_smr^2/(n_smr*yr.mean_smr))+(sd_ref^2/(n_ref*yr.mean_ref))),
-         t_score   = mean_diff/se,
-         df        = n_smr + n_ref - 2,
-         p_value   = pt(t_score, df, lower.tail = FALSE),
-         sig       = if_else(p_value < 0.05, 1, 0),
-         cohens_d  = abs(mean_diff)/(sqrt(((sd_smr^2*(n_smr-1))+(sd_ref^2*(n_ref-1)))/df)),
-         RR        = log(yr.mean_smr/yr.mean_ref),
-         n_total   = n_smr + n_ref
-         #lower.CI  = log((RR - (qt(0.975, df)*n_total/sqrt(n_total))+1)+1),
-         #upper.CI  = log((RR + (qt(0.975, df)*n_total/sqrt(n_total)))+1)
-  )
-
-mu_site <- mu_site %>%
-  mutate(group = reorder_within(group, RR, mlpa_region))
-
-View(region.yr.means)
-
-
 
 
 
