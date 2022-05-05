@@ -26,8 +26,6 @@ plot(st_set_geometry(data.sf, 'centroids')[,0], add = T, col = 'red', pch = 3)
 #st_coordinates(data.sf$centroids)
 
 #add coordinates to data frame
-
-
 separated_coord <- data.sf %>%
     mutate(Name = NAME,
            long = unlist(map(data.sf$centroids,1)),
@@ -36,11 +34,16 @@ separated_coord <- data.sf %>%
     select(Name, lat, long)
 
 
+# Removing `No-Take` from the name
+separated_coord <- separated_coord %>%
+  mutate(Name = str_remove(Name, " \\(No-Take\\)"))
+
 
 #read in mpa-attribute table and port locations
 input_file <- "mpa-attributes.xlsx" 
 mpa.attributes <- readxl::read_excel(file.path(data_path, input_file), sheet=1, skip = 0, na="NA")
 
+# Read ports
 input_file <- "ports_and_harbors.xlsx" 
 port.locations <- readxl::read_excel(file.path(data_path, input_file), sheet=1, skip = 0, na="NA")
 
@@ -65,7 +68,7 @@ mpa.attrib.sp <- st_as_sf(mpa.attrib, coords = c("long","lat"), crs = 4326) #loa
 #transform to TA
 
 mpa.attrib.albers <- st_transform(mpa.attrib.sp, crs=3310)
-st_crs(mpa.attrib.albers)
+# st_crs(mpa.attrib.albers)
 
 
 ports <- st_as_sf(port.locations, coords = c("long","lat"), crs = 4326) #load into WGS84
@@ -89,7 +92,7 @@ A_B <- a %>%
 
 
 
-tt <- st_join(mpa.attrib.albers, ports.albers, join = st_nearest_feature)
+A_B <- st_join(mpa.attrib.albers, ports.albers, join = st_nearest_feature)
 
 
 
