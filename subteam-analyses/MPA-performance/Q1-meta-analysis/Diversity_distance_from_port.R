@@ -87,10 +87,10 @@ eco_metrics <- eco_metrics %>%
 # Part 2 - calculate response ratio by distance from port -----------------------
 
 
-region.yr.means<- eco_metrics%>%
+region.smr.means<- eco_metrics%>%
   filter(variable=="all species"| variable=="all fish"| variable=="invalg",
          indicator == "diversity",
-         mpa_class == "ref"|mpa_class =="smr",
+         mpa_class =="smr",
          #year=="2016" | year=="2017" | year=="2018" | year=="2019"
          )%>%
   group_by(group,mlpa_region, affiliated_mpa, mpa_designation,variable,indicator,year,port_distance)%>%
@@ -101,15 +101,49 @@ region.yr.means<- eco_metrics%>%
   pivot_wider(id_cols = c(affiliated_mpa, group, mlpa_region, variable, indicator, year),
               names_from = mpa_designation,
               values_from = c(yr.mean, sd, n, port_distance)) 
+ region.smr.means <- region.smr.means %>%
+        mutate(class="smr",
+         ref_mean = yr.mean_ref,
+         mpa_mean = yr.mean_smr,
+         ref_port_distance = port_distance_ref,
+         mpa_port_distance = port_distance_smr)%>%
+        dplyr::select(-c("yr.mean_ref","yr.mean_smr","port_distance_ref","port_distance_smr","sd_ref","sd_smr","n_ref","n_smr"))
 
 
-region.yr.means$yr.mean_ref <- as.numeric(as.character(region.yr.means$yr.mean_ref))
-region.yr.means$yr.mean_smr <- as.numeric(as.character(region.yr.means$yr.mean_smr))
 
-mu_site <- region.yr.means %>% 
-  drop_na(yr.mean_ref)%>%
-  drop_na(yr.mean_smr)%>%
-  mutate(RR        = log(yr.mean_smr/yr.mean_ref)
+ region.smca.means<- eco_metrics%>%
+  filter(variable=="all species"| variable=="all fish"| variable=="invalg",
+         indicator == "diversity",
+         mpa_class =="smca",
+         #year=="2016" | year=="2017" | year=="2018" | year=="2019"
+  )%>%
+  group_by(group,mlpa_region, affiliated_mpa, mpa_designation,variable,indicator,year,port_distance)%>%
+  dplyr::summarize(yr.mean = mean(mean,na.rm=TRUE), 
+                   sd=sd(mean),
+                   m.port_distance=mean(port_distance),# standard deviation of across MPAs where indicator was observed/recorded
+                   n=n()) %>%
+  pivot_wider(id_cols = c(affiliated_mpa, group, mlpa_region, variable, indicator, year),
+              names_from = mpa_designation,
+              values_from = c(yr.mean, sd, n, port_distance)) 
+ region.smca.means <- region.smca.means %>%
+   mutate(class="smca",
+          ref_mean = yr.mean_ref,
+          mpa_mean = yr.mean_smca,
+          ref_port_distance = port_distance_ref,
+          mpa_port_distance = port_distance_smca)%>%
+   dplyr::select(-c("yr.mean_ref","yr.mean_smca","port_distance_ref","port_distance_smca","sd_ref","sd_smca","n_ref","n_smca"))
+ 
+ 
+ combined_means<-rbind(region.smr.means, region.smca.means)
+ 
+
+combined_means$ref_mean <- as.numeric(as.character(combined_means$ref_mean))
+combined_means$mpa_mean <- as.numeric(as.character(combined_means$mpa_mean))
+
+mu_site <- combined_means %>% 
+  drop_na(ref_mean)%>%
+  drop_na(mpa_mean)%>%
+  mutate(RR        = log(mpa_mean/ref_mean)
          #lower.CI  = log((RR - (qt(0.975, df)*n_total/sqrt(n_total))+1)+1),
          #upper.CI  = log((RR + (qt(0.975, df)*n_total/sqrt(n_total)))+1)
   )
@@ -119,18 +153,18 @@ mu_site$RR <- as.numeric(as.character(mu_site$RR))
 mu_site <- mu_site %>%
   mutate(group = reorder_within(group, RR, mlpa_region)) %>%
   #filter(year=="2016" | year=="2017" | year=="2018" | year=="2019") %>%
-  group_by(group,mlpa_region, affiliated_mpa,variable,indicator)%>%
+  group_by(group,class, mlpa_region, affiliated_mpa,variable,indicator)%>%
   mutate_if(is.numeric, list(~na_if(RR, Inf))) %>% 
   mutate_if(is.numeric, list(~na_if(RR, -Inf))) %>%
   drop_na(RR)%>%
   summarize(mean = mean(RR),
-            port_distance = mean(as.numeric(port_distance_smr)))
+            port_distance = mean(as.numeric(mpa_port_distance)))
 
 View(mu_site)
 
 mu_site$mlpa_region <- factor(mu_site$mlpa_region, levels = c("north","central","south"))
 
-ggplot(mu_site, aes(x=port_distance, y=mean))+
+ggplot(mu_site, aes(x=port_distance, y=mean, color=class))+
   geom_hline(yintercept=0, linetype="dashed", color = "gray", size = 0.5) +
   geom_point(shape=19, size=3) +
   geom_smooth(method='lm', se = T, formula=y~x, linetype='solid', size=0.5) +
