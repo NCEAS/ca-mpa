@@ -6,11 +6,15 @@ library(tidyverse)
 library(sf)
 
 
-#load CDFW mpa polygons
+# Set Aurora paths
 data_path <- "/home/shares/ca-mpa/data/sync-data/"
-input_file <- "CA_MPA_boundaries/ds582/ds582.shp" 
+input_shapefile <- "CA_MPA_boundaries/ds582/ds582.shp" 
+attribute_file <- "mpa-attributes.xlsx" 
+ports_file <- "ports_and_harbors.xlsx" 
 
-location.data <- st_read(file.path(data_path,input_file), stringsAsFactors = F)
+
+#load CDFW mpa polygons
+location.data <- st_read(file.path(data_path, input_shapefile), stringsAsFactors = F)
 
 data.sf <- st_transform(x = location.data, crs=4326) #transform to WGS84
 
@@ -40,12 +44,10 @@ separated_coord <- separated_coord %>%
 
 
 #read in mpa-attribute table and port locations
-input_file <- "mpa-attributes.xlsx" 
-mpa.attributes <- readxl::read_excel(file.path(data_path, input_file), sheet=1, skip = 0, na="NA")
+mpa.attributes <- readxl::read_excel(file.path(data_path, attribute_file), sheet=1, skip = 0, na="NA")
 
 # Read ports
-input_file <- "ports_and_harbors.xlsx" 
-port.locations <- readxl::read_excel(file.path(data_path, input_file), sheet=1, skip = 0, na="NA")
+port.locations <- readxl::read_excel(file.path(data_path, ports_file), sheet=1, skip = 0, na="NA")
 
 mpa.coords <- left_join(separated_coord, mpa.attributes,
                         by = 'Name')  %>%
