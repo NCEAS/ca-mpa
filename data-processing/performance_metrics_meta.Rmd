@@ -121,7 +121,7 @@ mu_site_all <- region_yr_means_all %>%
 
 write_csv(mu_site_1619, file.path(output_path, "peformance_metrics_meta_1619.csv"))
 
-write_csv(mu_site_1619, file.path(output_path, "peformance_metrics_meta_all.csv"))
+write_csv(mu_site_all, file.path(output_path, "peformance_metrics_meta_all.csv"))
 
 ```
 
