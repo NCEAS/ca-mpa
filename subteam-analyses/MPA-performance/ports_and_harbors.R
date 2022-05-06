@@ -45,7 +45,7 @@ separated_coord <- data.sf %>%
            long = unlist(map(data.sf$centroids,1)),
            lat = unlist(map(data.sf$centroids,2))
            ) %>%
-    select(Name, lat, long) %>%
+    dplyr::select(Name, lat, long) %>%
   st_drop_geometry() #since it is the geometry of the polygons
 
 
@@ -62,7 +62,7 @@ mpa.coords <- left_join(separated_coord, mpa.attributes,
 #clean up new mpa-attribute table
 
 mpa.attrib <- mpa.coords %>%
-              select(-c("Latitude","Annual_citations","Enforcement_metric","Compliance_estimate","Scientific_permits","Distance_to_port"))
+              dplyr::select(-c("Latitude","Annual_citations","Enforcement_metric","Compliance_estimate","Scientific_permits","Distance_to_port"))
               
 
 
@@ -94,7 +94,7 @@ b <- cbind(ports, b_coord)
 #get closes feature in B to A
 A_B <- a %>%
   st_join(b %>%
-            select(port, size, X, Y) %>%
+            dplyr::select(port, size, X, Y) %>%
             rename(B_X = X, B_Y = Y), join = st_nearest_feature)
 
 
@@ -126,14 +126,14 @@ A_B$length <- as.numeric(st_length(A_B))
 mpa_attributes <- a %>%
   left_join(A_B %>%
               st_drop_geometry() %>%
-              select(Name, port, size, length), by = 'Name') 
+              dplyr::select(Name, port, size, length), by = 'Name') 
 
 mpa_attributes <-  mpa_attributes %>%
                     mutate(
                       distance_to_port = length,
                       long = unlist(map(mpa_attributes$geometry,1)),
                       lat = unlist(map(mpa_attributes$geometry,2))) %>%
-                      select(-c("length", "geometry")) 
+                      dplyr::select(-c("length", "geometry")) 
 
 
 View(mpa_attributes)
