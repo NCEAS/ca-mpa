@@ -117,10 +117,14 @@ mu_site_all <- region_yr_means_all %>%
 
 ```
 
+## Write output files
+
 ```{r outputs, eval=FALSE}
 
+# Write performance metrics for 2016 to 2019
 write_csv(mu_site_1619, file.path(output_path, "peformance_metrics_meta_1619.csv"))
 
+# Write performance metrics for all years
 write_csv(mu_site_all, file.path(output_path, "peformance_metrics_meta_all.csv"))
 
 ```
