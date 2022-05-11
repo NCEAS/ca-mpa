@@ -55,7 +55,7 @@ activities.sp <- activities %>% st_as_sf(.,coords=c("long", "lat"), crs=4326)
 tm_count <- tm_shape(ca) + 
   tm_borders("black", lwd = .5) +
 tm_shape(activities.sp) + 
-  tm_symbols(col = "mu_activities",  alpha = 0.5, border.lwd = 0, size = .2, title.col = "MPA Watch observed activities", palette = "-plasma", style = "quantile")
+  tm_symbols(col = "mu_activities",  alpha = 0.5, border.lwd = 0, size = .7, title.col = "MPA Watch observed activities", palette = "-plasma", style = "quantile")
 
 tm_count
 ```
@@ -65,7 +65,7 @@ tm_count
 tm_count <- tm_shape(ca) + 
   tm_borders("black", lwd = .5) +
 tm_shape(activities.sp) + 
-  tm_symbols(col = "num_surveys",  alpha = 0.5, border.lwd = 0, size = .2, title.col = "MPA Watch survey effort", palette = "-plasma", style = "quantile")
+  tm_symbols(col = "num_surveys",  alpha = 0.5, border.lwd = 0, size = .7, title.col = "MPA Watch survey effort", palette = "-plasma", style = "quantile")
 
 tm_count
 ```
