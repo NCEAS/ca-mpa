@@ -2,7 +2,7 @@
 title: "means-map"
 author: "Julien Brun"
 knit: (function(input_file, encoding) {
-  out_dir <- 'docs';
+  out_dir <- '../docs';
   rmarkdown::render(input_file,
  encoding=encoding,
  output_file=file.path(dirname(input_file), out_dir, 'means_maps.html'))})
@@ -55,7 +55,7 @@ st_perform_metrics_ci <- st_read(dsn = file.path(path_aurora, cencoos_dir, "samp
 
 # Removing the years and other info
 st_perform_metrics <- st_perform_metrics_ci %>% 
-  select(affiliated_mpa, group, mlpa_region, mpa_designation, variable, indicator, mpa.year) %>%
+  select(affiliated_mpa, group, mlpa_region, mpa_class, mpa_designation, variable, indicator, mpa.year) %>%
   distinct_all()
 
 # load the performance metrics for all years
@@ -77,7 +77,7 @@ ca <- st_read(shp_ca)
 ```
 ## Check things out
 
-```{r}
+```{r  message=FALSE, warning=FALSE}
 tm_reg4 <- tm_shape(ca) + 
   tm_borders("black", lwd = .5) +
 tm_shape(st_perform_metrics) + 
@@ -90,31 +90,115 @@ tm_reg4
 
 
 ```{r}
-st_perform_metrics_all <- left_join(st_perform_metrics_ci, map_attributes_all, by = c("group", "affiliated_mpa", "mlpa_region", "variable", "indicator")) %>%
+st_perform_metrics_all <- left_join(st_perform_metrics_ci, map_attributes_all, by = c("group", "affiliated_mpa", "mlpa_region", "mpa_class", "variable", "indicator")) %>%
   mutate(mlpa_region = factor(mlpa_region, levels = c("north","central","island","south")))
 ```
 
 
-```{r}
+## Difference in means
 
-tm_shape(ca) + 
+
+```{r  message=FALSE, warning=FALSE}
+tmap_mode("plot")
+
+tm_all <- tm_shape(ca) + 
+  tm_borders("black", lwd = .5) +
+tm_shape(st_perform_metrics_all[!is.na(st_perform_metrics_all$RR),]) + 
+  tm_symbols(col = "mean_diff",  alpha = 0.5, border.lwd = 0, size = .3, title.col = "Diff. Means", palette = "Spectral", style = "quantile") 
+
+tm_all
+
+tmap_save(tm_all, filename = "../figs/mpa_means_all.png")
+```
+
+
+```{r}
+tmap_mode("plot")
+
+tm_nc <- tm_shape(ca) + 
+  tm_borders("black", lwd = .5) +
+tm_shape(st_perform_metrics_all[!is.na(st_perform_metrics_all$RR),]) + 
+  tm_symbols(col = "mean_diff",  alpha = 0.8, border.lwd = 0, size = .5, title.col = "Main Regions", palette = "Spectral", style = "quantile") + 
+  tm_facets(by = "mlpa_region", ncol = 4, free.coords = T, inside.original.bbox = F)
+
+tm_nc
+
+tmap_save(tm_nc, filename = "../figs/mpa_means_nc.png")
+```
+
+## Log Ratios
+
+```{r  message=FALSE, warning=FALSE}
+tmap_mode("plot")
+
+tm_all <- tm_shape(ca) + 
   tm_borders("black", lwd = .5) +
 # tm_shape(st_perform_metrics_all[is.na(st_perform_metrics_all$RR),]) +
 #                  tm_dots(shape=4, size = 0.5, border.lwd = 0.5) +
 tm_shape(st_perform_metrics_all[!is.na(st_perform_metrics_all$RR),]) + 
-  tm_symbols(col = "RR",  alpha = 0.8, border.lwd = 0, size = .3, title.col = "log Ratio", palette = "Spectral", style = "quantile") 
+  tm_symbols(col = "RR",  alpha = 0.5, border.lwd = 0, size = .3, title.col = "log Ratio", palette = "Spectral", style = "quantile") 
+
+tm_all
+
+tmap_save(tm_all, filename = "../figs/mpa_RR_all.png")
 ```
 
-```{r}
+```{r  message=FALSE, warning=FALSE}
+tmap_mode("plot")
 
-tm_shape(ca) + 
+tm_nc <- tm_shape(ca) + 
   tm_borders("black", lwd = .5) +
-# tm_shape(st_perform_metrics_all[is.na(st_perform_metrics_all$RR),]) +
-#                  tm_dots(shape=4, size = 0.5, border.lwd = 0.5) +
 tm_shape(st_perform_metrics_all[!is.na(st_perform_metrics_all$RR),]) + 
   tm_symbols(col = "RR",  alpha = 0.8, border.lwd = 0, size = .5, title.col = "Main Regions", palette = "Spectral", style = "quantile") + 
-  tm_facets(by = "mlpa_region", ncol = 4)
+  tm_facets(by = "mlpa_region", ncol = 4, free.coords = T, inside.original.bbox = F)
+
+tm_nc
+
+tmap_save(tm_nc, filename = "../figs/mpa_RR_nc.png")
 ```
 
+```{r  message=FALSE, warning=FALSE}
+tmap_mode("plot")
+
+tm_is <- tm_shape(ca) + 
+  tm_borders("black", lwd = .5) +
+tm_shape(st_perform_metrics_all[!is.na(st_perform_metrics_all$RR),] %>% filter(mlpa_region %in% c("island", "south"))) + 
+  tm_symbols(col = "RR",  alpha = 0.8, border.lwd = 0, size = .5, title.col = "Main Regions", palette = "Spectral", style = "quantile") + 
+  tm_facets(by = "mlpa_region",  free.coords = T)
+
+tm_is
+
+tmap_save(tm_is, filename = "../figs/mpa_RR_is.png")
+
+```
+
+## Diversity
+```{r  message=FALSE, warning=FALSE}
+tmap_mode("plot")
+
+tm_all <- tm_shape(ca) + 
+  tm_borders("black", lwd = .5) +
+tm_shape(st_perform_metrics_all[!is.na(st_perform_metrics_all$cohens_d),]) + 
+  tm_symbols(col = "cohens_d",  alpha = 0.8, border.lwd = 0, size = .3, title.col = "Cohen’s d", palette = "-plasma", style = "quantile") 
+
+tm_all
+
+tmap_save(tm_all, filename = "../figs/mpa_cohend_all.png")
+```
+
+
+```{r  message=FALSE, warning=FALSE}
+tmap_mode("plot")
+
+tm_nc <- tm_shape(ca) + 
+  tm_borders("black", lwd = .5) +
+tm_shape(st_perform_metrics_all[!is.na(st_perform_metrics_all$RR),]) + 
+  tm_symbols(col = "cohens_d",  alpha = 0.8, border.lwd = 0, size = .5, title.col = "Main Regions", palette = "Spectral", style = "quantile") + 
+  tm_facets(by = "mlpa_region", ncol = 4, free.coords = T, inside.original.bbox = F)
+
+tm_nc
+
+tmap_save(tm_nc, filename = "../figs/mpa_cohen_nc.png")
+```
 
 
