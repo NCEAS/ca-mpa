@@ -101,29 +101,29 @@ st_perform_metrics_all <- left_join(st_perform_metrics_ci, map_attributes_all, b
 ```{r  message=FALSE, warning=FALSE}
 tmap_mode("plot")
 
-tm_all <- tm_shape(ca) + 
+tm_all_means <- tm_shape(ca) + 
   tm_borders("black", lwd = .5) +
 tm_shape(st_perform_metrics_all[!is.na(st_perform_metrics_all$RR),]) + 
   tm_symbols(col = "mean_diff",  alpha = 0.5, border.lwd = 0, size = .3, title.col = "Diff. Means", palette = "Spectral", style = "quantile") 
 
-tm_all
+tm_all_means
 
-tmap_save(tm_all, filename = "../figs/mpa_means_all.png")
+tmap_save(tm_all_means, filename = "../figs/mpa_means_all.png")
 ```
 
 
 ```{r}
 tmap_mode("plot")
 
-tm_nc <- tm_shape(ca) + 
+tm_ncis_means <- tm_shape(ca) + 
   tm_borders("black", lwd = .5) +
 tm_shape(st_perform_metrics_all[!is.na(st_perform_metrics_all$RR),]) + 
   tm_symbols(col = "mean_diff",  alpha = 0.8, border.lwd = 0, size = .5, title.col = "Main Regions", palette = "Spectral", style = "quantile") + 
   tm_facets(by = "mlpa_region", ncol = 4, free.coords = T, inside.original.bbox = F)
 
-tm_nc
+tm_ncis_means
 
-tmap_save(tm_nc, filename = "../figs/mpa_means_nc.png")
+tmap_save(tm_ncis_means, filename = "../figs/mpa_means_nc.png")
 ```
 
 ## Log Ratios
@@ -131,44 +131,44 @@ tmap_save(tm_nc, filename = "../figs/mpa_means_nc.png")
 ```{r  message=FALSE, warning=FALSE}
 tmap_mode("plot")
 
-tm_all <- tm_shape(ca) + 
+tm_all_rr <- tm_shape(ca) + 
   tm_borders("black", lwd = .5) +
 # tm_shape(st_perform_metrics_all[is.na(st_perform_metrics_all$RR),]) +
 #                  tm_dots(shape=4, size = 0.5, border.lwd = 0.5) +
 tm_shape(st_perform_metrics_all[!is.na(st_perform_metrics_all$RR),]) + 
   tm_symbols(col = "RR",  alpha = 0.5, border.lwd = 0, size = .3, title.col = "log Ratio", palette = "Spectral", style = "quantile") 
 
-tm_all
+tm_all_rr
 
-tmap_save(tm_all, filename = "../figs/mpa_RR_all.png")
+tmap_save(tm_all_rr, filename = "../figs/mpa_RR_all.png")
 ```
 
 ```{r  message=FALSE, warning=FALSE}
 tmap_mode("plot")
 
-tm_nc <- tm_shape(ca) + 
+tm_ncis_rr <- tm_shape(ca) + 
   tm_borders("black", lwd = .5) +
 tm_shape(st_perform_metrics_all[!is.na(st_perform_metrics_all$RR),]) + 
   tm_symbols(col = "RR",  alpha = 0.8, border.lwd = 0, size = .5, title.col = "Main Regions", palette = "Spectral", style = "quantile") + 
   tm_facets(by = "mlpa_region", ncol = 4, free.coords = T, inside.original.bbox = F)
 
-tm_nc
+tm_ncis_rr
 
-tmap_save(tm_nc, filename = "../figs/mpa_RR_nc.png")
+tmap_save(tm_ncis_rr, filename = "../figs/mpa_RR_nc.png")
 ```
 
 ```{r  message=FALSE, warning=FALSE}
 tmap_mode("plot")
 
-tm_is <- tm_shape(ca) + 
+tm_is_rr <- tm_shape(ca) + 
   tm_borders("black", lwd = .5) +
 tm_shape(st_perform_metrics_all[!is.na(st_perform_metrics_all$RR),] %>% filter(mlpa_region %in% c("island", "south"))) + 
   tm_symbols(col = "RR",  alpha = 0.8, border.lwd = 0, size = .5, title.col = "Main Regions", palette = "Spectral", style = "quantile") + 
   tm_facets(by = "mlpa_region",  free.coords = T)
 
-tm_is
+tm_is_rr
 
-tmap_save(tm_is, filename = "../figs/mpa_RR_is.png")
+tmap_save(tm_is_rr, filename = "../figs/mpa_RR_is.png")
 
 ```
 
@@ -176,29 +176,29 @@ tmap_save(tm_is, filename = "../figs/mpa_RR_is.png")
 ```{r  message=FALSE, warning=FALSE}
 tmap_mode("plot")
 
-tm_all <- tm_shape(ca) + 
+tm_all_cohen <- tm_shape(ca) + 
   tm_borders("black", lwd = .5) +
 tm_shape(st_perform_metrics_all[!is.na(st_perform_metrics_all$cohens_d),]) + 
   tm_symbols(col = "cohens_d",  alpha = 0.8, border.lwd = 0, size = .3, title.col = "Cohen’s d", palette = "-plasma", style = "quantile") 
 
-tm_all
+tm_all_cohen
 
-tmap_save(tm_all, filename = "../figs/mpa_cohend_all.png")
+tmap_save(tm_all_cohen, filename = "../figs/mpa_cohend_all.png")
 ```
 
 
 ```{r  message=FALSE, warning=FALSE}
 tmap_mode("plot")
 
-tm_nc <- tm_shape(ca) + 
+tm_ncis_cohen <- tm_shape(ca) + 
   tm_borders("black", lwd = .5) +
 tm_shape(st_perform_metrics_all[!is.na(st_perform_metrics_all$RR),]) + 
   tm_symbols(col = "cohens_d",  alpha = 0.8, border.lwd = 0, size = .5, title.col = "Main Regions", palette = "Spectral", style = "quantile") + 
   tm_facets(by = "mlpa_region", ncol = 4, free.coords = T, inside.original.bbox = F)
 
-tm_nc
+tm_ncis_cohen
 
-tmap_save(tm_nc, filename = "../figs/mpa_cohen_nc.png")
+tmap_save(tm_ncis_cohen, filename = "../figs/mpa_cohen_nc.png")
 ```
 
 
