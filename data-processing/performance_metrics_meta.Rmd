@@ -41,7 +41,7 @@ region_yr_means_1619 <- means_data %>%
          indicator == "diversity",
          mpa_class == "ref"| mpa_class =="smr",
          year  == '2016' | year=='2017' | year=='2018' | year=='2019') %>%
-  group_by(affiliated_mpa, group, mlpa_region, mpa_designation, variable, indicator) %>%
+  group_by(affiliated_mpa, group, mlpa_region, mpa_class, mpa_designation, variable, indicator) %>%
   dplyr::summarize(yr.mean = mean(mean, na.rm=TRUE), 
                    sd=sd(mean, na.rm=TRUE), # standard deviation of across MPAs where indicator was observed/recorded
                    n=n()) %>%
@@ -85,7 +85,7 @@ region_yr_means_all <- means_data %>%
   filter(variable=="all species" | variable=="all fish" | variable=="invalg",
          indicator == "diversity",
          mpa_class == "ref" | mpa_class =="smr") %>%
-  group_by(affiliated_mpa, group, mlpa_region, mpa_designation, variable, indicator) %>%
+  group_by(affiliated_mpa, group, mlpa_region, mpa_class, mpa_designation, variable, indicator) %>%
   dplyr::summarize(yr.mean = mean(mean, na.rm=TRUE), 
                    sd = sd(mean, na.rm=TRUE), # standard deviation of across MPAs where indicator was observed/recorded
                    n = n()) %>%
