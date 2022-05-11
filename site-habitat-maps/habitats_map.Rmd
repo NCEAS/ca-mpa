@@ -193,7 +193,7 @@ tm_ccsr <- tm_shape(ca) +
   tm_borders("black", lwd = .5)+ 
 tm_shape(habitat_CCSR_plot) + 
   tm_symbols(col = "reserve_st", alpha = 0.3, border.lwd = 0, size = .25, legend.col.show = FALSE, palette= "-Set2") + 
-  tm_facets(by = c("reserve_st"), )
+  tm_facets(by = c("reserve_st"))
 
 tm_scsr <- tm_shape(ca) + 
   tm_borders("black", lwd = .5)+ 
