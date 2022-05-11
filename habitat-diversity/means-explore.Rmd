@@ -13,7 +13,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r message = FALSE}
 data_path <- "/home/shares/ca-mpa/data/sync-data"
-input_file <- "Ecol_perform_metrics_means.xlsx" 
+input_file <- "Ecol_perform_metrics_means_working.xlsx" 
 
 means <- readxl::read_excel(file.path(data_path, input_file), 
                             sheet=1, na = c("NA", "."), trim_ws = T)
