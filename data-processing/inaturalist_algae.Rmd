@@ -68,7 +68,7 @@ ca <- st_read(shp_ca)
 # This is the entire world
 plot(inat_ca)
 ```
-# Compute the intersection between MPAs and iNaturalist observations
+## Compute the intersection between MPAs and iNaturalist observations
 
 ```{r}
 # Create a 200m buffer around the MPAs
@@ -80,7 +80,7 @@ mpa_inat <- st_join(mpa_poly_200, inat_ca, join = st_contains)
 
 ```
 
-
+### Compute the unique observers
 
 ```{r}
 # Count how many unique visitors
@@ -101,7 +101,7 @@ tm_shape(mpa_inat_count) +
 
 tm_count
 ```
-
+### Compute the total observations
 
 ```{r}
 # Count all visits
