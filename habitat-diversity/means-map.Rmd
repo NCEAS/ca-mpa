@@ -193,7 +193,7 @@ tmap_mode("plot")
 tm_ncis_cohen <- tm_shape(ca) + 
   tm_borders("black", lwd = .5) +
 tm_shape(st_perform_metrics_all[!is.na(st_perform_metrics_all$RR),]) + 
-  tm_symbols(col = "cohens_d",  alpha = 0.8, border.lwd = 0, size = .5, title.col = "Main Regions", palette = "Spectral", style = "quantile") + 
+  tm_symbols(col = "cohens_d",  alpha = 0.8, border.lwd = 0, size = .5, title.col = "Main Regions", palette = "-plasma", style = "quantile") + 
   tm_facets(by = "mlpa_region", ncol = 4, free.coords = T, inside.original.bbox = F)
 
 tm_ncis_cohen
