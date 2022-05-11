@@ -21,7 +21,7 @@ library(RColorBrewer)
 
 ## Setting path and filenames
 
-```{r paths}
+```{r warning=FALSE}
 
 # Define the paths and file names
 
