@@ -85,11 +85,8 @@ mpa_inat <- st_join(mpa_poly_200, inat_ca, join = st_contains)
 ```{r}
 # Count how many unique visitors
 mpa_inat_count <- mpa_inat %>% 
-  group_by(OBJECTID, user_id) %>%
-  summarize(n_unique = n())
-
-# Number of unique observers
-mpa_inat_count$user_id %>% unique() %>% length()
+  group_by(OBJECTID) %>%
+  summarize(n_unique = n_distinct(user_id))
 
 ```
 
@@ -97,7 +94,8 @@ mpa_inat_count$user_id %>% unique() %>% length()
 tm_count <- tm_shape(ca) + 
   tm_borders("black", lwd = .5) +
 tm_shape(mpa_inat_count) + 
-  tm_symbols(col = "n_unique",  alpha = 0.5, border.lwd = 0, size = .2, title.col = "iNaturalist unique observers", palette = "-plasma", style = "quantile")
+  tm_symbols(col = "n_unique",  alpha = 0.4, border.lwd = 0, size = .2, title.col = "iNaturalist unique observers", palette = "-plasma", style = "quantile", legend.hist = TRUE) + 
+  tm_layout(legend.outside = TRUE) 
 
 tm_count
 
@@ -119,7 +117,8 @@ mpa_inat_count_all <- mpa_inat %>%
 tm_count_total <- tm_shape(ca) + 
   tm_borders("black", lwd = .5) +
 tm_shape(mpa_inat_count_all) + 
-  tm_symbols(col = "n_total",  alpha = 0.5, border.lwd = 0, size = .2, title.col = "iNaturalist total # of Obsv.", palette = "-plasma", style = "quantile")
+  tm_symbols(col = "n_total",  alpha = 0.5, border.lwd = 0, size = .2, title.col = "iNaturalist total # of Obsv.", palette = "-plasma", style = "quantile", legend.hist = TRUE) + 
+  tm_layout(legend.outside = TRUE)
 
 tm_count_total
 
