@@ -86,7 +86,7 @@ tm_shape(st_perform_metrics) +
 tm_reg4
 
 ```
-## Join the  the stats
+## Join the stats
 
 
 ```{r}
@@ -111,49 +111,8 @@ tm_all_rr
 tmap_save(tm_all_rr, filename = "../figs/mpa_RR_all.png")
 ```
 
-```{r  message=FALSE, warning=FALSE}
-tmap_mode("plot")
 
-tm_ncis_rr <- tm_shape(ca) + 
-  tm_borders("black", lwd = .5) +
-tm_shape(st_perform_metrics_all[!is.na(st_perform_metrics_all$RR),]) + 
-  tm_symbols(col = "RR",  alpha = 0.8, border.lwd = 0, size = .5, title.col = "Main Regions", palette = "Spectral", style = "quantile") + 
-  tm_facets(by = "mlpa_region", ncol = 4, free.coords = T, inside.original.bbox = F)
 
-tm_ncis_rr
-
-tmap_save(tm_ncis_rr, filename = "../figs/mpa_RR_ncis.png")
-```
-
-```{r  message=FALSE, warning=FALSE}
-tmap_mode("plot")
-
-tm_is_rr <- tm_shape(ca) + 
-  tm_borders("black", lwd = .5) +
-tm_shape(st_perform_metrics_all[!is.na(st_perform_metrics_all$RR),] %>% filter(mlpa_region %in% c("island", "south"))) + 
-  tm_symbols(col = "RR",  alpha = 0.8, border.lwd = 0, size = .5, title.col = "North Region Log Ratios", palette = "Spectral", style = "quantile") + 
-  tm_facets(by = "mlpa_region",  free.coords = T)
-
-tm_is_rr
-
-tmap_save(tm_is_rr, filename = "../figs/mpa_RR_is.png")
-
-```
-
-```{r  message=FALSE, warning=FALSE}
-tmap_mode("plot")
-
-tm_is_rr <- tm_shape(ca) + 
-  tm_borders("black", lwd = .5) +
-tm_shape(st_perform_metrics_all[!is.na(st_perform_metrics_all$RR),] %>% filter(mlpa_region %in% c("island", "south"))) + 
-  tm_symbols(col = "RR",  alpha = 0.8, border.lwd = 0, size = .5, title.col = "North Region Log Ratios", palette = "Spectral", style = "quantile") + 
-  tm_facets(by = "mlpa_region",  free.coords = T)
-
-tm_is_rr
-
-tmap_save(tm_is_rr, filename = "../figs/mpa_RR_is.png")
-
-```
 
 ### Per region
 
@@ -212,11 +171,14 @@ tm_s_rr
 tmap_save(tm_s_rr, filename = "../figs/mpa_RR_s.png")
 ```
 
+### All together
+
 ```{r}
 
 tmap_all <- tmap_arrange(tm_n_rr, tm_c_rr, tm_i_rr, tm_s_rr)
 
 tmap_all
+
 tmap_save(tmap_all, filename = "../figs/mpa_RR_ncis.png")
 ```
 
