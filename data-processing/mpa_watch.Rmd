@@ -1,0 +1,71 @@
+---
+title: "MPA_Watch"
+author: "Joshua G. Smith"
+date: '2022-05-11'
+output: html_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r libraries, warning=FALSE, message=FALSE}
+library(tidyverse)
+library(lubridate)
+library(purrr)
+library(sf)
+library(tmap)
+library(RColorBrewer)
+```
+
+## Setting path and filenames
+
+```{r warning=FALSE}
+
+# Define the paths and file names
+
+data_path <- "/home/shares/ca-mpa/data/sync-data/Citizen_Science_Programs/MPA Watch"
+input_file <- "NCEAS_MPAWatch.xlsx"
+
+data <- readxl::read_excel(file.path(data_path, input_file), 
+ sheet=1, na = c("NA", "."), trim_ws = T)
+
+
+```
+
+## Process the MPA Watch data
+
+```{r}
+# subset and summarize total activities by MPA
+
+activities <- data%>%
+              group_by(affiliated_mpa, region, long, lat) %>%
+              summarize(mu_activities = mean(total_activities),
+                        num_surveys = n())
+activities<-activities[!is.na(activities$region),]
+
+activities.sp <- activities %>% st_as_sf(.,coords=c("long", "lat"), crs=4326)
+
+```
+
+
+#Plot mean num of observed activities per survey
+```{r}
+tm_count <- tm_shape(ca) + 
+  tm_borders("black", lwd = .5) +
+tm_shape(activities.sp) + 
+  tm_symbols(col = "mu_activities",  alpha = 0.5, border.lwd = 0, size = .7, title.col = "MPA Watch observed activities", palette = "-plasma", style = "quantile")
+
+tm_count
+```
+
+#Plot survey effort
+```{r}
+tm_count <- tm_shape(ca) + 
+  tm_borders("black", lwd = .5) +
+tm_shape(activities.sp) + 
+  tm_symbols(col = "num_surveys",  alpha = 0.5, border.lwd = 0, size = .7, title.col = "MPA Watch survey effort", palette = "-plasma", style = "quantile")
+
+tm_count
+```

@@ -1,0 +1,127 @@
+---
+title: "inaturalist"
+author: "Julien Brun"
+date: '2022-05-11'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r libraries, warning=FALSE, message=FALSE}
+library(tidyverse)
+library(lubridate)
+library(purrr)
+library(sf)
+library(tmap)
+library(RColorBrewer)
+```
+
+## Setting path and filenames
+
+```{r paths}
+
+# Define the paths and file names
+
+path_aurora <- "/home/shares/ca-mpa/data/sync-data"
+shp_dir <- "spatial_data"
+cencoos_dir <- "CeNCOOS_shapefiles/Ecological_Monitoring_Sites"
+shp_path <- file.path(path_aurora, shp_dir)
+
+shp_ca <- file.path(path_aurora, shp_dir, "ca_boundary_wgs84.shp")
+
+mpa_shapefile <- "CA_MPA_boundaries/ds582/ds582.shp" 
+
+
+metrics_file_all <- "processed_data/peformance_metrics_meta_all.csv" 
+metrics_file_1619 <- "processed_data/peformance_metrics_meta_1619.csv" 
+
+map_file <- "Ecol_perform_metrics_means_4regions.geojson"
+
+inat_file <- "Citizen_Science_Programs/iNaturalist/algae_observers_all_years.csv"
+```
+
+## Process the iNaturalist data
+
+```{r}
+# load CDFW mpa polygons
+mpa_poly <- st_read(file.path(path_aurora, mpa_shapefile), stringsAsFactors = F)
+
+# Create a bounding box around all the MPAs (with a 500m buffer)
+bbox <- mpa_poly %>%
+  st_buffer(., dist=500) %>%
+  st_transform(., crs=4326) %>% 
+  st_bbox() %>% 
+  st_as_sfc()
+
+# Subset the entire world data to MPA network
+inat <- read_csv(file.path(path_aurora, inat_file)) %>%
+  drop_na() %>%
+  st_as_sf(.,coords=c("longitude", "latitude"), crs=4326)
+
+inat_ca <- st_intersection(inat, bbox) %>%
+  st_transform(., st_crs(mpa_poly))
+
+ca <- st_read(shp_ca)
+
+# This is the entire world
+plot(inat_ca)
+```
+## Compute the intersection between MPAs and iNaturalist observations
+
+```{r}
+# Create a 200m buffer around the MPAs
+mpa_poly_200 <- mpa_poly %>%
+  st_buffer(., dist=200)
+
+# Join the MPAs and the observations that are contained in them
+mpa_inat <- st_join(mpa_poly_200, inat_ca, join = st_contains)
+
+```
+
+### Compute the unique observers
+
+```{r}
+# Count how many unique visitors
+mpa_inat_count <- mpa_inat %>% 
+  group_by(OBJECTID) %>%
+  summarize(n_unique = n_distinct(user_id))
+
+```
+
+```{r}
+tm_count <- tm_shape(ca) + 
+  tm_borders("black", lwd = .5) +
+tm_shape(mpa_inat_count) + 
+  tm_symbols(col = "n_unique",  alpha = 0.4, border.lwd = 0, size = .2, title.col = "iNaturalist unique observers", palette = "-plasma", style = "quantile", legend.hist = TRUE) + 
+  tm_layout(legend.outside = TRUE) 
+
+tm_count
+
+tmap_save(tm_count, filename = "../figs/inat_unique_obs.png")
+```
+### Compute the total observations
+
+```{r}
+# Count all visits
+mpa_inat_count_all <- mpa_inat %>% 
+  group_by(OBJECTID) %>%
+  summarize(n_total = n())
+
+
+```
+
+
+```{r}
+tm_count_total <- tm_shape(ca) + 
+  tm_borders("black", lwd = .5) +
+tm_shape(mpa_inat_count_all) + 
+  tm_symbols(col = "n_total",  alpha = 0.5, border.lwd = 0, size = .2, title.col = "iNaturalist total # of Obsv.", palette = "-plasma", style = "quantile", legend.hist = TRUE) + 
+  tm_layout(legend.outside = TRUE)
+
+tm_count_total
+
+tmap_save(tm_count_total, filename = "../figs/inat_all_obs.png")
+```
+

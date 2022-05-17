@@ -1,0 +1,149 @@
+---
+title: "4 regions"
+author: "Julien Brun"
+knit: (function(input_file, encoding) {
+  out_dir <- 'docs';
+  rmarkdown::render(input_file,
+ encoding=encoding,
+ output_file=file.path(dirname(input_file), out_dir, 'regions4.html'))})
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r libraries, warning=FALSE, message=FALSE}
+library(tidyverse)
+library(lubridate)
+library(purrr)
+library(sf)
+library(tmap)
+library(RColorBrewer)
+```
+
+## Reading the data
+
+```{r paths}
+
+# Define the paths and file names
+
+path_aurora <- "/home/shares/ca-mpa/data/sync-data/"
+shp_dir <- "spatial_data"
+cencoos_dir <- "CeNCOOS_shapefiles/Ecological_Monitoring_Sites"
+shp_path <- file.path(path_aurora, shp_dir)
+
+shp_ca <- file.path(path_aurora, shp_dir, "ca_boundary_wgs84.shp")
+
+
+input_file <- "Ecol_perform_metrics_means_working.xlsx" 
+
+map_file <- "mpa-attributes.xlsx"
+
+
+```
+
+
+# Read the input files
+
+
+```{r read inputs, message=FALSE, warning=FALSE}
+
+perform_metrics <- readxl::read_excel(file.path(path_aurora, input_file), 
+                            sheet=1, na = c("NA", "na"), trim_ws = T)
+
+# map_attributes <-  readxl::read_excel(file.path(data_path, map_file), 
+#                             sheet=1, na = c("NA", "."), trim_ws = T)
+
+# Read California border
+ca <- st_read(shp_ca)
+st_crs(ca)
+
+
+# st_perform_metrics <- perform_metrics %>% 
+#   st_as_sf(.,coords=c("lon_wgs84", "lat_wgs84"), crs=4326)
+
+
+
+```
+We have some sites without coordinates. Also the precision of the location seems to vary betwee sites. **What should be our reference file?**
+
+```{r, eval=FALSE}
+perform_metrics %>% 
+  filter(is.na(lat_wgs84) | is.na(lon_wgs84)) %>% 
+  distinct(affiliated_mpa)
+```
+`gull island smr`, `carmel bay smca`, `anacapa island smr` are missing lat/long info. Dropping for now.
+
+
+Still fails. There are character in the longitude column. Let's find which rows are affected
+
+```{r}
+perform_metrics %>% 
+  filter(is.na(as.numeric(lon_wgs84))) %>% 
+  distinct(affiliated_mpa)
+```
+`bodega head smca` seems to have some strange values for the longitude. Dropping for now.
+
+```{r}
+perform_metrics_cleaned <- perform_metrics %>% 
+  filter(!is.na(lat_wgs84) | !is.na(lon_wgs84)) %>% 
+  filter(!is.na(as.numeric(lon_wgs84))) 
+
+
+# perform_metrics_static <- perform_metrics_cleaned %>%
+#   select(group,mlpa_region, affiliated_mpa, mpa_class, mpa_designation, lat_wgs84, lon_wgs84) %>%
+#   distinct()
+# 
+# dim(perform_metrics_static)
+
+# st_perform_metrics <- perform_metrics %>% 
+  # st_as_sf(.,coords=c("lon_wgs84", "lat_wgs84"), crs=4326)
+
+```
+
+```{r}
+
+st_perform_metrics <- perform_metrics_cleaned %>% 
+  st_as_sf(.,coords=c("lon_wgs84", "lat_wgs84"), crs=4326)
+
+
+tm_reg <- tm_shape(ca) + 
+  tm_borders("black", lwd = .5) +
+tm_shape(st_perform_metrics) + 
+  tm_symbols(col = "mlpa_region",  alpha = 0.8, border.lwd = 0, size = .2, title.col = "Main Regions")
+
+tm_reg
+```
+Export as shapefile
+```{r}
+# Write combined shapefile
+st_write(st_perform_metrics, dsn = file.path(path_aurora, cencoos_dir, "most_sampling_sites.geojson"), delete_dsn =TRUE)
+```
+
+Manually select the Island in QGIS and add a `channel_island` column coded with `1` (is a channel island site) and `0`.
+
+```{r}
+
+# read the new file in
+st_perform_metrics_ci <- st_read(dsn = file.path(path_aurora, cencoos_dir, "most_sampling_sites_island.geojson"))
+
+# Update the mlpa_region using this flag
+st_perform_metrics_ci <- st_perform_metrics_ci %>%
+  mutate(mlpa_region = ifelse(channel_island==1, "island", mlpa_region)) %>%
+  select(-channel_island)
+
+
+tm_reg4 <- tm_shape(ca) + 
+  tm_borders("black", lwd = .5) +
+tm_shape(st_perform_metrics_ci) + 
+  tm_symbols(col = "mlpa_region",  alpha = 0.8, border.lwd = 0, size = .2, title.col = "Main Regions")
+
+tm_reg4
+
+# save the file
+st_write(st_perform_metrics_ci,file.path(path_aurora, "Ecol_perform_metrics_means_4regions.csv"), delete_dsn =TRUE)
+st_write(st_perform_metrics_ci, dsn = file.path(path_aurora, cencoos_dir, "sampling_sites_4regions.geojson"), delete_dsn =TRUE)
+
+
+```
