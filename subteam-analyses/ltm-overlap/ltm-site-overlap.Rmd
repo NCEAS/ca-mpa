@@ -1,0 +1,329 @@
+---
+title: "LTM Site Overlap"
+author: "Cori Lopazanski"
+date: '2022-05-17'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(janitor)
+library(kableExtra)
+```
+
+# Read 
+
+```{r}
+ltm <- read_csv("ltm-site-table-cleaned-with-deep.csv")
+```
+
+# Clean 
+
+```{r}
+# Fix Kelp Forest Multi-Reference Site
+multi <- ltm %>% 
+  filter(affiliated_mpa == "CRYSTAL COVE SMCA/LAGUNA BEACH SMR/LAGUNA BEACH SMCA/DANA POINT SMCA") %>% 
+  filter(data == 1) %>% 
+  mutate(a = "CRYSTAL COVE SMCA",
+         b = "LAGUNA BEACH SMR",
+         c = "LAGUNA BEACH SMCA",
+         d = "DANA POINT SMCA") %>% 
+  pivot_longer(cols = a:d,
+               values_to = "mpa") %>% 
+  mutate(affiliated_mpa = mpa) %>% 
+  select(-name, -mpa)
+
+ltm <- ltm %>%
+  filter(affiliated_mpa != "CRYSTAL COVE SMCA/LAGUNA BEACH SMR/LAGUNA BEACH SMCA/DANA POINT SMCA") %>% 
+  rbind(multi)
+
+
+# Shorten affiliated mpa names since it is contained in desig. column
+ltm$affiliated_mpa <- str_remove(ltm$affiliated_mpa, " SMR")
+ltm$affiliated_mpa <- str_remove(ltm$affiliated_mpa, " SMCA")
+ltm$affiliated_mpa <- str_remove(ltm$affiliated_mpa, " SPECIAL CLOSURE")
+
+# Naming Corrections
+ltm$affiliated_mpa[ltm$affiliated_mpa == "SWAMIS"]  <- "SWAMI'S"
+ltm$affiliated_mpa[ltm$affiliated_mpa == "SAN DIEGO-SCRIPPS COASTAL"]  <- "SCRIPPS/MATLAHUAYL"
+ltm$affiliated_mpa[ltm$affiliated_mpa == "CRYSTAL COVE/LAGUNA BEACH/LAGUNA BEACH/DANA POINT SMCA"]  <- "DANA POINT"
+
+# Remove rows where there is no data
+ltm <- ltm %>% 
+  filter(affiliated_mpa != "NONE") %>% 
+  filter(!is.na(data))
+
+# Separate Islands
+is <- c("RICHARDSON ROCK",
+        "SAN MIGUEL ISLAND",
+        "JUDITH ROCK",
+        "HARRIS POINT",
+        "SOUTH POINT",
+        "CARRINGTON POINT",
+        "SKUNK POINT",
+        "GULL ISLAND",
+        "PAINTED CAVE",
+        "SCORPION",
+        "ANACAPA ISLAND",
+        "FOOTPRINT")
+
+ltm$islands <- if_else(ltm$affiliated_mpa %in% is, 
+                       "SOUTH - CI", as.character(ltm$mlpa_region))
+
+# Reorder regions
+ltm$mlpa_region <- fct_relevel(as.factor(ltm$mlpa_region), 
+                               levels = c("NORTH", "CENTRAL", "SOUTH"))
+ltm$islands <- fct_relevel(as.factor(ltm$islands), 
+                               levels = c("NORTH", "CENTRAL", "SOUTH", "SOUTH - CI"))
+```
+
+# Group
+
+```{r}
+# Some groups have multiple named sites within each associated MPA or REF
+# Consolidate data to single counts for MPA/REF each group visited each year
+site <- ltm %>% 
+  group_by(islands, affiliated_mpa, mpa_designation, year, group) %>% 
+  summarize(n = sum(data)) %>% 
+  select(!n) %>% 
+  mutate(data = 1)
+
+# Number of groups per site for each year
+site_per_year <- site %>% 
+  group_by(islands, affiliated_mpa, mpa_designation, year) %>% 
+  summarize(n = sum(data),
+            id = list(group))
+
+site_per_year$id <- sapply(site_per_year$id, toString)
+
+site_per_year_wide <- site_per_year %>% 
+  arrange(year) %>% 
+  pivot_wider(id_cols = c(islands, affiliated_mpa, mpa_designation),
+               names_from = year,
+               values_from = c(n, id)) %>% 
+  arrange(islands, affiliated_mpa, mpa_designation)
+
+
+# Reduce annual data to number of years each group visited each MPA or REF
+site_years <- site %>% 
+  group_by(islands, affiliated_mpa, mpa_designation, group) %>% 
+  tally() %>% 
+  rename(n_years = n)
+
+# Display number of years at MPA/REF site level, number of groups per site
+site_overlap <- site_years %>% 
+  pivot_wider(id_cols = c(islands, affiliated_mpa, mpa_designation), 
+              names_from = group,
+              values_from = n_years) 
+
+site_overlap$n_na <- rowSums(is.na(site_overlap))
+
+site_overlap <- site_overlap %>% 
+  mutate(n_groups = 6-n_na) %>% 
+  select(-n_na) %>% 
+  select(islands, affiliated_mpa, mpa_designation, n_groups, `Kelp Forest`,
+         Intertidal, CCFRP, `Deep Reef`, Beach, Surf)
+
+# Filter only sites with multiple groups
+overlap_only <- site_overlap %>% 
+  filter(n_groups > 1)
+
+# Wide Format
+site_wide <- site %>% 
+  arrange(year) %>% 
+  pivot_wider(id_cols = c(islands, affiliated_mpa, mpa_designation, group),
+              names_from = year,
+              values_from = data) %>% 
+  rename(region = islands) %>% 
+  arrange(region, mpa_designation, group)
+
+
+
+
+```
+
+
+# Tables
+
+```{r}
+options(knitr.kable.NA = "")
+
+names(site_overlap) <- c("Region", "MPA", "Designation", "Total Groups",
+                         "Kelp Forest", "Intertidal", "CCFRP",
+                         "Deep Reef", "Beach", "Surf") 
+
+site_overlap <- site_overlap %>% 
+  arrange("Region", "MPA", "Designation")
+
+kbl(site_overlap) %>% 
+  kable_styling(bootstrap_options = c("hover", "condensed"),
+                full_width = F,
+                fixed_thead = T) %>% 
+  add_header_above(c(" " = 4, "Number of Years Sampled" = 6)) %>% 
+  column_spec(4, background = spec_color(site_overlap$`Total Groups`[1:158], 
+                                          option = "A",
+                                          direction = -1,
+                                          begin = 0.7)) %>% 
+  collapse_rows(columns = 1:2, valign = "top", latex_hline = "major")%>% 
+  save_kable("group-summary.html")
+```
+
+
+```{r}
+all <- site_per_year_wide %>% 
+  select(islands:n_2021) %>% 
+  arrange(islands, affiliated_mpa, mpa_designation)
+
+names(all) <- c("Region", "MPA", "Designation", "1999", "2000", "2001", "2002",
+                "2003", "2004", "2005", "2006", "2007", "2008", "2009", "2010",
+                "2011", "2012", "2013", "2014", "2015", "2016", "2017", "2018",
+                "2019", "2020", "2021")
+
+options(knitr.kable.NA = "")
+
+kbl(all) %>% 
+  kable_styling(bootstrap_options = "condensed",
+                full_width = F, fixed_thead = T) %>% 
+  column_spec(4, background = spec_color(all$`1999`, na_color = "FFFFFF",
+                                         scale_from = c(1,6),
+                                         option = "A", 
+                                         direction = -1, begin = 0.7),
+              tooltip = site_per_year_wide$id_1999[1:158]) %>% 
+  column_spec(5, background = spec_color(all$`2000`, na_color = "FFFFFF",
+                                         scale_from = c(1,6),
+                                         option = "A", 
+                                         direction = -1, begin = 0.7),
+              tooltip = site_per_year_wide$id_2000[1:158]) %>% 
+  column_spec(6, background = spec_color(all$`2001`, na_color = "FFFFFF",
+                                         scale_from = c(1,6),
+                                         option = "A", 
+                                         direction = -1, begin = 0.7),
+              tooltip = site_per_year_wide$id_2001[1:158]) %>% 
+  column_spec(7, background = spec_color(all$`2002`, na_color = "FFFFFF",
+                                         scale_from = c(1,6),
+                                         option = "A", 
+                                         direction = -1, begin = 0.7),
+              tooltip = site_per_year_wide$id_2002[1:158]) %>% 
+  column_spec(8, background = spec_color(all$`2003`, na_color = "FFFFFF",
+                                         scale_from = c(1,6),
+                                         option = "A", 
+                                         direction = -1, begin = 0.7),
+              tooltip = site_per_year_wide$id_2003[1:158]) %>% 
+  column_spec(9, background = spec_color(all$`2004`, na_color = "FFFFFF",
+                                         scale_from = c(1,6),
+                                         option = "A", 
+                                         direction = -1, begin = 0.7),
+              tooltip = site_per_year_wide$id_2004[1:158]) %>% 
+  column_spec(10, background = spec_color(all$`2005`, na_color = "FFFFFF",
+                                         scale_from = c(1,6),
+                                         option = "A", 
+                                         direction = -1, begin = 0.7),
+              tooltip = site_per_year_wide$id_2005[1:158]) %>% 
+  column_spec(11, background = spec_color(all$`2006`, na_color = "FFFFFF",
+                                         scale_from = c(1,6),
+                                         option = "A", 
+                                         direction = -1, begin = 0.7),
+              tooltip = site_per_year_wide$id_2006[1:158]) %>%
+  column_spec(12, background = spec_color(all$`2007`, na_color = "FFFFFF",
+                                         scale_from = c(1,6),
+                                         option = "A", 
+                                         direction = -1, begin = 0.7),
+              tooltip = site_per_year_wide$id_2007[1:158]) %>% 
+  column_spec(13, background = spec_color(all$`2008`, na_color = "FFFFFF",
+                                         scale_from = c(1,6),
+                                         option = "A", 
+                                         direction = -1, begin = 0.7),
+              tooltip = site_per_year_wide$id_2008[1:158]) %>% 
+  column_spec(14, background = spec_color(all$`2009`, na_color = "FFFFFF",
+                                         scale_from = c(1,6),
+                                         option = "A", 
+                                         direction = -1, begin = 0.7),
+              tooltip = site_per_year_wide$id_2009[1:158]) %>% 
+  column_spec(15, background = spec_color(all$`2010`, na_color = "FFFFFF",
+                                         scale_from = c(1,6),
+                                         option = "A", 
+                                         direction = -1, begin = 0.7),
+              tooltip = site_per_year_wide$id_2010[1:158]) %>% 
+  column_spec(16, background = spec_color(all$`2011`, na_color = "FFFFFF",
+                                         scale_from = c(1,6),
+                                         option = "A", 
+                                         direction = -1, begin = 0.7),
+              tooltip = site_per_year_wide$id_2011[1:158]) %>% 
+  column_spec(17, background = spec_color(all$`2012`, na_color = "FFFFFF",
+                                         scale_from = c(1,6),
+                                         option = "A", 
+                                         direction = -1, begin = 0.7),
+              tooltip = site_per_year_wide$id_2012[1:158]) %>% 
+  column_spec(18, background = spec_color(all$`2013`, na_color = "FFFFFF",
+                                         scale_from = c(1,6),
+                                         option = "A", 
+                                         direction = -1, begin = 0.7),
+              tooltip = site_per_year_wide$id_2013[1:158]) %>%
+  column_spec(19, background = spec_color(all$`2014`, na_color = "FFFFFF",
+                                         scale_from = c(1,6),
+                                         option = "A", 
+                                         direction = -1, begin = 0.7),
+              tooltip = site_per_year_wide$id_2014[1:158]) %>%
+  column_spec(20, background = spec_color(all$`2015`, na_color = "FFFFFF",
+                                         scale_from = c(1,6),
+                                         option = "A", 
+                                         direction = -1, begin = 0.7),
+              tooltip = site_per_year_wide$id_2015[1:158]) %>%
+  column_spec(21, background = spec_color(all$`2016`, na_color = "FFFFFF",
+                                         scale_from = c(1,6),
+                                         option = "A", 
+                                         direction = -1, begin = 0.7),
+              tooltip = site_per_year_wide$id_2016[1:158]) %>%
+  column_spec(22, background = spec_color(all$`2017`, na_color = "FFFFFF",
+                                         scale_from = c(1,6),
+                                         option = "A", 
+                                         direction = -1, begin = 0.7),
+              tooltip = site_per_year_wide$id_2017[1:158]) %>%
+  column_spec(23, background = spec_color(all$`2018`, na_color = "FFFFFF",
+                                         scale_from = c(1,6),
+                                         option = "A", 
+                                         direction = -1, begin = 0.7),
+              tooltip = site_per_year_wide$id_2018[1:158]) %>%
+  column_spec(24, background = spec_color(all$`2019`, na_color = "FFFFFF",
+                                         scale_from = c(1,6),
+                                         option = "A", 
+                                         direction = -1, begin = 0.7),
+              tooltip = site_per_year_wide$id_2019[1:158]) %>%
+  column_spec(25, background = spec_color(all$`2020`, na_color = "FFFFFF",
+                                         scale_from = c(1,6),
+                                         option = "A", 
+                                         direction = -1, begin = 0.7),
+              tooltip = site_per_year_wide$id_2020[1:158]) %>%
+  column_spec(26, background = spec_color(all$`2021`, na_color = "FFFFFF",
+                                         scale_from = c(1,6),
+                                         option = "A", 
+                                         direction = -1, begin = 0.7),
+              tooltip = site_per_year_wide$id_2021[1:158]) %>% 
+  collapse_rows(columns = 1:2, valign = "top", latex_hline = "major") %>% 
+  save_kable("all.html")
+  
+  
+data %>%  mutate(REASON_DESCRIPTION=text_spec(REASON_DESCRIPTION, "html", tooltip=TIP)) %>% 
+    select(REASON_CODE,REASON_DESCRIPTION) %>% kable("html", escape=F) %>% 
+    kable_styling()
+```
+
+
+
+```{r}
+mpa_only <- site_per_year_wide %>% 
+  filter(mpa_designation != "REFERENCE") %>% 
+  select(islands:n_2021)
+
+names(mpa_only) <- c("Region", "MPA", "Designation", "1999", "2000", "2001", "2002",
+                "2003", "2004", "2005", "2006", "2007", "2008", "2009", "2010",
+                "2011", "2012", "2013", "2014", "2015", "2016", "2017", "2018",
+                "2019", "2020", "2021")
+kbl(mpa_only) %>% 
+  kable_styling(bootstrap_options = "condensed",
+                full_width = F, fixed_thead = T) %>% 
+  collapse_rows(columns = 1:2, valign = "top", latex_hline = "major")
+
+```
