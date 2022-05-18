@@ -21,114 +21,115 @@ library(kableExtra)
 ```
 
 # Read Taxonomy Tables
+
 ```{r}
-ccfrp <- readxl::read_excel(here::here(data_path, "CCFRP_Taxonomy.xlsx"), 
-                            sheet = 2,
-                            na = "NA") %>% clean_names() %>% 
+ccfrp <- readxl::read_excel(here::here(data_path, "CCFRP_Taxonomy.xlsx"), sheet = 2,na = "NA") %>% 
+  clean_names() %>% 
   mutate(group = "ccfrp")
 
-dr <- readxl::read_excel(here::here(data_path, "DeepReef-ROV-Taxonomy.xlsx"),
-                         na = "NA") %>% clean_names() %>% 
+dr <- readxl::read_excel(here::here(data_path, "DeepReef-ROV-Taxonomy.xlsx"), na = "NA") %>% 
+  clean_names() %>% 
   mutate(group = "deep_reef")
 
-rocky_bio <- readxl::read_excel(here::here(data_path, "RockyIntertidal-Biodiversity-Taxonomy.xlsx"),
-                                na = "NA") %>% clean_names() %>% 
+rocky_bio <- readxl::read_excel(here::here(data_path, "RockyIntertidal-Biodiversity-Taxonomy.xlsx"), na = "NA") %>% 
+  clean_names() %>% 
   mutate(group = "rocky_bio")
 
-rocky_lt <- readxl::read_excel(here::here(data_path, "RockyIntertidal-LongTerm-Taxonomy.xlsx"),
-                               na = "NA") %>% clean_names() %>% 
+rocky_lt <- readxl::read_excel(here::here(data_path, "RockyIntertidal-LongTerm-Taxonomy.xlsx"), na = "NA") %>% 
+  clean_names() %>% 
   mutate(group = "rocky_lt")
 
-kf <- readxl::read_excel(here::here(data_path, "Kelp-Taxonomy.xlsx"),
-                         na = "NA") %>% clean_names() %>% 
+kf <- readxl::read_excel(here::here(data_path, "Kelp-Taxonomy.xlsx"), na = "NA") %>% 
+  clean_names() %>% 
   mutate(group = "kelp_forest")
 
-sb_seine <- read_csv(here::here(data_path, "SandyBeach-SurfZone-FishSeine-Taxonomy.csv"),
-                     na = "NA") %>% clean_names() %>% 
+sb_seine <- read_csv(here::here(data_path, "SandyBeach-SurfZone-FishSeine-Taxonomy.csv"), na = "NA") %>% 
+  clean_names() %>% 
   mutate(group = "sandy_beach_seine")
 
-sb_bruv  <- read_csv(here::here(data_path, "SandyBeach-SurfZone-Bruv-Taxonomy.csv"),
-                     na = "NA") %>% clean_names() %>% 
+sb_bruv  <- read_csv(here::here(data_path, "SandyBeach-SurfZone-Bruv-Taxonomy.csv"), na = "NA") %>% 
+  clean_names() %>% 
   mutate(group = "sandy_beach_bruv") 
+
 ```
-# Goal 1: Create table which codes species as targeted and non-targeted
+# High-Level Cleaning
 
-## Select columns from each individual taxonomy table
+## General
 ```{r}
-ccfrp_tar <- ccfrp %>% 
-  select(group, species_code, scientific_name, fished) %>% 
-  rename(targeted = fished) 
+targeted_table_names <- c("group", "species_code", "scientific_name", "targeted")
+```
 
-ccfrp_tar$targeted[is.na(ccfrp_tar$targeted)] <- "NoData"
 
-dr_tar <- dr %>% 
-  select(group, pisco_code, scientific_name, targeted) %>% 
-  rename(species_code = pisco_code)
+## CCFRP
+```{r}
+ccfrp_clean <- ccfrp %>% 
+  rename(targeted = fished) %>% 
+  mutate(targeted = if_else(is.na(targeted) | targeted == "?", "NoData", targeted)) 
 
-dr_tar$targeted[is.na(dr_tar$targeted)] <- "NoData"
+```
 
-rocky_bio_tar <- rocky_bio %>% 
-  select(group, species_code, species) %>% 
+## Deep Reef
+```{r}
+dr_clean <- dr %>% 
+  rename(species_code = pisco_code) %>% 
+  mutate(targeted = if_else(is.na(targeted), "NoData", targeted)) 
+
+```
+
+## Kelp Forest
+```{r}
+kf_clean <- kf %>% 
+   rename(species_code = pisco_classcode,
+         scientific_name = scientific_name_accepted) %>% 
+  mutate(targeted = if_else(is.na(targeted), "NoData", targeted),
+         targeted = if_else(targeted == "Nontargeted", "Non-targeted", targeted))
+
+```
+
+## Rocky Intertidal
+```{r}
+rocky_bio_clean <- rocky_bio %>% 
   rename(scientific_name = species) %>% 
   mutate(targeted = NA)
 
-rocky_lt_tar <- rocky_lt %>% 
-  select(group, marine_species_code, species) %>% 
+rocky_lt_clean <- rocky_lt %>% 
   rename(species_code = marine_species_code,
          scientific_name = species)%>% 
   mutate(targeted = NA)
 
-kf_tar <- kf %>% 
-  select(group, pisco_classcode, scientific_name_accepted, targeted) %>% 
-  rename(species_code = pisco_classcode,
-         scientific_name = scientific_name_accepted)
+ri_clean <- full_join(rocky_bio_clean, rocky_lt_clean)
+```
 
-kf_tar$targeted[is.na(kf_tar$targeted)] <- "NoData"
+## Sandy Beach
+```{r}
+sb_bruv_clean <- sb_bruv %>% 
+    rename(scientific_name = species_definition) %>% 
+    mutate(targeted = if_else(is.na(targeted), "NoData", targeted))
 
-
-sb_bruv_tar <- sb_bruv %>% 
-  select(group, species_code, species_definition, targeted) %>% 
-  rename(scientific_name = species_definition) 
-
-sb_bruv_tar$targeted[is.na(sb_bruv_tar$targeted)] <- "NoData"
-
-
-sb_seine_tar <- sb_seine %>% 
-  select(group, species_code, scientific_name_accepted, targeted) %>% 
+sb_seine_clean <- sb_seine %>% 
   rename(scientific_name = scientific_name_accepted) %>% 
-  filter(!is.na(scientific_name))
+  filter(!is.na(scientific_name)) %>% 
+  mutate(targeted = if_else(is.na(targeted), "NoData", targeted)) 
 
-sb_seine_tar$targeted[is.na(sb_seine_tar$targeted)] <- "NoData"
+sb_clean <- full_join(sb_bruv_clean, sb_seine_clean)
 
+sb_clean$targeted[sb_clean$targeted == "Nontargeted"] <- "Non-targeted"
 
 ```
 
 
-## Join All Groups Together
+# Goal 1: Create table which codes species as targeted and non-targeted
 
+## Select columns from each individual taxonomy table and join together 
 ```{r}
-tar <- rbind(ccfrp_tar,
-                  dr_tar,
-                  kf_tar,
-                  sb_bruv_tar,
-                  sb_seine_tar)
-
-tar$targeted[tar$targeted == "Nontargeted"] <- "Non-targeted"
-tar$targeted[tar$targeted == "?"] <- "NoData"
-
-# Test for duplicates
-tar_dupl <- tar %>%
-  group_by(scientific_name, group) %>% 
-  summarize(n = dplyr::n(), .groups = "drop") %>% 
-  filter(n > 1L)
-
-# Remove duplicates
-tar <- tar %>% 
-  distinct(scientific_name, group, .keep_all = TRUE)
+tar <- rbind(ccfrp_clean[targeted_table_names],
+                   kf_clean[targeted_table_names],
+                   sb_clean[targeted_table_names],
+                   dr_clean[targeted_table_names]) %>% 
+  distinct(scientific_name, group, .keep_all = TRUE)  # remove duplicates
 ```
 
 ## Widen Table by Scientific Name
-
 ```{r}
 tar_overlap <- tar %>%
   pivot_wider(id_cols = scientific_name, 
@@ -140,12 +141,11 @@ tar_overlap <- tar %>%
 ```
 
 ## Export Table
-
 ```{r}
 options(knitr.kable.NA = "")
 
-names(tar_overlap) <- c("Scientific Name", "CCFRP", "Deep Reef", "Kelp Forest",
-        "Sandy Beach (BRUV)", "Sandy Beach (Seine)") 
+names(tar_overlap) <- c("Scientific Name", "CCFRP", "Kelp Forest",
+        "Sandy Beach (BRUV)", "Sandy Beach (Seine)", "Deep Reef") 
 
 kbl(tar_overlap) %>% 
   kable_styling(bootstrap_options = c("striped", "hover"), full_width = F, fixed_thead = T) %>% 
@@ -155,51 +155,15 @@ kbl(tar_overlap) %>%
 ```
 
 
-# Goal 2: Create one Species Table 
+# Goal 2: Create one Species Trait Table 
 
 ## Identify Common Variables
 
 ```{r}
-sb <- sb_seine %>% 
-  select(species_code:family, trophic_group:notes_trophic_targeted, feeding_mode, group) %>% 
-  full_join(sb_bruv)
-
 
 ```
 
 
 
 
-
-
-# Old
-## Join by Scientific Name (or for rocky, "species")
-
-```{r}
-ccfrp_sp <- ccfrp %>% select(scientific_name)
-dr_sp <- dr %>% select(scientific_name)
-rocky_bio_sp <- rocky_bio %>% select(species)
-rocky_lt_sp <- rocky_lt %>% select(species)
-kf_sp <- kf %>% select(scientific_name_accepted)
-
-
-taxa_overlap <- ccfrp_sp %>% 
-  filter(scientific_name %in% rocky_lt_sp$species) # 1 Rocky LT with CCFRP 
-
-taxa_overlap <- ccfrp_sp %>% 
-  filter(scientific_name %in% dr_sp$scientific_name) %>% 
-  unique() # 69 CCFRP and Deep Reef
-
-taxa_overlap <- ccfrp_sp %>% 
-  filter(scientific_name %in% kf_sp$scientific_name_accepted) %>% 
-  unique() # 66 CCFRP and KF
-
-taxa_overlap <- ccfrp_sp %>% 
-  filter(scientific_name %in% kf_sp$scientific_name_accepted) %>% 
-  filter(scientific_name %in% dr_sp$scientific_name) %>% 
-  unique() # 55 CCFRP and KF and Deep Reef (18 are rockfishes)
-
-
-
-```
 
