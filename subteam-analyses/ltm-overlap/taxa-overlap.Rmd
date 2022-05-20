@@ -118,7 +118,9 @@ sb_clean$targeted[sb_clean$targeted == "Nontargeted"] <- "Non-targeted"
 ```
 
 
-# Goal 1: Create table which codes species as targeted and non-targeted
+# Goal 1: Targeted Table
+
+Create table which codes species as targeted and non-targeted
 
 ## Select columns from each individual taxonomy table and join together 
 ```{r}
@@ -155,9 +157,9 @@ kbl(tar_overlap) %>%
 ```
 
 
-# Goal 2: Create one Species Trait Table 
+# Goal 2: Species Trait Table 
 
-## Identify Common Variables
+## Taxonomy
 
 ```{r}
 
