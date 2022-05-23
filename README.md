@@ -4,7 +4,13 @@ This is the GitHub repository for an NCEAS Working Group leading the Decadal Rev
 
 ## Repository structure
 
-The GitHub repository contains all of the code associated with the project and the figures producted by this code. The data for the project are kept in a Google Drive folder outside the GitHub repository. The data will be made available in a data repository upon project completion.
+The GitHub repository contains all of the code associated with the project and the figures produced by this code. 
+
+The data for the project are kept in a Google Drive folder outside the GitHub repository. The data will be made available in a data repository upon project completion.
+
+The GitHub repository has the following structure
+
+* **data-processing**: This folder contains scripts that clean and visualize the data associated with the project. There are subfolders for each dataset. The data are kept in the Google drive and the figures are exported to the figs folder.
 
 ## Working group members
 
