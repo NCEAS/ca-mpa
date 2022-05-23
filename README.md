@@ -10,7 +10,9 @@ The data for the project are kept in a Google Drive folder outside the GitHub re
 
 The GitHub repository has the following structure
 
-* **data-processing**: This folder contains scripts that clean and visualize the data associated with the project. There are subfolders for each dataset. The data are kept in the Google drive and the figures are exported to the figs folder.
+* **data-processing:** This folder contains scripts that clean and visualize the data associated with the project. There are subfolders for each dataset. The data are kept in the Google drive and the figures are exported to the **figs** folder.
+* **docs:** This folder contains documents associated with the project.
+* **figs:** This figure contains figures generated in the **data-processing** folder and in the various analysis folders.
 
 ## Working group members
 
