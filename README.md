@@ -11,7 +11,7 @@ The data for the project are kept in a Google Drive folder outside the GitHub re
 The GitHub repository has the following structure
 
 * **data:** This folder contains subfolders for each dataset used in the project. The subfolders contain scripts that clean and visualize the data. Figures for visualizing each dataset are contained within a *figures* folder inside each subfolder.
-* **analysis:** This folder contains subfolders that contain the analyses conducted for each paper. Paper subteams may structure the contents of these subfolders in whatever manner is best for them.
+* **analyses:** This folder contains subfolders that contain the analyses conducted for each paper. Paper subteams may structure the contents of these subfolders in whatever manner is best for them.
 
 ## Working group members
 
