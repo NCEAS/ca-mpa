@@ -33,5 +33,6 @@ The Working Group is led by Jenn Caselle and Kerry Nickols and is a collaboratio
 * Mark Carr, UC Santa Cruz
 * Peter Raimondi, UC Santa Cruz
 * Rick Starr, Moss Landing Marine Laboratories
-* Shelby Ziegler, Moss Landing Marine Laboratories
+* Scott Hamilton, Moss Landing Marine Laboratories
+* Shelby Ziegler, U. Georgia
 * Tessa Francis, U. Washington
