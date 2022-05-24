@@ -10,8 +10,8 @@ library(tidyverse)
 library(countrycode)
 
 # Directories
-indir <- "data/ecotrust/raw"
-outdir <- "data/ecotrust/processed"
+indir <- "/home/shares/ca-mpa/data/sync-data/ecotrust/raw"
+outdir <- "/home/shares/ca-mpa/data/sync-data/ecotrust/processed"
 plotdir <- "data/ecotrust/figures"
 
 # Read data

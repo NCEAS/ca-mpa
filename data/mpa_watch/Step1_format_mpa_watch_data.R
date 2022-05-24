@@ -7,7 +7,6 @@
 rm(list = ls())
 
 # Packages
-library(rinat)
 library(tidyverse)
 
 # Directories
