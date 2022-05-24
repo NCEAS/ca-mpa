@@ -1,6 +1,6 @@
 # Decadal Review of California's Marine Protected Area (MPA) Network
 
-This is the GitHub repository for an NCEAS Working Group leading the Decadal Review of California's Marine Protected Area (MPA) Network. 
+This is the GitHub repository for an [NCEAS](https://www.nceas.ucsb.edu/) Working Group leading the [Decadal Review of California's Marine Protected Area (MPA) Network](https://wildlife.ca.gov/Conservation/Marine/MPAs/Management/Decadal-Review).
 
 ## Repository structure
 
