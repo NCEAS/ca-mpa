@@ -25,7 +25,19 @@ poly_orig <- sf::st_read(file.path(indir, "MAN_CA_StateWater.shp"))
 wgs84 <- sf::st_crs("+proj=longlat +datum=WGS84")
 
 
-# Format data
+# Format line data
+################################################################################
+
+# Format line
+line_sf <- line_orig %>% 
+  # Reproject
+  sf::st_transform(wgs84)
+
+# Export data
+saveRDS(line_sf, file.path(outdir, "CA_state_waters_polyline.Rds"))
+
+
+# Format polygon data
 ################################################################################
 
 # Inspect attributes
