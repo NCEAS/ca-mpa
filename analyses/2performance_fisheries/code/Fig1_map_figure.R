@@ -34,9 +34,23 @@ blocks <- blocks_orig %>%
   # Redue
   filter(block_state=="California" & block_type=="Inshore")
 
+# Reduce to MPAs of interest
+types_use <- c("SMR", "SMRMA", "SMCA", "SMCA (No-Take)")
+mpas <- mpas_orig %>% 
+  filter(type %in% types_use)
+
 
 # Plot data
 ################################################################################
+
+# MPA regions
+# CA/OR, Alder Creek, Pigeon Point, Point Conception, CA/MEX 
+region_lats <- c(39.0, 37.18, 34.5)
+
+# Region labels
+region_labels <- tibble(long_dd=c(-123.5, -122.5, -121, -118),
+                        lat_dd=c(40.5, 38.5, 36, 33.9),
+                        label=c("North\n(Dec 2012)", "North Central\n(May 2010)", "Central\n(Sep 2007)", "South\n(Jan 2012)"))
 
 # Theme
 my_theme <-  theme(axis.text=element_text(size=6),
@@ -50,7 +64,7 @@ my_theme <-  theme(axis.text=element_text(size=6),
                    panel.background = element_blank(), 
                    axis.line = element_line(colour = "black"),
                    # Legend
-                   legend.position = c(0.22, 0.15),
+                   legend.position = c(0.22, 0.12),
                    legend.key.size = unit(0.4, "cm"),
                    legend.background = element_rect(fill=alpha('blue', 0)))
 
@@ -58,11 +72,17 @@ my_theme <-  theme(axis.text=element_text(size=6),
 g <- ggplot() +
   # Plot blocks
   geom_sf(data=blocks, mapping=aes(fill=mpa_km2), color="grey60", lwd=0.1) +
+  # Plot regions
+  geom_hline(mapping=aes(yintercept=region_lats)) +
   # Plot land
   geom_sf(data=foreign, fill="grey80", color="white", lwd=0.3) +
   geom_sf(data=usa, fill="grey80", color="white", lwd=0.3) +
+  # Plot MPAs
+  geom_sf(data=mpas, fill="red", color=NA) +
   # Plot state waters
   geom_sf(data=state_waters_line, color="grey20", lwd=0.2) +
+  # Plot region labels
+  geom_text(data=region_labels, mapping=aes(x=long_dd, y=lat_dd, label=label), hjust=0, size=2.3) +
   # Labels
   labs(x="", y="") +
   # Axes

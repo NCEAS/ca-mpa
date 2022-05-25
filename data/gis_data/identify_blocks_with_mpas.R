@@ -29,8 +29,9 @@ blocks <- wcfish::blocks
 ################################################################################
 
 # Only look at SMRs/SMCAs
+types_use <- c("SMR", "SMRMA", "SMCA", "SMCA (No-Take)")
 mpas_use <- mpas %>% 
-  filter(type %in% c("SMR", "SMCA"))
+  filter(type %in% types_use)
 mpa_use_pts <- mpas_use %>%
   sf::st_drop_geometry()
 
