@@ -13,6 +13,13 @@ The GitHub repository has the following structure
 * **data:** This folder contains subfolders for each dataset used in the project. The subfolders contain scripts that clean and visualize the data. Figures for visualizing each dataset are contained within a *figures* folder inside each subfolder.
 * **analyses:** This folder contains subfolders that contain the analyses conducted for each paper. Paper subteams may structure the contents of these subfolders in whatever manner is best for them.
 
+## Repository best practices
+
+We ask that contributors adhere to the following best practices when working in the repository:
+
+1. Use lower case for all folders and file names
+2. Use underscores for spaces (don't use hyphens or spaces)
+
 ## Working group members
 
 The Working Group is led by Jenn Caselle and Kerry Nickols and is a collaboration among the following members and institutions:
