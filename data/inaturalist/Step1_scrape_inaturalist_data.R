@@ -11,8 +11,9 @@ library(rinat)
 library(tidyverse)
 
 # Directories
-indir <- "data/inaturalist/raw"
-outdir <- "data/inaturalist/processed"
+basedir <- "/Volumes/GoogleDrive/.shortcut-targets-by-id/1kCsF8rkm1yhpjh2_VMzf8ukSPf9d4tqO/MPA Network Assessment: Working Group Shared Folder/data/sync-data/"
+indir <- file.path(basedir, "inaturalist/raw/webscraped")
+outdir <- file.path(basedir, "inaturalist/processed")
 plotdir <- "data/inaturalist/figures"
 
 
@@ -45,7 +46,7 @@ date_key <- expand.grid(year=2000:2020, month=1:12) %>%
   arrange(year, month)
 
 # Loop through and scrape
-i <- 232 # 231 didn't work
+i <- 17 # 231 didn't work
 for(i in 232:nrow(date_key)){
 
   # Grab data

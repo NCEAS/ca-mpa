@@ -11,8 +11,9 @@ library(rinat)
 library(tidyverse)
 
 # Directories
-indir <- "data/inaturalist/raw"
-outdir <- "data/inaturalist/processed"
+basedir <- "/Volumes/GoogleDrive/.shortcut-targets-by-id/1kCsF8rkm1yhpjh2_VMzf8ukSPf9d4tqO/MPA Network Assessment: Working Group Shared Folder/data/sync-data/"
+indir <- file.path(basedir, "inaturalist/raw/webscraped")
+outdir <- file.path(basedir, "inaturalist/processed")
 plotdir <- "data/inaturalist/figures"
 
 # Read data
@@ -44,6 +45,7 @@ my_theme <-  theme(axis.text=element_text(size=6),
                    # Legend
                    legend.key.size = unit(0.3, "cm"),
                    legend.background = element_rect(fill=alpha('blue', 0)))
+
 # Plot data
 g <- ggplot(stats1, aes(y=mpa %>% factor(., mpa), x=n_users)) +
   geom_bar(stat="identity") +
