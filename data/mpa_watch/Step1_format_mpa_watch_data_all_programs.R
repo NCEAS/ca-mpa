@@ -10,8 +10,9 @@ rm(list = ls())
 library(tidyverse)
 
 # Directories
-indir <- "data/mpa_watch/raw"
-outdir <- "data/mpa_watch/processed"
+basedir <- "/Volumes/GoogleDrive/.shortcut-targets-by-id/1kCsF8rkm1yhpjh2_VMzf8ukSPf9d4tqO/MPA Network Assessment: Working Group Shared Folder/data/sync-data/"
+indir <- file.path(basedir, "mpa_watch/raw")
+outdir <- file.path(basedir, "mpa_watch/processed")
 plotdir <- "data/mpa_watch/figures"
 
 # Read data
