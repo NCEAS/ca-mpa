@@ -12,8 +12,8 @@ library(tidyverse)
 library(countrycode)
 
 # Directories
-indir <- "data/gis_data/raw"
-outdir <- "data/gis_data/processed"
+basedir <- "/Volumes/GoogleDrive/.shortcut-targets-by-id/1kCsF8rkm1yhpjh2_VMzf8ukSPf9d4tqO/MPA Network Assessment: Working Group Shared Folder/data/sync-data"
+outdir <- file.path(basedir, "gis_data/processed")
 plotdir <- "data/gis_data/figures"
 
 # Read MPA data
@@ -28,9 +28,17 @@ blocks <- wcfish::blocks
 # Build data
 ################################################################################
 
+# Only look at SMRs/SMCAs
+mpas_use <- mpas %>% 
+  filter(type %in% c("SMR", "SMCA"))
+mpa_use_pts <- mpas_use %>%
+  sf::st_drop_geometry()
+
 # Simplify MPAs/blocks
-mpas_simple <- mpas %>%
+mpas_simple <- mpas_use %>%
   select(name)
+
+# Simplify blocks
 blocks_simple <- blocks %>%
   select(block_id)
 
@@ -65,6 +73,9 @@ blocks_stats_sf <- blocks %>%
   filter(block_state=="California" & block_type=="Inshore") %>%
   left_join(block_stats, by="block_id")
 
+# Export block key
+write.csv(block_stats, file=file.path(outdir, "CA_blocks_with_mpas.csv"), row.names=F)
+
 
 # Plot data
 ################################################################################
@@ -98,7 +109,7 @@ g1 <- ggplot() +
   geom_sf(data=usa, fill="grey90", color="white", lwd=0.3) +
   # Plot MPA points
   # geom_sf(data=mpas, fill="red", color=NA) +
-  geom_point(data=mpa_pts, mapping=aes(x=long_dd, y=lat_dd),
+  geom_point(data=mpa_use_pts, mapping=aes(x=long_dd, y=lat_dd),
              size=1, pch=21, fill="white", inherit.aes=F) +
   # Legend
   # scale_size_continuous(name="Area (km2)") +
