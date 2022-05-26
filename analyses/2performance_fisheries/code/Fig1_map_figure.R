@@ -48,9 +48,9 @@ mpas <- mpas_orig %>%
 region_lats <- c(39.0, 37.18, 34.5)
 
 # Region labels
-region_labels <- tibble(long_dd=c(-123.5, -122.5, -121, -118),
-                        lat_dd=c(40.5, 38.5, 36, 33.9),
-                        label=c("North\n(Dec 2012)", "North Central\n(May 2010)", "Central\n(Sep 2007)", "South\n(Jan 2012)"))
+region_labels <- tibble(long_dd=c(-123.5, -122.5, -121, -118, -119.2),
+                        lat_dd=c(40.5, 38.5, 36, 33.9, 34.6),
+                        label=c("North\n(Dec 2012)", "North Central\n(May 2010)", "Central\n(Sep 2007)", "South\n(Jan 2012)", "N. Channel\nIslands (2003)"))
 
 # Theme
 my_theme <-  theme(axis.text=element_text(size=6),
