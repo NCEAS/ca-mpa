@@ -35,6 +35,7 @@ blocks <- blocks_orig %>%
   filter(block_state=="California" & block_type=="Inshore")
 
 # Reduce to MPAs of interest
+sort(unique(mpas_orig$type))
 types_use <- c("SMR", "SMRMA", "SMCA", "SMCA (No-Take)")
 mpas <- mpas_orig %>% 
   filter(type %in% types_use)
