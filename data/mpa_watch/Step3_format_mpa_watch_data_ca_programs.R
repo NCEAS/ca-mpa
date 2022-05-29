@@ -21,6 +21,12 @@ data_orig <- read.csv(file.path(indir, "Surveys_2022-05-09_CaliforniaPrograms.cs
 # Read column key
 col_key <- readxl::read_excel(file.path(outdir, "column_key.xlsx"))
 
+# To-do list
+# 1) Clean uses and add use categories
+# 2) Determine wind speed units
+# 3) The temperarure column is messed up - handle if you care?
+# 3) Clean weather/tide station names/coordinates -- probably optional
+
 
 # Format data
 ################################################################################
