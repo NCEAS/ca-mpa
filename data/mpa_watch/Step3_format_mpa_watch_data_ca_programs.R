@@ -24,7 +24,7 @@ col_key <- readxl::read_excel(file.path(outdir, "column_key.xlsx"))
 # To-do list
 # 1) Clean uses and add use categories
 # 2) Determine wind speed units
-# 3) The temperarure column is messed up - handle if you care?
+# 3) The temperature column is messed up - handle if you care?
 # 3) Clean weather/tide station names/coordinates -- probably optional
 
 
