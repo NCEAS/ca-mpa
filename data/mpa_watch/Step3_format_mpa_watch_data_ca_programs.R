@@ -55,12 +55,24 @@ data <- data_orig %>%
   # Format tide station long/lat
   mutate(tide_station_lon=ifelse(tide_station_lon==0, NA, tide_station_lon),
          tide_station_lat=ifelse(tide_station_lat==0, NA, tide_station_lat)) %>% 
+  # Format tide station
+  mutate(tide_station_name=stringr::str_trim(tide_station_name),
+         # tide_station_name=ifelse(tide_station_name %in% c("0", ".9"), NA, tide_station_name),
+         tide_station_name=recode(tide_station_name,
+                             "TIde app"="Tide app",
+                             "Tide app on my phone"="Tide app",
+                             "Tides app on my phone"="Tide app",
+                             "point reyes"="Point Reyes",
+                             "persoanl"="Personal observation",
+                             "personal observacion"="Personal observation",
+                             "On-Site Observation + ezfshn website"="On-Site Observation + EZfishn website",
+                             "On-Site Observation +EZfishn website"="On-Site Observation + EZfishn website")) %>% 
   # Format tide and wind speed
   mutate(tide_ft=ifelse(tide_ft==-9999, NA, tide_ft),
          wind_speed=ifelse(wind_speed==-9999, NA, wind_speed),
-         air_temp_f=ifelse(air_temp_f %in% c(-9999, 0), NA, wind_speed)) %>% 
+         air_temp_f=ifelse(air_temp_f %in% c(-9999, 0), NA, wind_speed)) #%>% 
   # Gather
-  gather(key="use", value="n_obs", 27:ncol(.))
+  # gather(key="use", value="n_obs", 27:ncol(.))
 
 
 # Inspect data
@@ -92,7 +104,10 @@ weather_key <- data %>%
   select(weather_station_name, weather_station_lon, weather_station_lat) %>% 
   unique() %>% 
   arrange(weather_station_name)
-
+tide_key <- data %>% 
+  select(tide_station_name, tide_station_lon, tide_station_lat) %>% 
+  unique() %>% 
+  arrange(tide_station_name)
 
 # Export data
 ################################################################################
