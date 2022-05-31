@@ -47,7 +47,7 @@ date_key <- expand.grid(year=2000:2020, month=1:12) %>%
 
 # Loop through and scrape
 i <- 17 # 231 didn't work
-for(i in 232:nrow(date_key)){
+for(i in 231:nrow(date_key)){
 
   # Grab data
   print(i)
