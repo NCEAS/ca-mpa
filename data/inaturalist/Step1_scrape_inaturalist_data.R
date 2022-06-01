@@ -42,12 +42,12 @@ g
 ################################################################################
 
 # Build year month key
-date_key <- expand.grid(year=2000:2020, month=1:12) %>%
+date_key <- expand.grid(year=2000:2021, month=1:12) %>%
   arrange(year, month)
 
 # Loop through and scrape
-i <- 17 # 231 didn't work
-for(i in 231:nrow(date_key)){
+i <- 17 # starting at 233
+for(i in 233:nrow(date_key)){
 
   # Grab data
   print(i)

@@ -14,10 +14,11 @@ library(tidyverse)
 basedir <- "/Volumes/GoogleDrive/.shortcut-targets-by-id/1kCsF8rkm1yhpjh2_VMzf8ukSPf9d4tqO/MPA Network Assessment: Working Group Shared Folder/data/sync-data/"
 indir <- file.path(basedir, "inaturalist/raw/webscraped")
 outdir <- file.path(basedir, "inaturalist/processed")
+gisdir <- file.path(basedir, "gis_data/processed")
 plotdir <- "data/inaturalist/figures"
 
 # Read MPAs
-mpas <- readRDS("data/gis_data/processed/CA_MPA_polygons_smrs_smcas.Rds")
+mpas <- readRDS(file.path(gisdir, "CA_MPA_polygons_0.1km_buffer.Rds"))
 mpas_simple <- mpas %>% select(name)
 mpas_simple_sp <- mpas_simple %>% as(., "Spatial")
 
@@ -40,26 +41,21 @@ data_sp <- data_sf %>%
 inside_which_mpa <- sp::over(data_sp, mpas_simple_sp)
 inside_which_mpa_chr <- inside_which_mpa$name
 
-# Add MPA inside to dataframe
-data_sf1 <- data_sp %>%
-  as("sf") %>%
-  mutate(mpa=inside_which_mpa_chr)
-
 # Convert to dataframe
-data_sf1_df <- data_sf1 %>%
-  sf::st_drop_geometry()
+data_sf_df <- data_sf %>%
+  sf::st_drop_geometry() %>% 
+  mutate(mpa=inside_which_mpa_chr) %>% 
+  filter(!is.na(mpa))
 
 # Export data
-saveRDS(data_sf1_df, file.path(outdir, "2000_2020_inaturalist_data_inside_mpas.Rds"))
+saveRDS(data_sf_df, file.path(outdir, "2000_2020_inaturalist_data_inside_mpas_100m_buffer.Rds"))
 
 
-# Build data
+# Summarize data
 ################################################################################
 
 # Stats
-stats <- data_sf1_df %>%
-  # Points INSIDE MPAs
-  filter(!is.na(mpa)) %>%
+stats <- data_sf_df %>%
   # Number by year and category
   group_by(year_obs, taxa_catg) %>%
   summarize(n=n(),
