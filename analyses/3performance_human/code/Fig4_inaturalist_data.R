@@ -55,6 +55,9 @@ stats1 <- mpas_df %>%
   select(name, region, area_sqkm, lat_dd, long_dd) %>% 
   left_join(stats, by=c("name"="mpa"))
 
+# Number of MPAs with observation
+stats1 %>% filter(!is.na(nobservers)) %>% pull(name) %>% n_distinct(.)
+
 # Time series stats
 stats_ts <- data_orig %>% 
   # Before 2018
