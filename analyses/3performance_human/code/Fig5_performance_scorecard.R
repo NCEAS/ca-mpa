@@ -47,8 +47,8 @@ inaturalist <- inaturalist_orig %>%
   
 # Build data
 data <- mpas_df %>% 
-  select(region, name) %>% 
-  rename(mpa_name=name) %>% 
+  select(region, name, name_short) %>% 
+  rename(mpa_name=name, mpa_name_short=name_short) %>% 
   # Recode region
   mutate(region=recode_factor(region,
                               "NCCSR"="North Coast",   
@@ -67,7 +67,7 @@ data <- mpas_df %>%
          fishing_comm=NA,
          fishing_rec=NA) %>% 
   # Gather
-  gather(key="metric", value="value", 3:ncol(.)) %>% 
+  gather(key="metric", value="value", 4:ncol(.)) %>% 
   # Recode metrics (potentially organize by theme later)
   mutate(metric=recode_factor(metric,
                               "nobservers"="iNat observers",
@@ -84,8 +84,19 @@ data <- mpas_df %>%
   mutate(value_scaled=value/max(value, na.rm=T)) %>% 
   ungroup()
 
+# Derive MPA order
+mpa_order <- data %>% 
+  group_by(region, mpa_name) %>% 
+  summarize(metric_avg=mean(value, na.rm=T)) %>% 
+  ungroup() %>% 
+  arrange(region, desc(metric_avg))
 
-# Plot data
+# Order data
+data_ordered <- data %>% 
+  mutate(mpa_name=factor(mpa_name, levels=mpa_order$mpa_name))
+
+
+# Plot data - long
 ################################################################################
 
 # Theme
@@ -106,7 +117,7 @@ theme1 <- theme(axis.text=element_text(size=5),
                 legend.background = element_rect(fill=alpha('blue', 0)))
 
 # Plot data
-g <- ggplot(data, aes(x=metric, y=mpa_name, fill=value_scaled)) +
+g <- ggplot(data_ordered, aes(x=metric, y=mpa_name, fill=value_scaled)) +
   # Facet
   facet_grid(region~., scales="free_y", space="free_y") +
   # Raster
@@ -121,8 +132,81 @@ g <- ggplot(data, aes(x=metric, y=mpa_name, fill=value_scaled)) +
 g
 
 # Export figure
-ggsave(g, filename=file.path(plotdir, "Fig5_performance_scorecard.png"), 
+ggsave(g, filename=file.path(plotdir, "Fig5_performance_scorecard_long.png"), 
        width=4.5, height=7.5, units="in", dpi=600)
+
+
+# Plot data - wide
+################################################################################
+
+# Subset data
+data1 <- data_ordered %>% 
+  filter(region!="South Coast")
+data2 <- data_ordered %>% 
+  filter(region=="South Coast")
+
+# Theme
+theme1 <- theme(axis.text=element_text(size=6),
+                axis.text.y=element_text(size=6),
+                axis.text.x = element_text(angle = 45, vjust = 1, hjust=1),
+                axis.title=element_blank(),
+                legend.text=element_text(size=6, angle = 90, vjust = 1, hjust=1),
+                legend.title=element_text(size=7),
+                strip.text=element_text(size=7),
+                plot.title=element_blank(),
+                # Gridlines
+                panel.grid.major = element_blank(), 
+                panel.grid.minor = element_blank(),
+                panel.background = element_blank(), 
+                axis.line = element_line(colour = "black"),
+                # Legend
+                legend.key.size = unit(0.35, "cm"),
+                legend.background = element_rect(fill=alpha('blue', 0)))
+
+# Plot data
+g1 <- ggplot(data1, aes(x=metric, y=mpa_name, fill=value_scaled)) +
+  # Facet
+  facet_grid(region~., scales="free_y", space="free_y") +
+  # Raster
+  geom_tile(lwd=0.1, color="grey60") +
+  # Labels
+  labs(x="", y="") +
+  # Legend
+  scale_fill_gradientn("Performance\n(scaled to max value)", colors=RColorBrewer::brewer.pal(9, "Blues"), na.value="white") +
+  guides(fill = guide_colorbar(ticks.colour = "black", frame.colour = "black")) +
+  # Theme
+  theme_bw() + theme1 +
+  theme(legend.position = "none")
+g1
+
+# Plot data
+g2 <- ggplot(data2, aes(x=metric, y=mpa_name, fill=value_scaled)) +
+  # Facet
+  facet_grid(region~., scales="free_y", space="free_y") +
+  # Raster
+  geom_tile(lwd=0.1, color="grey60") +
+  # Labels
+  labs(x="", y="") +
+  # Legend
+  scale_fill_gradientn("Performance\n(scaled to max value)", colors=RColorBrewer::brewer.pal(9, "Blues"), na.value="white",
+                       breaks=seq(0, 1, 0.25), lim=c(0,1)) +
+  guides(fill = guide_colorbar(ticks.colour = "black", frame.colour = "black")) +
+  # Theme
+  theme_bw() + theme1 +
+  theme(legend.position = "top")
+g2
+
+# Merge
+g <-gridExtra::grid.arrange(g1, g2, nrow=1)
+g
+
+# Export figure
+ggsave(g, filename=file.path(plotdir, "Fig5_performance_scorecard_wide.png"), 
+       width=6.5, height=6.5, units="in", dpi=600)
+
+
+
+
 
 
 

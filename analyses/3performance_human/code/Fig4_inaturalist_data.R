@@ -99,7 +99,7 @@ theme1 <-  theme(axis.text=element_text(size=7),
                  plot.title=element_blank(),
                  legend.text=element_text(size=6),
                  legend.title=element_text(size=8),
-                 plot.tag=element_text(size=8),
+                 plot.tag=element_text(size=9),
                  # Gridlines
                  panel.grid.major = element_blank(), 
                  panel.grid.minor = element_blank(),

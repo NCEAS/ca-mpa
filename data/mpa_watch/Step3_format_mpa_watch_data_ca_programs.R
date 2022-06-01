@@ -19,7 +19,7 @@ plotdir <- "data/mpa_watch/figures"
 data_orig <- read.csv(file.path(indir, "Surveys_2022-05-09_CaliforniaPrograms.csv"), as.is=T, na.strings=c(""))
 
 # Read column key
-col_key <- readxl::read_excel(file.path(outdir, "column_key.xlsx"))
+col_key <- readxl::read_excel(file.path(outdir, "column_key_ca_programs.xlsx"))
 
 # To-do list
 # 1) Clean uses and add use categories
@@ -28,12 +28,24 @@ col_key <- readxl::read_excel(file.path(outdir, "column_key.xlsx"))
 # 3) Clean weather/tide station names/coordinates -- probably optional
 
 
+
+# Site key
+################################################################################
+
+# Site key
+site_key <- data_orig %>% 
+  janitor::clean_names("snake") %>% 
+  select(mpa, mpa_id) %>% 
+  unique()
+  
+
+
 # Format data
 ################################################################################
 
 # Format data
 data <- data_orig %>%
-  # Rena
+  # Rename
   janitor::clean_names("snake") %>% 
   # Rename columns
   rename(mpa_name=mpa,
@@ -77,12 +89,6 @@ data <- data_orig %>%
   # Arrange
   select(survey_id:time_end, time_start1, time_end1, duration_hr, everything())
 
-  # Gather
-  # gather(key="use", value="n_obs", 27:ncol(.))
-
-
-
-
 # Inspect data
 str(data)
 # freeR::complete(data)
@@ -101,7 +107,6 @@ table(data$wind)
 table(data$temperature)
 table(data$air_temperature)
 
-
 # Inspect numeric data
 range(data$date)
 range(data$tide_ft, na.rm=T)
@@ -118,8 +123,19 @@ tide_key <- data %>%
   unique() %>% 
   arrange(tide_station_name)
 
+
+# Make long
+################################################################################
+
+# Gather
+data_long <- data %>% 
+  # Gather
+  gather(key="use", value="n_obs", 30:ncol(.))
+
 # Export data
 ################################################################################
 
 # Export
-saveRDS(data, file=file.path(outdir, "MPA_Watch_2011_2022_surveys_ca_programs.Rds"))
+saveRDS(data, file=file.path(outdir, "MPA_Watch_2011_2022_surveys_ca_programs_wide.Rds"))
+saveRDS(data_long, file=file.path(outdir, "MPA_Watch_2011_2022_surveys_ca_programs_long.Rds"))
+
