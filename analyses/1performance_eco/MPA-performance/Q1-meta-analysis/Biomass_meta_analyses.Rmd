@@ -33,86 +33,52 @@ require(ggtext)
 Import and initialize data
 ```{r warning=FALSE}
 #load ecological data
-data_path <- "/home/joshsmith/CA MPA Project Personal Scripts/Q1 Meta analyses"
-input_file <- "Ecol_perform_metrics_means_working.xlsx" 
-meta.data <- readxl::read_excel(file.path(data_path, input_file), sheet=1, skip = 0, na="NA")
+data_path <- "/home/shares/ca-mpa/data/sync-data/processed_data"
+input_file <- "targeted_nontargeted_fish_biomass.csv" 
+meta.data <- read.csv(file.path(data_path, input_file))
 
-#load mpa attribute data
-data_path <- "/home/shares/ca-mpa/data/sync-data"
-input_file <- "mpa-attributes.xlsx" 
-attribute.data <- readxl::read_excel(file.path(data_path, input_file), sheet=1, skip = 0, na="NA")
-
-#load mpa_class data 
-data_path <-"/home/joshsmith/CA MPA Project Personal Scripts/Q1 Meta analyses"
-input_file <- "mpa-attributes.xlsx" 
-class_data <- readxl::read_excel(file.path(data_path, input_file), sheet=5, skip = 0, na="NA")
-
+meta.data$mpa_class <- tolower(meta.data$mpa_class)
+meta.data$mpa_designation <- tolower(meta.data$mpa_designation)
 
 ```
 
-Clean data
+
+**analysis-specific data cleaning**
+#note: for surf zone, some SMCA's were used as reference sites for SMRs. Here we recode the affiliated_mpa names of the SMCAs to serve as SMR-affiliated reference sites. 
 ```{r}
-meta.data$mpa_class <- recode_factor(meta.data$mpa_class, none="ref") 
+#remove surf to edit
+#surf.data <- meta.data %>%
+#            filter(group=="surf")%>%
+#            mutate(affiliated_mpa = ifelse(affiliated_mpa=="mackerricher smca", "ten mile smr", affiliated_mpa),
+#                   affiliated_mpa = ifelse(affiliated_mpa=="greyhound rock smca", "ano nuevo smr", affiliated_mpa),
+#                   affiliated_mpa = ifelse(affiliated_mpa=="carmel bay smca", "asilomar smr", affiliated_mpa))
 
-#reclassify regions by mpa name
-mpa_class <- attribute.data %>%
-              dplyr::select(affiliated_mpa=name, four_region_north_ci)
+#surf.data$mpa_designation <- recode_factor(surf.data$mpa_designation, smca="ref") #make all smca's 'ref', since SMCAs will be filtered out of mpa_class
+          
+#meta.data.clipped <- meta.data %>%
+#                    filter(group=="deep_reef"|group=="ccfrp"|group=="kelp")
 
-ecol_data <- left_join(meta.data,mpa_class, by="affiliated_mpa")
-
-#clean up 
-ecol_data$four_region_north_ci[ecol_data$affiliated_mpa == 'swamis smr'] <- 'north'
-ecol_data$four_region_north_ci[ecol_data$affiliated_mpa == 'trinidad smr'] <- 'north'
-ecol_data$four_region_north_ci[ecol_data$affiliated_mpa == 'southeast farallon islands smr'] <- 'north'
-ecol_data$four_region_north_ci[ecol_data$affiliated_mpa == "swami's smr"] <- 'north'
-ecol_data$four_region_north_ci[ecol_data$affiliated_mpa == "farnsworth smr"] <- 'south'
-ecol_data$four_region_north_ci[ecol_data$affiliated_mpa == "se farallon islands smr"] <- 'north'
-ecol_data$four_region_north_ci[ecol_data$affiliated_mpa == "point st. george smr"] <- 'north'
-ecol_data$four_region_north_ci[ecol_data$affiliated_mpa == "campus point smr"] <- 'south'
-ecol_data$four_region_north_ci[ecol_data$affiliated_mpa == "se farallon islands smca"] <- 'south'
-ecol_data$four_region_north_ci[ecol_data$affiliated_mpa == "portuguese ledge smr"] <- 'central'
-ecol_data$four_region_north_ci[ecol_data$affiliated_mpa == "ano nuevo smca"] <- 'central'
-ecol_data$four_region_north_ci[ecol_data$affiliated_mpa == "montara smca"] <- 'central'
-ecol_data$four_region_north_ci[ecol_data$affiliated_mpa == "harris point smca"] <- 'north islands'
-ecol_data$four_region_north_ci[ecol_data$affiliated_mpa == "gull island smca"] <- 'north islands'
-ecol_data$four_region_north_ci[ecol_data$affiliated_mpa == "carrington point smca"] <- 'north islands'
-ecol_data$four_region_north_ci[ecol_data$affiliated_mpa == "ten mile smca"] <- 'north'
-ecol_data$four_region_north_ci[ecol_data$affiliated_mpa == "sea lion gulch smca"] <- 'north'
-ecol_data$four_region_north_ci[ecol_data$affiliated_mpa == "south point smca"] <- 'north islands'
-ecol_data$four_region_north_ci[ecol_data$affiliated_mpa == "carmel bay smr"] <- 'central'
-
-
-
-#reclassify mpa_cass by PI-designations
-data_clean <- left_join(ecol_data, class_data, by=c('join_ID'='group', 'affiliated_mpa')) 
-
-data_clean <- data_clean %>% 
-    mutate(mpa_class_new = coalesce(mpa_class.y, mpa_class.x)) 
-
-data_clean$mpa_class_new <- tolower(data_clean$mpa_class_new)
-
-
+#meta.data<-rbind(meta.data.clipped, surf.data)
+  
 ```
-
-
 
 
 **PART 1 - meta analyses for Biomass of targeted fish**
 #start with 2016-2020 post-heatwave period
 
 ```{r}
-region.yr.means<- data_clean%>%
-  filter(indicator == "biomass"| indicator=="bpue",
-         variable == "targeted",
-         mpa_class_new == "ref"| mpa_class_new =="smr"
-         ,year=='2016' | year=='2017'|year=='2018' | year=='2019' | year =='2020'
+region.yr.means<- meta.data%>%
+  filter(year=='2016' | year=='2017'|year=='2018' | year=='2019' | year =='2020',
+         mpa_class=='smr'| mpa_class=='ref',
+         target_status == 'targeted'
          )
-region.yr.means$mpa_designation <- recode_factor(region.yr.means$mpa_designation, smca="smr") #recode for setting defacto smr
+
+region.yr.means$mpa_designation <- recode_factor(region.yr.means$mpa_designation, smca="smr") #recode to match defacto SMR
 
 region.yr.means <- region.yr.means %>%
-  group_by(group,four_region_north_ci, mpa_designation,variable,indicator)%>%
-  dplyr::summarize(yr.mean = mean(mean,na.rm=TRUE), 
-                   sd=sd(mean), # standard deviation of across MPAs where indicator was observed/recorded
+  group_by(group,region4, mpa_class, mpa_designation,target_status)%>%
+  dplyr::summarize(yr.mean = mean(sum_biomass,na.rm=TRUE), 
+                   sd=sd(sum_biomass), # standard deviation of across MPAs where indicator was observed/recorded
                    n=n()) %>%
   pivot_wider(names_from = mpa_designation,
               values_from = c(yr.mean, sd, n)
@@ -145,6 +111,10 @@ region.yr.means <- region.yr.means %>%
 ### the 'slab' argument to store study labels as part of the data frame)
 
 dat <- escalc(measure="SMD", m1i=yr.mean_smr, m2i=yr.mean_ref, sd1i=sd_smr, sd2i=sd_ref, n1i=n_smr, n2i=n_ref, data=region.yr.means, slab=paste(group)) 
+
+dat <- dat %>%
+        filter(!is.na(vi))    
+
 #dat <- escalc(measure="SMD", m1i=group.avg_smr, m2i=group.avg_ref, sd1i=sd_smr, sd2i=sd_ref, n1i=n_smr, n2i=n_ref, data=smd.final, slab=paste(group)) 
 
 #fit random effects model
@@ -172,8 +142,8 @@ forest(res, xlim=c(-8, 6), #at=log(c(0.05, 0.25, 1, 4)), #atransf=exp,
        #ilab.xpos=c(-9.5,-8,-6,-4.5), 
        cex=0.7, 
        ylim=c(-3, 30),
-       order=order(factor(dat$four_region_north_ci, level=c("south","north islands", "central","north")),dat$yi), 
-       rows=c(3:6,10:12,16:19,23:26),
+       order=order(factor(dat$region4, level=c("south","north islands", "central","north")),dat$yi), 
+       rows=c(3:6,10:12,16:18,22:24),
        mlab=mlabfun("RE Model", res),
        slab=paste(dat$group),
        #showweights = TRUE,
@@ -186,7 +156,7 @@ op <- par(cex=0.75, font=2)
 ### add additional column headings to the plot
 
 ### add text for the subgroups
-text(-8, c(27,20,13,7), pos=4, c("North",
+text(-8, c(25,19,13,7), pos=4, c("North",
                                "Central",
                                "N. Channel Islands",
                                "South"))
@@ -196,15 +166,15 @@ text(-8, c(27,20,13,7), pos=4, c("North",
 par(cex=1)
 
 ### fit random-effects model in the three subgroups
-res.n <- rma(yi, vi, method="REML", subset=(four_region_north_ci=="north"), verbose=TRUE, digits=5, data=dat, slab=paste(group, four_region_north_ci))
-res.c <- rma(yi, vi, method="REML", subset=(four_region_north_ci=="central"),data=dat, slab=paste(group, four_region_north_ci))
-res.s <- rma(yi, vi, method="REML", subset=(four_region_north_ci=="south"), data=dat, slab=paste(group, four_region_north_ci))
-res.i <- rma(yi, vi, method="REML", subset=(four_region_north_ci=="north islands"), verbose=TRUE, digits=5, data=dat, slab=paste(group, four_region_north_ci))
+res.n <- rma(yi, vi, method="REML", subset=(region4=="north"), verbose=TRUE, digits=5, data=dat, slab=paste(group, region4))
+res.c <- rma(yi, vi, method="REML", subset=(region4=="central"),data=dat, slab=paste(group, region4))
+res.s <- rma(yi, vi, method="REML", subset=(region4=="south"), data=dat, slab=paste(group, region4))
+res.i <- rma(yi, vi, method="REML", subset=(region4=="north islands"), verbose=TRUE, digits=5, data=dat, slab=paste(group, region4))
 
 ### add summary polygons for the three subgroups
 
-addpoly(res.n, row=21.5, mlab=mlabfun("RE Model for Subgroup", y=res.n))
-text(-8, 21.5, pos=4, cex=0.5, mlabfun("RE Model for Subgroup", y=res.n))
+addpoly(res.n, row=20.5, mlab=mlabfun("RE Model for Subgroup", y=res.n))
+text(-8, 20.5, pos=4, cex=0.5, mlabfun("RE Model for Subgroup", y=res.n))
 
 addpoly(res.c, row= 14.5, mlab=mlabfun("RE Model for Subgroup", y=res.c))
 text(-8, 14.5, pos=4, cex=0.5, mlabfun("RE Model for Subgroup", y=res.c))
@@ -217,7 +187,7 @@ text(-8, 1, pos=4, cex=0.5, mlabfun("RE Model for Subgroup", y=res.i))
 
 
 ### fit meta-regression model to test for subgroup differences
-res <- rma(yi, vi, mods = ~ four_region_north_ci, data=dat)
+res <- rma(yi, vi, mods = ~ region4, data=dat)
 
 ### add text for the test of subgroup differences
 text(-8, -2.5, pos=4, cex=0.75, bquote(paste("Test for Subgroup Differences: ",
@@ -232,21 +202,21 @@ text(x =-4, y = 30.2, "targeted fish biomass 2016-20",  cex=0.8, pos=2, font=3)
 
 
 
-#Biomass for all years
+#Biomass for nontargeted
 
 ```{r}
-region.yr.means<- data_clean%>%
-  filter(indicator == "biomass"| indicator=="bpue",
-         variable == "nontargeted",
-         mpa_class_new == "ref"| mpa_class_new =="smr"
-         ,year=='2016' | year=='2017'|year=='2018' | year=='2019' | year =='2020'
+region.yr.means<- meta.data%>%
+  filter(year=='2016' | year=='2017'|year=='2018' | year=='2019' | year =='2020',
+         mpa_class=='smr'| mpa_class=='ref',
+         target_status == 'nontargeted'
          )
-region.yr.means$mpa_designation <- recode_factor(region.yr.means$mpa_designation, smca="smr") #recode for setting defacto smr
+
+region.yr.means$mpa_designation <- recode_factor(region.yr.means$mpa_designation, smca="smr") #recode to match defacto SMR
 
 region.yr.means <- region.yr.means %>%
-  group_by(group,four_region_north_ci, mpa_designation,variable,indicator)%>%
-  dplyr::summarize(yr.mean = mean(mean,na.rm=TRUE), 
-                   sd=sd(mean), # standard deviation of across MPAs where indicator was observed/recorded
+  group_by(group,region4, mpa_class, mpa_designation,target_status)%>%
+  dplyr::summarize(yr.mean = mean(sum_biomass,na.rm=TRUE), 
+                   sd=sd(sum_biomass), # standard deviation of across MPAs where indicator was observed/recorded
                    n=n()) %>%
   pivot_wider(names_from = mpa_designation,
               values_from = c(yr.mean, sd, n)
@@ -279,6 +249,10 @@ region.yr.means <- region.yr.means %>%
 ### the 'slab' argument to store study labels as part of the data frame)
 
 dat <- escalc(measure="SMD", m1i=yr.mean_smr, m2i=yr.mean_ref, sd1i=sd_smr, sd2i=sd_ref, n1i=n_smr, n2i=n_ref, data=region.yr.means, slab=paste(group)) 
+
+dat <- dat %>%
+        filter(!is.na(vi))    
+
 #dat <- escalc(measure="SMD", m1i=group.avg_smr, m2i=group.avg_ref, sd1i=sd_smr, sd2i=sd_ref, n1i=n_smr, n2i=n_ref, data=smd.final, slab=paste(group)) 
 
 #fit random effects model
@@ -306,8 +280,8 @@ forest(res, xlim=c(-8, 6), #at=log(c(0.05, 0.25, 1, 4)), #atransf=exp,
        #ilab.xpos=c(-9.5,-8,-6,-4.5), 
        cex=0.7, 
        ylim=c(-3, 30),
-       order=order(factor(dat$four_region_north_ci, level=c("south","north islands", "central","north")),dat$yi), 
-       rows=c(3:6,10:12,16:19,23:26),
+       order=order(factor(dat$region4, level=c("south","north islands", "central","north")),dat$yi), 
+       rows=c(3:6,10:12,16:18,22:24),
        mlab=mlabfun("RE Model", res),
        slab=paste(dat$group),
        #showweights = TRUE,
@@ -320,7 +294,7 @@ op <- par(cex=0.75, font=2)
 ### add additional column headings to the plot
 
 ### add text for the subgroups
-text(-8, c(27,20,13,7), pos=4, c("North",
+text(-8, c(25,19,13,7), pos=4, c("North",
                                "Central",
                                "N. Channel Islands",
                                "South"))
@@ -330,15 +304,15 @@ text(-8, c(27,20,13,7), pos=4, c("North",
 par(cex=1)
 
 ### fit random-effects model in the three subgroups
-res.n <- rma(yi, vi, method="REML", subset=(four_region_north_ci=="north"), verbose=TRUE, digits=5, data=dat, slab=paste(group, four_region_north_ci))
-res.c <- rma(yi, vi, method="REML", subset=(four_region_north_ci=="central"),data=dat, slab=paste(group, four_region_north_ci))
-res.s <- rma(yi, vi, method="REML", subset=(four_region_north_ci=="south"), data=dat, slab=paste(group, four_region_north_ci))
-res.i <- rma(yi, vi, method="REML", subset=(four_region_north_ci=="north islands"), verbose=TRUE, digits=5, data=dat, slab=paste(group, four_region_north_ci))
+res.n <- rma(yi, vi, method="REML", subset=(region4=="north"), verbose=TRUE, digits=5, data=dat, slab=paste(group, region4))
+res.c <- rma(yi, vi, method="REML", subset=(region4=="central"),data=dat, slab=paste(group, region4))
+res.s <- rma(yi, vi, method="REML", subset=(region4=="south"), data=dat, slab=paste(group, region4))
+res.i <- rma(yi, vi, method="REML", subset=(region4=="north islands"), verbose=TRUE, digits=5, data=dat, slab=paste(group, region4))
 
 ### add summary polygons for the three subgroups
 
-addpoly(res.n, row=21.5, mlab=mlabfun("RE Model for Subgroup", y=res.n))
-text(-8, 21.5, pos=4, cex=0.5, mlabfun("RE Model for Subgroup", y=res.n))
+addpoly(res.n, row=20.5, mlab=mlabfun("RE Model for Subgroup", y=res.n))
+text(-8, 20.5, pos=4, cex=0.5, mlabfun("RE Model for Subgroup", y=res.n))
 
 addpoly(res.c, row= 14.5, mlab=mlabfun("RE Model for Subgroup", y=res.c))
 text(-8, 14.5, pos=4, cex=0.5, mlabfun("RE Model for Subgroup", y=res.c))
@@ -351,7 +325,7 @@ text(-8, 1, pos=4, cex=0.5, mlabfun("RE Model for Subgroup", y=res.i))
 
 
 ### fit meta-regression model to test for subgroup differences
-res <- rma(yi, vi, mods = ~ four_region_north_ci, data=dat)
+res <- rma(yi, vi, mods = ~ region4, data=dat)
 
 ### add text for the test of subgroup differences
 text(-8, -2.5, pos=4, cex=0.75, bquote(paste("Test for Subgroup Differences: ",
@@ -360,12 +334,6 @@ text(-8, -2.5, pos=4, cex=0.75, bquote(paste("Test for Subgroup Differences: ",
 
 text(x =-0.2, y = 28.8, "REF",  pos=2, col="blue", font=2)
 text(x =1.3, y = 28.8, "SMR",  pos=2, col="red ", font=2)
-text(x =-3.5, y = 30.3, "Nontargeted fish biomass 2016-20",  cex=0.8, pos=2, font=3)
+text(x =-4, y = 30.2, "targeted fish biomass 2016-20",  cex=0.8, pos=2, font=3)
 
 ```
-
-
-
-
-
-
