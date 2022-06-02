@@ -31,7 +31,7 @@ mpas_m <- mpas %>%
 ################################################################################
 
 # Buffer distances
-buffers_km <- c(1,3,5,10,20,50)
+buffers_km <- c(0.1, 0.5, 1, 3, 5, 10, 20, 50)
 
 # Loop through buffer distances
 for(i in 1:length(buffers_km)){
@@ -53,7 +53,7 @@ for(i in 1:length(buffers_km)){
   
   # Export data
   filename <- paste0("CA_MPA_polygons_", buffer_do, "km_buffer.Rds")
-  saveRDS(data, file.path(outdir,  filename))
+  saveRDS(mpas_buffer , file.path(outdir,  filename))
   
 }
 

@@ -19,13 +19,42 @@ plotdir <- "data/mpa_watch/figures"
 data_orig <- read.csv(file.path(indir, "Surveys_2022-05-09_CaliforniaPrograms.csv"), as.is=T, na.strings=c(""))
 
 # Read column key
-col_key <- readxl::read_excel(file.path(outdir, "column_key.xlsx"))
+col_key <- readxl::read_excel(file.path(outdir, "column_key_ca_programs.xlsx"))
+
+# Read MPA data
+mpas <- readRDS(file.path(basedir, "mpa_traits/processed", "CA_mpa_metadata.Rds"))
 
 # To-do list
-# 1) Clean uses and add use categories
-# 2) Determine wind speed units
-# 3) The temperature column is messed up - handle if you care?
+# 1) Determine wind speed units
+# 2) The temperature column is messed up - handle if you care?
 # 3) Clean weather/tide station names/coordinates -- probably optional
+
+# Site key
+################################################################################
+
+# Site key
+site_key <- data_orig %>% 
+  # Unique sites
+  janitor::clean_names("snake") %>% 
+  select(mpa, mpa_id) %>% 
+  unique() %>% 
+  # Recode a few MPA names
+  mutate(mpa=recode(mpa,
+                    "Blue Cavern (Catalina Island) SMCA"="Blue Cavern Offshore SMCA",
+                    "Cat Harbor (Catalina Island) SMCA"="Cat Harbor SMCA",
+                    "Laguna Beach SMCA"="Laguna Beach SMCA (No-Take)",
+                    "Año Nuevo SMCA"="Año Nuevo SMR",
+                    "Point Vicente SMCA"="Point Vicente SMCA (No-Take)",
+                    "Campus Point SMCA"="Campus Point SMCA (No-Take)",
+                    "Lovers Point SMR"="Lovers Point - Julia Platt SMR")) %>%
+  # Mark MPA or control
+  mutate(survey_type=ifelse(!grepl("control", tolower(mpa)), "MPA", "Control")) %>% 
+  # Format control names
+  mutate(mpa=gsub("CONTROL |control |Control |", "", mpa))
+
+# Confirm that all MPAs are in MPA key
+site_key$mpa[!site_key$mpa %in% mpas$mpa & site_key$survey_type=="MPA"]
+  
 
 
 # Format data
@@ -33,12 +62,14 @@ col_key <- readxl::read_excel(file.path(outdir, "column_key.xlsx"))
 
 # Format data
 data <- data_orig %>%
-  # Rena
+  # Rename
   janitor::clean_names("snake") %>% 
   # Rename columns
-  rename(mpa_name=mpa,
-         tide_ft=tide_height,
+  rename(tide_ft=tide_height,
          air_temp_f=air_temperature) %>%
+  # Add corrected MPA name and site type
+  select(-mpa) %>% 
+  left_join(site_key, by="mpa_id") %>% 
   # Convert date/time
   mutate(date=lubridate::ymd(date),
          time_start1=lubridate::hms(time_start),
@@ -75,20 +106,16 @@ data <- data_orig %>%
   # Compute survey duration
   mutate(duration_hr=lubridate::time_length(time_end1-time_start1, unit="hours")) %>% 
   # Arrange
-  select(survey_id:time_end, time_start1, time_end1, duration_hr, everything())
-
-  # Gather
-  # gather(key="use", value="n_obs", 27:ncol(.))
-
-
-
+  select(survey_id, program, mpa_id, mpa, survey_type, 
+         survey_site:time_end, time_start1, time_end1, duration_hr, everything())
 
 # Inspect data
 str(data)
-# freeR::complete(data)
+freeR::complete(data)
 
 # Inspect data
 table(data$program)
+table(data$survey_type)
 table(data$survey_site_type)
 table(data$beach_status)
 table(data$clouds)
@@ -100,7 +127,6 @@ sort(unique(data$tide_station_name)) # imperfect - i'd bet lat/long problems too
 table(data$wind)
 table(data$temperature)
 table(data$air_temperature)
-
 
 # Inspect numeric data
 range(data$date)
@@ -118,8 +144,19 @@ tide_key <- data %>%
   unique() %>% 
   arrange(tide_station_name)
 
+
+# Make long
+################################################################################
+
+# Gather
+data_long <- data %>% 
+  # Gather
+  gather(key="use", value="n_obs", 31:ncol(.))
+
 # Export data
 ################################################################################
 
 # Export
-saveRDS(data, file=file.path(outdir, "MPA_Watch_2011_2022_surveys_ca_programs.Rds"))
+saveRDS(data, file=file.path(outdir, "MPA_Watch_2011_2022_surveys_ca_programs_wide.Rds"))
+saveRDS(data_long, file=file.path(outdir, "MPA_Watch_2011_2022_surveys_ca_programs_long.Rds"))
+
