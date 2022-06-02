@@ -257,9 +257,26 @@ surf_biom <- ecol_metrics.new %>%
 
 biomass_data <- rbind(deep_reef_biom, ccfrp_biom, kelp_biom, surf_biom)
 
+#replace mpa_class with defacto smrs 
+data_path <- "/home/shares/ca-mpa/data/sync-data/mpa_traits"
+input_file <- "mpa-attributes.xlsx" 
+defacto_smr <- readxl::read_excel(file.path(data_path, input_file), sheet=5, skip = 0, na="NA")
+
+#final cleaning
+
+buchon_row <- c("Point Buchon","SMR","point buchon smr","No take.","deep_reef","SMR") 
+defacto_smr <- rbind(defacto_smr,buchon_row) #add missing row
+
+biomass_data_final <- left_join(biomass_data,defacto_smr, by=c("affiliated_mpa"="affiliated_mpa","group"="group"))
+
+#select final table
+
+biomass_data_final <- biomass_data_final %>%
+                      dplyr::select(year, group, region3, region4, affiliated_mpa, mpa_class.y, mpa_designation, target_status, sum_biomass)%>%
+                      mutate(mpa_class = mpa_class.y)
 
 #export
-#path_aurora <- "/home/shares/ca-mpa/data/sync-data/processed_data"
+#path_aurora <- "/home/shares/ca-mpa/data/sync-data/processed_data" 
 #write.csv(biomass_data,file.path(path_aurora, "targeted_nontargeted_fish_biomass.csv"), row.names = FALSE)
 
 
