@@ -1,0 +1,60 @@
+#Cleaning monitoring data for mpa-year level analyses
+#Joshua G Smith; June 1, 2022
+
+
+#load required packages
+require(dplyr)
+require(stringr)
+
+# mid-depth rock / deep reef ----------------------------------------------
+
+#load species level mean fish biomass 
+data_path <- "/home/shares/ca-mpa/data/sync-data/Monitoring_data/Monitoring_deep-reef/ROV_Dataset"
+input_file <- "MidDepth_ROV_Fish_Mean_Biomass.xlsx" 
+biomass_raw <- readxl::read_excel(file.path(data_path, input_file), sheet=1, skip = 0, na="NA")
+
+#clean up
+biomass_raw <- biomass_raw %>%
+                  mutate(Scientific_Name = str_replace(Scientific_Name, " ", "_")) #replace space in string with "_"
+biomass_raw$Scientific_Name <- tolower(biomass_raw$Scientific_Name) #make lower to correct inconsistencies 
+biomass_raw$Scientific_Name <- recode_factor(biomass_raw$Scientific_Name, sebastes_paucipinis = "sebastes_paucispinis") #correct mispelling
+biomass_raw$Scientific_Name <- recode_factor(biomass_raw$Scientific_Name, sebastes_pauscipinis = "sebastes_paucispinis") #correct mispelling
+biomass_raw$Scientific_Name <- recode_factor(biomass_raw$Scientific_Name, racochilus_vacca = "rhacochilus_vacca") #correct mispelling
+biomass_raw$Scientific_Name <- recode_factor(biomass_raw$Scientific_Name, sebastes_dalii = "sebastes_dallii") #correct mispelling
+biomass_raw$Scientific_Name <- recode_factor(biomass_raw$Scientific_Name, hexagrammus_decagrammus = "hexagrammos_decagrammus") #correct mispelling
+biomass_raw$Scientific_Name <- recode_factor(biomass_raw$Scientific_Name, sebastes_minatus = "sebastes_miniatus") #correct mispelling
+biomass_raw$Scientific_Name <- recode_factor(biomass_raw$Scientific_Name, starry_rockfish = "sebastes_constellatus") #correct mispelling
+biomass_raw$Scientific_Name <- recode_factor(biomass_raw$Scientific_Name, sebaste_miniatus = "sebastes_miniatus") #correct mispelling
+biomass_raw$Scientific_Name <- recode_factor(biomass_raw$Scientific_Name, sebastes_hopskini = "sebastes_hopkinsi") #correct mispelling
+biomass_raw$Scientific_Name <- recode_factor(biomass_raw$Scientific_Name, sebastes_services = "sebastes_serriceps") #correct mispelling
+
+
+
+#load taxonomy table
+data_path <- "/home/shares/ca-mpa/data/sync-data/Taxonomy_traits/Taxonomy_deep-reef"
+input_file <- "ROV_Taxonomic_Traits_NCEAS.xlsx" 
+taxonomy <- readxl::read_excel(file.path(data_path, input_file), sheet=1, skip = 0, na="NA")
+
+
+#Filter targeted status and scientific name for join
+targeted_taxonomy <- taxonomy %>%
+                      dplyr::select(Scientific_Name, Common_name, targeted)%>%
+                      mutate(targeted = str_remove_all(targeted, '-'),
+                            Scientific_Name = str_replace(Scientific_Name, " ", "_"))
+
+#clean up
+
+targeted_taxonomy <- targeted_taxonomy %>%
+                      mutate(targeted = ifelse(Common_name == "Blue/Deacon Rockfish", "targeted", targeted),
+                             targeted = ifelse(Common_name == "Black/Blue/Deacon Rockfish complex", "targeted", targeted),
+                             targeted = ifelse(Common_name == "Black/Blue Rockfish complex", "targeted", targeted),#All species in this complex are harvested
+                             targeted = ifelse(Common_name == "California Scorpionfish", "targeted", targeted)) #targeted species
+
+targeted_taxonomy$targeted <- tolower(targeted_taxonomy$targeted) #make lower
+targeted_taxonomy$Scientific_Name <- tolower(targeted_taxonomy$Scientific_Name) #make lower
+
+
+#Join targeted status with biomass data using scientific name
+
+deep_reef_biomass <- left_join(biomass_raw,targeted_taxonomy,by="Scientific_Name")
+
