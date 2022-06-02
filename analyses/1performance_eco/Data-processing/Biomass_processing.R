@@ -74,7 +74,7 @@ deep_reef_biomass$affiliated_mpa <- tolower(deep_reef_biomass$affiliated_mpa) #m
 
 deep_reef_biomass <- deep_reef_biomass %>%
                       group_by(Year, Region, affiliated_mpa, Type, Designation, targeted)%>%
-                      summarize(sum_biomass = sum(Mean_Biomass))%>%
+                      summarize(sum_biomass = sum(Mean_Biomass, na.rm=TRUE))%>%
                       mutate(group='deep_reef')
 
 #prep for joining reclassified defacto smrs
@@ -115,6 +115,94 @@ deep_reef_biom <- left_join(deep_reef,four_region, by=c("affiliated_mpa"="name")
 
 deep_reef_biom <- deep_reef_biom %>%
                   dplyr::select(year, group, region3, region4, affiliated_mpa, mpa_class, mpa_designation, target_status=targeted, sum_biomass)
+
+
+
+
+
+# ccfrp -------------------------------------------------------------------
+
+#load species level mean fish BPUE
+data_path <- "/home/shares/ca-mpa/data/sync-data/Monitoring_data/Monitoring_ccfrp/CCFRP_derived_data_tables_DataONE"
+input_file <- "CCFRP_derived_effort_table.csv" 
+biomass_raw <- read.csv(file.path(data_path, input_file))
+
+#load taxonomy table
+data_path <- "/home/shares/ca-mpa/data/sync-data/Taxonomy_traits/Taxonomy_ccfrp"
+input_file <- "CCFRP_Species_TraitTable.xlsx" 
+taxonomy<- readxl::read_excel(file.path(data_path, input_file), sheet=2, skip = 0, na="NA")
+
+targeted_taxonomy <- taxonomy %>%
+  dplyr::select(Scientific_Name, Common_Name, Fished)%>%
+  mutate(Fished = str_remove_all(Fished, '-'),
+         Scientific_Name = str_replace(Scientific_Name, " ", "_"))
+
+targeted_taxonomy$Fished <- tolower(targeted_taxonomy$Fished)
+
+#Join targeted status with bpue data using common name
+
+ccfrp_biomass <- left_join(biomass_raw,targeted_taxonomy,by="Common_Name") 
+ccfrp_biomass <- ccfrp_biomass %>%
+  filter(!is.na(Fished))
+
+#clean up
+ccfrp_biomass <- ccfrp_biomass %>%
+  mutate(affiliated_mpa = paste(Area,"smr"), #all ccfrp MPAs are defacto SMRs per PI
+         mpa_designation = ifelse(MPA_Status == "MPA","smr", MPA_Status))
+  
+ccfrp_biomass$mpa_designation <- tolower(ccfrp_biomass$mpa_designation)
+ccfrp_biomass$affiliated_mpa <- tolower(ccfrp_biomass$affiliated_mpa)
+
+ccfrp_biomass <- ccfrp_biomass %>%
+                  ungroup() %>%
+                  dplyr::select(year=Year, affiliated_mpa, mpa_designation, Fished, Common_Name, BPUE_biomass.kg._per_angler_hour)%>%
+                  mutate(mpa_class="smr", 
+                         group="ccfrp")%>%
+                  filter(Fished %in% c("targeted","nontargeted"))
+                       
+
+
+#aggregate by MPA-year and targeted/nontargeted
+
+ccfrp_biomass.new <- ccfrp_biomass %>%
+  group_by(group, year, affiliated_mpa, mpa_class, mpa_designation, Fished)%>%
+  summarise(sum_biomass = sum(BPUE_biomass.kg._per_angler_hour, na.rm=TRUE))
+
+
+#add regions
+
+ccfrp_biomass.new$affiliated_mpa <- recode_factor(ccfrp_biomass.new$affiliated_mpa, "southeast farallon islands smr" = "southeast farallon island smr") #clean up names 
+ccfrp_biomass.new$affiliated_mpa <- recode_factor(ccfrp_biomass.new$affiliated_mpa, "swamis smr" = "swami's smca") #clean up names 
+
+
+
+
+
+
+
+data_path <- "/home/shares/ca-mpa/data/sync-data/mpa_traits"
+input_file <- "mpa-attributes.xlsx" 
+four_region <- readxl::read_excel(file.path(data_path, input_file), sheet=1, skip = 0, na="NA")
+
+regions <- four_region %>%
+  dplyr::select(name, region3=bioregion, region4 = four_region_north_ci)
+
+ccfrp_biomass.new <- left_join(ccfrp_biomass.new, regions, by=c("affiliated_mpa"="name"))
+
+
+
+#clean up and reorder to match other datasets
+
+ccfrp_biom <- ccfrp_biomass.new %>%
+  dplyr::select(year, group, region3, region4, affiliated_mpa, mpa_class, mpa_designation, target_status="Fished", sum_biomass)
+
+
+
+
+
+
+
+
 
 
 
