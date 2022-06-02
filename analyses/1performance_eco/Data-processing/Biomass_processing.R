@@ -253,11 +253,14 @@ surf_biom <- ecol_metrics.new %>%
 
 
 
-
-
-
 # combine all to form data table for export -------------------------------
 
 biomass_data <- rbind(deep_reef_biom, ccfrp_biom, kelp_biom, surf_biom)
+
+
+#export
+#path_aurora <- "/home/shares/ca-mpa/data/sync-data/processed_data"
+#write.csv(biomass_data,file.path(path_aurora, "targeted_nontargeted_fish_biomass"), row.names = FALSE)
+
 
 
