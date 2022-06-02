@@ -90,5 +90,5 @@ g
 
 # Export data
 ggsave(g, filename=file.path(plotdir, "FigSX_scientific_permits_over_time_by_mpa.png"), 
-       width=6.5, height=7, units="in", dpi=600)
+       width=6.5, height=7.5, units="in", dpi=600)
 
