@@ -15,7 +15,10 @@ biomass_raw <- readxl::read_excel(file.path(data_path, input_file), sheet=1, ski
 
 #clean up
 biomass_raw <- biomass_raw %>%
-                  mutate(Scientific_Name = str_replace(Scientific_Name, " ", "_")) #replace space in string with "_"
+                  mutate(Scientific_Name = str_replace(Scientific_Name, " ", "_"))#replace space in string with "_"
+                       
+
+
 biomass_raw$Scientific_Name <- tolower(biomass_raw$Scientific_Name) #make lower to correct inconsistencies 
 biomass_raw$Scientific_Name <- recode_factor(biomass_raw$Scientific_Name, sebastes_paucipinis = "sebastes_paucispinis") #correct mispelling
 biomass_raw$Scientific_Name <- recode_factor(biomass_raw$Scientific_Name, sebastes_pauscipinis = "sebastes_paucispinis") #correct mispelling
@@ -42,6 +45,7 @@ targeted_taxonomy <- taxonomy %>%
                       mutate(targeted = str_remove_all(targeted, '-'),
                             Scientific_Name = str_replace(Scientific_Name, " ", "_"))
 
+
 #clean up
 
 targeted_taxonomy <- targeted_taxonomy %>%
@@ -56,5 +60,21 @@ targeted_taxonomy$Scientific_Name <- tolower(targeted_taxonomy$Scientific_Name) 
 
 #Join targeted status with biomass data using scientific name
 
-deep_reef_biomass <- left_join(biomass_raw,targeted_taxonomy,by="Scientific_Name")
+deep_reef_biomass <- left_join(biomass_raw,targeted_taxonomy,by="Scientific_Name") 
+deep_reef_biomass <- deep_reef_biomass %>%
+                        filter(!is.na(targeted))
+
+#add column to create affiliated_mpa 
+
+deep_reef_biomass <- deep_reef_biomass %>%
+                        mutate(affiliated_mpa = paste(MPA_Group,Type))
+deep_reef_biomass$affiliated_mpa <- tolower(deep_reef_biomass$affiliated_mpa) #make lower
+
+#aggregate by MPA-year and targeted/nontargeted
+
+deep_reef_biomass <- deep_reef_biomass %>%
+                      group_by(Year, Region, affiliated_mpa, Type, Designation, targeted)%>%
+                      summarize(sum_biomass = sum(Mean_Biomass))
+
+#join reclassified defacto smrs
 
