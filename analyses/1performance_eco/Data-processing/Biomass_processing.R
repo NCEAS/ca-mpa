@@ -74,7 +74,47 @@ deep_reef_biomass$affiliated_mpa <- tolower(deep_reef_biomass$affiliated_mpa) #m
 
 deep_reef_biomass <- deep_reef_biomass %>%
                       group_by(Year, Region, affiliated_mpa, Type, Designation, targeted)%>%
-                      summarize(sum_biomass = sum(Mean_Biomass))
+                      summarize(sum_biomass = sum(Mean_Biomass))%>%
+                      mutate(group='deep_reef')
 
-#join reclassified defacto smrs
+#prep for joining reclassified defacto smrs
+data_path <- "/home/shares/ca-mpa/data/sync-data/mpa_traits"
+input_file <- "mpa-attributes.xlsx" 
+defacto_smr <- readxl::read_excel(file.path(data_path, input_file), sheet=5, skip = 0, na="NA")
+
+#check for inconsistencies in mpa name spelling and correct designations
+buchon_row <- c("Point Buchon","SMR","point buchon smr","No take.","deep_reef","SMR") 
+defacto_smr <- rbind(defacto_smr,buchon_row) #add missing row
+
+deep_reef_biomass$affiliated_mpa <- recode_factor(deep_reef_biomass$affiliated_mpa, "se farallon islands smca" = "southeast farallon island smca") #correct spelling to match affiliated
+deep_reef_biomass$affiliated_mpa <- recode_factor(deep_reef_biomass$affiliated_mpa, "se farallon islands smr" = "southeast farallon island smr") #correct spelling to match affiliated
+deep_reef_biomass$affiliated_mpa <- recode_factor(deep_reef_biomass$affiliated_mpa, "farnsworth smca" = "farnsworth offshore smca") #correct spelling to match affiliated
+deep_reef_biomass$affiliated_mpa <- recode_factor(deep_reef_biomass$affiliated_mpa, "point st. george smca" = "point st. george reef offshore smca") #correct spelling to match affiliated
+
+
+deep_reef <- left_join(deep_reef_biomass, defacto_smr, by=c("group"="group","affiliated_mpa"="affiliated_mpa"))
+
+
+#create new mpa_designation field to match other datasets
+deep_reef <- deep_reef %>%
+              mutate(mpa_designation = ifelse(Designation == "Reference","ref", Type))%>%
+              ungroup() %>%
+              dplyr::select(year=Year, group, region3=Region, affiliated_mpa, mpa_class, mpa_designation, targeted, sum_biomass)
+
+deep_reef$mpa_designation <- toupper(deep_reef$mpa_designation)
+
+#join new four subregions
+data_path <- "/home/shares/ca-mpa/data/sync-data/mpa_traits"
+input_file <- "mpa-attributes.xlsx" 
+four_region <- readxl::read_excel(file.path(data_path, input_file), sheet=1, skip = 0, na="NA")
+
+four_region <- four_region %>%
+                dplyr::select(name, region4 = four_region_north_ci)
+
+deep_reef_biom <- left_join(deep_reef,four_region, by=c("affiliated_mpa"="name"))
+
+deep_reef_biom <- deep_reef_biom %>%
+                  dplyr::select(year, group, region3, region4, affiliated_mpa, mpa_class, mpa_designation, target_status=targeted, sum_biomass)
+
+
 
