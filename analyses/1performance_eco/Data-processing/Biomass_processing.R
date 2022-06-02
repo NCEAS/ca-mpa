@@ -175,11 +175,6 @@ ccfrp_biomass.new$affiliated_mpa <- recode_factor(ccfrp_biomass.new$affiliated_m
 ccfrp_biomass.new$affiliated_mpa <- recode_factor(ccfrp_biomass.new$affiliated_mpa, "swamis smr" = "swami's smca") #clean up names 
 
 
-
-
-
-
-
 data_path <- "/home/shares/ca-mpa/data/sync-data/mpa_traits"
 input_file <- "mpa-attributes.xlsx" 
 four_region <- readxl::read_excel(file.path(data_path, input_file), sheet=1, skip = 0, na="NA")
@@ -198,11 +193,71 @@ ccfrp_biom <- ccfrp_biomass.new %>%
 
 
 
+# kelp forest -------------------------------------------------------------
+
+
+data_path <- "/home/shares/ca-mpa/data/sync-data/monitoring"
+input_file <- "Ecol_perform_metrics_means_working.xlsx" 
+ecol_metrics <- readxl::read_excel(file.path(data_path, input_file), sheet=1, skip = 0, na="NA")
+
+ecol_metrics <- ecol_metrics %>%
+                filter(group == "kelp forest-fish",
+                       indicator == "biomass",
+                       variable == "targeted" | variable =="nontargeted")
+
+#add regions
+data_path <- "/home/shares/ca-mpa/data/sync-data/mpa_traits"
+input_file <- "mpa-attributes.xlsx" 
+four_region <- readxl::read_excel(file.path(data_path, input_file), sheet=1, skip = 0, na="NA")
+
+regions <- four_region %>%
+  dplyr::select(name, region3=bioregion, region4 = four_region_north_ci)
+
+ecol_metrics.new <- left_join(ecol_metrics, regions, by=c("affiliated_mpa"="name"))
+
+
+#select variables and reorder to match other datasets
+
+kelp_biom <- ecol_metrics.new %>%
+              mutate(group="kelp", sum_biomass=mean) %>%
+              dplyr:: select (year, group,region3, region4, affiliated_mpa,mpa_class, mpa_designation, target_status = variable, sum_biomass)
+
+
+
+# surf zone fishes --------------------------------------------------------
+
+data_path <- "/home/shares/ca-mpa/data/sync-data/monitoring"
+input_file <- "Ecol_perform_metrics_means_working.xlsx" 
+ecol_metrics <- readxl::read_excel(file.path(data_path, input_file), sheet=1, skip = 0, na="NA")
+
+ecol_metrics <- ecol_metrics %>%
+  filter(group == "surf-zone",
+         indicator == "bpue",
+         variable == "targeted" | variable =="nontargeted")
+
+#add regions
+data_path <- "/home/shares/ca-mpa/data/sync-data/mpa_traits"
+input_file <- "mpa-attributes.xlsx" 
+four_region <- readxl::read_excel(file.path(data_path, input_file), sheet=1, skip = 0, na="NA")
+
+regions <- four_region %>%
+  dplyr::select(name, region3=bioregion, region4 = four_region_north_ci)
+
+ecol_metrics.new <- left_join(ecol_metrics, regions, by=c("affiliated_mpa"="name"))
+
+#select variables and reorder to match other datasets
+
+surf_biom <- ecol_metrics.new %>%
+  mutate(group="surf", sum_biomass=mean) %>%
+  dplyr:: select (year, group,region3, region4, affiliated_mpa,mpa_class, mpa_designation, target_status = variable, sum_biomass)
 
 
 
 
 
 
+# combine all to form data table for export -------------------------------
+
+biomass_data <- rbind(deep_reef_biom, ccfrp_biom, kelp_biom, surf_biom)
 
 
