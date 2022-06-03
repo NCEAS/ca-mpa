@@ -1,0 +1,25 @@
+This file provides meta data and descriptions of the data processing files.
+
+
+**Biomass_raw_processing.R**
+This file contains script used to aggregate raw biomass data from each 
+monitoring group into a single exportable .csv file. The output of this script
+contains bioamss data aggregated at the MPA-year level for each monitoring 
+group and for targeted v. nontageted fish species. 
+
+year = survey year
+group = monitoring group
+region3 = CDFW-designated monitoring regions
+region4 = north, central, south, north channel islands
+affiliated_mpa = mpa name
+mpa_class = denotes whether mpa is SMR or SMCA
+mpa_designation = denotes whether survey is SMR, SMCA, or Reference
+target_status = denotes aggregate level of targeted or nontargeted species
+sum_biomass = sum of the mean biomass for each targeted or nontargeted species
+
+
+**Biomass_RR_processing.R**
+This file calculates reponse ratios and other summary statistics at the 
+MPA-year level for each monitoring group. NOTE: This script requires export data
+from Biomass_raw_processing.R
+
