@@ -9,7 +9,7 @@ require(stringr)
 # mid-depth rock / deep reef ----------------------------------------------
 
 #load species level mean fish biomass 
-data_path <- "/home/shares/ca-mpa/data/sync-data/Monitoring_data/Monitoring_deep-reef/ROV_Dataset"
+data_path <- "/home/shares/ca-mpa/data/sync-data/monitoring/monitoring_deep-reef/ROV_Dataset"
 input_file <- "MidDepth_ROV_Fish_Mean_Biomass.xlsx" 
 biomass_raw <- readxl::read_excel(file.path(data_path, input_file), sheet=1, skip = 0, na="NA")
 
@@ -123,7 +123,7 @@ deep_reef_biom <- deep_reef_biom %>%
 # ccfrp -------------------------------------------------------------------
 
 #load species level mean fish BPUE
-data_path <- "/home/shares/ca-mpa/data/sync-data/Monitoring_data/Monitoring_ccfrp/CCFRP_derived_data_tables_DataONE"
+data_path <- "/home/shares/ca-mpa/data/sync-data/monitoring/monitoring_ccfrp/CCFRP_derived_data_tables_DataONE"
 input_file <- "CCFRP_derived_effort_table.csv" 
 biomass_raw <- read.csv(file.path(data_path, input_file))
 
@@ -273,7 +273,11 @@ biomass_data_final <- left_join(biomass_data,defacto_smr, by=c("affiliated_mpa"=
 
 biomass_data_final <- biomass_data_final %>%
                       dplyr::select(year, group, region3, region4, affiliated_mpa, mpa_class.y, mpa_designation, target_status, sum_biomass)%>%
-                      mutate(mpa_class = mpa_class.y)
+                      mutate(mpa_class = mpa_class.y)%>%
+                      dplyr::select(year, group, region3, region4, affiliated_mpa, mpa_class, mpa_designation, target_status, sum_biomass)
+
+biomass_data_final$mpa_class <- tolower(biomass_data_final$mpa_class)
+biomass_data_final$mpa_designation <- tolower(biomass_data_final$mpa_designation)
 
 #export
 #path_aurora <- "/home/shares/ca-mpa/data/sync-data/processed_data" 
