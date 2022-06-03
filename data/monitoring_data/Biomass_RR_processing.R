@@ -46,8 +46,14 @@ mpa_pairs$smr<- m.smr+mpa_pairs$smr
 mpa_pairs$ref<- m.ref+mpa_pairs$ref
 
 pairs_stats <- mpa_pairs %>% 
-  mutate(RR  = log(smr/ref)
+  mutate(logRR  = log(smr/ref)
   )
+
+#export
+#path_aurora <- "/home/shares/ca-mpa/data/sync-data/processed_data" 
+#write.csv(pairs_stats,file.path(path_aurora, "targeted_nontargeted_biomass_logRRs.csv"), row.names = FALSE)
+
+
 
 
 
