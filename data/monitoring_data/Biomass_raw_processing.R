@@ -281,7 +281,7 @@ biomass_data_final$mpa_designation <- tolower(biomass_data_final$mpa_designation
 
 #export
 #path_aurora <- "/home/shares/ca-mpa/data/sync-data/processed_data" 
-#write.csv(biomass_data,file.path(path_aurora, "targeted_nontargeted_fish_biomass.csv"), row.names = FALSE)
+#write.csv(biomass_data_final,file.path(path_aurora, "targeted_nontargeted_fish_biomass.csv"), row.names = FALSE)
 
 
 
