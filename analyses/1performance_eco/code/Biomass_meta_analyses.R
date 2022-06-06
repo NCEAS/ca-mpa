@@ -191,3 +191,135 @@ text(-8, -2.5, pos=4, cex=0.75, bquote(paste("Test for Subgroup Differences: ",
 text(x =-0.2, y = 28.8, "REF",  pos=2, col="blue", font=2)
 text(x =1.3, y = 28.8, "SMR",  pos=2, col="red ", font=2)
 text(x =-4, y = 30.2, "targeted fish biomass 2016-20",  cex=1, pos=2, font=3)
+
+
+
+
+
+
+
+
+
+# Biomass of nontargeted --------------------------------------------------
+
+
+region.yr.means<- meta.data%>%
+  filter(year=='2016' | year=='2017'|year=='2018' | year=='2019' | year =='2020',
+         mpa_class=='smr'| mpa_class=='ref',
+         target_status == 'nontargeted'
+  )
+
+region.yr.means$mpa_designation <- recode_factor(region.yr.means$mpa_designation, smca="smr") #recode to match defacto SMR
+
+region.yr.means <- region.yr.means %>%
+  group_by(group,region4, mpa_class, mpa_designation,target_status)%>%
+  dplyr::summarize(yr.mean = mean(sum_biomass,na.rm=TRUE), 
+                   sd=sd(sum_biomass), # standard deviation of across MPAs where indicator was observed/recorded
+                   n=n()) %>%
+  pivot_wider(names_from = mpa_designation,
+              values_from = c(yr.mean, sd, n)
+  )
+
+
+
+
+dat <- escalc(measure="SMD", m1i=yr.mean_smr, m2i=yr.mean_ref, sd1i=sd_smr, sd2i=sd_ref, n1i=n_smr, n2i=n_ref, data=region.yr.means, slab=paste(group)) 
+
+dat <- dat %>%
+  filter(!is.na(vi))    
+
+#dat <- escalc(measure="SMD", m1i=group.avg_smr, m2i=group.avg_ref, sd1i=sd_smr, sd2i=sd_ref, n1i=n_smr, n2i=n_ref, data=smd.final, slab=paste(group)) 
+
+#fit random effects model
+res <- rma(yi,vi, method="REML", data=dat, slab=paste(group)) 
+
+
+### a little helper function to add Q-test, I^2, and tau^2 estimate info
+### a little helper function to add Q-test, I^2, and tau^2 estimate info
+mlabfun <- function(text, y) {
+  bquote(paste(.(text),
+               " (Q = ", .(formatC(y$QE, digits=2, format="f")),
+               #", df = ", .(y$k - y$p),
+               ", p ", .(formatC(y$pval, digits=2, format="f")), #"; ",
+               #I^2, " = ", .(formatC(y$I2, digits=1, format="f")), "%, ",
+               #tau^2, " = ", .(formatC(y$tau2, digits=2, format="f")), 
+               ")"
+  )
+  )}
+
+
+### set up forest plot (with 2x2 table counts added; the 'rows' argument is
+### used to specify in which rows the outcomes will be plotted)
+forest(res, xlim=c(-8, 6), #at=log(c(0.05, 0.25, 1, 4)), #atransf=exp,
+       #ilab=cbind(dat$tpos, dat$tneg, dat$cpos, dat$cneg),
+       #ilab.xpos=c(-9.5,-8,-6,-4.5), 
+       cex=0.75, 
+       ylim=c(-3, 30),
+       order=order(factor(dat$region4, level=c("south","north islands", "central","north")),dat$yi), 
+       rows=c(3:6,10:12,16:19,23:25),
+       mlab=mlabfun("RE Model", res),
+       slab=paste(dat$group),
+       #showweights = TRUE,
+       #psize=1.3, 
+       header="Region | Monitoring Group")
+
+### set font expansion factor (as in forest() above) and use a bold font
+op <- par(cex=0.75, font=2)
+
+### add additional column headings to the plot
+
+### add text for the subgroups
+text(-8, c(26,20,13,7), pos=4, c("North",
+                                 "Central",
+                                 "N. Channel Islands",
+                                 "South"))
+
+
+### set par back to the original settings
+par(op)
+
+### fit random-effects model in the three subgroups
+res.n <- rma(yi, vi, method="REML", subset=(region4=="north"), verbose=TRUE, digits=5, data=dat, slab=paste(group, region4))
+res.c <- rma(yi, vi, method="REML", subset=(region4=="central"),data=dat, slab=paste(group, region4))
+res.s <- rma(yi, vi, method="REML", subset=(region4=="south"), data=dat, slab=paste(group, region4))
+res.i <- rma(yi, vi, method="REML", subset=(region4=="north islands"), verbose=TRUE, digits=5, data=dat, slab=paste(group, region4))
+
+### add summary polygons for the three subgroups
+
+addpoly(res.n, row=21.5, cex=0.75, mlab=mlabfun("RE Model for Subgroup", y=res.n))
+text(-8, 21.5, pos=4, cex=0.7, mlabfun("RE Model for Subgroup", y=res.n))
+
+addpoly(res.c, row= 14.5,cex=0.75, mlab=mlabfun("RE Model for Subgroup", y=res.c))
+text(-8, 14.5, pos=4, cex=0.7, mlabfun("RE Model for Subgroup", y=res.c))
+
+addpoly(res.s, row= 8.5,cex=0.75, mlab=mlabfun("RE Model for Subgroup", y=res.s))
+text(-8, 8.5, pos=4, cex=0.7, mlabfun("RE Model for Subgroup", y=res.s))
+
+addpoly(res.s, row= 1.5,cex=0.75, mlab=mlabfun("RE Model for Subgroup", y=res.i))
+text(-8, 1.5, pos=4, cex=0.7, mlabfun("RE Model for Subgroup", y=res.i))
+
+
+### fit meta-regression model to test for subgroup differences
+res <- rma(yi, vi, mods = ~ region4, data=dat)
+
+### add text for the test of subgroup differences
+text(-8, -2.5, pos=4, cex=0.75, bquote(paste("Test for Subgroup Differences: ",
+                                             Q[M], " = ", .(formatC(res$QM, digits=2, format="f")), ", df = ", .(res$p - 1),
+                                             ", p = ", .(formatC(res$pval, digits=2, format="f")))))
+
+text(x =-0.2, y = 28.8, "REF",  pos=2, col="blue", font=2)
+text(x =1.3, y = 28.8, "SMR",  pos=2, col="red ", font=2)
+text(x =-3.6, y = 30.2, "nontargeted fish biomass 2016-20",  cex=1, pos=2, font=3)
+
+
+
+
+
+
+
+
+
+
+
+
+
