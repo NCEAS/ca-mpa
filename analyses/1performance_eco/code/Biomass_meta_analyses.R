@@ -64,7 +64,7 @@ meta.data$mpa_designation <- tolower(meta.data$mpa_designation)
 region.yr.means<- meta.data%>%
   filter(year=='2016' | year=='2017'|year=='2018' | year=='2019' | year =='2020',
          mpa_class=='smr'| mpa_class=='ref',
-         target_status == 'nontargeted'
+         target_status == 'targeted'
   )
 
 region.yr.means$mpa_designation <- recode_factor(region.yr.means$mpa_designation, smca="smr") #recode to match defacto SMR
@@ -137,7 +137,7 @@ forest(res, xlim=c(-8, 6), #at=log(c(0.05, 0.25, 1, 4)), #atransf=exp,
        cex=0.75, 
        ylim=c(-3, 30),
        order=order(factor(dat$region4, level=c("south","north islands", "central","north")),dat$yi), 
-       rows=c(3:6,10:12,16:18,22:24),
+       rows=c(3:6,10:12,16:19,23:26),
        mlab=mlabfun("RE Model", res),
        slab=paste(dat$group),
        #showweights = TRUE,
@@ -150,7 +150,7 @@ op <- par(cex=0.75, font=2)
 ### add additional column headings to the plot
 
 ### add text for the subgroups
-text(-8, c(25,19,13,7), pos=4, c("North",
+text(-8, c(27,20,13,7), pos=4, c("North",
                                  "Central",
                                  "N. Channel Islands",
                                  "South"))
@@ -167,8 +167,8 @@ res.i <- rma(yi, vi, method="REML", subset=(region4=="north islands"), verbose=T
 
 ### add summary polygons for the three subgroups
 
-addpoly(res.n, row=20.5, cex=0.75, mlab=mlabfun("RE Model for Subgroup", y=res.n))
-text(-8, 20.5, pos=4, cex=0.7, mlabfun("RE Model for Subgroup", y=res.n))
+addpoly(res.n, row=21.5, cex=0.75, mlab=mlabfun("RE Model for Subgroup", y=res.n))
+text(-8, 21.5, pos=4, cex=0.7, mlabfun("RE Model for Subgroup", y=res.n))
 
 addpoly(res.c, row= 14.5,cex=0.75, mlab=mlabfun("RE Model for Subgroup", y=res.c))
 text(-8, 14.5, pos=4, cex=0.7, mlabfun("RE Model for Subgroup", y=res.c))
@@ -190,4 +190,4 @@ text(-8, -2.5, pos=4, cex=0.75, bquote(paste("Test for Subgroup Differences: ",
 
 text(x =-0.2, y = 28.8, "REF",  pos=2, col="blue", font=2)
 text(x =1.3, y = 28.8, "SMR",  pos=2, col="red ", font=2)
-text(x =-3.6, y = 30.2, "nontargeted fish biomass 2016-20",  cex=1, pos=2, font=3)
+text(x =-4, y = 30.2, "targeted fish biomass 2016-20",  cex=1, pos=2, font=3)
