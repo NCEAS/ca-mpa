@@ -25,13 +25,13 @@ means.data <- read.csv(file.path(data_path, input_file))
 means.data$mpa_designation <- recode_factor(means.data$mpa_designation, smca="smr") #recode to match defacto SMR
 
 mpa_pairs <- means.data %>%
-  group_by(group,region4, mpa_class, mpa_designation,target_status)%>%
+  group_by(year, group,region4, mpa_class, mpa_designation,target_status)%>%
   mutate(row = row_number())%>%
   pivot_wider(names_from = mpa_designation,
               values_from = c(sum_biomass)
   )%>%
   dplyr::select(-row)%>%
-  mutate(across(1:5, ~replace(., lengths(.) == 0, NA)))%>%    
+  mutate(across(1:4, ~replace(., lengths(.) == 0, NA)))%>%    
   filter(!is.na(smr))%>%     #remove sites with missing pairs
   filter(!is.na(ref)) #remove sites with missing pairs
 
