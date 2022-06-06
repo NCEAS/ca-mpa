@@ -150,6 +150,22 @@ data <- bind_rows(piers1, marinas1, divesites1, ports1, launches1)
 # Plot data
 ################################################################################
 
+# Theme
+my_theme <- theme(axis.text=element_text(size=6),
+                  axis.title=element_blank(),
+                  axis.text.y = element_text(angle = 90, hjust = 0.5),
+                  legend.text=element_text(size=6),
+                  legend.title=element_text(size=8),
+                  strip.text=element_text(size=8),
+                  plot.title=element_text(size=10),
+                  # Gridlines
+                  panel.grid.major = element_blank(), 
+                  panel.grid.minor = element_blank(),
+                  panel.background = element_blank(), 
+                  axis.line = element_line(colour = "black"),
+                  # Legend
+                  legend.background = element_rect(fill=alpha('blue', 0)))
+
 # Get land
 usa <- rnaturalearth::ne_states(country="United States of America", returnclass = "sf")
 foreign <- rnaturalearth::ne_countries(country=c("Canada", "Mexico"), returnclass = "sf")
@@ -164,13 +180,17 @@ g <- ggplot() +
   geom_sf(data=data, mapping=aes(color=dataset)) +
   # Labels
   labs(x="", y="") +
+  scale_x_continuous(breaks=seq(-124,-116,  2)) +
   # Crop
   coord_sf(xlim = c(-124.5, -117), ylim = c(32.5, 42)) +
   # Theme
-  theme_bw() +
+  theme_bw() + my_theme +
   theme(legend.position = "none")
 g
 
+# Export
+ggsave(g, filename=file.path(plotdir, "CA_coastal_cultural_sites.png"), 
+       width=6.5, height=7.25, units="in", dpi=600)
 
 
 
