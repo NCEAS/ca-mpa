@@ -1,4 +1,4 @@
-#Cleaning monitoring data for mpa-year level analyses
+#Processing monitoring data for mpa-year level analyses
 #Joshua G Smith; June 1, 2022
 
 
