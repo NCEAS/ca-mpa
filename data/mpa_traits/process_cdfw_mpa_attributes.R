@@ -12,7 +12,7 @@ library(here)
 
 # Directories
 # Cori Local Base:
-base.dir <- "/Volumes/GoogleDrive/Shared drives/NCEAS MPA network assessment/MPA Network Assessment: Working Group Shared Folder/data/sync-data"
+base.dir <- "/Volumes/GoogleDrive-105151121202188525604/Shared drives/NCEAS MPA network assessment/MPA Network Assessment: Working Group Shared Folder/data/sync-data" # Cori Local
 
 # Aurora Base:
 #base.dir <- "/home/shares/ca-mpa/data/sync-data/"
@@ -22,14 +22,14 @@ out.dir <- here::here(base.dir, "mpa_traits", "processed")
 plot.dir <- here::here(base.dir, "figures")
 
 # Read Raw Data
-raw <- read_csv(file.path(in.dir, "mpa_attributes.csv"), na = c("", "na"))
+raw <- read_csv(file.path(in.dir, "mpa_attributes.csv"), na = c("", ".", "na"))
 
 ################################################################################
 # Processing
 ################################################################################
 data <- raw %>% 
   # Clean variable names (mainly dashes in depth ranges)
-  clean_names() %>% 
+  janitor::clean_names() %>% 
   
   # Calculate total amount of hard substrate
   mutate(total_hard_substrate = 
