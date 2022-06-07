@@ -42,7 +42,7 @@ A <- mu_site %>%
         y=mu_logRR,
         #fct_reorder(group,RR),
         #y=reorder(RR, RR, function(x)-length(x)),
-        fill=target_status) +
+        fill=target_status)) +
   geom_bar(stat="identity", 
            position = "dodge") + 
   geom_hline(yintercept = 0, 
@@ -70,7 +70,8 @@ A <- mu_site %>%
 biomass_traject <- means.data %>%
                   group_by(year, group, region4, mpa_class, target_status)%>%
                   summarise(mean_RR = mean(logRR))%>%
-                  filter(group == 'ccfrp'|group == 'kelp'|group == 'deep_reef')
+                  filter(group == 'ccfrp'|group == 'kelp'|group == 'deep_reef',
+                         mpa_class == 'smr')
   
 
 
@@ -83,12 +84,12 @@ ggplot(biomass_traject, aes(x=year, y=mean_RR, color=target_status))+
                aes(label = paste(..rr.label.., ..p.value.label.., sep = "*`,`~")), 
                parse = TRUE,
                label.x.npc = "right",
-               vstep = 0.05) + # sets vertical spacing
+               vstep = 0.1) + # sets vertical spacing
   scale_color_manual(values=c("blue", "red"), drop = FALSE) +
   scale_linetype_manual(values=c("solid","twodash"), drop = FALSE) +
-  labs(y=expression(bold(Log(Diversity[MPA]/Diversity[REF])))) +
+  labs(y=expression(bold(Log(Biomass[MPA]/Biomass[REF])))) +
   labs(colour = 'Difference', linetype = 'Slope') +
-  facet_wrap(region4~group, scales="free_y", nrow=4)+
+  facet_wrap(region4~group, scales="fixed", nrow=4)+
   scale_x_continuous()+
   theme_classic() 
 
