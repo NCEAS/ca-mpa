@@ -13,6 +13,9 @@ data_path <- "/home/shares/ca-mpa/data/sync-data/monitoring"
 input_file <- "Ecol_perform_metrics_means_working.xlsx" 
 ecol_metrics <- readxl::read_excel(file.path(data_path, input_file), sheet=1, skip = 0, na="NA")
 
+ecol_metrics <- ecol_metrics %>%
+            filter(indicator=='diversity')
+
 
 #join defacto smrs
 
@@ -57,7 +60,67 @@ H_processing <- left_join(H_processing,four_region, by=c("affiliated_mpa"="name"
 #clean up
 
 H_processing <- H_processing %>%
-                dplyr::select(-c(dfw_class,mpa_class.x))
+                dplyr::select(join_ID, group, mlpa_region, region4, affiliated_mpa, mpa_class=mpa_class.y, mpa_designation, lat_wgs84, lon_wgs84, year, variable, indicator, mean, sd, n, mpa_age)
+               
+H_processing <- H_processing %>%
+                ungroup()%>%
+                mutate(mpa_defacto_designation = ifelse(c(mpa_designation == "smca" & mpa_class=="SMR"), "smr", mpa_designation))%>%
+                dplyr::select(join_ID, group, mlpa_region, region4, affiliated_mpa, mpa_defacto_class = mpa_class, mpa_defacto_designation, lat_wgs84, lon_wgs84, year, variable, indicator, mean, sd, n, mpa_age)
+              
+
+
+
+
+
+
+# Create export for diversity of all fish ---------------------------------
+
+
+Fish_processing <- H_processing %>%
+                   filter(variable == "all fish")
+
+#load surf zone seine data 
+data_path <- "/home/shares/ca-mpa/data/sync-data/monitoring/monitoring_sandy-beach"
+input_file <- "surf_zone_fish_seine_data.csv" 
+surf_seine <- read.csv(file.path(data_path, input_file))
+
+#select variables of interest
+surf_seine <- surf_seine %>%
+              dplyr::select(region,affiliated_mpa, mpa_status, mpa_type, year, haul_number, genus, species, targeted, count)%>%
+              mutate(genus_species = paste(genus,species))%>%
+              drop_na(genus)
+
+#calculate sum of each species per haul
+
+surf_seine_sum <- surf_seine %>%
+                  group_by(region, affiliated_mpa, mpa_status, mpa_type, year, haul_number, genus_species)%>%
+                  summarise(total_count = sum(count))
+
+#calculate community total per haul
+
+haul_total <- surf_seine %>%
+                 group_by(region, affiliated_mpa, mpa_status, mpa_type, year, haul_number)%>%
+                 summarise(total_count = sum(count))
+
+#join sum per species and haul total to calculate proportion
+
+prop_species <- left_join( haul_total, surf_seine_sum, by=c("affiliated_mpa","mpa_status","year","haul_number"))
+
+prop_species <- prop_species %>%
+  mutate(H_pi = (total_count.y/total_count.x)*log10(total_count.y/total_count.x))%>%
+dplyr::select(region=region.x, affiliated_mpa, mpa_status, mpa_type=mpa_type.x, year, haul_number, genus_species, species_count=total_count.y, haul_total=total_count.x, H_pi)
+
+
+
+haul_diversity <- prop_species %>%
+                   group_by(region, affiliated_mpa, mpa_status, mpa_type, year, haul_number)%>%
+                   summarize(H = -1*sum(H_pi))
+
+seine_diversity <- haul_diversity %>%
+                   group_by(region, affiliated_mpa, mpa_status, mpa_type, year)%>%
+                   summarize(diversity = mean(H),
+                             sd = sd(H),
+                             n = n())
 
 
 
@@ -65,7 +128,4 @@ H_processing <- H_processing %>%
 
 
 
-
-H_processing <- ecol_metrics %>%
-                filter(indicator=='diversity')
 
