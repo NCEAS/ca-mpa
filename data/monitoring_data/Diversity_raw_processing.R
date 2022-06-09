@@ -108,7 +108,6 @@ prop_species <- prop_species %>%
 dplyr::select(region=region.x, affiliated_mpa, mpa_status, mpa_type=mpa_type.x, year, haul_number, genus_species, species_count=total_count.y, haul_total=total_count.x, H_pi)
 
 
-
 haul_diversity <- prop_species %>%
                    group_by(region, affiliated_mpa, mpa_status, mpa_type, year, haul_number)%>%
                    summarize(H = -1*sum(H_pi)) #calculates shannon diversity for each haul
@@ -163,3 +162,97 @@ fish_diversity <- rbind(Fish_processing, seine_diversity)
 
 
 
+
+
+
+
+
+
+# # calculate diversity for surf zone fishes - method = BRUV  -------------
+
+#load surf zone seine data 
+data_path <- "/home/shares/ca-mpa/data/sync-data/monitoring/monitoring_sandy-beach"
+input_file <- "surf_zone_bruv_data.csv" 
+surf_bruv <- read.csv(file.path(data_path, input_file))
+
+
+#select variables of interest
+surf_bruv <- surf_bruv %>%
+  dplyr::select(region,affiliated_mpa, mpa_status, mpa_type, year, bruv, common_name, targeted, max_n)%>%
+  drop_na(common_name)
+
+#calculate sum of each species per bruv
+
+surf_bruv_sum <- surf_bruv %>%
+  group_by(region, affiliated_mpa, mpa_status, mpa_type, year, bruv, common_name)%>%
+  summarise(total_count = sum(max_n))
+
+
+#calculate community total per bruv
+
+bruv_total <- surf_bruv %>%
+  group_by(region, affiliated_mpa, mpa_status, mpa_type, year, bruv)%>%
+  summarise(total_count = sum(max_n))
+
+#join sum per species and haul total to calculate proportion
+
+prop_species <- left_join(bruv_total, surf_bruv_sum, by=c("affiliated_mpa","mpa_status","year","bruv"))
+
+
+#Calculate H_pi for each species -- prep for shannon diversity
+prop_species <- prop_species %>%
+  mutate(H_pi = (total_count.y/total_count.x)*log10(total_count.y/total_count.x))%>%
+  dplyr::select(region=region.x, affiliated_mpa, mpa_status, mpa_type=mpa_type.x, year, bruv, 
+                common_name, species_count=total_count.y, haul_total=total_count.x, H_pi)
+
+
+bruv_diversity <- prop_species %>%
+  group_by(region, affiliated_mpa, mpa_status, mpa_type, year, bruv)%>%
+  summarize(H = -1*sum(H_pi)) #calculates shannon diversity for each haul
+
+#take mean diversity of all hauls to end up with MPA-year level means
+bruv_diversity <- bruv_diversity %>%
+  group_by(region, affiliated_mpa, mpa_status, mpa_type, year)%>%
+  summarize(diversity = mean(H),
+            sd = sd(H),
+            n = n()) 
+
+#clean up
+
+bruv_diversity <- bruv_diversity %>%
+                  mutate(mpa_designation = ifelse(mpa_status=="MPA",mpa_type,mpa_status),
+                         mpa_class = word(affiliated_mpa, start = -1))%>%
+                 ungroup()%>%
+                 dplyr::select(-c(mpa_status, mpa_type))
+
+bruv_diversity$mpa_designation <- recode_factor(bruv_diversity$mpa_designation, "Reference"='ref')
+bruv_diversity$mpa_designation <- recode_factor(bruv_diversity$mpa_designation, "MPA Reference"='ref')
+bruv_diversity$affiliated_mpa <- tolower(bruv_diversity$affiliated_mpa)
+bruv_diversity$mpa_designation <- tolower(bruv_diversity$mpa_designation)
+bruv_diversity$mpa_class <- tolower(bruv_diversity$mpa_class)
+bruv_diversity$region <- tolower(bruv_diversity$region)
+
+
+#Join 4 subregions 
+data_path <- "/home/shares/ca-mpa/data/sync-data/mpa_traits"
+input_file <- "mpa-attributes.xlsx" 
+four_region <- readxl::read_excel(file.path(data_path, input_file), sheet=1, skip = 0, na="NA")
+
+four_region <- four_region %>%
+  dplyr::select(name, region4 = four_region_north_ci)
+
+bruv_diversity <- left_join(bruv_diversity,four_region, by=c("affiliated_mpa"="name"))
+
+
+#clean up
+
+bruv_diversity <- bruv_diversity %>%
+  mutate(join_ID = "surf", group="surf-bruv", variable="all fish", indicator="diversity")%>%
+  dplyr::select(join_ID, group, mlpa_region = region, region4, affiliated_mpa, mpa_defacto_class=mpa_class, mpa_defacto_designation=mpa_designation,
+                year, variable, indicator, mean="diversity",sd, n)%>%
+ drop_na(region4)
+
+
+#join surf fish diversity with other groups
+
+fish_diversity <- rbind(fish_diversity, bruv_diversity)
