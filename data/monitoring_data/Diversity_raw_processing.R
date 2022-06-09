@@ -106,6 +106,7 @@ haul_total <- surf_seine %>%
 
 prop_species <- left_join( haul_total, surf_seine_sum, by=c("affiliated_mpa","mpa_status","year","haul_number"))
 
+#Calculate H_pi for each species -- prep for shannon diversity
 prop_species <- prop_species %>%
   mutate(H_pi = (total_count.y/total_count.x)*log10(total_count.y/total_count.x))%>%
 dplyr::select(region=region.x, affiliated_mpa, mpa_status, mpa_type=mpa_type.x, year, haul_number, genus_species, species_count=total_count.y, haul_total=total_count.x, H_pi)
@@ -114,16 +115,24 @@ dplyr::select(region=region.x, affiliated_mpa, mpa_status, mpa_type=mpa_type.x, 
 
 haul_diversity <- prop_species %>%
                    group_by(region, affiliated_mpa, mpa_status, mpa_type, year, haul_number)%>%
-                   summarize(H = -1*sum(H_pi))
+                   summarize(H = -1*sum(H_pi)) #calculates shannon diversity for each haul
 
+#take mean diversity of all hauls to end up with MPA-year level means
 seine_diversity <- haul_diversity %>%
                    group_by(region, affiliated_mpa, mpa_status, mpa_type, year)%>%
                    summarize(diversity = mean(H),
                              sd = sd(H),
-                             n = n())
+                             n = n()) 
 
+#clean up
 
+seine_diversity <- seine_diversity %>%
+                   ungroup()%>%
+                   dplyr::select(-c(mpa_type))
+seine_diversity$mpa_status <- recode_factor(seine_diversity$mpa_status, "Reference"='ref')
+seine_diversity$mpa_status <- recode_factor(seine_diversity$mpa_status, "MPA"='smr')
 
+View(seine_diversity)
 
 
 
