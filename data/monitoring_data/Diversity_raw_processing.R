@@ -73,11 +73,7 @@ H_processing <- H_processing %>%
 
 
 
-# Create export for diversity of all fish ---------------------------------
-
-
-Fish_processing <- H_processing %>%
-                   filter(variable == "all fish")
+# calculate diversity for surf zone fishes - method = beach seine ---------------------------------
 
 #load surf zone seine data 
 data_path <- "/home/shares/ca-mpa/data/sync-data/monitoring/monitoring_sandy-beach"
@@ -131,10 +127,39 @@ seine_diversity <- seine_diversity %>%
                    dplyr::select(-c(mpa_type))
 seine_diversity$mpa_status <- recode_factor(seine_diversity$mpa_status, "Reference"='ref')
 seine_diversity$mpa_status <- recode_factor(seine_diversity$mpa_status, "MPA"='smr')
+seine_diversity$affiliated_mpa <- tolower(seine_diversity$affiliated_mpa)
+seine_diversity$region <- tolower(seine_diversity$region)
 
-View(seine_diversity)
+
+#Join 4 subregions 
+data_path <- "/home/shares/ca-mpa/data/sync-data/mpa_traits"
+input_file <- "mpa-attributes.xlsx" 
+four_region <- readxl::read_excel(file.path(data_path, input_file), sheet=1, skip = 0, na="NA")
+
+four_region <- four_region %>%
+  dplyr::select(name, region4 = four_region_north_ci)
+
+seine_diversity <- left_join(seine_diversity,four_region, by=c("affiliated_mpa"="name"))
 
 
+#clean up
+
+seine_diversity <- seine_diversity %>%
+                   mutate(mpa_defacto_class = "smr", join_ID = "surf", group="surf-seine", variable="all fish", indicator="diversity")%>%
+                   dplyr::select(join_ID, group, mlpa_region = region, region4, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation="mpa_status",
+                          year, variable, indicator, mean="diversity",sd, n)
+
+
+#join surf fish diversity with other groups
+
+Fish_processing <- H_processing %>%
+  filter(variable == "all fish")%>%
+  dplyr::select(-c(lat_wgs84, lon_wgs84,mpa_age))
+
+Fish_processing$mpa_defacto_class <- tolower(Fish_processing$mpa_defacto_class)
+
+
+fish_diversity <- rbind(Fish_processing, seine_diversity)
 
 
 
