@@ -256,3 +256,96 @@ bruv_diversity <- bruv_diversity %>%
 #join surf fish diversity with other groups
 
 fish_diversity <- rbind(fish_diversity, bruv_diversity)
+
+
+
+# Export all fish diversity -----------------------------------------------
+
+#path_aurora <- "/home/shares/ca-mpa/data/sync-data/processed_data" 
+#write.csv(fish_diversity,file.path(path_aurora, "all_fish_diversity.csv"), row.names = FALSE)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Diversity of targeted and nontargeted fish  -----------------------------
+
+
+data_path <- "/home/shares/ca-mpa/data/sync-data/monitoring"
+input_file <- "Ecol_perform_metrics_means_working.xlsx" 
+ecol_metrics <- readxl::read_excel(file.path(data_path, input_file), sheet=1, skip = 0, na="NA")
+
+
+#CCFRP 
+
+data_path <- "/home/shares/ca-mpa/data/sync-data/monitoring/monitoring_ccfrp/CCFRP_derived_data_tables_DataONE"
+input_file <- "CCFRP_derived_effort_table.csv" 
+CCFRP_raw <- read.csv(file.path(data_path, input_file)) #raw CCFRP biological data
+
+data_path <- "/home/shares/ca-mpa/data/sync-data/monitoring/taxonomy_tables"
+input_file <- "CCFRP_Taxonomy.xlsx"
+ccfrp_taxon <- readxl::read_excel(file.path(data_path, input_file), sheet=2, skip = 0, na="NA")
+
+ccfrp_taxon <- ccfrp_taxon %>%
+               dplyr::select(Common_Name, Fished)
+
+
+
+CCFRP_data_raw <- left_join(CCFRP_raw,ccfrp_taxon, by="Common_Name")
+
+CCFRP_data <- CCFRP_data_raw %>%
+              mutate(Fished = ifelse(Fished=="?",NA,Fished))%>%
+              drop_na(Fished)#from rows that do not have species designated target status
+              
+
+CCFRP_data$Fished <- recode_factor(CCFRP_data$Fished,"Non-targeted"="nontargeted")
+CCFRP_data$Fished <- tolower(CCFRP_data$Fished)
+
+
+#clean raw CCFRP and calculate diversity of all fish
+CCFRP_data <- CCFRP_data %>%
+                  mutate(join_ID="CCFRP", group="CCFRP", #define missing fields for future merge 
+                         mpa_class = word(CA_MPA_name_short, start = -1))%>%
+                  mutate_at(vars(mpa_class), ~replace_na(., "SMR"))%>% #replaces NAs in mpa_class with "SMR" -- per project PI all affiliated MPAs are SMRs
+                  mutate(affiliated_mpa = paste(Area,mpa_class),
+                         mpa_defacto_designation = ifelse(MPA_Status == "MPA","SMR","REF")) #assign defactio designation
+
+
+#Join 4 subregions 
+data_path <- "/home/shares/ca-mpa/data/sync-data/mpa_traits"
+input_file <- "mpa-attributes.xlsx" 
+four_region <- readxl::read_excel(file.path(data_path, input_file), sheet=1, skip = 0, na="NA")
+
+four_region <- four_region %>%
+  dplyr::select(name, region4 = four_region_north_ci)
+
+CCFRP_data$affiliated_mpa <- tolower(CCFRP_data$affiliated_mpa)
+CCFRP_data$affiliated_mpa <- recode_factor(CCFRP_data$affiliated_mpa, "southeast farallon islands smr" = "southeast farallon island smr") #clean up names 
+CCFRP_data$affiliated_mpa <- recode_factor(CCFRP_data$affiliated_mpa, "swamis smr" = "swami's smca") #clean up names 
+CCFRP_data$affiliated_mpa <- recode_factor(CCFRP_data$affiliated_mpa, "swamis smca" = "swami's smca") 
+
+CCFRP_data <- left_join(CCFRP_data,four_region, by=c("affiliated_mpa"="name"))
+
+
+#clean up CCFRP data
+CCFRP_Fished <- CCFRP_data %>% 
+                dplyr::select(join_ID, group, region4, affiliated_mpa,mpa_class, mpa_defacto_designation, Year, Grid_Cell_ID,
+                         Common_Name, Fished, CPUE_catch_per_angler_hour) %>%
+                drop_na(region4)
+                  
+
+
+
+
+
+
