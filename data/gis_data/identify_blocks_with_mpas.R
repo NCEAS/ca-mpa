@@ -45,9 +45,11 @@ blocks_simple <- blocks %>%
 
 # Dissolve MPAs
 mpas_simple_dis <- mpas_simple %>%
+  sf::st_make_valid() %>% 
   mutate(name="1") %>%
   group_by(name) %>%
-  summarise(n=n())
+  summarise(n=n()) %>% 
+  ungroup()
 
 # Intersect MPAs/blocks
 data1 <- sf::st_intersection(x=blocks_simple, y=mpas_simple)
