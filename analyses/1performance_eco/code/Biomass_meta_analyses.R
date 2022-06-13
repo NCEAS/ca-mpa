@@ -173,11 +173,11 @@ text(-8, 21.5, pos=4, cex=0.7, mlabfun("RE Model for Subgroup", y=res.n))
 addpoly(res.c, row= 14.5,cex=0.75, mlab=mlabfun("RE Model for Subgroup", y=res.c))
 text(-8, 14.5, pos=4, cex=0.7, mlabfun("RE Model for Subgroup", y=res.c))
 
-addpoly(res.s, row= 8.5,cex=0.75, mlab=mlabfun("RE Model for Subgroup", y=res.s))
-text(-8, 8.5, pos=4, cex=0.7, mlabfun("RE Model for Subgroup", y=res.s))
+addpoly(res.i, row= 8.5,cex=0.75, mlab=mlabfun("RE Model for Subgroup", y=res.i))
+text(-8, 8.5, pos=4, cex=0.7, mlabfun("RE Model for Subgroup", y=res.i))
 
-addpoly(res.s, row= 1,cex=0.75, mlab=mlabfun("RE Model for Subgroup", y=res.i))
-text(-8, 1, pos=4, cex=0.7, mlabfun("RE Model for Subgroup", y=res.i))
+addpoly(res.s, row= 1,cex=0.75, mlab=mlabfun("RE Model for Subgroup", y=res.s))
+text(-8, 1, pos=4, cex=0.7, mlabfun("RE Model for Subgroup", y=res.s))
 
 
 ### fit meta-regression model to test for subgroup differences
@@ -292,8 +292,8 @@ text(-8, 21.5, pos=4, cex=0.7, mlabfun("RE Model for Subgroup", y=res.n))
 addpoly(res.c, row= 14.5,cex=0.75, mlab=mlabfun("RE Model for Subgroup", y=res.c))
 text(-8, 14.5, pos=4, cex=0.7, mlabfun("RE Model for Subgroup", y=res.c))
 
-addpoly(res.s, row= 8.5,cex=0.75, mlab=mlabfun("RE Model for Subgroup", y=res.s))
-text(-8, 8.5, pos=4, cex=0.7, mlabfun("RE Model for Subgroup", y=res.s))
+addpoly(res.i, row= 8.5,cex=0.75, mlab=mlabfun("RE Model for Subgroup", y=res.i))
+text(-8, 8.5, pos=4, cex=0.7, mlabfun("RE Model for Subgroup", y=res.i))
 
 addpoly(res.s, row= 1.5,cex=0.75, mlab=mlabfun("RE Model for Subgroup", y=res.i))
 text(-8, 1.5, pos=4, cex=0.7, mlabfun("RE Model for Subgroup", y=res.i))
