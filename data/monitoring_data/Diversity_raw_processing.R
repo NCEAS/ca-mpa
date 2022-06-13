@@ -772,7 +772,7 @@ bruv_nontargeted_diversity <- bruv_diversity %>%
 
 
 
-# # Mid-Depth Rock / Deep Reef targeted fish diversity -------------
+# # Mid-Depth Rock / Deep Reef fish diversity processing-------------
 #load species level mean fish biomass 
 data_path <- "/home/shares/ca-mpa/data/sync-data/monitoring/monitoring_deep-reef/ROV_Dataset"
 input_file <- "MidDepth_ROV_Fish_Mean_Density.xlsx" 
@@ -858,6 +858,78 @@ deep_reef_den <- deep_reef_den %>%
 
 
 
+# Mid-depth rock targeted diversity --------------------------------------
+
+
+
+#select variables of interest
+deep_reef_vars <- deep_reef_den %>%
+  filter(target_status=='targeted')
+
+#calculate community total per MPA
+
+MPA_total <- deep_reef_vars %>%
+  group_by(group, year, region3, region4, affiliated_mpa, mpa_class, mpa_designation)%>%
+  summarise(total_count = sum(mean))
+
+#join sum per species and haul total to calculate proportion
+
+prop_species <- left_join(deep_reef_vars, MPA_total, by=c("group", "year", "region3", "region4", "affiliated_mpa", "mpa_class", "mpa_designation"))
+
+
+#Calculate H_pi for each species -- prep for shannon diversity
+prop_species <- prop_species %>%
+  mutate(H_pi = (mean/total_count)*log(mean/total_count))%>%
+  drop_na(H_pi)
+  
+
+deep_reef_target_diversity <- prop_species %>%
+  group_by(group, year, region3, region4, affiliated_mpa, mpa_class, mpa_designation)%>%
+  summarize(mean = -1*sum(H_pi))%>% #calculates shannon diversity for each MPA
+  mutate(join_ID="deep_reef", target_status="targeted",variable="targeted_fish",indicator="diversity")%>%
+  dplyr::select(join_ID, group, year, mlpa_region=region3, region4, affiliated_mpa, mpa_defacto_class=mpa_class, mpa_defacto_designation=mpa_designation,mean,
+                target_status, variable, indicator)
+
+
+
+
+# Mid-depth rock nontargeted diversity --------------------------------------
+
+
+
+#select variables of interest
+deep_reef_vars <- deep_reef_den %>%
+  filter(target_status=='nontargeted')
+
+#calculate community total per MPA
+
+MPA_total <- deep_reef_vars %>%
+  group_by(group, year, region3, region4, affiliated_mpa, mpa_class, mpa_designation)%>%
+  summarise(total_count = sum(mean))
+
+#join sum per species and haul total to calculate proportion
+
+prop_species <- left_join(deep_reef_vars, MPA_total, by=c("group", "year", "region3", "region4", "affiliated_mpa", "mpa_class", "mpa_designation"))
+
+
+#Calculate H_pi for each species -- prep for shannon diversity
+prop_species <- prop_species %>%
+  mutate(H_pi = (mean/total_count)*log(mean/total_count))%>%
+  drop_na(H_pi)
+
+
+deep_reef_nontarget_diversity <- prop_species %>%
+  group_by(group, year, region3, region4, affiliated_mpa, mpa_class, mpa_designation)%>%
+  summarize(mean = -1*sum(H_pi))%>% #calculates shannon diversity for each MPA
+  mutate(join_ID="deep_reef", target_status="nontargeted",variable="nontargeted_fish",indicator="diversity")%>%
+  dplyr::select(join_ID, group, year, mlpa_region=region3, region4, affiliated_mpa, mpa_defacto_class=mpa_class, mpa_defacto_designation=mpa_designation,mean,
+                target_status, variable, indicator)
+
+
+
+
+
+
 
 
 
@@ -878,7 +950,7 @@ deep_reef_den <- deep_reef_den %>%
 
 
 diversity_combined <- rbind(CCFRP_targeted_diversity, seine_targeted_diversity, seine_nontargeted_diversity, bruv_targeted_diversity, 
-                            bruv_nontargeted_diversity)
+                            bruv_nontargeted_diversity, deep_reef_target_diversity, deep_reef_nontarget_diversity)
 
 
 
