@@ -943,6 +943,192 @@ deep_reef_nontarget_diversity <- prop_species %>%
 
 
 
+# Kelp forest diversity processing--------------------------------------
+#load species count data
+data_path <- "/home/shares/ca-mpa/data/sync-data/monitoring/monitoring_kelp"
+input_file <- "MLPA_kelpforest_fish.4.csv" 
+counts_raw <- read_csv(file.path(data_path, input_file))
+
+
+
+#load site table
+input_file <- "MLPA_kelpforest_site_table.4.csv" 
+site_table <- read_csv(file.path(data_path, input_file))
+
+site_table <- site_table %>%
+              dplyr::select(site,CA_MPA_Name_Short, site_designation, site_status)
+
+
+fish_counts_raw <- left_join(counts_raw, site_table, by="site")
+
+
+#load taxonomy table
+
+data_path <- "/home/shares/ca-mpa/data/sync-data/monitoring/taxonomy_tables"
+input_file <- "Kelp-Taxonomy.xlsx" 
+taxonomy <- readxl::read_excel(file.path(data_path, input_file), sheet=1, skip = 0, na="NA")
+
+taxonomy <- taxonomy %>%
+            dplyr::select(classcode=pisco_classcode, Targeted)
+
+
+fish_counts <- left_join(fish_counts_raw,taxonomy)
+
+
+
+#select variables of interest
+fish_counts <- fish_counts %>%
+  filter(Targeted=='Targeted')
+
+#calculate species total per MPA 
+species_total <- fish_counts %>%
+                  group_by(year, CA_MPA_Name_Short, site_designation, site_status, classcode)%>% 
+                  summarize(species_total = sum(count))%>% #sum of counts across zone, level, and transects
+                  filter(!(classcode=="KGB" | classcode=="BFREYOY" | classcode=="CPUNYOY" | classcode=="BFREYOY" | classcode=="HSEMYOY" | 
+                             classcode=="OCALYOY" | classcode=="OYB" | classcode=="PCLAYOY" | classcode=="RYOY" | classcode=="SMYSYOY" |
+                             classcode=="SPAUYOY" | classcode=="SPINYOY" | classcode=="SPULYOY")) #remove YOY, focus on adult diversity only
+
+
+#calculate community total per MPA
+
+MPA_total <- fish_counts %>%
+  filter(!(classcode=="KGB" | classcode=="BFREYOY" | classcode=="CPUNYOY" | classcode=="BFREYOY" | classcode=="HSEMYOY" | 
+             classcode=="OCALYOY" | classcode=="OYB" | classcode=="PCLAYOY" | classcode=="RYOY" | classcode=="SMYSYOY" |
+             classcode=="SPAUYOY" | classcode=="SPINYOY" | classcode=="SPULYOY"))%>% #remove YOY, focus on adult diversity only
+  group_by(year, CA_MPA_Name_Short, site_designation, site_status)%>%
+  summarize(MPA_total = sum(count)) #sum of counts across MPA, zone, level, and transects
+  
+
+#join sum per species and MPA total to calculate proportion
+
+prop_species <- left_join(species_total, MPA_total, by=c("year", "CA_MPA_Name_Short", "site_designation", "site_status"))
+
+
+#Calculate H_pi for each species -- prep for shannon diversity
+prop_species <- prop_species %>%
+  mutate(H_pi = (species_total/MPA_total)*log(species_total/MPA_total))%>%
+  drop_na(H_pi)
+
+
+kelp_targeted_diversity <- prop_species %>%
+  group_by(year, CA_MPA_Name_Short, site_designation, site_status)%>%
+  summarize(mean = -1*sum(H_pi))%>% #calculates shannon diversity for each MPA
+  mutate(join_ID="kelp", group="kelp-fish", target_status="targeted",variable="targeted_fish",indicator="diversity")%>%
+  dplyr::select(join_ID, group, year, affiliated_mpa=CA_MPA_Name_Short, mpa_defacto_class=site_designation, mpa_defacto_designation=site_status,mean,
+                target_status, variable, indicator)
+
+
+#clean up
+kelp_targeted_diversity <- kelp_targeted_diversity %>%
+                           mutate(mpa_designation = ifelse(mpa_defacto_designation=="mpa",mpa_defacto_class,mpa_defacto_designation))
+kelp_targeted_diversity$mpa_designation <- recode_factor(kelp_targeted_diversity$mpa_designation,"reference"="ref")
+kelp_targeted_diversity$mpa_designation <- tolower(kelp_targeted_diversity$mpa_designation)
+kelp_targeted_diversity <- kelp_targeted_diversity %>%
+  dplyr::select(!(mpa_defacto_designation),mpa_defacto_designation = mpa_designation)
+
+
+
+
+
+
+
+
+# kelp nontargeted diversity ----------------------------------------------
+
+data_path <- "/home/shares/ca-mpa/data/sync-data/monitoring/monitoring_kelp"
+input_file <- "MLPA_kelpforest_fish.4.csv" 
+counts_raw <- read_csv(file.path(data_path, input_file))
+
+
+
+#load site table
+input_file <- "MLPA_kelpforest_site_table.4.csv" 
+site_table <- read_csv(file.path(data_path, input_file))
+
+site_table <- site_table %>%
+  dplyr::select(site,CA_MPA_Name_Short, site_designation, site_status)
+
+
+fish_counts_raw <- left_join(counts_raw, site_table, by="site")
+
+
+#load taxonomy table
+
+data_path <- "/home/shares/ca-mpa/data/sync-data/monitoring/taxonomy_tables"
+input_file <- "Kelp-Taxonomy.xlsx" 
+taxonomy <- readxl::read_excel(file.path(data_path, input_file), sheet=1, skip = 0, na="NA")
+
+taxonomy <- taxonomy %>%
+  dplyr::select(classcode=pisco_classcode, Targeted)
+
+
+fish_counts <- left_join(fish_counts_raw,taxonomy)
+
+
+#select variables of interest
+fish_counts <- fish_counts %>%
+  filter(Targeted=='Nontargeted')
+
+#calculate species total per MPA 
+species_total <- fish_counts %>%
+  group_by(year, CA_MPA_Name_Short, site_designation, site_status, classcode)%>% 
+  summarize(species_total = sum(count))%>% #sum of counts across zone, level, and transects
+  filter(!(classcode=="KGB" | classcode=="BFREYOY" | classcode=="CPUNYOY" | classcode=="BFREYOY" | classcode=="HSEMYOY" | 
+             classcode=="OCALYOY" | classcode=="OYB" | classcode=="PCLAYOY" | classcode=="RYOY" | classcode=="SMYSYOY" |
+             classcode=="SPAUYOY" | classcode=="SPINYOY" | classcode=="SPULYOY")) #remove YOY, focus on adult diversity only
+
+
+#calculate community total per MPA
+
+MPA_total <- fish_counts %>%
+  filter(!(classcode=="KGB" | classcode=="BFREYOY" | classcode=="CPUNYOY" | classcode=="BFREYOY" | classcode=="HSEMYOY" | 
+             classcode=="OCALYOY" | classcode=="OYB" | classcode=="PCLAYOY" | classcode=="RYOY" | classcode=="SMYSYOY" |
+             classcode=="SPAUYOY" | classcode=="SPINYOY" | classcode=="SPULYOY"))%>% #remove YOY, focus on adult diversity only
+  group_by(year, CA_MPA_Name_Short, site_designation, site_status)%>%
+  summarize(MPA_total = sum(count)) #sum of counts across MPA, zone, level, and transects
+
+
+#join sum per species and MPA total to calculate proportion
+
+prop_species <- left_join(species_total, MPA_total, by=c("year", "CA_MPA_Name_Short", "site_designation", "site_status"))
+
+
+#Calculate H_pi for each species -- prep for shannon diversity
+prop_species <- prop_species %>%
+  mutate(H_pi = (species_total/MPA_total)*log(species_total/MPA_total))%>%
+  drop_na(H_pi)
+
+
+kelp_nontargeted_diversity <- prop_species %>%
+  group_by(year, CA_MPA_Name_Short, site_designation, site_status)%>%
+  summarize(mean = -1*sum(H_pi))%>% #calculates shannon diversity for each MPA
+  mutate(join_ID="kelp", group="kelp-fish", target_status="nontargeted",variable="nontargeted_fish",indicator="diversity")%>%
+  dplyr::select(join_ID, group, year, affiliated_mpa=CA_MPA_Name_Short, mpa_defacto_class=site_designation, mpa_defacto_designation=site_status,mean,
+                target_status, variable, indicator)
+
+
+#clean up
+kelp_nontargeted_diversity <- kelp_nontargeted_diversity %>%
+  mutate(mpa_designation = ifelse(mpa_defacto_designation=="mpa",mpa_defacto_class,mpa_defacto_designation))
+kelp_nontargeted_diversity$mpa_designation <- recode_factor(kelp_nontargeted_diversity$mpa_designation,"reference"="ref")
+kelp_nontargeted_diversity$mpa_designation <- tolower(kelp_nontargeted_diversity$mpa_designation)
+
+kelp_nontargeted_diversity <- kelp_nontargeted_diversity %>%
+                              dplyr::select(!(mpa_defacto_designation),mpa_defacto_designation = mpa_designation)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 #Join targeted and nontargeted datasets
@@ -950,7 +1136,82 @@ deep_reef_nontarget_diversity <- prop_species %>%
 
 
 diversity_combined <- rbind(CCFRP_targeted_diversity, seine_targeted_diversity, seine_nontargeted_diversity, bruv_targeted_diversity, 
-                            bruv_nontargeted_diversity, deep_reef_target_diversity, deep_reef_nontarget_diversity)
+                            bruv_nontargeted_diversity, deep_reef_target_diversity, deep_reef_nontarget_diversity, kelp_targeted_diversity, kelp_nontargeted_diversity)
+
+
+
+
+# Clean up combined dataset -----------------------------------------------
+
+#strip means and join with mpa-attributes
+
+diversity_combined <- diversity_combined %>%
+                      ungroup()%>%
+                      dplyr::select(join_ID, group, affiliated_mpa, mpa_class = mpa_defacto_class, mpa_designation = mpa_defacto_designation,
+                                    year, mean, sd, n, target_status, variable, indicator)
+
+diversity_combined$affiliated_mpa <- tolower(diversity_combined$affiliated_mpa)    
+diversity_combined$mpa_class <- tolower(diversity_combined$mpa_class)  
+diversity_combined$mpa_designation <- tolower(diversity_combined$mpa_designation)  
+
+
+#join MLPA region and 4 region
+
+data_path <- "/home/shares/ca-mpa/data/sync-data/mpa_traits"
+input_file <- "mpa-attributes.xlsx" 
+four_region <- readxl::read_excel(file.path(data_path, input_file), sheet=1, skip = 0, na="NA")
+
+regions <- four_region %>%
+  dplyr::select(name, mlpa_region=bioregion, region4 = four_region_north_ci)
+
+#correct inconsistent affiliated_mpa spelling before joniing
+diversity_combined$affiliated_mpa <- recode_factor(diversity_combined$affiliated_mpa,"swamis smca"="swami's smca")
+diversity_combined$affiliated_mpa <- recode_factor(diversity_combined$affiliated_mpa,"n/a"="unknown")
+
+diversity_combined[diversity_combined=="unknown"]<- NA
+
+diversity_combined_new <- left_join(diversity_combined, regions, by=c("affiliated_mpa"="name"))
+
+diversity_combined_new <- diversity_combined_new %>%
+                          drop_na(affiliated_mpa)
+
+diversity_combined_new$group <- tolower(diversity_combined_new$group)
+diversity_combined_new$join_ID <- tolower(diversity_combined_new$join_ID)
+
+
+
+#join with defacto mpa_class 
+
+data_path <- "/home/shares/ca-mpa/data/sync-data/mpa_traits"
+input_file <- "mpa-attributes.xlsx" 
+defacto_smr <- readxl::read_excel(file.path(data_path, input_file), sheet=5, skip = 0, na="NA")
+
+defacto_smr <- defacto_smr %>%
+               dplyr::select(affiliated_mpa, group, mpa_defacto_class = mpa_class)
+
+diversity_with_defacto <- left_join(diversity_combined_new, defacto_smr, by=c("affiliated_mpa"="affiliated_mpa","join_ID"="group"))
+
+diversity_with_defacto <- diversity_with_defacto %>% mutate(mpa_defacto_class = ifelse(group == "deep_reef" & affiliated_mpa == "point buchon smr", "SMR", mpa_defacto_class))#check and clean missing mpa_defacto_class
+diversity_with_defacto <- diversity_with_defacto %>% mutate(mpa_defacto_class = ifelse(join_ID == "kelp" & affiliated_mpa == "arrow point to lion head point smca", "SMCA", mpa_defacto_class))#check and clean missing mpa_defacto_class
+
+
+diversity_with_defacto <- diversity_with_defacto %>%
+                          mutate(mpa_defacto_designation = ifelse(mpa_designation == "ref","ref",mpa_defacto_class))
+
+diversity_with_defacto$mpa_defacto_designation <- tolower(diversity_with_defacto$mpa_defacto_designation)
+diversity_with_defacto$mpa_defacto_class <- tolower(diversity_with_defacto$mpa_defacto_class)
+
+#select and arrange columns for final dataset
+
+diversity_targeted_nontargeted_fish <- diversity_with_defacto %>%
+                                       dplyr::select(join_ID, group, variable, indicator, mlpa_region, region4, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation,
+                                              year, target_status, mean, sd, n)
+
+
+#export
+#path_aurora <- "/home/shares/ca-mpa/data/sync-data/processed_data" 
+#write.csv(diversity_targeted_nontargeted_fish,file.path(path_aurora, "targeted_nontargeted_fish_diversity.csv"), row.names = FALSE)
+
 
 
 
