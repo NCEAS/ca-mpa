@@ -12,7 +12,8 @@ library(tidyverse)
 library(countrycode)
 
 # Directories
-basedir <- "/Volumes/GoogleDrive/.shortcut-targets-by-id/1kCsF8rkm1yhpjh2_VMzf8ukSPf9d4tqO/MPA Network Assessment: Working Group Shared Folder/data/sync-data"
+basedir <- "/Volumes/GoogleDrive-105151121202188525604/Shared drives/NCEAS MPA network assessment/MPA Network Assessment: Working Group Shared Folder/data/sync-data" # Cori Local
+#basedir <- "/Volumes/GoogleDrive/.shortcut-targets-by-id/1kCsF8rkm1yhpjh2_VMzf8ukSPf9d4tqO/MPA Network Assessment: Working Group Shared Folder/data/sync-data"
 outdir <- file.path(basedir, "gis_data/processed")
 plotdir <- "data/gis_data/figures"
 
@@ -28,8 +29,8 @@ blocks <- wcfish::blocks
 # Build data
 ################################################################################
 
-# Only look at SMRs/SMCAs
-types_use <- c("SMR", "SMRMA", "SMCA", "SMCA (No-Take)")
+# Only look at SMRs/SMCAs and FMRs, FMCAs
+types_use <- c("SMR", "SMRMA", "SMCA", "SMCA (No-Take)", "FMR", "FMCA")
 mpas_use <- mpas %>% 
   filter(type %in% types_use)
 mpa_use_pts <- mpas_use %>%
@@ -43,13 +44,8 @@ mpas_simple <- mpas_use %>%
 blocks_simple <- blocks %>%
   select(block_id)
 
-# Dissolve MPAs
-mpas_simple_dis <- mpas_simple %>%
-  sf::st_make_valid() %>% 
-  mutate(name="1") %>%
-  group_by(name) %>%
-  summarise(n=n()) %>% 
-  ungroup()
+# Test for any overlap among MPA polygons 
+overlap <- st_overlaps(mpas_simple, mpas_simple, sparse = FALSE)
 
 # Intersect MPAs/blocks
 data1 <- sf::st_intersection(x=blocks_simple, y=mpas_simple)
