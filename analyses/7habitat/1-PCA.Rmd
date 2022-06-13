@@ -1,0 +1,144 @@
+---
+title: "PCA for MPA Attribute Data"
+author: "Cori Lopazanski"
+date: '2022-06-08'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+# Overview
+
+*Goal*: Explore whether key characteristics describe variation among MPAs. Can
+we reduce the attribute data to fewer variables while still capturing the
+key information?
+
+*Steps*
+1. Log-transform the continuous data: standardize across variables with different scales
+2. Examine pairwise correlations across variables
+3. PCA with all continuous variables
+
+
+# Setup
+
+```{r}
+# Packages
+library(tidyverse)
+library(here)
+library(ggbiplot)
+library(GGally)
+
+# Directories
+base.dir <- "/Volumes/GoogleDrive-105151121202188525604/Shared drives/NCEAS MPA network assessment/MPA Network Assessment: Working Group Shared Folder/data/sync-data" # Cori Local
+#base.dir <- "/home/shares/ca-mpa/data/sync-data/" #Aurora Base
+repo.dir <- here::here("analyses", "7habitat")
+in.dir <- here::here(base.dir, "mpa_traits", "processed")
+
+# Read Cleaned Data
+attributes <- read_csv(file.path(in.dir, "mpa_attributes_clean.csv"))
+```
+
+# Processing
+
+## Minor Corrections 
+
+```{r}
+data <- attributes %>% 
+  mutate(four_region_north_ci = as.factor(four_region_north_ci)) %>% 
+  mutate(prop_hard = total_hard_substrate/size_km2) %>% 
+  mutate(prop_soft = total_soft_substrate/size_km2)
+```
+
+
+## Log-Transform Continuous Data
+
+Otherwise, variables with high variances (e.g. depth range) will have higher loadings in the principal components.
+
+```{r}
+log_data <- data %>% 
+  select(name, mpa_class, four_region_north_ci,
+         age_yr,
+         distance_to_port:max_depth_m, 
+         asbs_overlap:hardened_armored_shore_km, 
+         citizensci_inaturalist_obs, 
+         total_hard_substrate:depth_range) %>% 
+  select(!max_kelp_canopy_landsat_km2) %>% # Drop because too many NAs 
+  select(!larval_connectivity) %>%  # Drop because too many NAs
+  drop_na() %>% 
+  mutate_if(., is.numeric, log1p)
+```
+
+## Consider: Converting Factors to Dummy Variables
+
+The four regions could be considered characteristics we want, so would it be useful to convert them to dummies?
+
+```{r}
+
+
+```
+
+# Pairwise Correlations
+
+```{r}
+# Warning: this is hectic and takes a minute
+#ggpairs(log_data[4:39], aes(col = log_data$four_region_north_ci, alpha = 0.8))
+
+# Some of the data is still very skewed due to high number of zeroes
+# Some also has pretty high correlation - e.g. depth
+```
+
+# PCA: All Continuous Variables
+
+```{r}
+pca <- prcomp(log_data[4:40],
+              center = TRUE,
+              scale = TRUE) # normalize with standard deviation 1
+
+print(pca)
+summary(pca)
+
+plot(pca, type = "lines")
+
+# Plot
+ggbiplot(pca, group = log_data$four_region_north_ci, ellipse = T) +
+  theme_minimal()
+
+# Principal component loadings
+pca$rotation
+```
+
+## Explore Explained Variance
+```{r}
+# Retrieve the standard deviation of each PC
+stdev <- pca$sdev
+
+# Calculate variance of each PC
+var <- stdev^2
+
+# Calculate proportion of variance explained by each PC
+prop_var_ex <- var/sum(var) 
+prop_var_ex[1:20]
+
+```
+```{r}
+# Scree plot shows we get past 98% var explained ~ PC 25
+plot(cumsum(prop_var_ex), 
+     xlab = "PC", 
+     ylab = "Cumulative proportion of variance explained", 
+     type = "b")
+abline(h = 0.98)
+
+# Can also get this through summary
+summary(pca)
+```
+
+
+# References
+
+Useful guide to PCA analyses: https://www.analyticsvidhya.com/blog/2016/03/pca-practical-guide-principal-component-analysis-python/
+https://www.datacamp.com/tutorial/pca-analysis-r
+
+
