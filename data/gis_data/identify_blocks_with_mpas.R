@@ -44,13 +44,22 @@ mpas_simple <- mpas_use %>%
 blocks_simple <- blocks %>%
   select(block_id)
 
+# Calculate block area
+blocks_area <- blocks_simple %>% 
+  sf::st_area() %>% as.numeric() %>% 
+  measurements::conv_unit(., "m2", "km2")
+
+# Add block area to block df
+blocks_simple <- blocks_simple %>% 
+  mutate(block_area_km2 = blocks_area)
+
 # Test for any overlap among MPA polygons 
-overlap <- st_overlaps(mpas_simple, mpas_simple, sparse = FALSE)
+overlap <- sf::st_overlaps(mpas_simple, mpas_simple, sparse = FALSE)
 
 # Intersect MPAs/blocks
 data1 <- sf::st_intersection(x=blocks_simple, y=mpas_simple)
 
-# Calculate area
+# Calculate MPA area
 intersection_areas <- data1 %>%
   sf::st_area() %>% as.numeric() %>% measurements::conv_unit(., "m2", "km2")
 
@@ -58,11 +67,12 @@ intersection_areas <- data1 %>%
 data2 <- data1 %>%
   mutate(area_km2=intersection_areas)
 
+
 # Compute block stats
 block_stats <- data2 %>%
   sf::st_drop_geometry() %>%
-  group_by(block_id) %>%
-  summarize(mpa_n=n_distinct(name),
+  group_by(block_id, block_area_km2) %>%
+  dplyr::summarize(mpa_n=n_distinct(name),
             mpas=paste(name, collapse=", "),
             mpa_km2=sum(area_km2)) %>%
   ungroup()
