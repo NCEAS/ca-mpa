@@ -49,7 +49,8 @@ mpas_simple_dis <- mpas_simple %>%
   mutate(name="1") %>%
   group_by(name) %>%
   summarise(n=n()) %>% 
-  ungroup()
+  ungroup() %>% 
+  sf::st_cast("POLYGON")
 
 # Intersect MPAs/blocks
 data1 <- sf::st_intersection(x=blocks_simple, y=mpas_simple)
