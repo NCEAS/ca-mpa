@@ -20,16 +20,26 @@ data <- readRDS(file=file.path(outdir, "REEF_1994_2022_survey_metadata.Rds"))
 
 # Sites
 site_key <- data %>% 
-  group_by(site_id, site_name, lat_dd, long_dd) %>% 
+  group_by(site_id, site_name, lat_dd, long_dd, mpa) %>% 
   summarize(n=n()) %>% 
-  ungroup()
+  ungroup() %>% 
+  mutate(mpa_yn=ifelse(!is.na(mpa), "MPA", "Non-MPA"))
 
-# Stats
+# Stats by habitat
 stats <- data %>% 
   mutate(year=lubridate::year(date)) %>% 
   group_by(year, habitat) %>% 
   summarise(n=n()) %>% 
   ungroup()
+
+# Stats by site
+stats2 <- data %>% 
+  mutate(year=lubridate::year(date)) %>% 
+  mutate(mpa_yn=ifelse(!is.na(mpa), "MPA", "Non-MPA")) %>% 
+  group_by(year, mpa_yn) %>% 
+  summarise(n=n()) %>% 
+  ungroup()
+
 
 
 # Plot data
@@ -68,13 +78,14 @@ g1 <- ggplot() +
   geom_sf(data=foreign, fill="grey80", color="white", lwd=0.3) +
   geom_sf(data=usa, fill="grey80", color="white", lwd=0.3) +
   # Plot REEF sites
-  geom_point(data=site_key, mapping=aes(x=long_dd, y=lat_dd, size=n)) +
+  geom_point(data=site_key, mapping=aes(x=long_dd, y=lat_dd, size=n, fill=mpa_yn), pch=21, stroke=0.1) +
   # Labels
   labs(x="", y="", tag="A") +
   # Axes
   scale_y_continuous(breaks=32:42) +
   # Legend
   scale_size_continuous(name="# of surveys") +
+  scale_fill_discrete(name="Site type") +
   # Crop
   coord_sf(xlim = c(-124.5, -117), ylim = c(32.5, 42)) +
   # Theme
@@ -84,25 +95,43 @@ g1 <- ggplot() +
         legend.key.size = unit(0.4, "cm"))
 g1
 
-# Export data
-ggsave(g, filename=file.path(plotdir, "reef_site_map.png"), 
-       width=6.5, height=2.5, units="in", dpi=600)
-
 # Plot data
 g2 <- ggplot(stats, mapping=aes(x=year, y=n, fill=habitat)) +
   geom_bar(stat="identity", color="grey30", lwd=0.1) +
   # Labels
-  labs(x="Year", y="# of surveys") +
+  labs(x="Year", y="# of surveys", tag="B") +
   scale_x_continuous(breaks=seq(1995, 2020, 5)) +
   # Legend
   scale_fill_discrete(name="Habitat") +
   # Theme
   theme_bw() + theme1 +
-  theme(legend.key.size = unit(0.3, "cm"))
+  theme(legend.position=c(0.23, 0.65),
+        legend.key.size = unit(0.15, "cm"))
 g2
 
+# Plot data
+g3 <- ggplot(stats2, mapping=aes(x=year, y=n, fill=mpa_yn)) +
+  geom_bar(stat="identity", color="grey30", lwd=0.1) +
+  # Labels
+  labs(x="Year", y="# of surveys", tag="C") +
+  scale_x_continuous(breaks=seq(1995, 2020, 5)) +
+  # Legend
+  scale_fill_discrete(name="Site type") +
+  # Theme
+  theme_bw() + theme1 +
+  theme(legend.position=c(0.15, 0.85),
+        legend.key.size = unit(0.3, "cm"))
+g3
 
 
+# Merge data
+layout_matrix <- matrix(data=c(1,2,
+                               1,3), byrow=T, ncol=2)
+g <- gridExtra::grid.arrange(g1, g2, g3, layout_matrix=layout_matrix)
+g
 
+# Export
+ggsave(g, filename=file.path(plotdir, "reef_data.png"), 
+       width=6.5, height=5, units="in", dpi=600)
 
 

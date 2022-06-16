@@ -18,6 +18,9 @@ plotdir <- "data/reef/figures"
 # Read data
 data_orig <- readxl::read_excel(file.path(indir, "PACsurveys061522.xlsx"), na="NULL")
 
+# Read MPAs
+mpas <- readRDS(file.path(basedir, "gis_data/processed", "CA_mpa_polygons.Rds"))
+
 
 # Format data
 ################################################################################
@@ -42,7 +45,7 @@ conv_long <- function(long_chr){
 # Format data
 data <- data_orig %>% 
   # Rename
-  rename(survery_id=formid,
+  rename(survey_id=formid,
          surveyor_type=exp,
          survey_type=type,
          site_id=geogr, 
@@ -149,7 +152,7 @@ data <- data_orig %>%
                             "-117 50. 09"="-117 50.09"), 
          long_dd=conv_long(long_dd_orig)) %>% 
   # Arrange
-  select(survery_id, survey_type, site_id, site_name, date,
+  select(survey_id, survey_type, site_id, site_name, date,
          surveyor_type,
          start_time, bottom_time,
          habitat_code, habitat, 
@@ -166,6 +169,9 @@ data <- data_orig %>%
 # Inspect
 str(data)
 freeR::complete(data)
+
+# Survey id unique?
+freeR::which_duplicated(data$survery_id)
 
 # Inspect character
 table(data$survey_type)
@@ -214,10 +220,44 @@ site_key_no_xy <- site_key %>%
 write.csv(site_key_no_xy, file=file.path(outdir, "REEF_sites_without_xy_data.csv"), row.names = F)
 
 
+# Mark if inside MPA
+################################################################################
+
+# Format MPAs
+mpas_simple <- mpas %>% select(name)
+mpas_simple_sp <- mpas_simple %>% as(., "Spatial")
+
+# Data with xy
+data_xy <- data %>% 
+  filter(!is.na(lat_dd))
+
+# Convert to sf
+data_sf <- data_xy %>%
+  sf::st_as_sf(coords=c("long_dd", "lat_dd"), crs=sf::st_crs(mpas))
+
+# Convert to sp
+data_sp <- data_sf %>%
+  as(., "Spatial")
+
+# Find points inside MPAs
+inside_which_mpa <- sp::over(data_sp, mpas_simple_sp)
+inside_which_mpa_chr <- inside_which_mpa$name
+
+# Convert to dataframe
+data_sf_df <- data_sf %>%
+  sf::st_drop_geometry() %>% 
+  mutate(mpa=inside_which_mpa_chr) %>% 
+  filter(!is.na(mpa))
+
+# Add MPA to data
+data2 <- data %>% 
+  left_join(data_sf_df %>% select(survey_id, mpa))
+
+
 # Export data
 ################################################################################
 
 # Export data
-saveRDS(data, file=file.path(outdir, "REEF_1994_2022_survey_metadata.Rds"))
+saveRDS(data2, file=file.path(outdir, "REEF_1994_2022_survey_metadata.Rds"))
 
 
