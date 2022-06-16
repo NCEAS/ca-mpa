@@ -12,7 +12,8 @@ library(tidyverse)
 library(countrycode)
 
 # Directories
-basedir <- "/Volumes/GoogleDrive/.shortcut-targets-by-id/1kCsF8rkm1yhpjh2_VMzf8ukSPf9d4tqO/MPA Network Assessment: Working Group Shared Folder/data/sync-data"
+basedir <- "/Volumes/GoogleDrive-105151121202188525604/Shared drives/NCEAS MPA network assessment/MPA Network Assessment: Working Group Shared Folder/data/sync-data" # Cori Local
+#basedir <- "/Volumes/GoogleDrive/.shortcut-targets-by-id/1kCsF8rkm1yhpjh2_VMzf8ukSPf9d4tqO/MPA Network Assessment: Working Group Shared Folder/data/sync-data"
 outdir <- file.path(basedir, "gis_data/processed")
 plotdir <- "data/gis_data/figures"
 
@@ -28,8 +29,8 @@ blocks <- wcfish::blocks
 # Build data
 ################################################################################
 
-# Only look at SMRs/SMCAs
-types_use <- c("SMR", "SMRMA", "SMCA", "SMCA (No-Take)")
+# Only look at SMRs/SMCAs and FMRs, FMCAs
+types_use <- c("SMR", "SMRMA", "SMCA", "SMCA (No-Take)", "FMR", "FMCA")
 mpas_use <- mpas %>% 
   filter(type %in% types_use)
 mpa_use_pts <- mpas_use %>%
@@ -43,19 +44,22 @@ mpas_simple <- mpas_use %>%
 blocks_simple <- blocks %>%
   select(block_id)
 
-# Dissolve MPAs
-mpas_simple_dis <- mpas_simple %>%
-  sf::st_make_valid() %>% 
-  mutate(name="1") %>%
-  group_by(name) %>%
-  summarise(n=n()) %>% 
-  ungroup() %>% 
-  sf::st_cast("POLYGON")
+# Calculate block area
+blocks_area <- blocks_simple %>% 
+  sf::st_area() %>% as.numeric() %>% 
+  measurements::conv_unit(., "m2", "km2")
+
+# Add block area to block df
+blocks_simple <- blocks_simple %>% 
+  mutate(block_area_km2 = blocks_area)
+
+# Test for any overlap among MPA polygons 
+overlap <- sf::st_overlaps(mpas_simple, mpas_simple, sparse = FALSE)
 
 # Intersect MPAs/blocks
 data1 <- sf::st_intersection(x=blocks_simple, y=mpas_simple)
 
-# Calculate area
+# Calculate MPA area
 intersection_areas <- data1 %>%
   sf::st_area() %>% as.numeric() %>% measurements::conv_unit(., "m2", "km2")
 
@@ -63,11 +67,12 @@ intersection_areas <- data1 %>%
 data2 <- data1 %>%
   mutate(area_km2=intersection_areas)
 
+
 # Compute block stats
 block_stats <- data2 %>%
   sf::st_drop_geometry() %>%
-  group_by(block_id) %>%
-  summarize(mpa_n=n_distinct(name),
+  group_by(block_id, block_area_km2) %>%
+  dplyr::summarize(mpa_n=n_distinct(name),
             mpas=paste(name, collapse=", "),
             mpa_km2=sum(area_km2)) %>%
   ungroup()
