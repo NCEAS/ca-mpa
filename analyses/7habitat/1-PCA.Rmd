@@ -30,6 +30,7 @@ library(tidyverse)
 library(here)
 library(ggbiplot)
 library(GGally)
+library(vegan)
 
 # Directories
 base.dir <- "/Volumes/GoogleDrive-105151121202188525604/Shared drives/NCEAS MPA network assessment/MPA Network Assessment: Working Group Shared Folder/data/sync-data" # Cori Local
@@ -64,7 +65,7 @@ log_data <- data %>%
          distance_to_port:max_depth_m, 
          asbs_overlap:hardened_armored_shore_km, 
          citizensci_inaturalist_obs, 
-         total_hard_substrate:depth_range) %>% 
+         total_hard_substrate:prop_soft) %>% 
   select(!max_kelp_canopy_landsat_km2) %>% # Drop because too many NAs 
   select(!larval_connectivity) %>%  # Drop because too many NAs
   drop_na() %>% 
@@ -88,7 +89,7 @@ The four regions could be considered characteristics we want, so would it be use
 # PCA: All Continuous Variables
 
 ```{r}
-pca <- prcomp(log_data[4:40],
+pca <- prcomp(log_data[4:42],
               center = TRUE,
               scale = TRUE) # normalize with standard deviation 1
 
@@ -103,7 +104,11 @@ ggbiplot(pca, group = log_data$four_region_north_ci, ellipse = T) +
   labs(title = "All Trait Variables")
 
 # Principal component loadings
-pca$rotation
+loadings <- as.data.frame(pca$rotation)
+
+ggbiplot(pca, group = log_data$mpa_class, ellipse = T) +
+  theme_minimal() +
+  labs(title = "All Trait Variables")
 ```
 
 ## Explore Explained Variance
@@ -131,27 +136,25 @@ abline(h = 0.98)
 summary(pca)
 ```
 
-# Reducing Variables
+## Reducing Variables
 
 PCA aims to estimate the contribution of different variables to the variation among the points - if there is high correlation between some of the variables, that can result in a higher weight of those variables in the estimation of the components.
 
 Based on my understanding, this is something that you wouldn't want to manipulate if these were variables signifying different things about the data, however if you have multiple variables that are measuring the same "underlying" aspect of the data... e.g. multiple variables estimating hard substrate (maybe?) that it could be worthwhile to discard them.
 
-## Revisit Correlations
+### Revisit Correlations
 
 ```{r}
 # Reminder that this takes a minute or two
 ggpairs(log_data[4:10], aes(col = log_data$four_region_north_ci, alpha = 0.8))
 ```
 
-## Decisions
+### Decisions
 
 - Remove minimum and maximum depth, and just keep depth_range
 - Remove all the different hard/soft calculations and just keep total hard/soft
 - Reduce duplicates among habitat types
 - Remove random non-habitat characteristics (asbs overlap, inat obs)
-
-### 1. Reduce just hard/soft across depth zones
 
 ```{r}
 log_data_reduced <- log_data %>% 
@@ -178,10 +181,6 @@ From 40 variables to 18 variables
 
 ## Reduced PCA
 
-
-
-
-
 ```{r}
 pca_reduced <- prcomp(log_data_reduced[4:16],
                       center = TRUE,
@@ -191,14 +190,49 @@ summary(pca_reduced)
 
 plot(pca_reduced, type = "lines")
 
-# Plot
 ggbiplot(pca_reduced, group = log_data_reduced$four_region_north_ci, 
          ellipse = T) +
   theme_minimal() +
   labs(title = "Reduced Trait Variables")
 
 # Principal component loadings
-pca$rotation
+loadings_reduced <- as.data.frame(pca_reduced$rotation)
+
+# Re-graph with groupings as MPA type instead?
+ggbiplot(pca_reduced, group = log_data_reduced$mpa_class, 
+         ellipse = T) +
+  theme_minimal() +
+  labs(title = "Reduced Trait Variables")
+```
+
+
+```{r}
+# This is hacky and I'm not sure if it's recommended
+# See which variables contribute the most...
+loadings_reduced$total <- rowSums(abs(loadings_reduced[2:13]))
+loadings_reduced$total_first10 <- rowSums(abs(loadings_reduced[2:11]))
+
+loadings$total <- rowSums(abs(loadings[2:39]))
+loadings$total_first10 <- rowSums(abs(loadings[2:11]))
+```
+
+
+# NMDS ?
+
+NMDS can have some value over PCA because it uses rank orders rather than absolute distance, so can also use different types of data.
+
+```{r}
+nmds_data <-  data %>% 
+    select(name, mpa_class, four_region_north_ci,
+         age_yr,
+         distance_to_port:max_depth_m, 
+         asbs_overlap:hardened_armored_shore_km, 
+         citizensci_inaturalist_obs, 
+         total_hard_substrate:prop_soft) %>% 
+  select(!max_kelp_canopy_landsat_km2) %>% # Drop because too many NAs 
+  select(!larval_connectivity)  # Drop because too many NAs
+  
+nmds <- metaMDS(nmds_data[4:42], k = 2)
 ```
 
 
