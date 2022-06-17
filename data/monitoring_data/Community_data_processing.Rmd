@@ -1,0 +1,280 @@
+---
+title: "Community_data_processing"
+author: "Joshua G. Smith"
+date: '2022-06-16'
+output: html_document
+---
+
+#load packages
+```{r}
+require(dplyr)
+require(stringr)
+require(tidyr)
+require(janitor)
+```
+
+
+#Process CCFRP data
+
+```{r}
+# ccfrp -------------------------------------------------------------------
+
+#load species level mean fish CPUE
+data_path <- "/home/shares/ca-mpa/data/sync-data/monitoring/monitoring_ccfrp/CCFRP_derived_data_tables_DataONE"
+input_file <- "CCFRP_derived_effort_table.csv" 
+CPUE_raw <- read.csv(file.path(data_path, input_file))
+
+#reshape and clean up
+CCFRP_CPUE <- CPUE_raw %>%
+  mutate(affiliated_mpa = paste(Area,"smr"), #all ccfrp MPAs are defacto SMRs per PI
+         mpa_designation = ifelse(MPA_Status == "MPA","smr", MPA_Status))
+  
+CCFRP_CPUE$mpa_designation <- tolower(CCFRP_CPUE$mpa_designation)
+CCFRP_CPUE$mpa_designation <- tolower(CCFRP_CPUE$mpa_designation)
+
+CCFRP_CPUE <- CCFRP_CPUE %>%
+                  dplyr::select(year=Year, affiliated_mpa, mpa_designation, Grid_Cell_ID, Common_Name, CPUE_catch_per_angler_hour)%>%
+                  mutate(mpa_class="smr", 
+                         group="ccfrp") %>%
+                  group_by(group, year, affiliated_mpa, mpa_class, mpa_designation, Grid_Cell_ID, Common_Name)%>%
+                  summarise(CPUE_mean = mean(CPUE_catch_per_angler_hour))%>%  #some species in the raw data have duplicate entries.
+                  ungroup() %>%
+                  tidyr::pivot_wider(names_from = Common_Name, 
+                                     values_from = CPUE_mean) %>%
+                  janitor::clean_names()
+              
+CCFRP_CPUE$affiliated_mpa <- tolower(CCFRP_CPUE$affiliated_mpa)
+
+CCFRP_CPUE$affiliated_mpa <- recode_factor(CCFRP_CPUE$affiliated_mpa, "southeast farallon islands smr" = "southeast farallon island smr") #clean up names
+
+CCFRP_CPUE$affiliated_mpa <- recode_factor(CCFRP_CPUE$affiliated_mpa, "swamis smr" = "swami's smca") #clean up names 
+
+
+#add regions
+data_path <- "/home/shares/ca-mpa/data/sync-data/mpa_traits"
+input_file <- "mpa-attributes.xlsx" 
+four_region <- readxl::read_excel(file.path(data_path, input_file), sheet=1, skip = 0, na="NA")
+
+regions <- four_region %>%
+  dplyr::select(name, region3=bioregion, region4 = four_region_north_ci)
+
+CCFRP_CPUE <- left_join(CCFRP_CPUE, regions, by=c("affiliated_mpa"="name"))
+
+#clean up a
+
+CCFRP_CPUE <- CCFRP_CPUE %>%
+  mutate(MHW = ifelse(year>=2014 & year<=2016, "during",ifelse(year<2014, "before","after")))%>%
+  dplyr::select(year, group, region3, region4, MHW, everything())
+
+#Export
+
+
+```
+
+
+
+
+
+#Process kelp forest fish data
+
+```{r}
+
+data_path <- "/home/shares/ca-mpa/data/sync-data/monitoring/monitoring_kelp"
+input_file <- "MLPA_kelpforest_fish.4.csv" 
+kelp_fish_counts <- read.csv(file.path(data_path, input_file)) %>%
+                    janitor::clean_names()
+
+#select vars and clean
+kelp_fish_counts <- kelp_fish_counts %>%
+                    dplyr::select(year, site, zone, level, transect, classcode, count)%>%
+                    group_by(year, site, zone, level, transect, classcode)%>%
+                    summarize(total_count = sum(count)) #counts in raw data are grouped by size class. Take summary across all sizes
+
+
+#join species names by class code 
+input_file <- "MLPA_kelpforest_taxon_table.4.csv"  
+kelp_taxon <- read.csv(file.path(data_path, input_file)) %>%
+                    janitor::clean_names() %>%
+                    dplyr::select(classcode, species_definition) %>%
+                    distinct() #remove duplicates
+
+kelp_fish_counts<-  left_join(kelp_fish_counts, kelp_taxon, by="classcode")
+
+kelp_fish_counts <- kelp_fish_counts %>%
+                    dplyr::select(year, site, zone, level, transect, species=species_definition, total_count)
+        
+
+#add affiliated_mpa
+
+input_file <- "MLPA_kelpforest_site_table.4.csv" 
+kelp_sites <- read.csv(file.path(data_path, input_file)) %>%
+                    janitor::clean_names() %>%
+                    dplyr::select(site, ca_mpa_name_short, mpa_class=site_designation, mpa_designation=site_status)%>%
+                    distinct() #remove duplicates
+
+kelp_fish_counts <- left_join(kelp_fish_counts, kelp_sites, by="site")
+
+kelp_fish_counts <- kelp_fish_counts %>%
+                    ungroup() %>%
+                    dplyr::select(year, affiliated_mpa=ca_mpa_name_short,mpa_class, mpa_designation, zone, level, transect, species, total_count) %>%
+                    mutate(mpa_designation = ifelse(mpa_designation=="reference","ref",mpa_class))
+
+
+#add 4 regions
+data_path <- "/home/shares/ca-mpa/data/sync-data/mpa_traits"
+input_file <- "mpa-attributes.xlsx" 
+four_region <- readxl::read_excel(file.path(data_path, input_file), sheet=1, skip = 0, na="NA")
+
+regions <- four_region %>%
+  dplyr::select(name, region3=bioregion, region4 = four_region_north_ci)
+
+kelp_fish_counts$affiliated_mpa <- tolower(kelp_fish_counts$affiliated_mpa)
+
+kelp_fish_counts <- left_join(kelp_fish_counts, regions, by=c("affiliated_mpa"="name"))
+
+
+#add defacto SMRs
+data_path <- "/home/shares/ca-mpa/data/sync-data/mpa_traits"
+input_file <- "mpa-attributes.xlsx" 
+defacto_smr <- readxl::read_excel(file.path(data_path, input_file), sheet=5, skip = 0, na="NA")%>%
+               filter(group=="kelp") %>%
+               dplyr::select(affiliated_mpa, mpa_class)
+              
+
+kelp_fish_counts <- left_join(kelp_fish_counts, defacto_smr, by="affiliated_mpa")
+
+
+#clean up
+kelp_fish_counts <- kelp_fish_counts %>%
+                    mutate(mpa_defacto_designation = ifelse(mpa_designation=="ref","ref",mpa_class.y))%>%
+                    dplyr::select(year, region3, region4, affiliated_mpa, mpa_defacto_class = mpa_class.y, mpa_defacto_designation, zone, level, transect, species, total_count)
+                 
+kelp_fish_counts$mpa_defacto_class <- tolower(kelp_fish_counts$mpa_defacto_class)
+kelp_fish_counts$mpa_defacto_designation <- tolower(kelp_fish_counts$mpa_defacto_designation)
+
+kelp_fish_counts <- kelp_fish_counts %>%
+                    group_by(year, region3, region4, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation, zone, level, transect, species) %>%
+                    summarise(counts = sum(total_count)) #make sure species are not duplicates by summarizing at the transect level (total counts)
+
+
+
+
+#reshape to wide format
+kelp_fish_counts <- kelp_fish_counts %>%
+                    pivot_wider(names_from=species, values_from=counts, values_fill = 0) %>%
+                    janitor::clean_names()%>%
+                    drop_na(region4)%>%
+                    dplyr::select(-c(no_organisms_present_in_this_sample))
+
+#Export
+
+
+```
+
+
+
+
+#Process kelp swath data
+```{r}
+data_path <- "/home/shares/ca-mpa/data/sync-data/monitoring/monitoring_kelp"
+input_file <- "MLPA_kelpforest_swath.4.csv" 
+kelp_swath_counts <- read.csv(file.path(data_path, input_file)) %>%
+                    janitor::clean_names()
+
+
+#select vars and clean
+kelp_swath_counts <- kelp_swath_counts %>%
+                    dplyr::select(year, site, zone, transect, classcode, count)%>%
+                    group_by(year, site, zone, transect, classcode)%>%
+                    summarize(total_count = sum(count)) #counts in raw data are grouped by size class. Take summary across all sizes
+
+#join species names by class code 
+input_file <- "MLPA_kelpforest_taxon_table.4.csv"  
+kelp_taxon <- read.csv(file.path(data_path, input_file)) %>%
+                    janitor::clean_names() %>%
+                    dplyr::select(classcode, species_definition) %>%
+                    distinct() #remove duplicates
+
+kelp_swath_counts<-  left_join(kelp_swath_counts, kelp_taxon, by="classcode")
+
+kelp_swath_counts <- kelp_swath_counts %>%
+                    dplyr::select(year, site, zone, transect, species=species_definition, total_count)
+
+
+#add affiliated_mpa
+
+input_file <- "MLPA_kelpforest_site_table.4.csv" 
+kelp_sites <- read.csv(file.path(data_path, input_file)) %>%
+                    janitor::clean_names() %>%
+                    dplyr::select(site, ca_mpa_name_short, mpa_class=site_designation, mpa_designation=site_status)%>%
+                    distinct() #remove duplicates
+
+kelp_swath_counts <- left_join(kelp_swath_counts, kelp_sites, by="site")
+
+kelp_swath_counts <- kelp_swath_counts %>%
+                    ungroup() %>%
+                    dplyr::select(year, affiliated_mpa=ca_mpa_name_short,mpa_class, mpa_designation, zone, transect, species, total_count) %>%
+                    mutate(mpa_designation = ifelse(mpa_designation=="reference","ref",mpa_class))
+
+#add 4 regions
+data_path <- "/home/shares/ca-mpa/data/sync-data/mpa_traits"
+input_file <- "mpa-attributes.xlsx" 
+four_region <- readxl::read_excel(file.path(data_path, input_file), sheet=1, skip = 0, na="NA")
+
+regions <- four_region %>%
+  dplyr::select(name, region3=bioregion, region4 = four_region_north_ci)
+
+kelp_swath_counts$affiliated_mpa <- tolower(kelp_swath_counts$affiliated_mpa)
+
+kelp_swath_counts <- left_join(kelp_swath_counts, regions, by=c("affiliated_mpa"="name"))
+
+
+
+#add defacto SMRs
+data_path <- "/home/shares/ca-mpa/data/sync-data/mpa_traits"
+input_file <- "mpa-attributes.xlsx" 
+defacto_smr <- readxl::read_excel(file.path(data_path, input_file), sheet=5, skip = 0, na="NA")%>%
+               filter(group=="kelp") %>%
+               dplyr::select(affiliated_mpa, mpa_class)
+              
+
+kelp_swath_counts <- left_join(kelp_swath_counts, defacto_smr, by="affiliated_mpa")
+
+
+#clean up
+kelp_swath_counts <- kelp_swath_counts %>%
+                    mutate(mpa_defacto_designation = ifelse(mpa_designation=="ref","ref",mpa_class.y))%>%
+                    dplyr::select(year, region3, region4, affiliated_mpa, mpa_defacto_class = mpa_class.y, mpa_defacto_designation, zone, transect, species, total_count)
+                 
+kelp_swath_counts$mpa_defacto_class <- tolower(kelp_swath_counts$mpa_defacto_class)
+kelp_swath_counts$mpa_defacto_designation <- tolower(kelp_swath_counts$mpa_defacto_designation)
+
+kelp_swath_counts <- kelp_swath_counts %>%
+                    group_by(year, region3, region4, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation, zone, transect, species) %>%
+                    summarise(counts = sum(total_count)) #make sure species are not duplicates by summarizing at the transect level (total counts)
+
+
+
+#reshape to wide format
+kelp_swath_counts <- kelp_swath_counts %>%
+                    pivot_wider(names_from=species, values_from=counts, values_fill = 0) %>%
+                    janitor::clean_names()%>%
+                    drop_na(region4)
+                    #dplyr::select(-c(no_organisms_present_in_this_sample))
+
+#Export
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
