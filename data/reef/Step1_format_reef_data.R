@@ -21,6 +21,10 @@ data_orig <- readxl::read_excel(file.path(indir, "PACsurveys061522.xlsx"), na="N
 # Read MPAs
 mpas <- readRDS(file.path(basedir, "gis_data/processed", "CA_mpa_polygons.Rds"))
 
+# To-do list
+# 1) Correct coords for 1 site on land
+# 2) Add coords for sites without lat/long
+
 
 # Format data
 ################################################################################

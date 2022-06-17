@@ -18,6 +18,9 @@ plotdir <- "data/reef/figures"
 # Read data
 data <- readRDS(file=file.path(outdir, "REEF_1994_2022_survey_metadata.Rds"))
 
+# Number of MPA sites
+sum(!is.na(data$mpa))
+
 # Sites
 site_key <- data %>% 
   group_by(site_id, site_name, lat_dd, long_dd, mpa) %>% 
