@@ -67,18 +67,24 @@ data <- data_orig %>%
                             "3"="Both fish and invertebrates")) %>% 
   # Format surveyor type
   mutate(surveyor_type=recode(surveyor_type,
-                            "E"="Expert", "N"="Novice")) %>% 
+                            "E"="Expert", "N"="Novice"),
+         surveyor_type=ifelse(surveyor_type=="5", NA, surveyor_type)) %>% 
   # Format date
   mutate(date=lubridate::ymd(date)) %>% 
+  # Format temperatures
+  mutate(surface_temp_f=ifelse(surface_temp_f==0, NA, surface_temp_f),
+         bottom_temp_f=ifelse(bottom_temp_f==0, NA, bottom_temp_f)) %>% 
   # Format visibility
   mutate(visibility=recode(visibility_code, 
                            "0"="",
                            "1"="<10 feet",
                            "2"="10-24 feet",
-                           "3"="25-50",
-                           "4"="50-75",
-                           "5"="75-100",
-                           "6"=">149 ft")) %>% 
+                           "3"="25-49 feet",
+                           "4"="50-74 feet",
+                           "5"="75-99 feet",
+                           "6"="100-149 feet",
+                           "7"=">149 ft"),
+         visibility=ifelse(visibility=="", NA, visibility)) %>% 
   # Format current
   mutate(current=recode(current_code, 
                         "0"="",
@@ -101,11 +107,11 @@ data <- data_orig %>%
                         "10"="Mud/silt bottom",
                         "11"="Cobblestone/boulder field",
                         "12"="Wall",
-                        "13"=""), 
+                        "13"="Mixed"), 
          habitat=ifelse(habitat=="", NA, habitat)) %>% 
   # Format max depth
   mutate(max_depth=recode(max_depth_code, 
-                          "0"="0",
+                          "0"="",
                           "1"="Snorkel",
                           "2"="<10 feet",
                           "3"="10-19 feet",
@@ -171,16 +177,16 @@ str(data)
 freeR::complete(data)
 
 # Survey id unique?
-freeR::which_duplicated(data$survery_id)
+freeR::which_duplicated(data$survey_id)
 
 # Inspect character
 table(data$survey_type)
-table(data$surveyor_type) # 5?
-table(data$visibility_code) # what do codes mean?
-table(data$visibility) # I made these up
-table(data$current_code) # what is 0?
+table(data$surveyor_type)
+table(data$visibility_code)
+table(data$visibility)
+table(data$current_code)
 table(data$current)
-table(data$habitat_code) # what are 0 and 13?
+table(data$habitat_code)
 table(data$habitat)
 table(data$avg_depth_code)
 table(data$avg_depth)
@@ -189,16 +195,20 @@ table(data$max_depth)
 
 # Inspect numeric
 range(data$date)
-range(data$surface_temp_f) # 0s are suspicious
-range(data$bottom_temp_f) # 0s are suspicious
+range(data$surface_temp_f, na.rm=T) # 0s are suspicious
+range(data$bottom_temp_f, na.rm=T) # 0s are suspicious
+boxplot(data$surface_temp_f)
+boxplot(data$bottom_temp_f)
 
 # Coordinates
-data %>% 
-  filter(!is.na(lat_dd_orig) & is.na(lat_dd)) %>% 
-  pull(lat_dd_orig) %>% unique()
-data %>% 
-  filter(!is.na(long_dd_orig) & is.na(long_dd)) %>% 
-  pull(long_dd_orig) %>% unique()
+if(F){
+  data %>% 
+    filter(!is.na(lat_dd_orig) & is.na(lat_dd)) %>% 
+    pull(lat_dd_orig) %>% unique()
+  data %>% 
+    filter(!is.na(long_dd_orig) & is.na(long_dd)) %>% 
+    pull(long_dd_orig) %>% unique()
+}
 
 # Plot data
 ggplot(data, aes(x=long_dd, y=lat_dd, color=habitat)) +
