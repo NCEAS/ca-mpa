@@ -217,7 +217,7 @@ loadings$total_first10 <- rowSums(abs(loadings[2:11]))
 ```
 
 
-# NMDS 
+# NMDS ?
 
 NMDS can have some value over PCA because it uses rank orders rather than absolute distance, so can also use different types of data.
 
