@@ -371,7 +371,118 @@ kelp_upc_counts <- kelp_upc_counts %>%
 ```
 
 
+#process midwater/deep reef data
+```{r}
+#load species level mean fish biomass 
+data_path <- "/home/shares/ca-mpa/data/sync-data/monitoring/monitoring_deep-reef/ROV_Dataset"
+input_file <- "MidDepth_ROV_Fish_Count.csv" 
+deep_reef_counts_raw <- read.csv(file.path(data_path, input_file)) %>%
+                    janitor::clean_names()
 
+
+#select vars and clean
+deep_reef_counts <- deep_reef_counts_raw %>%
+                    filter(!grepl('Unidentified',scientific_name), #remove anything not identified to the species level
+                           !grepl('SMCA/Outside',type), #remove uncertain MPA types
+                           !grepl('SMR/SMCA',type))%>%  #remove undertain MPA types
+                    dplyr::select(year, mpa_group, type, designation, scientific_name, count)%>%
+                    group_by(year, mpa_group, type, designation, scientific_name)%>%
+                    summarize(total_count = sum(count)) #counts in raw data are grouped by size class. Take summary across all sizes 
+
+deep_reef_counts$mpa_group[deep_reef_counts$mpa_group == "N/A" ] <- NA     #replace missing data with NA and drop
+deep_reef_counts <- deep_reef_counts %>%
+                    drop_na(mpa_group)
+
+deep_reef_counts$designation <- recode_factor(deep_reef_counts$designation, "MPA/Outside" = 'Reference')
+
+
+
+
+#add affiliated_mpa
+deep_reef_counts <- deep_reef_counts %>%
+                    mutate(mpa_class = type,
+                           affiliated_mpa = paste(mpa_group,type),
+                           mpa_designation = ifelse(designation=='Reference','ref',type))%>%
+                    ungroup()%>%
+                    dplyr::select(year, affiliated_mpa, mpa_class, mpa_designation, scientific_name, total_count)
+                    
+deep_reef_counts$affiliated_mpa <- tolower(deep_reef_counts$affiliated_mpa)
+
+
+#check for inconsistencies in mpa name spelling and correct designations
+
+deep_reef_counts$affiliated_mpa <- recode_factor(deep_reef_counts$affiliated_mpa, "se farallon islands smca" = "southeast farallon island smca") #correct spelling to match affiliated
+deep_reef_counts$affiliated_mpa <- recode_factor(deep_reef_counts$affiliated_mpa, "se farallon islands smr" = "southeast farallon island smr") #correct spelling to match affiliated
+deep_reef_counts$affiliated_mpa <- recode_factor(deep_reef_counts$affiliated_mpa, "n farallon islands smr" = "north farallon island smr") #correct spelling to match affiliated
+deep_reef_counts$affiliated_mpa <- recode_factor(deep_reef_counts$affiliated_mpa, "n farallon islands smca" = "north farallon island smr") #correct spelling to match affiliated
+deep_reef_counts$affiliated_mpa <- recode_factor(deep_reef_counts$affiliated_mpa, "north farallon island smr" = "north farallon islands smr") #correct spelling to match affiliated
+
+deep_reef_counts$affiliated_mpa <- recode_factor(deep_reef_counts$affiliated_mpa, "farallon islands smr" = "southeast farallon island smr") #correct spelling to match affiliated
+deep_reef_counts$affiliated_mpa <- recode_factor(deep_reef_counts$affiliated_mpa, "farallon islands smca" = "southeast farallon island smr") #correct spelling to match affiliated
+deep_reef_counts$affiliated_mpa <- recode_factor(deep_reef_counts$affiliated_mpa, "farnsworth smca" = "farnsworth offshore smca") #correct spelling to match affiliated
+deep_reef_counts$affiliated_mpa <- recode_factor(deep_reef_counts$affiliated_mpa, "point st. george smca" = "point st. george reef offshore smca") #correct spelling to match affiliated
+deep_reef_counts$affiliated_mpa <- recode_factor(deep_reef_counts$affiliated_mpa, "point buchon smr" = "Point Buchon") #correct spelling to match affiliated
+
+
+
+#add defacto SMRs
+data_path <- "/home/shares/ca-mpa/data/sync-data/mpa_traits"
+input_file <- "mpa-attributes.xlsx" 
+defacto_smr <- readxl::read_excel(file.path(data_path, input_file), sheet=5, skip = 0, na="NA")%>%
+               filter(group=="deep_reef") %>%
+               dplyr::select(affiliated_mpa, mpa_class)
+
+buchon_row <- c("Point Buchon","SMR","point buchon smr","No take.","deep_reef","SMR") 
+defacto_smr <- rbind(defacto_smr,buchon_row) #add missing row
+              
+deep_reef_counts <- left_join(deep_reef_counts, defacto_smr, by="affiliated_mpa")
+
+
+#clean
+deep_reef_counts <- deep_reef_counts %>%
+                    mutate(mpa_defacto_designation = ifelse(mpa_designation=='ref',mpa_designation,mpa_class.y))%>%
+                    dplyr::select(year, affiliated_mpa, mpa_defacto_class=mpa_class.y, mpa_defacto_designation=mpa_designation, scientific_name, total_count)
+
+deep_reef_counts$scientific_name[deep_reef_counts$scientific_name == "" ] <- NA     #replace missing data with NA and drop
+
+deep_reef_counts <- deep_reef_counts %>%
+                    drop_na(scientific_name)
+
+deep_reef_counts$mpa_defacto_class <- tolower(deep_reef_counts$mpa_defacto_class)
+deep_reef_counts$mpa_defacto_designation <- tolower(deep_reef_counts$mpa_defacto_designation)
+
+
+#add 4 regions
+data_path <- "/home/shares/ca-mpa/data/sync-data/mpa_traits"
+input_file <- "mpa-attributes.xlsx" 
+four_region <- readxl::read_excel(file.path(data_path, input_file), sheet=1, skip = 0, na="NA")
+
+regions <- four_region %>%
+  dplyr::select(name, region3=bioregion, region4 = four_region_north_ci)
+
+deep_reef_counts$affiliated_mpa <- recode_factor(deep_reef_counts$affiliated_mpa, "Point Buchon"="point buchon smr")
+
+deep_reef_counts <- left_join(deep_reef_counts, regions, by=c("affiliated_mpa"="name"))
+
+#clean
+deep_reef_counts <- deep_reef_counts %>%
+                    group_by(year, region3, region4, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation, scientific_name) %>%
+                    summarise(counts = sum(total_count)) #make sure species are not duplicates by summarizing at the transect level (total counts)
+
+
+#reshape to wide format
+deep_reef_counts_wide <- deep_reef_counts %>%
+                    pivot_wider(names_from=scientific_name, values_from=counts) %>%
+                    janitor::clean_names()%>%
+                    drop_na(region4) %>%
+                    mutate(MHW = ifelse(year>=2014 & year<=2016, "during",ifelse(year<2014, "before","after")))%>%
+                    dplyr::select(year, region3, region4, affiliated_mpa, mpa_defacto_class,mpa_defacto_designation, MHW, everything()) %>%
+                    replace(is.na(.),0)
+                    #dplyr::select(-c(no_organisms_present_in_this_sample))
+
+#Export
+
+```
 
 
 
