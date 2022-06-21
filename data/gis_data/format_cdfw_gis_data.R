@@ -50,6 +50,7 @@ divesites <- divesites_orig %>%
 
 # Export data
 saveRDS(divesites, file.path(outdir, "CA_dive_sites.Rds"))
+write.csv(divesites %>% sf::st_drop_geometry(), file.path(outdir, "CA_dive_sites.csv"), row.names = F)
 
 
 # Format boat launches
