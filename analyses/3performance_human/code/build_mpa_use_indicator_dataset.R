@@ -13,77 +13,81 @@ library(tidyverse)
 basedir <- "/Volumes/GoogleDrive/.shortcut-targets-by-id/1kCsF8rkm1yhpjh2_VMzf8ukSPf9d4tqO/MPA Network Assessment: Working Group Shared Folder/data/sync-data"
 plotdir <- "analyses/3performance_human/figures"
 
-
 # Read MPA attributes
 mpas_orig <- readRDS(file.path(basedir, "mpa_traits/processed", "CA_mpa_metadata.Rds"))
 
 # Read score card ingredients
-# (only iNaturalist is ready now)
+pop_orig <- readRDS(file.path(basedir, "census_data/processed", "MPA_population_within_50km.Rds"))
+watch_orig <- readRDS(file.path(basedir, "mpa_watch/processed", "MPA_Watch_2011_2022_surveys_ca_programs_wide.Rds"))
 inaturalist_orig <- readRDS(file.path(basedir, "inaturalist/processed", "2000_2020_inaturalist_data_inside_mpas_100m_buffer.Rds"))
+reef_orig <- readRDS(file.path(basedir, "reef/processed", "REEF_1994_2022_survey_metadata.Rds"))
 permits_orig <- readRDS(file.path(basedir, "scientific_permits/processed", "CA_2012_2021_mpa_scientific_permits.Rds")) 
-pop_orig <- readRDS(file.path(basedir, "census_data/processed", "MPA_population_within_50km.Rds")) 
-  
 
-# Build data
+# Format data
 ################################################################################
 
+# Population data
+pop <- pop_orig %>% 
+  select(name, npeople_50km) %>% 
+  rename(mpa=name)
 
-# Summarize iNaturalist performance
+# iNaturalist data
 inaturalist <- inaturalist_orig %>% 
   # 2018
   filter(year_obs==2018 & !is.na(taxa_catg)) %>% 
   # Summarize
   group_by(mpa) %>% 
-  summarize(nobservers=n_distinct(user_id),
-            nobservations=n()) %>% 
+  summarize(inat_observers_2018=n_distinct(user_id),
+            inat_observations_2018=n()) %>% 
   ungroup()
+
+# REEF data
+reef <- reef_orig %>% 
+  # Reduce to MPA sites
+  filter(!is.na(mpa)) %>% 
+  # Add year
+  mutate(year=lubridate::year(date)) %>% 
+  # Total by MPA-year
+  group_by(mpa, year) %>% 
+  summarize(n=n()) %>% 
+  ungroup() %>% 
+  # Fill in missing MPA-years
+  complete(fill=list(n=0)) %>%
+  # Average annual
+  group_by(mpa) %>% 
+  summarize(reef_surveys_yr=mean(n)) %>% 
+  ungroup()
+
+# Permit data
+# Total # of permits, 2012-2021
+permits <- permits_orig %>% 
+  group_by(mpa) %>% 
+  summarize(npermits_tot=sum(npermits)) %>% 
+  ungroup()
+
+# Merge data
+################################################################################
 
 # Build data
-data <- mpas_df %>% 
-  select(region, name, name_short) %>% 
-  rename(mpa_name=name, mpa_name_short=name_short) %>% 
-  # Recode region
-  mutate(region=recode_factor(region,
-                              "NCCSR"="North Coast",   
-                              "NCSR"="North Central Coast",   
-                              "SFBSR"="North Central Coast",
-                              "CCSR"="Central Coast",
-                              "SCSR"="South Coast")) %>% 
-  # Add iNaturalist data
-  left_join(inaturalist, by=c("mpa_name"="mpa")) %>% 
-  # Add othter
-  mutate(pop_dens=NA,
-         mpa_watch_rec=NA,
-         mpa_watch_fish=NA,
-         sandy_beach=NA,
-         boats_sar=NA,
-         fishing_comm=NA,
-         fishing_rec=NA) %>% 
-  # Gather
-  gather(key="metric", value="value", 4:ncol(.)) %>% 
-  # Recode metrics (potentially organize by theme later)
-  mutate(metric=recode_factor(metric,
-                              "nobservers"="iNat observers",
-                              "nobservations"="iNat observations",
-                              "pop_dens"="Population density",
-                              "mpa_watch_rec"="MPA Watch (recreation)",
-                              "mpa_watch_fish"="MPA Watch (fishing)",
-                              "sandy_beach"="Beach visits",
-                              "boats_sar"="Boat activity (SAR)",
-                              "fishing_comm"="Commercial fishing",
-                              "fishing_rec"="Recreational fishing")) %>% 
-  # Scale metrics
-  group_by(metric) %>% 
-  mutate(value_scaled=value/max(value, na.rm=T)) %>% 
-  ungroup()
+data <- mpas_orig %>% 
+  # Simplify
+  select(mpa, mpa_short, authority, type, region, area_sqkm, long_dd, lat_dd) %>% 
+  # Add population
+  left_join(pop, by="mpa") %>% 
+  # Add MPA watch
+  # Add iNaturalist
+  left_join(inaturalist, by="mpa") %>% 
+  # Add REEF survey
+  left_join(reef, by="mpa") %>% 
+  # Add permits
+  left_join(permits, by="mpa")
 
-# Derive MPA order
-mpa_order <- data %>% 
-  group_by(region, mpa_name) %>% 
-  summarize(metric_avg=mean(value, na.rm=T)) %>% 
-  ungroup() %>% 
-  arrange(region, desc(metric_avg))
+# Inspect
+freeR::complete(data)
 
-# Order data
-data_ordered <- data %>% 
-  mutate(mpa_name=factor(mpa_name, levels=mpa_order$mpa_name))
+plot(nobservers ~ npeople_50km, data)  
+  
+  
+  
+  
+  
