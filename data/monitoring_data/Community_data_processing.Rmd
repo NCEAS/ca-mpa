@@ -67,6 +67,8 @@ CCFRP_CPUE <- CCFRP_CPUE %>%
   dplyr::select(year, group, region3, region4, MHW, everything())
 
 #Export
+#path_aurora <- "/home/shares/ca-mpa/data/sync-data/processed_data/ecological_community_data" 
+#write.csv(CCFRP_CPUE,file.path(path_aurora, "CCFRP_species_counts.csv"), row.names = FALSE)
 
 
 ```
@@ -165,9 +167,11 @@ kelp_fish_counts <- kelp_fish_counts %>%
                     janitor::clean_names()%>%
                     drop_na(region4)%>%
                     mutate(MHW = ifelse(year>=2014 & year<=2016, "during",ifelse(year<2014, "before","after")))%>%
-                    dplyr::select(year, region3, region4, affiliated_mpa, mpa_defacto_class, MHW, zone, level, transect, everything(),-c(no_organisms_present_in_this_sample))
+                    dplyr::select(year, region3, region4, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation, MHW, zone, level, transect, everything(),-c(no_organisms_present_in_this_sample))
 
 #Export
+#path_aurora <- "/home/shares/ca-mpa/data/sync-data/processed_data/ecological_community_data" 
+#write.csv(kelp_fish_counts,file.path(path_aurora, "kelp_fish_counts.csv"), row.names = FALSE)
 
 
 ```
@@ -266,6 +270,9 @@ kelp_swath_counts <- kelp_swath_counts %>%
                     #dplyr::select(-c(no_organisms_present_in_this_sample))
 
 #Export
+#path_aurora <- "/home/shares/ca-mpa/data/sync-data/processed_data/ecological_community_data" 
+#write.csv(kelp_swath_counts,file.path(path_aurora, "kelp_swath_counts.csv"), row.names = FALSE)
+
 
 ```
 
@@ -364,6 +371,8 @@ kelp_upc_counts <- kelp_upc_counts %>%
                     #dplyr::select(-c(no_organisms_present_in_this_sample))
 
 #Export
+#path_aurora <- "/home/shares/ca-mpa/data/sync-data/processed_data/ecological_community_data" 
+#write.csv(kelp_upc_counts,file.path(path_aurora, "kelp_upc_counts.csv"), row.names = FALSE)
 
 
 
@@ -481,8 +490,35 @@ deep_reef_counts_wide <- deep_reef_counts %>%
                     #dplyr::select(-c(no_organisms_present_in_this_sample))
 
 #Export
+#path_aurora <- "/home/shares/ca-mpa/data/sync-data/processed_data/ecological_community_data" 
+#write.csv(deep_reef_counts_wide,file.path(path_aurora, "deep_reef_fish_counts.csv"), row.names = FALSE)
+
 
 ```
+
+
+#process intertidal data
+```{r}
+#load species level mean fish biomass 
+data_path <- "/home/shares/ca-mpa/data/sync-data/monitoring/monitoring_rocky-intertidal/Biodiversity surveys"
+input_file <- "swath_summary_counts_2021_0108.csv" 
+rocky_counts_raw <- read.csv(file.path(data_path, input_file)) %>%
+                    janitor::clean_names()
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
