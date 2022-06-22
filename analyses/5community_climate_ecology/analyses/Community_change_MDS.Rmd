@@ -22,131 +22,47 @@ require(ggplot2)
 ```
 
 
-#load CCFRP data
-
-```{r}
-# ccfrp -------------------------------------------------------------------
-
-#load species level mean fish CPUE
-data_path <- "/home/shares/ca-mpa/data/sync-data/monitoring/monitoring_ccfrp/CCFRP_derived_data_tables_DataONE"
-input_file <- "CCFRP_derived_effort_table.csv" 
-CPUE_raw <- read.csv(file.path(data_path, input_file))
-
-#reshape and clean up
-CCFRP_CPUE <- CPUE_raw %>%
-  mutate(affiliated_mpa = paste(Area,"smr"), #all ccfrp MPAs are defacto SMRs per PI
-         mpa_designation = ifelse(MPA_Status == "MPA","smr", MPA_Status))
-  
-CCFRP_CPUE$mpa_designation <- tolower(CCFRP_CPUE$mpa_designation)
-CCFRP_CPUE$mpa_designation <- tolower(CCFRP_CPUE$mpa_designation)
-
-CCFRP_CPUE <- CCFRP_CPUE %>%
-                  dplyr::select(year=Year, affiliated_mpa, mpa_designation, Grid_Cell_ID, Common_Name, CPUE_catch_per_angler_hour)%>%
-                  mutate(mpa_class="smr", 
-                         group="ccfrp") %>%
-                  group_by(group, year, affiliated_mpa, mpa_class, mpa_designation, Grid_Cell_ID, Common_Name)%>%
-                  summarise(CPUE_mean = mean(CPUE_catch_per_angler_hour))%>%  #some species in the raw data have duplicate entries.
-                  ungroup() %>%
-                  tidyr::pivot_wider(names_from = Common_Name, 
-                                     values_from = CPUE_mean,
-                                     values_fill = 0.00000000) %>%
-                  janitor::clean_names()
-              
-CCFRP_CPUE$affiliated_mpa <- tolower(CCFRP_CPUE$affiliated_mpa)
-
-CCFRP_CPUE$affiliated_mpa <- recode_factor(CCFRP_CPUE$affiliated_mpa, "southeast farallon islands smr" = "southeast farallon island smr") #clean up names
-
-CCFRP_CPUE$affiliated_mpa <- recode_factor(CCFRP_CPUE$affiliated_mpa, "swamis smr" = "swami's smca") #clean up names 
-
-
-#add regions
-data_path <- "/home/shares/ca-mpa/data/sync-data/mpa_traits"
-input_file <- "mpa-attributes.xlsx" 
-four_region <- readxl::read_excel(file.path(data_path, input_file), sheet=1, skip = 0, na="NA")
-
-regions <- four_region %>%
-  dplyr::select(name, region3=bioregion, region4 = four_region_north_ci)
-
-CCFRP_CPUE <- left_join(CCFRP_CPUE, regions, by=c("affiliated_mpa"="name"))
-
-#clean up a
-
-CCFRP_CPUE <- CCFRP_CPUE %>%
-  dplyr::select(year, group, region3, region4, everything())
-
-```
-
-
-#ordinate by region
+#load data
 
 ```{r}
 
-CCFRP_test <- CCFRP_CPUE %>%
-              filter(region4 == 'north')
+data_path <- "/home/shares/ca-mpa/data/sync-data/processed_data/ecological_community_data"
 
-year <- as.numeric(CCFRP_test$year)
+#load CCFRP
+input_file <- "CCFRP_species_counts.csv" 
+CCFRP <- read.csv(file.path(data_path, input_file))
 
+#load kelp upc
+input_file <- "kelp_upc_counts.csv" 
+kelp_upc <- read.csv(file.path(data_path, input_file))
 
-CCFRP_test <- CCFRP_test[,9:102]
+#load kelp swath
+input_file <- "kelp_swath_counts.csv" 
+kelp_swath <- read.csv(file.path(data_path, input_file))
 
-CCFRP_relative <- decostand(CCFRP_test, method = "total")
-              
-distmat <- 
-    vegdist(CCFRP_relative, method = "eucl")
+#load kelp_fish
+input_file <- "kelp_fish_counts.csv" 
+kelp_fish <- read.csv(file.path(data_path, input_file))
 
-
-ord <- metaMDS(distmat, distance="eucl")
-
-
-
-plot(ord)
-ordiellipse(ord, year)
-ordispider(ord, year, label=F)
-
-
-
-scrs <- scores(ord)
-
-scrs <- cbind(as.data.frame(scrs), year) #to facilitate computing centroids, add group var
-
-cent <- aggregate(cbind(NMDS1, NMDS2) ~ year, data = scrs, FUN = mean) #computes centroids
-
-segs <- merge(scrs, setNames(cent, c('year','oNMDS1','oNMDS2')),
-              by = 'year', sort=FALSE) #to draw the spider, we need to use geom_segment() which required coordinates to draw the segment from and to. Our 'to'
-                                       # coordinates, the xend and yend aesthetics will be the centroids. So we need to replicate the group centroid for each
-                                       # observation in the group. T
-
-
-
-
-ggplot(scrs, aes(x = NMDS1, y=NMDS2, colour = year, group=1)) +
-  #geom_segment(data = segs,
-               #mapping = aes(xend = oNMDS1, yend = oNMDS2)) + #spiders
-  geom_point(data = cent, size=5) +                           #centroids
-  geom_path(data = cent, size = 0.5, aes(color=year))+           #line connecting groups (years)
-  #geom_point() +                                              #sample scores
-  #coord_fixed() +
-  geom_text(data=cent, aes(label=year), position=position_jitter())+
-  #xlim(-4.5,4.5)+
-  #ylim(-0.45,0.65)+
-  theme_classic() +
-  theme(legend.position='none')
+#load deep reef
+input_file <- "deep_reef_fish_counts.csv" 
+deep_reef <- read.csv(file.path(data_path, input_file))
 
 
 ```
 
 
-
-#test ordinate across regions
+#OLD -- test ordinate across YEARS and regions
 ```{r}
 
-CCFRP_test <- CCFRP_CPUE 
+CCFRP_test <- CCFRP 
 
 year <- as.numeric(CCFRP_test$year)
 region <- CCFRP_test$region4
 mpa_designation <- CCFRP_test$mpa_designation
 
-CCFRP_test <- CCFRP_test[,9:102]
+CCFRP_test <- CCFRP_test%>%
+              dplyr::select(10:ncol(.))
 
 CCFRP_relative <- decostand(CCFRP_test, method = "total") #convert absolute abundance to relative abundance
               
@@ -171,7 +87,7 @@ scrs$region <- factor(scrs$region, level = c("north","central","north islands","
 scrs$mpa_designation <- factor(scrs$mpa_designation, level = c("smr","ref")) #set order
 
 
-cent <- aggregate(cbind(NMDS1, NMDS2) ~ year+region+mpa_designation, data = scrs, FUN = mean) #computes centroids by year and region
+cent <- aggregate(cbind(NMDS1, NMDS2) ~ year+region+mpa_designation, data = scrs, FUN = mean) #computes centroids by MHW and region
 
 segs <- merge(scrs, setNames(cent, c('year','oNMDS1','oNMDS2')),
               by = 'year', sort=FALSE) #to draw the spider, we need to use geom_segment() which required coordinates to draw the segment from and to. Our 'to'
@@ -208,4 +124,77 @@ ggplot(scrs, aes(x = NMDS1, y=NMDS2, shape = region, color = mpa_designation, gr
 
 
 
+#CCFRP ordinate and plot centroids pre, during, post MHW
+```{r}
+
+CCFRP_test <- CCFRP %>%
+                  rowwise() %>%
+                  mutate(sum = sum(across(10:ncol(.)), na.rm = T)) %>%
+                  filter(!(sum==0))%>%
+                  dplyr::select(-sum) #remove rows containing only zeros
+
+
+year <- as.numeric(CCFRP_test$year)
+region <- CCFRP_test$region4
+mpa_designation <- CCFRP_test$mpa_designation
+mhw <- CCFRP_test$MHW
+
+CCFRP_relative <- CCFRP_test%>%
+              dplyr::select(10:ncol(.))
+
+  
+distmat <- 
+    vegdist(CCFRP_relative, method = "bray", na.rm=T) #generates a euclidean based distance matrix
+
+
+ord <- metaMDS(distmat, distance="bray") #ordinates the dist matrix
+
+
+
+#plot(ord)
+#ordiellipse(ord, year)
+#ordispider(ord, year, label=F)
+
+
+
+scrs <- scores(ord)
+
+scrs <- cbind(as.data.frame(scrs), mhw, region, mpa_designation) #to facilitate computing centroids, add group var
+scrs$region <- factor(scrs$region, level = c("north","central","north islands","south")) #set order
+scrs$mhw <- factor(scrs$mhw, level = c("before","during","after")) #set order
+scrs$mpa_designation <- factor(scrs$mpa_designation, level = c("smr","ref")) #set order
+
+
+cent <- aggregate(cbind(NMDS1, NMDS2) ~ mhw+region+mpa_designation, data = scrs, FUN = mean) #computes centroids by MHW and region
+
+segs <- merge(scrs, setNames(cent, c('mhw','oNMDS1','oNMDS2')),
+              by = 'mhw', sort=FALSE) #to draw the spider, we need to use geom_segment() which required coordinates to draw the segment from and to. Our 'to'
+                                       # coordinates, the xend and yend aesthetics will be the centroids. So we need to replicate the group centroid for each
+                                       # observation in the group. T
+
+
+
+
+ggplot(scrs, aes(x = NMDS1, y=NMDS2, shape = region, color = mpa_designation, group=region)) +
+  #geom_segment(data = segs,
+               #mapping = aes(xend = oNMDS1, yend = oNMDS2)) + #spiders
+  geom_point(data = cent, size=5) +                           #centroids
+  geom_path(data = cent, size = 0.5, #aes(color=year)
+            )+           #line connecting groups (years)
+  #geom_point() +                                              #sample scores
+  #coord_fixed() +
+  geom_text(data=cent, aes(label=mhw), position=position_jitter(width=0.02, height=0.01))+
+  #xlim(-4.5,4.5)+
+  #ylim(-0.45,0.65)+
+  facet_wrap(~mpa_designation,
+             labeller = labeller(mpa_designation =
+                                   c("ref"="REF",
+                                     "smr"="SMR")))+
+  ggtitle("CCFRP assemblage structure over time")+
+  theme(strip.text = element_text(size=18, face="bold"))+
+  theme(plot.title = element_text(size=20, face="bold"))+
+  theme(text = element_text(20))
+```
+  
+  
 
