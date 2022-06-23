@@ -169,7 +169,7 @@ g <- gridExtra::grid.arrange(g1, g2, g3, nrow=1)
 g
 
 # Export figure
-ggsave(g, filename=file.path(plotdir, "figure_mpa_block_covereage.png"),
+ggsave(g, filename=file.path(plotdir, "figure_mpa_block_coverage.png"),
        width=6.5, height=3.25, units="in", dpi=600)
 
 
