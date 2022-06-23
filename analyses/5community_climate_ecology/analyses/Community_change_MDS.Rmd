@@ -124,27 +124,123 @@ ggplot(scrs, aes(x = NMDS1, y=NMDS2, shape = region, color = mpa_designation, gr
 
 
 
-#CCFRP ordinate and plot centroids pre, during, post MHW
-```{r}
 
-CCFRP_test <- CCFRP %>%
+#clean data for ordination
+```{r}
+#CCFRP processing--------------------------------------------------------------
+CCFRP_process <- CCFRP %>%
                   rowwise() %>%
                   mutate(sum = sum(across(10:ncol(.)), na.rm = T)) %>%
                   filter(!(sum==0))%>%
                   dplyr::select(-sum) #remove rows containing only zeros
 
+year.CCFRP <- as.numeric(CCFRP_process$year)
+region.CCFRP <- CCFRP_process$region4
+mpa_designation.CCFRP <- CCFRP_process$mpa_designation
+mhw.CCFRP <- CCFRP_process$MHW
 
-year <- as.numeric(CCFRP_test$year)
-region <- CCFRP_test$region4
-mpa_designation <- CCFRP_test$mpa_designation
-mhw <- CCFRP_test$MHW
-
-CCFRP_relative <- CCFRP_test%>%
+CCFRP_ord_data <- CCFRP_process%>%
               dplyr::select(10:ncol(.))
 
+CCFRP_distmat <- vegdist(CCFRP_ord_data, method = "bray") #generates a BC dissim matrix
+
+
+
+
+#kelp swath processing---------------------------------------------------------
+kelp_swath <- kelp_swath_counts %>%
+                  rowwise() %>%
+                  mutate(sum = sum(10:ncol(.), na.rm = T)) %>%
+                  filter(!(sum==0))%>%
+                  dplyr::select(-sum) #remove rows containing only zeros
+
+year.kelp_swath <- as.numeric(kelp_swath_counts$year)
+region.kelp_swath <- kelp_swath_counts$region4
+mpa_designation.kelp_swath <- kelp_swath_counts$mpa_defacto_designation
+mhw.kelp_swath <- kelp_swath_counts$MHW
+
+kelp_swath_ord_data <- kelp_swath%>%
+              ungroup()%>%
+              dplyr::select(10:ncol(.))
   
-distmat <- 
-    vegdist(CCFRP_relative, method = "bray", na.rm=T) #generates a euclidean based distance matrix
+kelp_swath_distmat <- 
+    vegdist(kelp_swath_ord_data, method = "bray", na.rm=T) #generates a BC dissim matrix
+
+
+```
+
+
+#ordinate all datasets. NOTE: THIS CHUNK TAKES A LOT OF COMPUTATION TIME. Resulting objects are exported as .Rdata
+#and can be loaded directly in next chunk.
+```{R}
+CCFRP_ord <- metaMDS(distmat, distance="bray") #ordinates the dist matrix
+kelp_swath_ord <- metaMDS(distmat, distance="bray") #ordinates the dist matrix
+
+#export to .RData
+
+path_aurora <- "/home/shares/ca-mpa/data/sync-data/processed_data/ecological_community_data" 
+save(CCFRP_ord, kelp_swath_ord,file = file.path(path_aurora, "bray_nmds_scores"))
+
+
+```
+
+
+#CCFRP scores and plot
+```{r}
+
+  
+
+
+
+#plot(ord)
+#ordiellipse(ord, year)
+#ordispider(ord, year, label=F)
+
+
+
+scrs <- scores(ord)
+
+scrs <- cbind(as.data.frame(scrs), mhw, region, mpa_designation) #to facilitate computing centroids, add group var
+scrs$region <- factor(scrs$region, level = c("north","central","north islands","south")) #set order
+scrs$mhw <- factor(scrs$mhw, level = c("before","during","after")) #set order
+scrs$mpa_designation <- factor(scrs$mpa_designation, level = c("smr","ref")) #set order
+
+
+cent <- aggregate(cbind(NMDS1, NMDS2) ~ mhw+region+mpa_designation, data = scrs, FUN = mean) #computes centroids by MHW and region
+
+segs <- merge(scrs, setNames(cent, c('mhw','oNMDS1','oNMDS2')),
+              by = 'mhw', sort=FALSE) #to draw the spider, we need to use geom_segment() which required coordinates to draw the segment from and to. Our 'to'
+                                       # coordinates, the xend and yend aesthetics will be the centroids. So we need to replicate the group centroid for each
+                                       # observation in the group. T
+
+
+
+
+ggplot(scrs, aes(x = NMDS1, y=NMDS2, shape = region, color = mpa_designation, group=region)) +
+  #geom_segment(data = segs,
+               #mapping = aes(xend = oNMDS1, yend = oNMDS2)) + #spiders
+  geom_point(data = cent, size=5) +                           #centroids
+  geom_path(data = cent, size = 0.5, #aes(color=year)
+            )+           #line connecting groups (years)
+  #geom_point() +                                              #sample scores
+  #coord_fixed() +
+  geom_text(data=cent, aes(label=mhw), position=position_jitter(width=0.02, height=0.01))+
+  #xlim(-4.5,4.5)+
+  #ylim(-0.45,0.65)+
+  facet_wrap(~mpa_designation,
+             labeller = labeller(mpa_designation =
+                                   c("ref"="REF",
+                                     "smr"="SMR")))+
+  ggtitle("CCFRP assemblage structure over time")+
+  theme(strip.text = element_text(size=18, face="bold"))+
+  theme(plot.title = element_text(size=20, face="bold"))+
+  theme(text = element_text(20))
+```
+  
+
+
+#kelp swath scores and plot 
+```{r}
 
 
 ord <- metaMDS(distmat, distance="bray") #ordinates the dist matrix
@@ -195,6 +291,4 @@ ggplot(scrs, aes(x = NMDS1, y=NMDS2, shape = region, color = mpa_designation, gr
   theme(plot.title = element_text(size=20, face="bold"))+
   theme(text = element_text(20))
 ```
-  
-  
 
