@@ -23,122 +23,97 @@ port_key <- readRDS(file.path(datadir, "CDFW_port_key.Rds"))
 ## Simplify Landings ----
 data <- landings %>% 
   filter(block_state == "California") %>% 
-  select(year, port_complex, port_id, port, block_id, 
+  select(year, port_complex, port_id, port, block_id, vessel_id, date,
          species_id, species, landings_lb, value_usd)
 
 ## Annual Landings per Port ----
-annual_port <- data %>% 
+# Get 2000-2020
+# Average annual landings on the x axis and port on the y axis barplot
+# Keep track of the number of vessels contributing to each of those ports
+# Consider what percent of the total catch is being contributed by each port 
+
+# Calculate total landing per year for vessel at each port
+annual_vessel <- data %>% 
+  group_by(year, port_complex, port_id, port, vessel_id) %>% 
+  dplyr::summarize(vessel_lb = sum(landings_lb, na.rm = TRUE),
+                   vessel_usd = sum(value_usd, na.rm = TRUE),
+                   n_receipts = n(),
+                   n_days = length(unique(date)),
+                   n_species = length(unique(species_id)))
+
+# Calculate total landing per year for each port (all vessels)
+annual_port <- annual_vessel %>% 
   group_by(year, port_complex, port_id, port) %>% 
-  dplyr::summarize(total_lb = sum(landings_lb, na.rm = TRUE),
-                   total_usd = sum(value_usd, na.rm = TRUE)) %>% 
-  arrange(-total_lb) %>% 
-  filter(!(port_complex %in% c("Inland Waters", "Unknown"))) #these are zero
- 
-## Totals for All Years ----
-all_port <- data %>% 
+  dplyr::summarize(annual_lb = sum(vessel_lb, na.rm = TRUE),
+                   annual_usd = sum(vessel_usd, na.rm = TRUE),
+                   n_receipts = sum(n_receipts),
+                   n_vessels = length(unique(vessel_id)))
+
+# Calculate average annual landing per port
+avg_port <- annual_port %>% 
   group_by(port_complex, port_id, port) %>% 
-  dplyr::summarize(total_lb = sum(landings_lb, na.rm = TRUE),
-                   total_usd = sum(value_usd, na.rm = TRUE))
+  dplyr::summarize(avg_annual_lb = mean(annual_lb, na.rm = TRUE),
+                   avg_annual_usd = mean(annual_usd, na.rm = TRUE),
+                   total_receipts = sum(n_receipts, na.rm = TRUE),
+                   total_vessels = sum(n_vessels, na.rm = TRUE)) %>% 
+  filter(!(port_complex == "Unknown")) %>% 
+  mutate(pct_total_lb = avg_annual_lb/sum(avg_port$avg_annual_lb)*100,
+         pct_total_usd = avg_annual_usd/sum(avg_port$avg_annual_usd)*100) %>% 
+  ungroup()
+
+# Calculate total vessels per port
+total_vessels <- data %>% 
+  
+
+# Order and Calculate Cumulative Totals
+cumulative_usd <- avg_port %>% 
+  arrange(-avg_annual_usd) %>% 
+  mutate(total = cumsum(pct_total_usd)) %>% 
+  mutate(port = fct_reorder(port, avg_annual_usd)) %>% 
+  mutate(top_95 = case_when(total > 95 ~ "No",
+                            total < 95 ~ "Yes"),
+         top_98 = case_when(total > 98 ~ "No",
+                            total < 98 ~ "Yes"))
+
+cumulative_lb <- avg_port %>% 
+  arrange(-avg_annual_lb) %>% 
+  mutate(total = cumsum(pct_total_lb)) %>% 
+  mutate(port = fct_reorder(port, avg_annual_lb)) %>% 
+  mutate(top_95 = case_when(total > 95 ~ "No",
+                            total < 95 ~ "Yes"),
+         top_98 = case_when(total > 98 ~ "No",
+                            total < 98 ~ "Yes"))
 
 # Plot -------------------------------------------------------------------------
-
-## Scatterplots ----
-
-### Annual Totals ----
-g1 <- ggplot() +
-  geom_point(data = annual_port, 
-             aes(x = year, y = total_lb, color = port_complex),
-             show.legend = FALSE) +
-  labs(title = "A. Total Annual Landings (lbs)") +
-  theme_classic()
-
-g2 <- ggplot() +
-  geom_point(data = annual_port, 
-             aes(x = year, y = total_usd, color = port_complex)) +
-  labs(title = "B. Total Annual Revenue (USD)")+
-  theme_classic()
-
-g <- gridExtra::grid.arrange(g1, g2, nrow = 1)
-
-### Facet By Port Complex ----
-ggplot() +
-  geom_point(data = annual_port, 
-             aes(x = year, y = total_lb, color = port), 
-             show.legend = FALSE) +
-  facet_wrap(~port_complex)+
-  labs(title = "Annual Total Landings (lbs) by Port Complex") +
+usd1 <- ggplot(data = cumulative_usd) +
+  geom_col(aes(x = avg_annual_usd, y = port, fill = top_98)) +
   theme_minimal()
 
-ggplot() +
-  geom_point(data = annual_port, 
-             aes(x = year, y = total_usd, color = port), 
-             show.legend = FALSE) +
-  facet_wrap(~port_complex)+
-  labs(title = "Annual Total Revenues (USD) by Port Complex") +
+usd2 <- ggplot(data = cumulative_usd) +
+  geom_col(aes(x = total, y = port, fill = top_98)) +
   theme_minimal()
 
-## Histograms ----
+gridExtra::grid.arrange(usd1, usd2, nrow = 1)
 
-### Annual ----
-h1 <- ggplot() + 
-  geom_histogram(data = annual_port,
-                 aes(x = total_lb)) +
-  labs(title = "A. Total Annual Landings (lbs)",
-       ylab = "number of ports") +
+lb1 <- ggplot(data = cumulative_lb) +
+  geom_col(aes(x = avg_annual_lb, y = port, fill = top_98),
+           show.legend = F) +
+  labs(x = "Average Annual Landings (lbs)")
   theme_minimal()
 
-h2 <- ggplot() + 
-  geom_histogram(data = annual_port,
-                 aes(x = total_usd)) +
-  labs(title = "B. Total Annual Revenue (USD)",
-       ylab = "number of ports") +
-  theme_minimal()
+lb2 <- ggplot(data = cumulative_lb) +
+  geom_col(aes(x = total, y = port, fill = top_98),
+           show.legend = F) +
+  theme_minimal() +
+  labs(x = "Cumulative Percent of Total Annual Landing (lbs)")
+  theme(axis.text.y=element_blank())
 
-h <- gridExtra::grid.arrange(h1, h2, nrow = 1)
+lb3 <- ggplot(data = cumulative_lb) +
+  geom_col(aes(x = total_vessels, y = port, fill = top_98)) +
+  theme_minimal() +
+  labs(x = "Number of Vessels Contributing to Annual Landings",
+       fill = "Does the port\ncontribute to\ntop 98%\ntotal annual landings")+
+  theme(axis.text.y=element_blank())
 
-### All Years ----
-ggplot() + 
-  geom_histogram(data = all_port,
-                 aes(x = total_lb))
-ggplot() + 
-  geom_histogram(data = all_port,
-                 aes(x = total_usd))
-
-### Lower Tails ----
-
-#### Landings
-l1 <- ggplot() +
-  geom_histogram(data = annual_port %>% 
-                   filter(total_lb < 100000),
-                 aes(x = total_lb))
-
-l2 <- ggplot() +
-  geom_histogram(data = annual_port %>% 
-                   filter(total_lb < 25000),
-                 aes(x = total_lb))
-
-l3 <- ggplot() +
-  geom_histogram(data = annual_port %>% 
-                   filter(total_lb < 15000),
-                 aes(x = total_lb))
-
-l <- gridExtra::grid.arrange(l1, l2, l3, nrow = 3)
-
-#### Revenues
-r1 <- ggplot() +
-  geom_histogram(data = annual_port %>% 
-                   filter(total_usd < 100000),
-                 aes(x = total_usd))
-
-r2 <- ggplot() +
-  geom_histogram(data = annual_port %>% 
-                   filter(total_usd < 50000),
-                 aes(x = total_usd))
-
-r3 <- ggplot() +
-  geom_histogram(data = annual_port %>% 
-                   filter(total_usd < 20000),
-                 aes(x = total_usd))
-
-r <- gridExtra::grid.arrange(r1, r2, r3, nrow = 3)
+gridExtra::grid.arrange(lb1, lb2, lb3, nrow = 1)
 
