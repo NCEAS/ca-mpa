@@ -499,12 +499,29 @@ deep_reef_counts_wide <- deep_reef_counts %>%
 
 #process intertidal data
 ```{r}
-#load species level mean fish biomass 
-data_path <- "/home/shares/ca-mpa/data/sync-data/monitoring/monitoring_rocky-intertidal/Biodiversity surveys"
-input_file <- "swath_summary_counts_2021_0108.csv" 
+#
+#load intertidal 
+data_path <- "/home/shares/ca-mpa/data/sync-data/monitoring/monitoring_rocky-intertidal/Community analysis"
+input_file <- "intertidal_site_counts.csv"
+  
 rocky_counts_raw <- read.csv(file.path(data_path, input_file)) %>%
-                    janitor::clean_names()
+                                janitor::clean_names()
 
+
+#clean
+rocky_counts_raw$affiliated_mpa <- tolower(rocky_counts_raw$affiliated_mpa)
+
+rocky_counts_raw$mpa_designation <- tolower(rocky_counts_raw$mpa_designation)
+
+rocky_counts_raw$mpa_designation <- recode_factor(rocky_counts_raw$mpa_designation,"none"="ref")
+
+rocky_counts_raw <- rocky_counts_raw %>%
+                    filter(!(mpa_designation=='sc'))
+
+
+#export
+path_aurora <- "/home/shares/ca-mpa/data/sync-data/processed_data/ecological_community_data" 
+write.csv(rocky_counts_raw, file.path(path_aurora, "rocky_counts.csv"), row.names = FALSE)
 
 ```
 
