@@ -87,6 +87,8 @@ my_theme <-  theme(axis.text=element_text(size=7),
                    panel.background = element_blank(), 
                    axis.line = element_line(colour = "black"),
                    # Legend
+                   legend.position = c(0.75, 0.25),
+                   legend.key.size = unit(0.3, "cm"),
                    legend.background = element_rect(fill=alpha('blue', 0)))
 
 # Plot data
@@ -96,11 +98,12 @@ g <- ggplot(data_ind, aes(x=rank_perc, y=value_cum_prop, color=indicator)) +
   # Reference lines
   geom_line(data=data_ref, aes(x=rank_perc, y=value_cum_prop, linetype=indicator), inherit.aes = F) +
   # Reference labels
-  annotate(geom="text", x=0.1, y=0.9, label="More choosy\nusers", hjust=0.5) +
-  annotate(geom="text", x=0.5, y=0.75, label="Less choosy\nusers", hjust=0.5) +
+  annotate(geom="text", x=0.1, y=0.9, label="More selective\nusers", hjust=0.5, size=2.7, color="grey30") +
+  annotate(geom="text", x=0.47, y=0.6, label="Less selective\nusers", hjust=0.5, size=2.7, color="grey30") +
   # Labels
-  labs(x="Percentile of MPA\nwithin MPA network", y="Percent of\nnetwork-level performance") +
-  scale_x_continuous(labels=scales::percent) +
+  labs(x="Standardized rank order\nof an MPA's contribution to network-wide performance", 
+       y="Percent of\nnetwork-wide performance") +
+  # scale_x_continuous(labels=scales::percent) +
   scale_y_continuous(labels=scales::percent) +
   # Legend
   scale_color_discrete(name="Human use indictor") +
@@ -111,7 +114,7 @@ g
 
 # Export figure
 ggsave(g, filename=file.path(plotdir, "Fig8_human_use_accumulation.png"), 
-       width=6.5, height=4.5, units="in", dpi=600)
+       width=4.5, height=4.5, units="in", dpi=600)
 
 
 

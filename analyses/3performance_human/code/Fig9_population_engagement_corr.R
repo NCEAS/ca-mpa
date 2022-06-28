@@ -80,6 +80,10 @@ my_theme <-  theme(axis.text=element_text(size=7),
 # Plot data
 g <- ggplot() +
   # Plot regression
+  geom_smooth(data=data1, formula='y ~ x',
+              aes(x=npeople_50km/1e6, y=inat_observers_tot),
+              method=lm, color="grey50", fill="grey80", alpha=0.5) +
+  # Plot regression
   geom_smooth(data=data1 %>% filter(charisma_yn=="Typical"), formula='y ~ x',
               aes(x=npeople_50km/1e6, y=inat_observers_tot),
               method=lm, color="darkred", fill="red", alpha=0.5) +
