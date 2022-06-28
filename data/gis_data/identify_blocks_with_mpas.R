@@ -53,6 +53,11 @@ blocks_area <- blocks_simple %>%
 blocks_simple <- blocks_simple %>% 
   mutate(block_area_km2 = blocks_area)
 
+# Drop geometry and export total block area for all blocks
+blocks_simple_exp <- blocks_simple %>% 
+  sf::st_drop_geometry()
+write.csv(blocks_simple_exp, file=file.path(outdir, "CA_blocks_area_km2.csv"), row.names=F)
+
 # Test for any overlap among MPA polygons 
 overlap <- sf::st_overlaps(mpas_simple, mpas_simple, sparse = FALSE)
 
@@ -84,6 +89,7 @@ blocks_stats_sf <- blocks %>%
 
 # Export block key
 write.csv(block_stats, file=file.path(outdir, "CA_blocks_with_mpas.csv"), row.names=F)
+
 
 
 # Plot data
