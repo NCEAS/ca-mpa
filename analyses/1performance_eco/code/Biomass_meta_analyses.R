@@ -104,7 +104,7 @@ region.yr.means <- region.yr.means %>%
 ### calculate SMD sampling variances (and use
 ### the 'slab' argument to store study labels as part of the data frame)
 
-dat <- escalc(measure="SMD", m1i=yr.mean_smr, m2i=yr.mean_ref, sd1i=sd_smr, sd2i=sd_ref, n1i=n_smr, n2i=n_ref, data=region.yr.means, slab=paste(group)) 
+dat <- escalc(measure="ROM", m1i=yr.mean_smr, m2i=yr.mean_ref, sd1i=sd_smr, sd2i=sd_ref, n1i=n_smr, n2i=n_ref, data=region.yr.means, slab=paste(group)) 
 
 dat <- dat %>%
   filter(!is.na(vi))    
@@ -223,7 +223,7 @@ region.yr.means <- region.yr.means %>%
 
 
 
-dat <- escalc(measure="SMD", m1i=yr.mean_smr, m2i=yr.mean_ref, sd1i=sd_smr, sd2i=sd_ref, n1i=n_smr, n2i=n_ref, data=region.yr.means, slab=paste(group)) 
+dat <- escalc(measure="ROM", m1i=yr.mean_smr, m2i=yr.mean_ref, sd1i=sd_smr, sd2i=sd_ref, n1i=n_smr, n2i=n_ref, data=region.yr.means, slab=paste(group)) 
 
 dat <- dat %>%
   filter(!is.na(vi))    

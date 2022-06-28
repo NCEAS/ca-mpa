@@ -2,11 +2,17 @@
 title: "PCA for MPA Attribute Data"
 author: "Cori Lopazanski"
 date: '2022-06-08'
-output: html_document
+output: 
+  html_document:
+    self_contained: FALSE
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(
+	echo = FALSE,
+	message = FALSE,
+	warning = FALSE
+)
 ```
 
 
@@ -14,15 +20,23 @@ knitr::opts_chunk$set(echo = TRUE)
 
 *Goal*: Explore whether key characteristics describe variation among MPAs. Can
 we reduce the attribute data to fewer variables while still capturing the
-key information?
+key information? Are there useful groupings that emerge which might be useful
+for subsequent analyses? Are there different drivers of variation in different regions?
 
 *Steps*
 1. Log-transform the continuous data: standardize across variables with different scales
-2. Examine pairwise correlations across variables
-3. PCA with all continuous variables
+2. PCA with all variables 
+3. Reduce variables which explain the same underlying characteristics
+4. PCA with consolidated variables 
+5. Separate regional PCAs with all/consolidated variables
 
+*Data*
 
-# Setup
+The MPA Attributes data for these analyses was supplied by California Department of Fish and Wildlife.
+It is contained in the CA MPA Working Group shared data folder. 
+
+Link: https://drive.google.com/drive/folders/1tCOIsQ2TolxAqZW13gdLjD_tEn27T9ox?usp=sharing
+
 
 ```{r}
 # Packages
@@ -31,85 +45,154 @@ library(here)
 library(ggbiplot)
 library(GGally)
 library(vegan)
-
+library(viridis)
+library(RColorBrewer)
 # Directories
-base.dir <- "/Volumes/GoogleDrive-105151121202188525604/Shared drives/NCEAS MPA network assessment/MPA Network Assessment: Working Group Shared Folder/data/sync-data" # Cori Local
+base.dir <- "/Volumes/GoogleDrive/Shared drives/NCEAS MPA network assessment/MPA Network Assessment: Working Group Shared Folder/data/sync-data" # Cori Local
 #base.dir <- "/home/shares/ca-mpa/data/sync-data/" #Aurora Base
 repo.dir <- here::here("analyses", "7habitat")
 in.dir <- here::here(base.dir, "mpa_traits", "processed")
+fig.dir <- here::here("analyses", "7habitat", "figures")
 
-# Read Cleaned Data
+# Read Cleaned Attribute Data
 attributes <- read_csv(file.path(in.dir, "mpa_attributes_clean.csv"))
-```
 
-# Processing
-
-## Minor Corrections 
-
-```{r}
+# Some Minor Processing
 data <- attributes %>% 
   mutate(four_region_north_ci = as.factor(four_region_north_ci)) %>% 
-  mutate(prop_hard = total_hard_substrate/size_km2) %>% 
-  mutate(prop_soft = total_soft_substrate/size_km2)
+  mutate(total_submarine_canyon_km2 = 
+           rowSums(select(., c(submarine_canyon_0_30m_km2,
+                               submarine_canyon_30_100m_km2,
+                               submarine_canyon_100_200m_km2)))) %>%
+  mutate(total_estuary = 
+           rowSums(select(., c(estuary_km2, coastal_marsh_km2, eelgrass_km2,
+                               coastal_marsh_km, tidal_flats_km, surfgrass_km)))) %>% 
+  filter(mpa_class != "smrma")
+
+```
+# Summarize Biomass Data
+
+## Log Response Ratios
+
+```{r}
+# Read Cleaned Biomass Response Ratio Data
+biomass_logRR <- read_csv(file.path(base.dir, "monitoring", "processed_data", 
+                              "targeted_nontargeted_fish_biomass_logRRs.csv"))
+
+# Average response for each group-site for 2016-2019
+biomass_1619_logRR <- biomass_logRR %>% 
+  filter(year %in% c(2016:2019)) %>% 
+  group_by(group, affiliated_mpa, target_status) %>% 
+  dplyr::summarize(mean_logRR = mean(logRR, na.rm = TRUE)) %>% 
+  ungroup() %>% 
+  mutate(group_ind = paste(group, target_status, "logRR", sep = "_")) %>% 
+  select(!c(group, target_status)) %>% 
+  pivot_wider(names_from = group_ind, values_from = mean_logRR)
+
+```
+
+## True Biomass Values (not calculated response ratios)
+
+```{r}
+biomass <- read_csv("/Volumes/GoogleDrive/Shared drives/NCEAS MPA network assessment/MPA Network Assessment: Working Group Shared Folder/data/sync-data/monitoring/processed_data/targeted_nontargeted_fish_biomass.csv")
+
+# Average biomass for each group-site for 2016-2019
+# MPAs only
+
+biomass_1619 <- biomass %>% 
+  filter(mpa_designation != "ref",
+         year %in% c(2016:2019)) %>% 
+  group_by(group, affiliated_mpa, target_status) %>% 
+  dplyr::summarize(mean_total_annual_biomass = mean(sum_biomass, na.rm = TRUE)) %>% 
+  ungroup() %>% 
+  mutate(group_ind = paste(group, target_status, "total", sep = "_")) %>% 
+  select(!c(group, target_status)) %>% 
+  pivot_wider(names_from = group_ind, values_from = mean_total_annual_biomass)
+
 ```
 
 
-## Log-Transform Continuous Data
+# Log-Transform Attribute Data
 
-Otherwise, variables with high variances (e.g. depth range) will have higher loadings in the principal components.
+Otherwise, variables with high variances (e.g. depth range) will have higher loadings in the principal components. Since the data is zero-heavy, I am using a log+1 transformation to all continuous variables.
 
 ```{r}
-log_data <- data %>% 
-  select(name, mpa_class, four_region_north_ci,
-         age_yr,
-         distance_to_port:max_depth_m, 
-         asbs_overlap:hardened_armored_shore_km, 
-         citizensci_inaturalist_obs, 
-         total_hard_substrate:prop_soft) %>% 
+log_data1 <- data %>% 
+  select(name, 
+         mpa_class, 
+         four_region_north_ci,
+         size_km2, distance_to_port, shore_span_km,
+         sandy_beach_km:tidal_flats_km, 
+         depth_range, 
+         total_hard_substrate, 
+         total_soft_substrate,
+         total_submarine_canyon_km2,
+         total_estuary) %>% 
   select(!max_kelp_canopy_landsat_km2) %>% # Drop because too many NAs 
-  select(!larval_connectivity) %>%  # Drop because too many NAs
-  drop_na() %>% 
+  drop_na() %>% # Remove NA values because na.omit not working in princomp()
   mutate_if(., is.numeric, log1p)
+
 ```
 
-## Consider: Converting Factors to Dummy Variables
-
-The four regions could be considered characteristics we want, so would it be useful to convert them to dummies?
-
-# Pairwise Correlations
 
 ```{r}
+# Pairwise correlations
 # Warning: this is hectic and takes a minute
-#ggpairs(log_data[4:39], aes(col = log_data$four_region_north_ci, alpha = 0.8))
+#ggpairs(log_data[4:35], aes(col = log_data$four_region_north_ci, alpha = 0.8))
 
 # Some of the data is still very skewed due to high number of zeroes
 # Some also has pretty high correlation - e.g. depth
 ```
 
-# PCA: All Continuous Variables
+# Join Attribute and Biomass Data
+
+
 
 ```{r}
-pca <- prcomp(log_data[4:42],
+# Join with logRR
+log_data2 <- left_join(log_data1, biomass_1619_logRR, by = c("name" = "affiliated_mpa")) 
+
+# Join with mean biomass values
+log_data3 <- left_join(log_data2, biomass_1619, by = c("name" = "affiliated_mpa"))
+
+# Rename for phew clarity
+log_data <- log_data3 
+
+```
+
+
+# PCA: All Continuous Variables
+
+First analysis includes all continuous variables related to the underlying habitat traits:
+
+```{r}
+names(log_data[4:31])
+```
+
+
+
+
+```{r all-vars, fig.width = 8, fig.height = 6}
+# Generate principal components
+pca <- prcomp(log_data[4:31],
               center = TRUE,
               scale = TRUE) # normalize with standard deviation 1
 
-print(pca)
-summary(pca)
-
-plot(pca, type = "lines")
-
 # Plot
-ggbiplot(pca, group = log_data$four_region_north_ci, ellipse = T) +
+ggbiplot(pca, group = log_data$four_region_north_ci, ellipse = T,
+         obs.scale = 1, var.scale = 1) +
   theme_minimal() +
-  labs(title = "All Trait Variables")
+  scale_x_continuous(limits = c(-10, 10))+
+  scale_y_continuous(limits = c(-7,7))+
+  labs(title = "All Trait Variables (log + 1 tranformed)",
+       color = "Region")
 
-# Principal component loadings
+# Examine loadings
 loadings <- as.data.frame(pca$rotation)
 
-ggbiplot(pca, group = log_data$mpa_class, ellipse = T) +
-  theme_minimal() +
-  labs(title = "All Trait Variables")
 ```
+**Fig 1.** Principal component analysis biplot for all MPA attribute variables linked to habitat characteristics. 
+
 
 ## Explore Explained Variance
 ```{r}
@@ -123,8 +206,6 @@ var <- stdev^2
 prop_var_ex <- var/sum(var) 
 prop_var_ex[1:20]
 
-```
-```{r}
 # Scree plot shows we get past 98% var explained ~ PC 25
 plot(cumsum(prop_var_ex), 
      xlab = "PC", 
@@ -138,23 +219,18 @@ summary(pca)
 
 ## Reducing Variables
 
-PCA aims to estimate the contribution of different variables to the variation among the points - if there is high correlation between some of the variables, that can result in a higher weight of those variables in the estimation of the components.
+PCA estimates the contribution of different variables to the variation among the points - if there is high correlation between some of the variables, that would result in a higher weight of those variables in the estimation of the components. If the correlated variables are each describing different aspects of the data, then it would be wise to retain them. However, if there are multiple variables that are measuring the same underlying aspect of the data, it could be worthwhile to discard or consolidate them.
 
-Based on my understanding, this is something that you wouldn't want to manipulate if these were variables signifying different things about the data, however if you have multiple variables that are measuring the same "underlying" aspect of the data... e.g. multiple variables estimating hard substrate (maybe?) that it could be worthwhile to discard them.
+In the attribute data, there are several variables for the amount of hard/soft substrate calculated in different depth ranges. This could be useful in describing the spatial allocation of habitat in different depth zones, but could also be redundant if the attribute of interest is the general amount of hard or soft bottom, given that there is another variable which describes the depth range of the entire area. Similarly, there are several variables which describe estuarine characteristics.
 
-### Revisit Correlations
+(Potentially) Reasonable Decisions for Consolidating Variables: 
 
-```{r}
-# Reminder that this takes a minute or two
-ggpairs(log_data[4:10], aes(col = log_data$four_region_north_ci, alpha = 0.8))
-```
+- Consolidate minimum and maximum depth to a single “depth range” variable
+- Consolidate the hard substrate columns to a single “total hard substrate” variable
+- Consolidate the soft bottom columns to a single “total soft substrate” variable
+- Consolidate the submarine canyon columns to a single “total submarine canyon” variable
+- Remove duplicates among estuarine habitat types and/or calculate a “total estuarine” variable
 
-### Decisions
-
-- Remove minimum and maximum depth, and just keep depth_range
-- Remove all the different hard/soft calculations and just keep total hard/soft
-- Reduce duplicates among habitat types
-- Remove random non-habitat characteristics (asbs overlap, inat obs)
 
 ```{r}
 log_data_reduced <- log_data %>% 
@@ -164,25 +240,28 @@ log_data_reduced <- log_data %>%
          distance_to_port, 
          size_km2, 
          shore_span_km, 
-         historical_protection_overlap,
          sandy_beach_km, 
          rocky_inter_km, 
          offshore_rock_km, 
          max_kelp_canopy_cdfw_km2,
-         coastal_marsh_km,
-         tidal_flats_km,
+         depth_range,
          total_hard_substrate,
          total_soft_substrate,
-         depth_range)
+         total_submarine_canyon_km2,
+         total_estuary)
 ```
-
-From 40 variables to 18 variables
 
 
 ## Reduced PCA
 
+Variables:
+
 ```{r}
-pca_reduced <- prcomp(log_data_reduced[4:16],
+names(log_data_reduced[4:15])
+```
+
+```{r reduced-vars, fig.width = 8, fig.height = 6}
+pca_reduced <- prcomp(log_data_reduced[4:15],
                       center = TRUE,
                       scale = TRUE) 
 
@@ -190,31 +269,636 @@ summary(pca_reduced)
 
 plot(pca_reduced, type = "lines")
 
-ggbiplot(pca_reduced, group = log_data_reduced$four_region_north_ci, 
-         ellipse = T) +
+ggbiplot(pca_reduced, 
+         group = log_data_reduced$four_region_north_ci, 
+         ellipse = T, 
+         obs.scale = 1, 
+         var.scale = 1,) +
   theme_minimal() +
   labs(title = "Reduced Trait Variables")
 
 # Principal component loadings
 loadings_reduced <- as.data.frame(pca_reduced$rotation)
 
-# Re-graph with groupings as MPA type instead?
-ggbiplot(pca_reduced, group = log_data_reduced$mpa_class, 
-         ellipse = T) +
-  theme_minimal() +
-  labs(title = "Reduced Trait Variables")
 ```
 
 
 ```{r}
 # This is hacky and I'm not sure if it's recommended
 # See which variables contribute the most...
-loadings_reduced$total <- rowSums(abs(loadings_reduced[2:13]))
-loadings_reduced$total_first10 <- rowSums(abs(loadings_reduced[2:11]))
+#loadings_reduced$total <- rowSums(abs(loadings_reduced[2:13]))
+#loadings_reduced$total_first10 <- rowSums(abs(loadings_reduced[2:11]))
 
-loadings$total <- rowSums(abs(loadings[2:39]))
-loadings$total_first10 <- rowSums(abs(loadings[2:11]))
+#loadings$total <- rowSums(abs(loadings[2:39]))
+#loadings$total_first10 <- rowSums(abs(loadings[2:11]))
 ```
+
+# PCA: Regional
+
+There could be regional differences in the primary drivers of variation for the MPAs. Do the PCA again, except each region separately (North, Central, South, Northern Islands)
+
+
+## North
+
+```{r north, fig.width = 8, fig.height= 6}
+north   <- log_data %>% 
+  filter(four_region_north_ci == "north") %>% 
+  select(!submarine_canyon_0_30m_km2) # all zeroes
+
+pca_n <-  prcomp(north[4:30], center = TRUE, scale = TRUE)
+
+ggbiplot(pca_n, labels = north$name,
+         obs.scale = 1, var.scale = 1,
+         group = north$mpa_class) + 
+  scale_x_continuous(limits = c(-10, 3)) +
+  scale_y_continuous(limits = c(-10, 8))+
+  labs(title = "North - All Variables") +
+  theme_minimal()
+
+ggbiplot(pca_n, labels = north$name,
+         obs.scale = 1, var.scale = 1,
+         group = north$mpa_class,
+         var.axes = FALSE) + 
+  scale_x_continuous(limits = c(-10, 9)) +
+  scale_y_continuous(limits = c(-10, 2))+
+  labs(title = "North - All Variables") +
+  theme_minimal()
+
+north_reduced <- log_data_reduced %>% 
+  filter(four_region_north_ci == "north")
+
+pca_n2 <-  prcomp(north_reduced[4:15], center = TRUE, scale = TRUE)
+
+ggbiplot(pca_n2, 
+         labels = north_reduced$name,
+         obs.scale = 1, var.scale = 1,
+         group = north_reduced$mpa_class) +
+  scale_x_continuous(limits = c(-4, 4)) +
+  scale_y_continuous(limits = c(-4, 4))+
+  labs(title = "North - Reduced Variables") +
+  theme_minimal()
+
+ggbiplot(pca_n2, 
+         labels = north_reduced$name,
+         obs.scale = 1, var.scale = 1,
+         group = north_reduced$mpa_class,
+         var.axes = FALSE) +
+  scale_x_continuous(limits = c(-4, 4)) +
+  scale_y_continuous(limits = c(-3.5, 3))+
+  labs(title = "North - Reduced Variables") +
+  theme_minimal()
+```
+
+## Central
+
+```{r central, fig.width = 8, fig.height = 6}
+central <- log_data %>% 
+  filter(four_region_north_ci == "central")
+
+pca_c <-  prcomp(central[4:35], center = TRUE, scale = TRUE)
+
+ggbiplot(pca_c, labels = central$name,
+         obs.scale = 1, var.scale = 1,
+         group = central$mpa_class) +
+  scale_x_continuous(limits = c(-8.5, 8.5)) +
+  scale_y_continuous(limits = c(-6, 9))+
+  labs(title = "Central - All Variables") +
+  theme_minimal()
+
+ggbiplot(pca_c, labels = central$name,
+         obs.scale = 1, var.scale = 1,
+         group = central$mpa_class, var.axes = FALSE) +
+  scale_x_continuous(limits = c(-6, 6)) +
+  scale_y_continuous(limits = c(-4, 6))+
+  labs(title = "Central - All Variables") +
+  theme_minimal()
+
+central_reduced <- log_data_reduced %>% 
+  filter(four_region_north_ci == "central")
+
+pca_c2 <-  prcomp(central_reduced[4:15], center = TRUE, scale = TRUE)
+
+ggbiplot(pca_c2, labels = central_reduced$name,
+         obs.scale = 1, var.scale = 1, 
+         group = central_reduced$mpa_class) +
+    labs(title = "Central - Reduced Variables") +
+  scale_x_continuous(limits = c(-5, 5)) +
+  scale_y_continuous(limits = c(-5, 4))+
+    theme_minimal()
+
+ggbiplot(pca_c2, labels = central_reduced$name,
+         obs.scale = 1, var.scale = 1, 
+         group = central_reduced$mpa_class,
+         var.axes = F) +
+    labs(title = "Central - Reduced Variables") +
+  scale_x_continuous(limits = c(-5, 5)) +
+  scale_y_continuous(limits = c(-4, 2.5))+
+    theme_minimal()
+```
+
+## South
+```{r south, fig.width = 8, fig.height = 6}
+south <- log_data %>% 
+  filter(four_region_north_ci == "south") %>% 
+  select(!eelgrass_km2) # all zeroes
+
+pca_s <-  prcomp(south[4:34], center = TRUE, scale = TRUE)
+
+ggbiplot(pca_s, labels = south$name,
+         obs.scale = 1, var.scale = 1, group = south$mpa_class) +
+  scale_y_continuous(limits = c(-9, 3))+
+  scale_x_continuous(limits = c(-5, 8))+
+    labs(title = "South - All Variables") +
+    theme_minimal()
+
+ggbiplot(pca_s, labels = south$name,
+         obs.scale = 1, var.scale = 1, 
+         group = south$mpa_class,
+         var.axes = F) +
+  scale_y_continuous(limits = c(-8.5, 2.5))+
+  scale_x_continuous(limits = c(-5, 6))+
+    labs(title = "South - All Variables") +
+    theme_minimal()
+
+south_reduced <- log_data_reduced %>% 
+  filter(four_region_north_ci == "south")
+
+pca_s2 <-  prcomp(south_reduced[4:15], center = TRUE, scale = TRUE)
+
+ggbiplot(pca_s2, labels = south_reduced$name,
+         obs.scale = 1, var.scale = 1, 
+         group = south_reduced$mpa_class) +
+  scale_y_continuous(limits = c(-3, 4))+
+  scale_x_continuous(limits = c(-5, 6))+
+    labs(title = "South - Reduced Variables") +
+    theme_minimal()
+
+ggbiplot(pca_s2, labels = south_reduced$name,
+         obs.scale = 1, var.scale = 1,
+         var.axes = F,
+         group = south_reduced$mpa_class) +
+  scale_x_continuous(limits = c(-5, 6.5))+
+  scale_y_continuous(limits = c(-3, 2.5))+
+    labs(title = "South - Reduced Variables") +
+    theme_minimal()
+```
+
+## Islands
+
+```{r n-islands, fig.width = 8, fig.height = 6}
+islands <- log_data %>% 
+  filter(four_region_north_ci == "north islands") %>% 
+  select(!c(submarine_canyon_0_30m_km2:submarine_canyon_100_200m_km2,
+            estuary_km2, coastal_marsh_km, tidal_flats_km)) # All zeroes
+
+pca_i <-  prcomp(islands[4:29], center = TRUE, scale = TRUE)
+
+ggbiplot(pca_i, labels = islands$name,
+         obs.scale = 1, var.scale = 1,
+         group = islands$mpa_class) +
+  scale_x_continuous(limits = c(-6, 6))+
+  scale_y_continuous(limits = c(-7.5, 5))+
+  labs(title = "Northern Channel Islands - All Variables") +
+  theme_minimal()
+
+ggbiplot(pca_i, labels = islands$name,
+         obs.scale = 1, var.scale = 1,
+         group = islands$mpa_class, var.axes = F) +
+  scale_x_continuous(limits = c(-6, 6))+
+  scale_y_continuous(limits = c(-7.5, 5))+
+  labs(title = "Northern Channel Islands - All Variables") +
+  theme_minimal()
+         
+         
+
+islands_reduced <- log_data_reduced %>% 
+  filter(four_region_north_ci == "north islands")
+
+pca_i2 <-  prcomp(islands_reduced[4:15], center = TRUE, scale = TRUE)
+
+ggbiplot(pca_i2, labels = islands_reduced$name,
+         obs.scale = 1, var.scale = 1,
+         group = islands_reduced$mpa_class)+
+  scale_x_continuous(limits = c(-4, 4))+
+  scale_y_continuous(limits = c(-3, 4))+
+    labs(title = "Northern Islands - Reduced Variables") +
+    theme_minimal()   
+
+ggbiplot(pca_i2, labels = islands_reduced$name,
+         obs.scale = 1, var.scale = 1,
+         group = islands_reduced$mpa_class,
+         var.axes = F)+
+  scale_x_continuous(limits = c(-4, 4))+
+  scale_y_continuous(limits = c(-3, 4))+
+    labs(title = "Northern Islands - Reduced Variables") +
+    theme_minimal()  
+```
+
+# Incorporate Response Variables into PCA
+
+## LogRR Targeted Fish Biomass
+
+### Kelp
+
+```{r kelp-targeted-logRR}
+ggbiplot(pca, group = log_data$kelp_targeted_logRR,
+         obs.scale = 1, var.scale = 1) +
+  theme_minimal() +
+  scale_x_continuous(limits = c(-10, 10))+
+  scale_y_continuous(limits = c(-7,7))+
+  scale_colour_distiller(palette = "PuOr", na.value = NA) +
+  labs(title = "All Trait Variables (log + 1 tranformed)",
+       color = "Kelp Targeted \nFish Biomass \nLogRR")
+
+
+ggbiplot(pca, group = log_data$kelp_targeted_logRR,
+         obs.scale = 1, var.scale = 1, var.axes = F) +
+  theme_minimal() +
+  scale_x_continuous(limits = c(-10, 10))+
+  scale_y_continuous(limits = c(-7,7))+
+  scale_colour_distiller(palette = "PuOr", na.value = NA) +
+  labs(title = "All Trait Variables (log + 1 tranformed)",
+       color = "Kelp Targeted \nFish Biomass \nLogRR")
+
+ggbiplot(pca, group = log_data$kelp_targeted_logRR,
+         obs.scale = 1, var.scale = 1, var.axes = F, labels = log_data$name) +
+  theme_minimal() +
+  scale_x_continuous(limits = c(-10, 10))+
+  scale_y_continuous(limits = c(-7,7))+
+  scale_colour_distiller(palette = "PuOr", na.value = NA) +
+  labs(title = "All Trait Variables (log + 1 tranformed)",
+       color = "Kelp Targeted \nFish Biomass \nLogRR")
+
+ggbiplot(pca_reduced, 
+         group = log_data$kelp_targeted_logRR,
+         obs.scale = 1, 
+         var.scale = 1,) +
+  theme_minimal() +
+  scale_colour_distiller(palette = "PuOr", na.value = NA) +
+  labs(title = "Reduced Trait Variables")
+
+ggbiplot(pca_reduced, 
+         group = log_data$kelp_targeted_logRR,
+         obs.scale = 1, 
+         var.scale = 1, var.axes = F) +
+  theme_minimal() +
+  scale_colour_distiller(palette = "PuOr", na.value = NA) +
+  labs(title = "Reduced Trait Variables")
+
+ggbiplot(pca_reduced, 
+         group = log_data$kelp_targeted_logRR,
+         obs.scale = 1, 
+         var.scale = 1, var.axes = F, labels = log_data$name) +
+  theme_minimal() +
+  scale_colour_distiller(palette = "PuOr", na.value = NA) +
+  labs(title = "Reduced Trait Variables")
+
+```
+
+### CCFRP Targeted
+
+```{r ccfrp-targeted-logRR}
+ggbiplot(pca, group = log_data$ccfrp_targeted_logRR,
+         obs.scale = 1, var.scale = 1) +
+  theme_minimal() +
+  scale_x_continuous(limits = c(-10, 10))+
+  scale_y_continuous(limits = c(-7,7))+
+  scale_colour_distiller(palette = "PuOr", na.value = NA) +
+  labs(title = "All Trait Variables (log + 1 tranformed)",
+       color = "CCFRP Targeted \nFish Biomass \nLogRR")
+
+ggbiplot(pca, group = log_data$ccfrp_targeted_logRR,
+         obs.scale = 1, var.scale = 1, var.axes = F) +
+  theme_minimal() +
+  scale_x_continuous(limits = c(-10, 10))+
+  scale_y_continuous(limits = c(-7,7))+
+  scale_colour_distiller(palette = "PuOr", na.value = NA) +
+  labs(title = "All Trait Variables (log + 1 tranformed)",
+       color = "CCFRP Targeted \nFish Biomass \nLogRR")
+
+ggbiplot(pca, group = log_data$ccfrp_targeted_logRR,
+         obs.scale = 1, var.scale = 1, var.axes = F, labels = log_data$name) +
+  theme_minimal() +
+  scale_x_continuous(limits = c(-10, 10))+
+  scale_y_continuous(limits = c(-7,7))+
+  scale_colour_distiller(palette = "PuOr", na.value = NA) +
+  labs(title = "All Trait Variables (log + 1 tranformed)",
+       color = "CCFRP Targeted \nFish Biomass \nLogRR")
+
+ggbiplot(pca_reduced, 
+         group = log_data$ccfrp_targeted_logRR,
+         obs.scale = 1, 
+         var.scale = 1,) +
+  theme_minimal() +
+  scale_colour_distiller(palette = "PuOr", na.value = NA) +
+  labs(title = "Reduced Trait Variables",
+       color = "CCFRP Targeted \nFish Biomass \nLogRR")
+
+ggbiplot(pca_reduced, 
+         group = log_data$ccfrp_targeted_logRR,
+         obs.scale = 1, 
+         var.scale = 1, var.axes = F) +
+  theme_minimal() +
+  scale_colour_distiller(palette = "PuOr", na.value = NA) +
+  labs(title = "Reduced Trait Variables",
+       color = "CCFRP Targeted \nFish Biomass \nLogRR")
+
+ggbiplot(pca_reduced, 
+         group = log_data$ccfrp_targeted_logRR,
+         obs.scale = 1, 
+         var.scale = 1, var.axes = F, labels = log_data$name) +
+  theme_minimal() +
+  scale_colour_distiller(palette = "PuOr", na.value = NA) +
+  labs(title = "Reduced Trait Variables",
+       color = "CCFRP Targeted \nFish Biomass \nLogRR")
+```
+
+### Deep Reef Targeted
+
+```{r deep-reef-targeted-logRR}
+ggbiplot(pca, group = log_data$deep_reef_targeted_logRR,
+         obs.scale = 1, var.scale = 1) +
+  theme_minimal() +
+  scale_x_continuous(limits = c(-10, 10))+
+  scale_y_continuous(limits = c(-7,7))+
+  scale_colour_distiller(palette = "PuOr", na.value = NA) +
+  labs(title = "All Trait Variables (log + 1 tranformed)",
+       color = "Deep Reef Targeted \nFish Biomass \nLogRR")
+
+ggbiplot(pca, group = log_data$deep_reef_targeted_logRR,
+         obs.scale = 1, var.scale = 1, var.axes = F) +
+  theme_minimal() +
+  scale_x_continuous(limits = c(-10, 10))+
+  scale_y_continuous(limits = c(-7,7))+
+  scale_colour_distiller(palette = "PuOr", na.value = NA) +
+  labs(title = "All Trait Variables (log + 1 tranformed)",
+       color = "Deep Reef Targeted \nFish Biomass \nLogRR")
+
+ggbiplot(pca, group = log_data$deep_reef_targeted_logRR,
+         obs.scale = 1, var.scale = 1, var.axes = F, labels = log_data$name) +
+  theme_minimal() +
+  scale_x_continuous(limits = c(-10, 10))+
+  scale_y_continuous(limits = c(-7,7))+
+  scale_colour_distiller(palette = "PuOr", na.value = NA) +
+  labs(title = "All Trait Variables (log + 1 tranformed)",
+       color = "Deep Reef Targeted \nFish Biomass \nLogRR")
+
+ggbiplot(pca_reduced, 
+         group = log_data$deep_reef_targeted_logRR,
+         obs.scale = 1, 
+         var.scale = 1,) +
+  theme_minimal() +
+  scale_colour_distiller(palette = "PuOr", na.value = NA) +
+  labs(title = "Reduced Trait Variables",
+       color = "Deep Reef Targeted \nFish Biomass \nLogRR")
+
+ggbiplot(pca_reduced, 
+         group = log_data$deep_reef_targeted_logRR,
+         obs.scale = 1, 
+         var.scale = 1, var.axes = F) +
+  theme_minimal() +
+  scale_colour_distiller(palette = "PuOr", na.value = NA) +
+  labs(title = "Reduced Trait Variables",
+       color = "Deep Reef Targeted \nFish Biomass \nLogRR")
+
+ggbiplot(pca_reduced, 
+         group = log_data$deep_reef_targeted_logRR,
+         obs.scale = 1, 
+         var.scale = 1, var.axes = F, labels = log_data$name) +
+  theme_minimal() +
+  scale_colour_distiller(palette = "PuOr", na.value = NA) +
+  labs(title = "Reduced Trait Variables",
+       color = "Deep Reef Targeted \nFish Biomass \nLogRR")
+```
+### Surf Zone Fish
+
+```{r surf-targeted-logRR}
+ggbiplot(pca, group = log_data$surf_targeted_logRR,
+         obs.scale = 1, var.scale = 1) +
+  theme_minimal() +
+  scale_x_continuous(limits = c(-10, 10))+
+  scale_y_continuous(limits = c(-7,7))+
+  scale_colour_distiller(palette = "PuOr", na.value = NA) +
+  labs(title = "All Trait Variables (log + 1 tranformed)",
+       color = "Surf Targeted \nFish Biomass \nLogRR")
+
+ggbiplot(pca, group = log_data$surf_targeted_logRR,
+         obs.scale = 1, var.scale = 1, var.axes = F) +
+  theme_minimal() +
+  scale_x_continuous(limits = c(-10, 10))+
+  scale_y_continuous(limits = c(-7,7))+
+  scale_colour_distiller(palette = "PuOr", na.value = NA) +
+  labs(title = "All Trait Variables (log + 1 tranformed)",
+       color = "Surf Targeted \nFish Biomass \nLogRR")
+
+ggbiplot(pca, group = log_data$surf_targeted_logRR,
+         obs.scale = 1, var.scale = 1, var.axes = F, labels = log_data$name) +
+  theme_minimal() +
+  scale_x_continuous(limits = c(-10, 10))+
+  scale_y_continuous(limits = c(-7,7))+
+  scale_colour_distiller(palette = "PuOr", na.value = NA) +
+  labs(title = "All Trait Variables (log + 1 tranformed)",
+       color = "Surf Targeted \nFish Biomass \nLogRR")
+
+ggbiplot(pca_reduced, 
+         group = log_data$surf_targeted_logRR,
+         obs.scale = 1, 
+         var.scale = 1,) +
+  theme_minimal() +
+  scale_colour_distiller(palette = "PuOr", na.value = NA) +
+  labs(title = "Reduced Trait Variables",
+       color = "Surf Targeted \nFish Biomass \nLogRR")
+
+ggbiplot(pca_reduced, 
+         group = log_data$surf_targeted_logRR,
+         obs.scale = 1, 
+         var.scale = 1, var.axes = F) +
+  theme_minimal() +
+  scale_colour_distiller(palette = "PuOr", na.value = NA) +
+  labs(title = "Reduced Trait Variables",
+       color = "Surf Targeted \nFish Biomass \nLogRR")
+
+ggbiplot(pca_reduced, 
+         group = log_data$surf_targeted_logRR,
+         obs.scale = 1, 
+         var.scale = 1, var.axes = F, labels = log_data$name) +
+  theme_minimal() +
+  scale_colour_distiller(palette = "PuOr", na.value = NA) +
+  labs(title = "Reduced Trait Variables",
+       color = "Surf Targeted \nFish Biomass \nLogRR")
+```
+
+## Actual Total Values Targeted Fish Biomass
+
+### Kelp Forest
+
+```{r kelp-targeted-total}
+ggbiplot(pca, group = log_data$kelp_targeted_total,
+         obs.scale = 1, var.scale = 1) +
+  theme_minimal() +
+  scale_x_continuous(limits = c(-10, 10))+
+  scale_y_continuous(limits = c(-7,7))+
+  scale_colour_continuous(na.value = NA) +
+  labs(title = "All Trait Variables (log + 1 tranformed)",
+       color = "Kelp Targeted \nFish Biomass \nMean Total Annual")
+
+
+ggbiplot(pca, group = log_data$kelp_targeted_total,
+         obs.scale = 1, var.scale = 1, var.axes = F) +
+  theme_minimal() +
+  scale_x_continuous(limits = c(-10, 10))+
+  scale_y_continuous(limits = c(-7,7))+
+  scale_colour_continuous(na.value = NA) +
+  labs(title = "All Trait Variables (log + 1 tranformed)",
+       color = "Kelp Targeted \nFish Biomass \nMean Total Annual")
+
+ggbiplot(pca, group = log_data$kelp_targeted_total,
+         obs.scale = 1, var.scale = 1, var.axes = F, labels = log_data$name) +
+  theme_minimal() +
+  scale_x_continuous(limits = c(-10, 10))+
+  scale_y_continuous(limits = c(-7,7))+
+  scale_colour_continuous(na.value = NA) +
+  labs(title = "All Trait Variables (log + 1 tranformed)",
+       color = "Kelp Targeted \nFish Biomass \nMean Total Annual")
+
+ggbiplot(pca_reduced, 
+         group = log_data$kelp_targeted_total,
+         obs.scale = 1, 
+         var.scale = 1,) +
+  theme_minimal() +
+  scale_colour_continuous(na.value = NA) +
+  labs(title = "Reduced Trait Variables",
+       color = "Kelp Targeted \nFish Biomass \nMean Total Annual")
+
+ggbiplot(pca_reduced, 
+         group = log_data$kelp_targeted_total,
+         obs.scale = 1, 
+         var.scale = 1, var.axes = F) +
+  theme_minimal() +
+  scale_colour_continuous(na.value = NA) +
+  labs(title = "Reduced Trait Variables",
+       color = "Kelp Targeted \nFish Biomass \nMean Total Annual")
+
+ggbiplot(pca_reduced, 
+         group = log_data$kelp_targeted_total,
+         obs.scale = 1, 
+         var.scale = 1, var.axes = F, labels = log_data$name) +
+  theme_minimal() +
+  scale_colour_continuous(na.value = NA) +
+  labs(title = "Reduced Trait Variables",
+       color = "Kelp Targeted \nFish Biomass \nMean Total Annual")
+```
+
+### CCFRP
+
+```{r ccfrp-targeted-total}
+ggbiplot(pca, group = log_data$ccfrp_targeted_total,
+         obs.scale = 1, var.scale = 1) +
+  theme_minimal() +
+  scale_x_continuous(limits = c(-10, 10))+
+  scale_y_continuous(limits = c(-7,7))+
+  scale_colour_continuous(na.value = NA) +
+  labs(title = "All Trait Variables (log + 1 tranformed)",
+       color = "CCFRP Targeted \nFish Biomass \nMean Total Annual")
+
+
+ggbiplot(pca, group = log_data$ccfrp_targeted_total,
+         obs.scale = 1, var.scale = 1, var.axes = F) +
+  theme_minimal() +
+  scale_x_continuous(limits = c(-10, 10))+
+  scale_y_continuous(limits = c(-7,7))+
+  scale_colour_continuous(na.value = NA) +
+  labs(title = "All Trait Variables (log + 1 tranformed)",
+       color = "CCFRP Targeted \nFish Biomass \nMean Total Annual")
+
+ggbiplot(pca, group = log_data$ccfrp_targeted_total,
+         obs.scale = 1, var.scale = 1, var.axes = F, labels = log_data$name) +
+  theme_minimal() +
+  scale_x_continuous(limits = c(-10, 10))+
+  scale_y_continuous(limits = c(-7,7))+
+  scale_colour_continuous(na.value = NA) +
+  labs(title = "All Trait Variables (log + 1 tranformed)",
+       color = "CCFRP Targeted \nFish Biomass \nMean Total Annual")
+
+ggbiplot(pca_reduced, 
+         group = log_data$ccfrp_targeted_total,
+         obs.scale = 1, 
+         var.scale = 1,) +
+  theme_minimal() +
+  scale_colour_continuous(na.value = NA) +
+  labs(title = "Reduced Trait Variables",
+       color = "CCFRP Targeted \nFish Biomass \nMean Total Annual")
+
+ggbiplot(pca_reduced, 
+         group = log_data$ccfrp_targeted_total,
+         obs.scale = 1, 
+         var.scale = 1, var.axes = F) +
+  theme_minimal() +
+  scale_colour_continuous(na.value = NA) +
+  labs(title = "Reduced Trait Variables",
+       color = "CCFRP Targeted \nFish Biomass \nMean Total Annual")
+
+ggbiplot(pca_reduced, 
+         group = log_data$ccfrp_targeted_total,
+         obs.scale = 1, 
+         var.scale = 1, var.axes = F, labels = log_data$name) +
+  theme_minimal() +
+  scale_colour_continuous(na.value = NA) +
+  labs(title = "Reduced Trait Variables",
+       color = "CCFRP Targeted \nFish Biomass \nMean Total Annual")
+```
+### Deep Reef Targeted
+
+```{r deep-reef-targeted-total}
+ggbiplot(pca, group = log_data$deep_reef_targeted_total,
+         obs.scale = 1, var.scale = 1) +
+  theme_minimal() +
+  scale_x_continuous(limits = c(-10, 10))+
+  scale_y_continuous(limits = c(-7,7))+
+  scale_colour_continuous(na.value = NA) +
+  labs(title = "All Trait Variables (log + 1 tranformed)",
+       color = "Deep Reef Targeted \nFish Biomass \nMean Total Annual")
+
+ggbiplot(pca, group = log_data$deep_reef_targeted_total,
+         obs.scale = 1, var.scale = 1, var.axes = F) +
+  theme_minimal() +
+  scale_x_continuous(limits = c(-10, 10))+
+  scale_y_continuous(limits = c(-7,7))+
+  scale_colour_continuous(na.value = NA) +
+  labs(title = "All Trait Variables (log + 1 tranformed)",
+       color = "Deep Reef Targeted \nFish Biomass \nMean Total Annual")
+
+ggbiplot(pca, group = log_data$deep_reef_targeted_total,
+         obs.scale = 1, var.scale = 1, var.axes = F, labels = log_data$name) +
+  theme_minimal() +
+  scale_x_continuous(limits = c(-10, 10))+
+  scale_y_continuous(limits = c(-7,7))+
+  scale_colour_continuous(na.value = NA) +
+  labs(title = "All Trait Variables (log + 1 tranformed)",
+       color = "Deep Reef Targeted \nFish Biomass \nMean Total Annual")
+
+ggbiplot(pca_reduced, group = log_data$deep_reef_targeted_total, 
+         obs.scale = 1, var.scale = 1,) +
+  theme_minimal() +
+  scale_colour_continuous(na.value = NA) +
+  labs(title = "Reduced Trait Variables",
+       color = "Deep Reef Targeted \nFish Biomass \nMean Total Annual")
+
+ggbiplot(pca_reduced, group = log_data$deep_reef_targeted_total,
+         obs.scale = 1, var.scale = 1, var.axes = F) +
+  theme_minimal() +
+  scale_colour_continuous(na.value = NA) +
+  labs(title = "Reduced Trait Variables",
+       color = "Deep Reef Targeted \nFish Biomass \nMean Total Annual")
+
+ggbiplot(pca_reduced, group = log_data$deep_reef_targeted_total,
+         obs.scale = 1, var.scale = 1, var.axes = F, labels = log_data$name) +
+  theme_minimal() +
+  scale_colour_continuous(na.value = NA) +
+  labs(title = "Reduced Trait Variables",
+       color = "Deep Reef Targeted \nFish Biomass \nMean Total Annual")
+```
+
 
 
 # NMDS ?
@@ -222,17 +906,17 @@ loadings$total_first10 <- rowSums(abs(loadings[2:11]))
 NMDS can have some value over PCA because it uses rank orders rather than absolute distance, so can also use different types of data.
 
 ```{r}
-nmds_data <-  data %>% 
-    select(name, mpa_class, four_region_north_ci,
-         age_yr,
-         distance_to_port:max_depth_m, 
-         asbs_overlap:hardened_armored_shore_km, 
-         citizensci_inaturalist_obs, 
-         total_hard_substrate:prop_soft) %>% 
-  select(!max_kelp_canopy_landsat_km2) %>% # Drop because too many NAs 
-  select(!larval_connectivity)  # Drop because too many NAs
-  
-nmds <- metaMDS(nmds_data[4:42], k = 2)
+# nmds_data <-  data %>% 
+#     select(name, mpa_class, four_region_north_ci,
+#          age_yr,
+#          distance_to_port:max_depth_m, 
+#          asbs_overlap:hardened_armored_shore_km, 
+#          citizensci_inaturalist_obs, 
+#          total_hard_substrate:prop_soft) %>% 
+#   select(!max_kelp_canopy_landsat_km2) %>% # Drop because too many NAs 
+#   select(!larval_connectivity)  # Drop because too many NAs
+#   
+# nmds <- metaMDS(nmds_data[4:42], k = 2)
 ```
 
 
