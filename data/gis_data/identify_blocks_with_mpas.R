@@ -49,17 +49,17 @@ blocks_area <- blocks_simple %>%
   sf::st_area() %>% as.numeric() %>% 
   measurements::conv_unit(., "m2", "km2")
 
-# Add block area to block df
+# Add block area to main block dataframe
+blocks<- blocks %>% 
+  mutate(block_area_km2 = blocks_area)
+
+# Add block area to simple block dataframe
 blocks_simple <- blocks_simple %>% 
   mutate(block_area_km2 = blocks_area)
 
-# Drop geometry and export total block area for all blocks
-blocks_simple_exp <- blocks_simple %>% 
-  sf::st_drop_geometry()
-write.csv(blocks_simple_exp, file=file.path(outdir, "CA_blocks_area_km2.csv"), row.names=F)
-
 # Test for any overlap among MPA polygons 
 overlap <- sf::st_overlaps(mpas_simple, mpas_simple, sparse = FALSE)
+isTRUE(overlap) # if FALSE, there is no overlap
 
 # Intersect MPAs/blocks
 data1 <- sf::st_intersection(x=blocks_simple, y=mpas_simple)
@@ -72,25 +72,32 @@ intersection_areas <- data1 %>%
 data2 <- data1 %>%
   mutate(area_km2=intersection_areas)
 
-
 # Compute block stats
 block_stats <- data2 %>%
   sf::st_drop_geometry() %>%
-  group_by(block_id, block_area_km2) %>%
+  group_by(block_id) %>%
   dplyr::summarize(mpa_n=n_distinct(name),
             mpas=paste(name, collapse=", "),
             mpa_km2=sum(area_km2)) %>%
   ungroup()
 
-# Add block stats to block sf
+# Add MPA block stats to block sf
 blocks_stats_sf <- blocks %>%
   filter(block_state=="California" & block_type=="Inshore") %>%
   left_join(block_stats, by="block_id")
 
-# Export block key
+# Export block sf
+saveRDS(blocks_stats_sf, file = file.path(outdir, "CA_blocks_stats.Rds"))
+
+
+# Export block key: only blocks with MPAs
 write.csv(block_stats, file=file.path(outdir, "CA_blocks_with_mpas.csv"), row.names=F)
 
+# Export block key: all blocks
+block_key <- blocks_stats_sf %>% 
+  sf::st_drop_geometry()
 
+write.csv(block_key, file = file.path(outdir, "CA_blocks_all.csv"), row.names = F)
 
 # Plot data
 ################################################################################
