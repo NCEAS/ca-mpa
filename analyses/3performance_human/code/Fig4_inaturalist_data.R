@@ -11,14 +11,14 @@ library(tidyverse)
 
 # Directories
 basedir <- "/Volumes/GoogleDrive/.shortcut-targets-by-id/1kCsF8rkm1yhpjh2_VMzf8ukSPf9d4tqO/MPA Network Assessment: Working Group Shared Folder/data/sync-data"
-gisdir <- file.path(basedir, "gis_data/processed")
+mpadir <- file.path(basedir, "mpa_traits/processed")
 datadir <- file.path(basedir, "inaturalist/processed")
 plotdir <- "analyses/3performance_human/figures"
 
 # Read data
 state_waters_poly <- readRDS(file.path(gisdir, "CA_state_waters_polygons.Rds"))
 state_waters_line <- readRDS(file.path(gisdir, "CA_state_waters_polyline.Rds"))
-mpas_orig <- readRDS(file.path(gisdir, "CA_MPA_polygons.Rds"))
+mpas_orig <- readRDS(file.path(mpadir, "CA_mpa_metadata.Rds"))
 
 # Get land
 usa <- rnaturalearth::ne_states(country="United States of America", returnclass = "sf")
@@ -29,8 +29,6 @@ sort(unique(mpas_orig$type))
 types_use <- c("SMR", "SMRMA", "SMCA", "SMCA (No-Take)")
 mpas <- mpas_orig %>% 
   filter(type %in% types_use)
-mpas_df <- mpas %>% 
-  sf::st_drop_geometry()
 
 
 # Build data
@@ -51,11 +49,11 @@ stats <- data_orig %>%
   ungroup()
   
 # Spatialize
-stats1 <- mpas_df %>% 
-  select(name, region, area_sqkm, lat_dd, long_dd) %>% 
-  left_join(stats, by=c("name"="mpa"))
+stats1 <- mpas %>% 
+  select(mpa, region, area_sqkm, lat_dd, long_dd) %>% 
+  left_join(stats, by="mpa")
 
-# Number of MPAs with observation
+# Number of MPAs with observations
 stats1 %>% filter(!is.na(nobservers)) %>% pull(name) %>% n_distinct(.)
 
 # Time series stats
