@@ -11,19 +11,25 @@ library(tidyverse)
 
 # Directories
 basedir <- "/Volumes/GoogleDrive/.shortcut-targets-by-id/1kCsF8rkm1yhpjh2_VMzf8ukSPf9d4tqO/MPA Network Assessment: Working Group Shared Folder/data/sync-data"
-gisdir <- file.path(basedir, "gis_data/processed")
 popdir <- file.path(basedir, "census_data/processed")
 plotdir <- "analyses/3performance_human/figures"
+outdir <- "analyses/3performance_human/output"
 
-# Read pop data
+# Read population raster
 pop_ras <- readRDS(file=file.path(popdir, "CA_2010_census_tot_pop_by_block_raster.Rds")) %>% 
-  filter(!is.na(people))
-mpa_pop <- readRDS(file=file.path(popdir, "MPA_population_within_50km.Rds"))
+  filter(!is.na(people) & people>0)
+
+# Read MPA population data
+mpas_orig <- readRDS(file=file.path(outdir, "CA_MPA_human_use_indicators.Rds"))
 
 # Get land
 usa <- rnaturalearth::ne_states(country="United States of America", returnclass = "sf")
 foreign <- rnaturalearth::ne_countries(country=c("Canada", "Mexico"), returnclass = "sf")
 
+# Reduce MPA data
+types_use <- c("SMR", "SMRMA", "SMCA", "SMCA (No-Take)")
+mpas <- mpas_orig %>% 
+  filter(type %in% types_use)
 
 # Plot data
 ################################################################################
@@ -41,8 +47,8 @@ region_labels <- tibble(long_dd=c(-123.5, -122.5, -121, -118, -119.2),
 my_theme <-  theme(axis.text=element_text(size=6),
                    axis.text.y = element_text(angle = 90, hjust = 0.5),
                    axis.title=element_blank(),
-                   legend.text=element_text(size=6),
-                   legend.title=element_text(size=8),
+                   legend.text=element_text(size=5.5),
+                   legend.title=element_text(size=7),
                    # Gridlines
                    panel.grid.major = element_blank(), 
                    panel.grid.minor = element_blank(),
@@ -63,15 +69,17 @@ g <- ggplot() +
   # Plot raster
   geom_tile(data=pop_ras, mapping=aes(x=long_dd, y=lat_dd, fill=people_sqkm)) +
   # Plot MPAs
-  geom_point(data=mpa_pop, mapping=aes(x=long_dd, y=lat_dd, size=npeople_50km/1e6)) +
+  geom_point(data=mpas, mapping=aes(x=long_dd, y=lat_dd, size=npeople_50km/1e6)) +
   # Labels
   labs(x="", y="") +
   # Axes
   scale_y_continuous(breaks=32:42) +
   scale_size_continuous(name="Millions of people\nwithin 50 km") +
   scale_fill_gradientn(name="Population density\n(people/sqkm)", 
-                       colors=RColorBrewer::brewer.pal(9, "YlOrRd"),
-                       trans="log10", na.value = NA) +
+                       colors=RColorBrewer::brewer.pal(9, "Spectral") %>% rev(),
+                       trans="log10", na.value = NA, 
+                       breaks=c(0.0001, 0.001, 0.01, 0.1, 1, 10, 100, 1000, 10000), 
+                       labels=c("0.0001", "0.001", "0.01", "0.1", "1", "10", "100", "1000", "10,000")) +
   guides(fill = guide_colorbar(ticks.colour = "black", frame.colour = "black")) +
   # Crop
   coord_sf(xlim = c(-124.5, -117), ylim = c(32.5, 42)) +
