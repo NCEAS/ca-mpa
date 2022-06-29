@@ -11,6 +11,12 @@ date: '2022-06-16'
 output: html_document
 ---
 
+
+
+#https://rpubs.com/CPEL/NMDS
+
+
+
 #load packages
 ```{r}
 require(dplyr)
@@ -361,6 +367,7 @@ ggplot(scrs, aes(x = NMDS1, y=NMDS2, shape = region4, color = mpa_designation, g
   theme(strip.text = element_text(size=18, face="bold"))+
   theme(plot.title = element_text(size=20, face="bold"))+
   theme(text = element_text(20))
+
 ```
   
 
@@ -416,5 +423,6 @@ ggplot(scrs, aes(x = NMDS1, y=NMDS2, shape = region, color = mpa_designation, gr
   theme(strip.text = element_text(size=18, face="bold"))+
   theme(plot.title = element_text(size=20, face="bold"))+
   theme(text = element_text(20))
+
 ```
 
