@@ -24,7 +24,7 @@ usa <- rnaturalearth::ne_states(country="United States of America", returnclass 
 foreign <- rnaturalearth::ne_countries(country=c("Canada", "Mexico"), returnclass = "sf")
 
 
-# Plot data
+# Build data
 ################################################################################
 
 # Build data
@@ -43,6 +43,16 @@ data <- data_orig %>%
 n_distinct(data$mpa)
 sum(data$npermits)
 
+# Data time series
+data_ts <- data_orig %>% 
+  group_by(year, region) %>% 
+  summarize(npermits=sum(npermits)) %>% 
+  ungroup()
+
+
+# Plot data
+################################################################################
+
 # MPA regions
 # CA/OR, Alder Creek, Pigeon Point, Point Conception, CA/MEX 
 region_lats <- c(39.0, 37.18, 34.5)
@@ -53,24 +63,24 @@ region_labels <- tibble(long_dd=c(-123.5, -122.5, -121, -118, -119.2),
                         label=c("North\n(Dec 2012)", "North Central\n(May 2010)", "Central\n(Sep 2007)", "South\n(Jan 2012)", "N. Channel\nIslands (2003)"))
 
 # Theme
-my_theme <-  theme(axis.text=element_text(size=6),
-                   axis.text.y = element_text(angle = 90, hjust = 0.5),
-                   axis.title=element_blank(),
-                   legend.text=element_text(size=6),
-                   legend.title=element_text(size=8),
-                   # Gridlines
-                   panel.grid.major = element_blank(), 
-                   panel.grid.minor = element_blank(),
-                   panel.background = element_blank(), 
-                   axis.line = element_line(colour = "black"),
-                   # Legend
-                   legend.position = c(0.8, 0.8),
-                   legend.key.size = unit(0.4, "cm"),
-                   legend.key = element_rect(fill=alpha('blue', 0)),
-                   legend.background = element_rect(fill=alpha('blue', 0)))
+theme1 <-  theme(axis.text=element_text(size=7),
+                 axis.text.y = element_text(angle = 90, hjust = 0.5),
+                 axis.title=element_text(size=8),
+                 plot.title=element_blank(),
+                 legend.text=element_text(size=6),
+                 legend.title=element_text(size=8),
+                 plot.tag=element_text(size=9),
+                 # Gridlines
+                 panel.grid.major = element_blank(), 
+                 panel.grid.minor = element_blank(),
+                 panel.background = element_blank(), 
+                 axis.line = element_line(colour = "black"),
+                 # Legend
+                 legend.key = element_blank(),
+                 legend.background = element_rect(fill=alpha('blue', 0)))
 
 # Plot data
-g <- ggplot() +
+g1 <- ggplot() +
   # Plot regions
   geom_hline(mapping=aes(yintercept=region_lats)) +
   # Plot land
@@ -79,7 +89,7 @@ g <- ggplot() +
   # Plot MPAs
   geom_point(data=data, mapping=aes(x=long_dd, y=lat_dd, size=npermits)) +
   # Labels
-  labs(x="", y="") +
+  labs(x="", y="", tag="A") +
   # Axes
   scale_y_continuous(breaks=32:42) +
   # Legend
@@ -87,12 +97,33 @@ g <- ggplot() +
   # Crop
   coord_sf(xlim = c(-124.5, -117), ylim = c(32.5, 42)) +
   # Theme
-  theme_bw() + my_theme
-g
+  theme_bw() + theme1 + 
+  theme(axis.title.y=element_blank(),
+        legend.position = c(0.75, 0.8),
+        legend.key.size = unit(0.4, "cm"))
+g1
 
-# Export figure
+# Plot time series
+g2 <- ggplot(data_ts, aes(x=year, y=npermits, fill=region)) +
+  geom_bar(stat="identity", color="grey30", lwd=0.1) + 
+  # Labels
+  labs(x="Year", y="Number of permits", tag="B") +
+  scale_x_continuous(breaks=2012:2021) +
+  # Legend
+  scale_fill_ordinal(name="Region") +
+  # Theme
+  theme_bw() + theme1 +
+  theme(legend.position = c(0.8, 0.8),
+        legend.key.size = unit(0.3, "cm"))
+g2
+
+# Merge data
+layout_matrix <- matrix(c(1,2, 
+                          1,3), ncol=2, byrow=T)
+g <- gridExtra::grid.arrange(g1, g2, layout_matrix=layout_matrix, widths=c(0.52, 0.48))
+
+# Export
 ggsave(g, filename=file.path(plotdir, "Fig6_scientific_permit_data.png"), 
-       width=3.5, height=5.25, units="in", dpi=600)
-
+       width=6.5, height=5.25, units="in", dpi=600)
 
 
