@@ -16,8 +16,6 @@ datadir <- file.path(basedir, "inaturalist/processed")
 plotdir <- "analyses/3performance_human/figures"
 
 # Read data
-state_waters_poly <- readRDS(file.path(gisdir, "CA_state_waters_polygons.Rds"))
-state_waters_line <- readRDS(file.path(gisdir, "CA_state_waters_polyline.Rds"))
 mpas_orig <- readRDS(file.path(mpadir, "CA_mpa_metadata.Rds"))
 
 # Get land
@@ -57,7 +55,7 @@ stats1 <- mpas %>%
 stats1 %>% filter(!is.na(nobservers)) %>% pull(name) %>% n_distinct(.)
 
 # Time series stats
-stats_ts <- data_orig %>% 
+observations_ts <- data_orig %>% 
   # Before 2018
   filter(year_obs<=2018 & !is.na(taxa_catg)) %>% 
   # Summarize
@@ -79,6 +77,29 @@ stats_ts <- data_orig %>%
                           "Plantae"="Plants",   
                           "Protozoa"="Protozoa",     
                           "Reptilia"="Reptiles"))
+
+# Observer time series
+observer_ts <- data_orig %>% 
+  # Before 2018
+  filter(year_obs<=2018) %>% 
+  # Summarize
+  group_by(year_obs) %>% 
+  summarize(nobservers=n_distinct(user_id)) %>% 
+  ungroup()
+
+# Observer time series
+observer_ts1 <- data_orig %>% 
+  # Before 2018
+  filter(year_obs<=2018) %>% 
+  # Summarize
+  group_by(year_obs, user_id) %>%
+  summarize(nmpas=n_distinct(mpa),
+            nmpas_catg=cut(nmpas, breaks=c(0,1,3,5,10,16), labels=c("1", "2-3", "4-5", "6-10", "11-16"))) %>% 
+  ungroup() %>% 
+  # Summarize again
+  group_by(year_obs, nmpas_catg) %>% 
+  summarize(nobservers=n_distinct(user_id)) %>% 
+  ungroup()
 
 
 # Plot data
@@ -136,8 +157,8 @@ g1 <- ggplot() +
         legend.key.size = unit(0.4, "cm"))
 g1
 
-# Plot data
-g2 <- ggplot(stats_ts, aes(x=year_obs, y=nobservations/1e3, fill=taxa_catg)) +
+# Plot number of observations
+g2 <- ggplot(observations_ts, aes(x=year_obs, y=nobservations/1e3, fill=taxa_catg)) +
   geom_bar(stat="identity", lwd=0.1, color="grey30") +
   # Labels
   labs(x="Year", y="Thousands of observations", tag="B") +
@@ -151,13 +172,19 @@ g2 <- ggplot(stats_ts, aes(x=year_obs, y=nobservations/1e3, fill=taxa_catg)) +
         legend.key.size = unit(0.25, "cm"))
 g2
 
-# Plot
-g3 <- ggplot() +
-  lims(x=c(0,10), y=c(0,10)) +
+# Plot number of observers
+g3 <- ggplot(observer_ts1, aes(x=year_obs, y=nobservers, fill=nmpas_catg)) +
+  geom_bar(stat="identity", lwd=0.1, color="grey30", position = position_stack(reverse = TRUE)) +
   # Labels
-  labs(x="Something cool", y="Something cool", tag="C") +
+  labs(x="Year", y="Number of observers", tag="C") +
+  # Axes
+  scale_x_continuous(lim=c(2000,2021), breaks=seq(2000, 2020, 5)) +
+  # Legend
+  scale_fill_discrete(name="# of MPAs visited") +
   # Theme
-  theme_bw() + theme1
+  theme_bw() + theme1 + 
+  theme(legend.position = c(0.25, 0.75),
+        legend.key.size = unit(0.25, "cm"))
 g3
 
 # Merge

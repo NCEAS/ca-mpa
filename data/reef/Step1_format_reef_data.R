@@ -47,6 +47,7 @@ conv_long <- function(long_chr){
 
 
 # Format data
+# Don't worry about factor warnings
 data <- data_orig %>% 
   # Rename
   rename(survey_id=formid,
@@ -65,40 +66,34 @@ data <- data_orig %>%
          avg_depth_code=averagedepth,
          max_depth_code=maxdepth) %>% 
   # Format survey type
-  mutate(survey_type=recode(survey_type, 
+  mutate(survey_type=recode_factor(survey_type, 
                             "1"="Fish only",
                             "2"="Invertebrate only",
                             "3"="Both fish and invertebrates")) %>% 
   # Format surveyor type
-  mutate(surveyor_type=recode(surveyor_type,
-                            "E"="Expert", "N"="Novice"),
-         surveyor_type=ifelse(surveyor_type=="5", NA, surveyor_type)) %>% 
+  mutate(surveyor_type=ifelse(surveyor_type=="5", NA, surveyor_type),
+         surveyor_type=recode_factor(surveyor_type, "N"="Novice", "E"="Expert")) %>% 
   # Format date
   mutate(date=lubridate::ymd(date)) %>% 
   # Format temperatures
   mutate(surface_temp_f=ifelse(surface_temp_f==0, NA, surface_temp_f),
          bottom_temp_f=ifelse(bottom_temp_f==0, NA, bottom_temp_f)) %>% 
   # Format visibility
-  mutate(visibility=recode(visibility_code, 
-                           "0"="",
+  mutate(visibility=recode_factor(visibility_code, 
                            "1"="<10 feet",
                            "2"="10-24 feet",
                            "3"="25-49 feet",
                            "4"="50-74 feet",
                            "5"="75-99 feet",
                            "6"="100-149 feet",
-                           "7"=">149 ft"),
-         visibility=ifelse(visibility=="", NA, visibility)) %>% 
+                           "7"=">149 ft")) %>% 
   # Format current
-  mutate(current=recode(current_code, 
-                        "0"="",
+  mutate(current=recode_factor(current_code, 
                         "1"="None",
                         "2"="Weak",
-                        "3"="Strong"),
-         current=ifelse(current=="", NA, current)) %>% 
+                        "3"="Strong")) %>% 
   # Format habitat
-  mutate(habitat=recode(habitat_code,
-                        "0"="",
+  mutate(habitat=recode_factor(habitat_code,
                         "1"="Kelp forest",
                         "2"="Rocky reef",
                         "3"="Artificial reef",
@@ -111,11 +106,9 @@ data <- data_orig %>%
                         "10"="Mud/silt bottom",
                         "11"="Cobblestone/boulder field",
                         "12"="Wall",
-                        "13"="Mixed"), 
-         habitat=ifelse(habitat=="", NA, habitat)) %>% 
+                        "13"="Mixed")) %>% 
   # Format max depth
-  mutate(max_depth=recode(max_depth_code, 
-                          "0"="",
+  mutate(max_depth=recode_factor(max_depth_code, 
                           "1"="Snorkel",
                           "2"="<10 feet",
                           "3"="10-19 feet",
@@ -131,11 +124,9 @@ data <- data_orig %>%
                           "13"="110-119 feet",
                           "14"="120-129 feet",
                           "15"="130-139 feet",
-                          "16"="140-149 feet"),
-         max_depth=ifelse(max_depth=="", NA, max_depth)) %>% 
+                          "16"="140-149 feet")) %>% 
   # Format average depth
-  mutate(avg_depth=recode(avg_depth_code, 
-                          "0"="0",
+  mutate(avg_depth=recode_factor(avg_depth_code, 
                           "1"="Snorkel",
                           "2"="<10 feet",
                           "3"="10-19 feet",
@@ -151,8 +142,7 @@ data <- data_orig %>%
                           "13"="110-119 feet",
                           "14"="120-129 feet",
                           "15"="130-139 feet",
-                          "16"="140-149 feet"),
-         avg_depth=ifelse(avg_depth=="", NA, avg_depth)) %>% 
+                          "16"="140-149 feet")) %>% 
   # Format lat
   mutate(lat_dd_orig=recode(lat_dd_orig, 
                        "33 33. 85"="33 33.85"), 
@@ -174,7 +164,6 @@ data <- data_orig %>%
          lat_dd_orig, lat_dd, 
          long_dd_orig, long_dd, everything()) %>% 
   select(-c(long_dd_orig, lat_dd_orig))
-  
   
 # Inspect
 str(data)

@@ -64,8 +64,9 @@ my_theme <-  theme(axis.text=element_text(size=6),
                    panel.background = element_blank(), 
                    axis.line = element_line(colour = "black"),
                    # Legend
-                   legend.position = "right",
+                   legend.position = c(0.8, 0.8),
                    legend.key.size = unit(0.4, "cm"),
+                   legend.key = element_rect(fill=alpha('blue', 0)),
                    legend.background = element_rect(fill=alpha('blue', 0)))
 
 # Plot data
@@ -91,7 +92,7 @@ g
 
 # Export figure
 ggsave(g, filename=file.path(plotdir, "Fig6_scientific_permit_data.png"), 
-       width=4.75, height=5.25, units="in", dpi=600)
+       width=3.5, height=5.25, units="in", dpi=600)
 
 
 

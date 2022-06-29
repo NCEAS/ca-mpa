@@ -38,6 +38,7 @@ data <- data_orig %>%
 
 # Fit linear model
 lmfit <- lm(inat_observers_tot ~ npeople_50km, data)
+summary(lmfit)
 
 # Extract residuals and predictions
 re <- lmfit$residuals
@@ -58,6 +59,9 @@ data1 <- data %>%
 # Export charisma key
 write.csv(data1, file=file.path(datadir, "CA_MPA_charisma_key.csv"), row.names = F)
 
+# Fit linear model to typical
+lmfit2 <- lm(inat_observers_tot ~ npeople_50km, data1 %>% filter(charisma_yn=="Typical"))
+summary(lmfit2)
 
 # Plot data 
 ################################################################################
@@ -102,7 +106,7 @@ g <- ggplot() +
 g
 
 # Export figure
-ggsave(g, filename=file.path(plotdir, "Fig9_population_engagement_corr.png"), 
+ggsave(g, filename=file.path(plotdir, "Fig8_population_engagement_corr.png"), 
        width=4.5, height=4.5, units="in", dpi=600)
 
 
