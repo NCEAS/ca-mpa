@@ -105,6 +105,8 @@ data <- data_orig %>%
          air_temp_f=ifelse(air_temp_f %in% c(-9999, 0), NA, wind_speed)) %>% 
   # Compute survey duration
   mutate(duration_hr=lubridate::time_length(time_end1-time_start1, unit="hours")) %>% 
+  # Assume that NA in number of activities is a zero
+  mutate_at(vars(c(beach_rec_sandy, beach_rec_rocky, wildlife_viewing_sandy:unknown_fishing)), ~replace_na(., 0)) %>% 
   # Arrange
   select(survey_id, program, mpa_id, mpa, survey_type, 
          survey_site:time_end, time_start1, time_end1, duration_hr, everything())
@@ -125,8 +127,8 @@ sort(unique(data$weather_station_name)) # imperfect
 table(data$tide_level)
 sort(unique(data$tide_station_name)) # imperfect - i'd bet lat/long problems too
 table(data$wind)
-table(data$temperature)
-table(data$air_temperature)
+table(data$temperature) # lots of problems
+table(data$air_temp_f)  # lots of problems
 
 # Inspect numeric data
 range(data$date)
@@ -145,18 +147,9 @@ tide_key <- data %>%
   arrange(tide_station_name)
 
 
-# Make long
-################################################################################
-
-# Gather
-data_long <- data %>% 
-  # Gather
-  gather(key="use", value="n_obs", 31:ncol(.))
-
 # Export data
 ################################################################################
 
 # Export
 saveRDS(data, file=file.path(outdir, "MPA_Watch_2011_2022_surveys_ca_programs_wide.Rds"))
-saveRDS(data_long, file=file.path(outdir, "MPA_Watch_2011_2022_surveys_ca_programs_long.Rds"))
 
