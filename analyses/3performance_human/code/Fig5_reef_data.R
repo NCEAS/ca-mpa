@@ -21,12 +21,83 @@ mpas <- readRDS(file.path(traitdir, "CA_MPA_metadata.Rds"))
 # Read data
 data <- readRDS(file=file.path(reefdir, "REEF_1994_2022_survey_metadata.Rds"))
 
+# Types use
+types_use <- c("SMR", "SMRMA", "SMCA", "SMCA (No-Take)")
+
+
+# Survey coverage
+################################################################################
+
+# Build data
+#####################################
+
+# Build data
+reef_coverage <- data %>% 
+  # Reduce to MPAs
+  filter(!is.na(mpa)) %>% 
+  # Add MPA meta data
+  left_join(mpas %>% select(mpa, region, type)) %>% 
+  # MPAs of interest
+  filter(type %in% types_use) %>% 
+  # Add year, month, dummy date
+  mutate(year=lubridate::year(date),
+         month=lubridate::month(date),
+         date_dummy=lubridate::ymd(paste(year, month, 1, sep="-"))) %>% 
+  # Summarize
+  group_by(region, mpa, date_dummy) %>% 
+  summarize(nsurveys=n_distinct(survey_id)) %>% 
+  ungroup()
+
+# MPA order
+mpa_order <- reef_coverage %>% 
+  group_by(region, mpa) %>% 
+  summarize(nsurveys=sum(nsurveys)) %>% 
+  ungroup() %>% 
+  arrange(region, desc(nsurveys))
+  
+  
+# Plot data
+#####################################
+
+# Theme
+theme1 <-  theme(axis.text=element_text(size=6),
+                 axis.text.y=element_text(size=5),
+                 axis.title=element_text(size=8),
+                 axis.title.y=element_blank(),
+                 legend.text=element_text(size=6),
+                 legend.title=element_text(size=7),
+                 strip.text=element_text(size=7),
+                 # Gridlines
+                 panel.grid.major = element_blank(), 
+                 panel.grid.minor = element_blank(),
+                 panel.background = element_blank(), 
+                 axis.line = element_line(colour = "black"),
+                 # Legend
+                 legend.background = element_rect(fill=alpha('blue', 0)))
+
+# Plot data
+g <- ggplot(reef_coverage, aes(x=date_dummy, y=mpa %>% factor(., levels=mpa_order$mpa), fill=nsurveys)) +
+  facet_grid(region~., space="free_y", scale="free_y") +
+  geom_tile(color="grey30", lwd=0.05) +
+  # Labels
+  labs(x="Month", y="") +
+  scale_x_date(breaks=seq(ymd("1995-01-01"), ymd("2020-01-01"), by="5 year") %>% ymd(), 
+               date_labels="%Y") +
+  # Legend
+  scale_fill_gradientn(name="# of surveys", 
+                       colors=RColorBrewer::brewer.pal(9, "Spectral") %>% rev(), trans="log2") +
+  guides(fill = guide_colorbar(ticks.colour = "black", frame.colour = "black")) +
+  # Theme
+  theme_bw() + theme1
+g  
+
+# Export plot
+ggsave(g, filename=file.path(plotdir, "FigS3_reef_survery_coverage.png"), 
+       width=6.5, height=4.5, units="in", dpi=600)
+
 
 # Build data
 ################################################################################
-
-# Types use
-types_use <- c("SMR", "SMRMA", "SMCA", "SMCA (No-Take)")
 
 # Build MPA data
 range(data$date)

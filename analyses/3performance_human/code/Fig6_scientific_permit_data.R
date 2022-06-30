@@ -23,12 +23,74 @@ data_orig <- readRDS(file=file.path(datadir, "CA_2012_2021_mpa_scientific_permit
 usa <- rnaturalearth::ne_states(country="United States of America", returnclass = "sf")
 foreign <- rnaturalearth::ne_countries(country=c("Canada", "Mexico"), returnclass = "sf")
 
+# MPA types
+types_use <- c("SMR", "SMRMA", "SMCA", "SMCA (No-Take)")
+
+
+# Survey coverage
+################################################################################
+
+# Build data
+#####################################
+
+# Build data
+coverage <- data_orig %>% 
+  # Add MPA meta data
+  left_join(mpas %>% select(mpa, type)) %>% 
+  # MPAs of interest
+  filter(type %in% types_use)
+
+# MPA order
+mpa_order <- coverage %>% 
+  group_by(region, mpa) %>% 
+  summarize(npermits=sum(npermits)) %>% 
+  ungroup() %>% 
+  arrange(region, desc(npermits))
+
+
+# Plot data
+#####################################
+
+# Theme
+theme1 <-  theme(axis.text=element_text(size=6),
+                 axis.text.y=element_text(size=5),
+                 axis.title=element_text(size=8),
+                 axis.title.y=element_blank(),
+                 legend.text=element_text(size=6),
+                 legend.title=element_text(size=7),
+                 strip.text=element_text(size=7),
+                 # Gridlines
+                 panel.grid.major = element_blank(), 
+                 panel.grid.minor = element_blank(),
+                 panel.background = element_blank(), 
+                 axis.line = element_line(colour = "black"),
+                 # Legend
+                 legend.background = element_rect(fill=alpha('blue', 0)))
+
+# Plot data
+g <- ggplot(coverage, aes(x=year, y=mpa %>% factor(., levels=mpa_order$mpa), fill=npermits)) +
+  facet_grid(region~., space="free_y", scale="free_y") +
+  geom_tile(color="grey30", lwd=0.05) +
+  # Labels
+  labs(x="Year", y="") +
+  scale_x_continuous(breaks=2012:2021) +
+  # Legend
+  scale_fill_gradientn(name="# of surveys", 
+                       colors=RColorBrewer::brewer.pal(9, "Spectral") %>% rev()) +
+  guides(fill = guide_colorbar(ticks.colour = "black", frame.colour = "black")) +
+  # Theme
+  theme_bw() + theme1
+g  
+
+# Export plot
+ggsave(g, filename=file.path(plotdir, "FigS4_sci_permit_coverage.png"), 
+       width=6.5, height=7.75, units="in", dpi=600)
+
 
 # Build data
 ################################################################################
 
 # Build data
-types_use <- c("SMR", "SMRMA", "SMCA", "SMCA (No-Take)")
 data <- data_orig %>% 
   # Summ
   group_by(mpa) %>% 

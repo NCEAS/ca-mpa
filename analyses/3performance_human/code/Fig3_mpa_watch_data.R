@@ -8,6 +8,7 @@ rm(list = ls())
 
 # Packages
 library(tidyverse)
+library(lubridate)
 
 # Directories
 basedir <- "/Volumes/GoogleDrive/.shortcut-targets-by-id/1kCsF8rkm1yhpjh2_VMzf8ukSPf9d4tqO/MPA Network Assessment: Working Group Shared Folder/data/sync-data"
@@ -53,11 +54,12 @@ data <- data_orig %>%
   # Reduce
   filter(!is.na(n_obs) & n_obs>0)
 
+
 # Examine survey coverage
 ################################################################################
 
 # Examine survey coverage
-survey_coverage <- data %>% 
+survey_coverage <- data_orig %>% 
   # Number of activies on each survey by location/type
   select(survey_id, mpa, mpa_id, survey_type, date) %>% 
   unique() %>% 
@@ -96,18 +98,20 @@ g <- ggplot(survey_coverage, aes(x=date_dummy, y=mpa, fill=nsurveys)) +
   facet_grid(survey_type~., space="free_y", scales="free_y") +
   geom_tile(color="grey30", lwd=0.05) +
   # Add vertical lines
-  geom_vline(xintercept="")
+  geom_vline(xintercept=c("2015-01-01", "2021-12-31") %>% lubridate::ymd(.), linetype="dashed") +
   # Labels
   labs(x="Month", y="") +
+  scale_x_date(date_breaks = "1 year", date_labels="%Y") +
   # Legend
-  scale_fill_gradientn(name="# of surveys", colors=RColorBrewer::brewer.pal(9, "Blues"), trans="log2") +
+  scale_fill_gradientn(name="# of surveys", 
+                       colors=RColorBrewer::brewer.pal(9, "Spectral") %>% rev(), trans="log2") +
   guides(fill = guide_colorbar(ticks.colour = "black", frame.colour = "black")) +
   # Theme
   theme_bw() + theme1
 g
 
 # Export plot
-ggsave(g, filename=file.path(plotdir, "FigSX_mpa_watch_survey_coverage.png"), 
+ggsave(g, filename=file.path(plotdir, "FigS1_mpa_watch_survey_coverage.png"), 
        width=6.5, height=7, units="in", dpi=600)
 
 

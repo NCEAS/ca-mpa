@@ -102,6 +102,78 @@ observer_ts1 <- data_orig %>%
   ungroup()
 
 
+# iNaturalist coverage
+################################################################################
+
+# Build data
+#####################################
+
+# iNat coverage by month
+inat_coverage <- data_orig %>% 
+  # Add MPA metadata
+  left_join(mpas_orig %>% select(region, type, mpa)) %>% 
+  # Correct region
+  mutate(region=recode(region, "San Francisco Bay"="North Central Coast")) %>% 
+  # Reduce to MPAs of interest
+  filter(type %in% types_use) %>% 
+  # Add year, month, dummy date
+  mutate(year=lubridate::year(date_obs),
+         month=lubridate::month(date_obs),
+         date_dummy=lubridate::ymd(paste(year, month, 1, sep="-"))) %>% 
+  # Reduce to data before 2018
+  filter(year<=2018) %>% 
+  # Summarize
+  group_by(region, mpa, date_dummy) %>% 
+  summarize(nobservers=n_distinct(user_id),
+            nobservations=n()) %>% 
+  ungroup()
+
+# MPA order
+mpa_order <- inat_coverage %>% 
+  # Order
+  group_by(region, mpa) %>% 
+  summarize(nobservations_tot=sum(nobservations)) %>% 
+  ungroup() %>% 
+  arrange(region, desc(nobservations_tot))
+
+# Plot data
+#####################################
+
+# Theme
+theme1 <-  theme(axis.text=element_text(size=6),
+                 axis.text.y=element_text(size=5),
+                 axis.title=element_text(size=8),
+                 axis.title.y=element_blank(),
+                 legend.text=element_text(size=6),
+                 legend.title=element_text(size=7),
+                 strip.text=element_text(size=7),
+                 # Gridlines
+                 panel.grid.major = element_blank(), 
+                 panel.grid.minor = element_blank(),
+                 panel.background = element_blank(), 
+                 axis.line = element_line(colour = "black"),
+                 # Legend
+                 legend.background = element_rect(fill=alpha('blue', 0)))
+
+# Plot iNat coverage
+g <- ggplot(inat_coverage, aes(x=date_dummy, y=mpa %>% factor(., levels=mpa_order$mpa), fill=nobservations)) +
+  facet_grid(region~., space="free_y", scale="free_y") +
+  geom_tile(color="grey30", lwd=0.05) +
+  # Labels
+  labs(x="Month", y="") +
+  # Legend
+  scale_fill_gradientn(name="# of observations", 
+                       colors=RColorBrewer::brewer.pal(9, "Spectral") %>% rev(), trans="log2") +
+  guides(fill = guide_colorbar(ticks.colour = "black", frame.colour = "black")) +
+  # Theme
+  theme_bw() + theme1
+g  
+
+# Export plot
+ggsave(g, filename=file.path(plotdir, "FigS2_inat_obs_coverage.png"), 
+       width=6.5, height=7.5, units="in", dpi=600)
+
+
 # Plot data
 ################################################################################
 
