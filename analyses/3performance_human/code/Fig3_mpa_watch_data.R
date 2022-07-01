@@ -83,7 +83,7 @@ g
 # Build data
 data_long <- data_wide %>% 
   # Gather
-  gather(key="activity_orig", value="activity_n", 8:ncol(.)) %>% 
+  gather(key="activity_orig", value="activity_n", 10:ncol(.)) %>% 
   # Add column data
   left_join(col_key %>% select(activity_orig, activity, activity_type1, activity_type2), by="activity_orig")
 
@@ -223,7 +223,7 @@ g2 <- ggplot(data_wide, aes(x=duration_hr*60)) +
 g2
 
 # Plot survey start/finish times
-g3 <- ggplot(survey, aes(x=time, fill=timepoint)) +
+g3 <- ggplot(survey_times, aes(x=time, fill=timepoint)) +
   geom_density(alpha=0.5)  +
   # Breaks
   geom_vline(data=survey_time_cutoffs, 
@@ -338,4 +338,22 @@ g
 # Export
 ggsave(g, filename=file.path(plotdir, "Fig3_mpa_watch_data.png"), 
        width=6.5, height=3.5, units="in", dpi=600)
+
+
+
+# Build time series
+data_ts <- data_long_act %>% 
+  filter(activity_type1=="Non-consumptive") %>% 
+  group_by(region, mpa, mpa_id, survey_id, survey_type, date, duration_hr) %>% 
+  summarize(activity_n=sum(activity_n),
+            activity_hr=sum(activity_hr)) %>% 
+  ungroup()
+
+# Plot 
+g <- ggplot(data_ts, aes(x=date, y=activity_hr, fill=region)) +
+  geom_point() +
+  geom_smooth() +
+  theme_bw()
+g
+
 

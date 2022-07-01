@@ -137,6 +137,12 @@ habitat_ts <- data %>%
                                  "Artificial reef", "Rocky reef", "Cobble/boulder", "Pinnacle", "Wall",
                                  "Eel grass", "Surf grass", "Bull kelp", "Kelp forest", "Mixed")))
 
+# Habitat colors
+hab_colors <- c("steelblue", "wheat1", "saddlebrown",
+                RColorBrewer::brewer.pal(5, "Purples"), 
+                RColorBrewer::brewer.pal(4, "YlGn"),
+                "darkorange")
+
 # Time series by surveyor type
 surveyor_ts <- data %>% 
   # MPA site only
@@ -222,7 +228,7 @@ g2 <- ggplot(habitat_ts, mapping=aes(x=year, y=nsurveys, fill=habitat)) +
   labs(x="Year", y="# of surveys", tag="B") +
   scale_x_continuous(breaks=seq(1995, 2020, 5)) +
   # Legend
-  scale_fill_discrete(name="Habitat", na.value="grey90") +
+  scale_fill_manual(name="Habitat", na.value="grey90", values=hab_colors) +
   # Theme
   theme_bw() + theme1 +
   theme(legend.position=c(0.16, 0.68),
@@ -236,7 +242,7 @@ g3 <- ggplot(depth_ts, mapping=aes(x=year, y=nsurveys, fill=max_depth)) +
   labs(x="Year", y="# of surveys", tag="C") +
   scale_x_continuous(breaks=seq(1995, 2020, 5)) +
   # Legend
-  scale_fill_ordinal(name="Max depth", na.value="grey90") +
+  scale_fill_ordinal(name="Max depth", na.value="grey90", direction=-1) +
   # Theme
   theme_bw() + theme1 +
   theme(legend.position=c(0.14, 0.62),
