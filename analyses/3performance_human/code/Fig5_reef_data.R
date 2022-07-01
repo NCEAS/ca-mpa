@@ -6,6 +6,7 @@
 rm(list = ls())
 
 # Packages
+library(lubridate)
 library(tidyverse)
 library(countrycode)
 
@@ -54,8 +55,8 @@ mpa_order <- reef_coverage %>%
   summarize(nsurveys=sum(nsurveys)) %>% 
   ungroup() %>% 
   arrange(region, desc(nsurveys))
-  
-  
+
+
 # Plot data
 #####################################
 
@@ -125,7 +126,16 @@ habitat_ts <- data %>%
   # Summarize
   group_by(year, habitat) %>% 
   summarize(nsurveys=n_distinct(survey_id)) %>% 
-  ungroup()
+  ungroup() %>% 
+  # Recode habitats
+  mutate(habitat=recode(habitat,
+                        "Sandy bottom"="Sand",
+                        "Mud/silt bottom"="Mud/silt",
+                        "Cobblestone/boulder field"="Cobble/boulder"),
+         habitat=factor(habitat,
+                        levels=c("Open ocean", "Sand", "Mud/silt",
+                                 "Artificial reef", "Rocky reef", "Cobble/boulder", "Pinnacle", "Wall",
+                                 "Eel grass", "Surf grass", "Bull kelp", "Kelp forest", "Mixed")))
 
 # Time series by surveyor type
 surveyor_ts <- data %>% 
@@ -212,10 +222,10 @@ g2 <- ggplot(habitat_ts, mapping=aes(x=year, y=nsurveys, fill=habitat)) +
   labs(x="Year", y="# of surveys", tag="B") +
   scale_x_continuous(breaks=seq(1995, 2020, 5)) +
   # Legend
-  scale_fill_discrete(name="Habitat") +
+  scale_fill_discrete(name="Habitat", na.value="grey90") +
   # Theme
   theme_bw() + theme1 +
-  theme(legend.position=c(0.23, 0.65),
+  theme(legend.position=c(0.16, 0.68),
         legend.key.size = unit(0.15, "cm"))
 g2
 
@@ -226,10 +236,10 @@ g3 <- ggplot(depth_ts, mapping=aes(x=year, y=nsurveys, fill=max_depth)) +
   labs(x="Year", y="# of surveys", tag="C") +
   scale_x_continuous(breaks=seq(1995, 2020, 5)) +
   # Legend
-  scale_fill_ordinal(name="Max depth") +
+  scale_fill_ordinal(name="Max depth", na.value="grey90") +
   # Theme
   theme_bw() + theme1 +
-  theme(legend.position=c(0.23, 0.65),
+  theme(legend.position=c(0.14, 0.62),
         legend.key.size = unit(0.15, "cm"))
 g3
 
