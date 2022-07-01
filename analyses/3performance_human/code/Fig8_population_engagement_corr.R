@@ -93,11 +93,11 @@ g <- ggplot() +
               method=lm, color="darkred", fill="red", alpha=0.5) +
   # Plot points
   geom_point(data=data1, mapping=aes(x=npeople_50km/1e6, y=inat_observers_tot, fill=charisma_yn), 
-             pch=21, size=1.7) +
+             pch=21, size=1.9) +
   # Plot labels
   ggrepel::geom_text_repel(data1 %>% filter(charisma_yn=="Charismatic"),
                            mapping=aes(x=npeople_50km/1e6, y=inat_observers_tot, label=mpa_short), 
-                           inherit.aes = F, size=2, max.overlaps = 1000, color="grey70") +
+                           inherit.aes = F, size=2, max.overlaps = 1000, color="grey60") +
   # Labels
   labs(x="Millions of people\nwithin 50 km", y="Total iNaturalist observers\nfrom 2000 to 2018") +
   scale_fill_discrete(name="MPA type") +
