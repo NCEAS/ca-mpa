@@ -94,7 +94,8 @@ ggsave(g, filename=file.path(plotdir, "FigS4_sci_permit_coverage.png"),
 data <- data_orig %>% 
   # Summ
   group_by(mpa) %>% 
-  summarize(npermits=sum(npermits)) %>% 
+  summarize(npermits=sum(npermits),
+            nyears=n_distinct(year)) %>% 
   ungroup() %>% 
   # Add lat/long and type
   left_join(mpas %>% select(mpa, type, lat_dd, long_dd), by="mpa") %>% 
@@ -149,19 +150,21 @@ g1 <- ggplot() +
   geom_sf(data=foreign, fill="grey80", color="white", lwd=0.3) +
   geom_sf(data=usa, fill="grey80", color="white", lwd=0.3) +
   # Plot MPAs
-  geom_point(data=data, mapping=aes(x=long_dd, y=lat_dd, size=npermits)) +
+  geom_point(data=data, mapping=aes(x=long_dd, y=lat_dd, size=npermits, fill=nyears), pch=21) +
   # Labels
   labs(x="", y="", tag="A") +
   # Axes
   scale_y_continuous(breaks=32:42) +
   # Legend
+  scale_fill_gradientn(name="# of years with permits", colors=RColorBrewer::brewer.pal(9, "Blues")) +
+  guides(fill = guide_colorbar(ticks.colour = "black", frame.colour = "black")) +
   scale_size_continuous(name="# of scientific permits\nissued from 2012-2021") +
   # Crop
   coord_sf(xlim = c(-124.5, -117), ylim = c(32.5, 42)) +
   # Theme
   theme_bw() + theme1 + 
   theme(axis.title.y=element_blank(),
-        legend.position = c(0.75, 0.8),
+        legend.position = c(0.75, 0.7),
         legend.key.size = unit(0.4, "cm"))
 g1
 

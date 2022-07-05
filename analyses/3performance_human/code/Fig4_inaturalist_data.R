@@ -255,7 +255,7 @@ g3 <- ggplot(observer_ts1, aes(x=year_obs, y=nobservers, fill=nmpas_catg)) +
   # Axes
   scale_x_continuous(lim=c(2000,2021), breaks=seq(2000, 2020, 5)) +
   # Legend
-  scale_fill_ordinal(name="# of MPAs visited", direction=-1, na.value="grey90") +
+  scale_fill_ordinal(name="# of MPAs visited", direction=-1, na.value="grey90", guide = guide_legend(reverse = TRUE)) +
   # Theme
   theme_bw() + theme1 + 
   theme(legend.position = c(0.25, 0.75),

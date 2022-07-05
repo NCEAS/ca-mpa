@@ -26,8 +26,14 @@ foreign <- rnaturalearth::ne_countries(country=c("Canada", "Mexico"), returnclas
 # Reduce to MPAs of interest
 sort(unique(mpas_orig$type))
 types_use <- c("SMR", "SMRMA", "SMCA", "SMCA (No-Take)")
+types <- c("SMR", "SMRMA", "SMCA (No-Take)", "SMCA", "SMP", "Special Closure", "FMR", "FMCA")
 mpas <- mpas_orig %>% 
-  filter(type %in% types_use)
+  # Order types
+  mutate(type=factor(type, types))
+  # Reduce
+  # filter(type %in% types_use)
+
+table(mpas$type)
 
 
 # Plot data
@@ -38,8 +44,8 @@ mpas <- mpas_orig %>%
 region_lats <- c(39.0, 37.18, 34.5)
 
 # Region labels
-region_labels <- tibble(long_dd=c(-123.5, -122.5, -121, -118, -119.2),
-                        lat_dd=c(40.5, 38.5, 36, 33.9, 34.6),
+region_labels <- tibble(long_dd=c(-123.9, -122.9, -121, -118, -119.5),
+                        lat_dd=c(40.5, 38.7, 36, 34.1, 34.8),
                         label=c("North\n(Dec 2012)", "North Central\n(May 2010)", "Central\n(Sep 2007)", "South\n(Jan 2012)", "N. Channel\nIslands (2003)"))
 
 # Theme
@@ -54,9 +60,16 @@ my_theme <-  theme(axis.text=element_text(size=6),
                    panel.background = element_blank(), 
                    axis.line = element_line(colour = "black"),
                    # Legend
-                   legend.position = c(0.22, 0.12),
+                   legend.position = c(0.8, 0.7), # when color/size legends
+                   # legend.position = c(0.8, 0.8), # when only color legend
                    legend.key.size = unit(0.4, "cm"),
+                   legend.key = element_rect(fill=alpha('blue', 0)),
                    legend.background = element_rect(fill=alpha('blue', 0)))
+
+# Type colors
+type_colors <- c(RColorBrewer::brewer.pal(9, "Greens")[5:8] %>% rev(), 
+                 RColorBrewer::brewer.pal(9, "Oranges")[6:7] %>% rev(), 
+                 RColorBrewer::brewer.pal(9, "Purples")[6:7] %>% rev())
 
 # Plot data
 g <- ggplot() +
@@ -66,13 +79,19 @@ g <- ggplot() +
   geom_sf(data=foreign, fill="grey80", color="white", lwd=0.3) +
   geom_sf(data=usa, fill="grey80", color="white", lwd=0.3) +
   # Plot MPAs
-  geom_sf(data=mpas, fill="red", color=NA) +
+  # geom_sf(data=mpas, mapping=aes(fill=type), color=NA) +
+  geom_point(data=mpas, mapping=aes(x=long_dd, y=lat_dd, fill=type, size=area_sqkm), 
+             pch=21, color="grey30", stroke=0.1) + # size=2.5
   # Plot state waters
-  # geom_sf(data=state_waters_line, color="grey20", lwd=0.2) +
+  geom_sf(data=state_waters_line, color="grey40", lwd=0.1) +
   # Plot region labels
   geom_text(data=region_labels, mapping=aes(x=long_dd, y=lat_dd, label=label), hjust=0, size=2.3) +
   # Labels
   labs(x="", y="") +
+  # Legend
+  scale_fill_manual(name="Designation", values=type_colors) +
+  scale_size_continuous(name="Area (sqkm)") +
+  guides(fill = guide_legend(order=1), size = guide_legend(order=2)) +
   # Axes
   scale_y_continuous(breaks=32:42) +
   # Crop
