@@ -47,7 +47,13 @@ reef_coverage <- data %>%
   # Summarize
   group_by(region, mpa, date_dummy) %>% 
   summarize(nsurveys=n_distinct(survey_id)) %>% 
-  ungroup()
+  ungroup() %>% 
+  # Format regions
+  mutate(region=recode_factor(region,
+                       "North Coast"="North\nCoast",
+                       "North Central Coast"="North\nCentral\nCoast",
+                       "Central Coast"="Central\nCoast",
+                       "South Coast"="South\nCoast"))
 
 # MPA order
 mpa_order <- reef_coverage %>% 
@@ -94,7 +100,7 @@ g
 
 # Export plot
 ggsave(g, filename=file.path(plotdir, "FigS3_reef_survery_coverage.png"), 
-       width=6.5, height=4.5, units="in", dpi=600)
+       width=6.5, height=5, units="in", dpi=600)
 
 
 # Build data

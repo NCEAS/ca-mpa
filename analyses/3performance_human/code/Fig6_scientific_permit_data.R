@@ -75,7 +75,7 @@ g <- ggplot(coverage, aes(x=year, y=mpa %>% factor(., levels=mpa_order$mpa), fil
   labs(x="Year", y="") +
   scale_x_continuous(breaks=2012:2021) +
   # Legend
-  scale_fill_gradientn(name="# of surveys", 
+  scale_fill_gradientn(name="# of permits", 
                        colors=RColorBrewer::brewer.pal(9, "Spectral") %>% rev()) +
   guides(fill = guide_colorbar(ticks.colour = "black", frame.colour = "black")) +
   # Theme
