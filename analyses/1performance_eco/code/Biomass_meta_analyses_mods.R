@@ -28,7 +28,8 @@ require(ggtext)
 
 data_path <- "/home/shares/ca-mpa/data/sync-data/processed_data"
 input_file <- "targeted_nontargeted_fish_biomass_with_mods.csv" 
-meta.data <- read.csv(file.path(data_path, input_file))
+meta.data <- read.csv(file.path(data_path, input_file)) %>%
+              filter(!(group=='ccfrp' & target_status=='nontargeted')) #drop nontargeted ccfrp
 
 meta.data$mpa_class <- tolower(meta.data$mpa_class)
 meta.data$mpa_designation <- tolower(meta.data$mpa_designation)
@@ -164,7 +165,7 @@ forest(dat$yi, dat$vi, xlim=c(-8, 6), #at=log(c(0.05, 0.25, 1, 4)), #atransf=exp
        cex=0.75, 
        ylim=c(-3, 51),
        order=order(factor(dat$region4, level=c("south","north islands", "central","north"))), 
-       rows=c(3:10,16:21,27:34,40:46),
+       rows=c(3:9,16:20,27:33,40:45),
        mlab=mlabfun("biomass overall", res.overall),
        slab=paste(dat$group),
        ilab = dat$target_status,
@@ -182,10 +183,15 @@ op <- par(cex=0.75, font=2)
 ### add additional column headings to the plot
 
 ### add text for the subgroups
-text(-8, c(47,35,22,11), pos=4, c("North",
+text(-8, c(46.5,34.5,21.5,10.5), pos=4, c("North",
                                  "Central",
-                                 "N. Channel Islands",
+                                 "N. Islands",
                                  "South"))
+
+text(-6.8, c(46.5,34.5,21.5,10.5), pos=4, c("Fished Status",
+                                          "Fished Status",
+                                          "Fished Status",
+                                          "Fished Status"))
 
 
 ### set par back to the original settings
@@ -282,7 +288,7 @@ abline(h=36, lty=1, col='#D3D3D3')
 
 text(x =-0.2, y = 50, "REF",  pos=2, font=2)
 text(x =1.1, y = 50, "SMR",  pos=2, font=2)
-text(x =-3.5, y = 51.5, "targeted and nontargeted fish biomass 2019-20",  cex=1, pos=2, font=3)
+text(x =-2.1, y = 51.5, "targeted and nontargeted fish biomass 2019-20",  cex=1, pos=2, font=3)
 
 
 
