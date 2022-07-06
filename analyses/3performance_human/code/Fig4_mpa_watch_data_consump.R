@@ -111,17 +111,25 @@ stats_mpa <- data_long_act %>%
   filter(type %in% types_use) %>% 
   # Order MPA types
   mutate(type=factor(type, levels=types_use),
-         type=recode(type, "SMRMA"="SMR"))
+         type=recode(type, "SMRMA"="SMCA"))
 
 # Build network wide stats
 # % of surveys with different activities
+activity_order <- c("Hook and line fishing", "Hand collection", "Trap fishing", "Spear fishing", 
+                    "Net fishing", "Dive fishing", "CPFV fishing", "Kelp harvest")
 nsurveys_tot <- n_distinct(data_long_act$survey_id)
 stats_network <- data_long_act %>% 
   # Summarize
   group_by(region, mpa_type, activity_type2, activity_type3) %>% 
   summarize(nsurveys=sum(activity_n>0), 
             psurveys=nsurveys/nsurveys_tot) %>% 
-  ungroup()
+  ungroup() %>% 
+  # Order activity types
+  mutate(activity_type2=recode(activity_type2, 
+                               "Hand collection of biota"="Hand collection",
+                               "Hook fishing"="Hook and line fishing",
+                               "Passenger fishing"="CPFV fishing"),
+         activity_type2=factor(activity_type2, levels=activity_order))
 
 
 # Plot data
@@ -164,7 +172,7 @@ g1 <- ggplot() +
   # Axes
   scale_y_continuous(breaks=32:42) +
   # Legend
-  scale_size_continuous(name="Active consumptive\nactivities per hour") +
+  scale_size_continuous(name="Activities per hour") +
   scale_shape_manual(name="MPA type", values=c(21, 22, 23, 24)) +
   scale_fill_gradientn(name="% of surveys", colors=RColorBrewer::brewer.pal(9, "Blues"), labels=scales::percent) +
   guides(fill = guide_colorbar(ticks.colour = "black", frame.colour = "black", order=2), size=guide_legend(order=1)) +
@@ -197,7 +205,7 @@ g2
 g3 <- ggplot(data_long_act %>% filter(activity_n>0), 
              aes(x=activity_hr, y=activity_type2)) +
   facet_grid(mpa_type~., scales="free_y", space="free_y") +
-  geom_boxplot(outlier.shape=1, outlier.size=0.5, outlier.stroke = 0.15, lwd=0.15) +
+  geom_boxplot(outlier.shape=1, outlier.size=0.5, outlier.stroke = 0.15, lwd=0.15, fill="grey80") +
   # Limits
   scale_x_continuous(lim=c(0,25), breaks=seq(0,25,5), labels=c("0", "5", "10", "15", "20", ">25")) +
   # Labels
