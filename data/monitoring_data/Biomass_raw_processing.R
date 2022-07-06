@@ -279,6 +279,23 @@ biomass_data_final <- biomass_data_final %>%
 biomass_data_final$mpa_class <- tolower(biomass_data_final$mpa_class)
 biomass_data_final$mpa_designation <- tolower(biomass_data_final$mpa_designation)
 
+
+
+#load MPA traits
+
+data_path <- "/home/shares/ca-mpa/data/sync-data/mpa_traits/processed"
+input_file <- "mpa_attributes_clean.csv" 
+traits <- read.csv(file.path(data_path, input_file)) %>%
+              dplyr::select(affiliated_mpa=name, distance_to_port, implementation_date, size_km2) %>%
+              mutate(implementation_year = format(as.Date(traits$implementation_date, format="%m/%d/%Y"),"%Y"))
+
+#Join MPA trait data
+
+biomass_data_mods <- left_join(biomass_data_final, traits, by="affiliated_mpa") %>%
+                     mutate(mpa_age = as.numeric(year)-as.numeric(implementation_year))
+
+
+
 #export
 #path_aurora <- "/home/shares/ca-mpa/data/sync-data/processed_data" 
 #write.csv(biomass_data_final,file.path(path_aurora, "targeted_nontargeted_fish_biomass.csv"), row.names = FALSE)
