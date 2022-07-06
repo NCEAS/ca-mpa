@@ -38,7 +38,7 @@ data_orig <- readRDS(file.path(datadir, "2000_2020_inaturalist_data_inside_mpas_
 # Summarize
 stats <- data_orig %>% 
   # 2018
-  filter(year_obs==2018 & !is.na(taxa_catg)) %>% 
+  filter(year_obs==2018) %>% 
   # Summarize
   group_by(mpa) %>% 
   summarize(nobservers=n_distinct(user_id),
@@ -57,26 +57,27 @@ stats1 %>% filter(!is.na(nobservers)) %>% pull(name) %>% n_distinct(.)
 # Time series stats
 observations_ts <- data_orig %>% 
   # Before 2018
-  filter(year_obs<=2018 & !is.na(taxa_catg)) %>% 
+  filter(year_obs<=2018) %>% 
   # Summarize
+  mutate(taxa_catg=ifelse(is.na(taxa_catg), "Animalia", taxa_catg)) %>% 
   group_by(year_obs, taxa_catg) %>% 
   summarize(nobservations=n()) %>% 
   ungroup() %>% 
   # Rename taxa
-  mutate(taxa_catg=recode(taxa_catg,
-                          "Actinopterygii"="Fish",
-                          "Amphibia"="Amphibians",     
-                          "Animalia"="Other",  
-                          "Arachnida"="Spiders",
-                          "Aves"="Birds",          
-                          "Chromista"="Chromista",      
-                          "Fungi"="Fungi",      
-                          "Insecta"="Insects",      
-                          "Mammalia"="Mammals",   
-                          "Mollusca"="Mollusks",    
-                          "Plantae"="Plants",   
-                          "Protozoa"="Protozoa",     
-                          "Reptilia"="Reptiles"))
+  mutate(taxa_catg=recode_factor(taxa_catg,
+                                 "Plantae"="Plants",
+                                "Mammalia"="Mammals",   
+                                "Aves"="Birds", 
+                                "Actinopterygii"="Fish",
+                                "Mollusca"="Mollusks",    
+                                "Amphibia"="Amphibians",  
+                                "Reptilia"="Reptiles",
+                                "Insecta"="Insects",
+                                "Arachnida"="Spiders",
+                                "Fungi"="Fungi",      
+                                "Protozoa"="Protozoa", 
+                                "Chromista"="Chromista",
+                                "Animalia"="Other"))
 
 # Observer time series
 observer_ts <- data_orig %>% 
@@ -100,6 +101,78 @@ observer_ts1 <- data_orig %>%
   group_by(year_obs, nmpas_catg) %>% 
   summarize(nobservers=n_distinct(user_id)) %>% 
   ungroup()
+
+
+# iNaturalist coverage
+################################################################################
+
+# Build data
+#####################################
+
+# iNat coverage by month
+inat_coverage <- data_orig %>% 
+  # Add MPA metadata
+  left_join(mpas_orig %>% select(region, type, mpa)) %>% 
+  # Correct region
+  mutate(region=recode(region, "San Francisco Bay"="North Central Coast")) %>% 
+  # Reduce to MPAs of interest
+  filter(type %in% types_use) %>% 
+  # Add year, month, dummy date
+  mutate(year=lubridate::year(date_obs),
+         month=lubridate::month(date_obs),
+         date_dummy=lubridate::ymd(paste(year, month, 1, sep="-"))) %>% 
+  # Reduce to data before 2018
+  filter(year<=2018) %>% 
+  # Summarize
+  group_by(region, mpa, date_dummy) %>% 
+  summarize(nobservers=n_distinct(user_id),
+            nobservations=n()) %>% 
+  ungroup()
+
+# MPA order
+mpa_order <- inat_coverage %>% 
+  # Order
+  group_by(region, mpa) %>% 
+  summarize(nobservations_tot=sum(nobservations)) %>% 
+  ungroup() %>% 
+  arrange(region, desc(nobservations_tot))
+
+# Plot data
+#####################################
+
+# Theme
+theme1 <-  theme(axis.text=element_text(size=6),
+                 axis.text.y=element_text(size=5),
+                 axis.title=element_text(size=8),
+                 axis.title.y=element_blank(),
+                 legend.text=element_text(size=6),
+                 legend.title=element_text(size=7),
+                 strip.text=element_text(size=7),
+                 # Gridlines
+                 panel.grid.major = element_blank(), 
+                 panel.grid.minor = element_blank(),
+                 panel.background = element_blank(), 
+                 axis.line = element_line(colour = "black"),
+                 # Legend
+                 legend.background = element_rect(fill=alpha('blue', 0)))
+
+# Plot iNat coverage
+g <- ggplot(inat_coverage, aes(x=date_dummy, y=mpa %>% factor(., levels=mpa_order$mpa), fill=nobservations)) +
+  facet_grid(region~., space="free_y", scale="free_y") +
+  geom_tile(color="grey30", lwd=0.05) +
+  # Labels
+  labs(x="Month", y="") +
+  # Legend
+  scale_fill_gradientn(name="# of observations", 
+                       colors=RColorBrewer::brewer.pal(9, "Spectral") %>% rev(), trans="log2") +
+  guides(fill = guide_colorbar(ticks.colour = "black", frame.colour = "black")) +
+  # Theme
+  theme_bw() + theme1
+g  
+
+# Export plot
+ggsave(g, filename=file.path(plotdir, "FigS2_inat_obs_coverage.png"), 
+       width=6.5, height=7.5, units="in", dpi=600)
 
 
 # Plot data
@@ -158,6 +231,8 @@ g1 <- ggplot() +
 g1
 
 # Plot number of observations
+taxa_colors <- c("green4", "saddlebrown", "thistle", "lightsteelblue2", "wheat2", 
+                 "olivedrab3", "green3", "gold1", "grey60", "firebrick2", "darkorange", "lavenderblush", "grey90")
 g2 <- ggplot(observations_ts, aes(x=year_obs, y=nobservations/1e3, fill=taxa_catg)) +
   geom_bar(stat="identity", lwd=0.1, color="grey30") +
   # Labels
@@ -165,7 +240,7 @@ g2 <- ggplot(observations_ts, aes(x=year_obs, y=nobservations/1e3, fill=taxa_cat
   # Axes
   scale_x_continuous(lim=c(2000,2021), breaks=seq(2000, 2020, 5)) +
   # Legend
-  scale_fill_discrete(name="Taxa") +
+  scale_fill_manual(name="Taxa", values=taxa_colors) +
   # Theme
   theme_bw() + theme1 +
   theme(legend.position = c(0.2, 0.6),
@@ -180,7 +255,7 @@ g3 <- ggplot(observer_ts1, aes(x=year_obs, y=nobservers, fill=nmpas_catg)) +
   # Axes
   scale_x_continuous(lim=c(2000,2021), breaks=seq(2000, 2020, 5)) +
   # Legend
-  scale_fill_discrete(name="# of MPAs visited") +
+  scale_fill_ordinal(name="# of MPAs visited", direction=-1, na.value="grey90", guide = guide_legend(reverse = TRUE)) +
   # Theme
   theme_bw() + theme1 + 
   theme(legend.position = c(0.25, 0.75),

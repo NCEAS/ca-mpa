@@ -56,9 +56,10 @@ site_key <- data_orig %>%
 site_key$mpa[!site_key$mpa %in% mpas$mpa & site_key$survey_type=="MPA"]
   
 
-
 # Format data
 ################################################################################
+
+# conve
 
 # Format data
 data <- data_orig %>%
@@ -73,7 +74,11 @@ data <- data_orig %>%
   # Convert date/time
   mutate(date=lubridate::ymd(date),
          time_start1=lubridate::hms(time_start),
-         time_end1=lubridate::hms(time_end)) %>% 
+         time_end1=lubridate::hms(time_end),
+         time_start2=as.POSIXlt(time_start, format = "%H:%M") %>% hour(.) + 
+           as.POSIXlt(time_start, format = "%H:%M") %>% minute(.)/60,
+         time_end2=as.POSIXlt(time_end, format = "%H:%M") %>% hour(.) + 
+           as.POSIXlt(time_end, format = "%H:%M") %>% minute(.)/60) %>% 
   # Format strings
   mutate(beach_status=stringr::str_to_sentence(beach_status),
          clouds=stringr::str_to_sentence(clouds),
@@ -105,9 +110,11 @@ data <- data_orig %>%
          air_temp_f=ifelse(air_temp_f %in% c(-9999, 0), NA, wind_speed)) %>% 
   # Compute survey duration
   mutate(duration_hr=lubridate::time_length(time_end1-time_start1, unit="hours")) %>% 
+  # Assume that NA in number of activities is a zero
+  mutate_at(vars(c(beach_rec_sandy, beach_rec_rocky, wildlife_viewing_sandy:unknown_fishing)), ~replace_na(., 0)) %>% 
   # Arrange
   select(survey_id, program, mpa_id, mpa, survey_type, 
-         survey_site:time_end, time_start1, time_end1, duration_hr, everything())
+         survey_site:time_end, time_start1, time_end1, time_start2, time_end2, duration_hr, everything())
 
 # Inspect data
 str(data)
@@ -125,8 +132,8 @@ sort(unique(data$weather_station_name)) # imperfect
 table(data$tide_level)
 sort(unique(data$tide_station_name)) # imperfect - i'd bet lat/long problems too
 table(data$wind)
-table(data$temperature)
-table(data$air_temperature)
+table(data$temperature) # lots of problems
+table(data$air_temp_f)  # lots of problems
 
 # Inspect numeric data
 range(data$date)
@@ -145,18 +152,9 @@ tide_key <- data %>%
   arrange(tide_station_name)
 
 
-# Make long
-################################################################################
-
-# Gather
-data_long <- data %>% 
-  # Gather
-  gather(key="use", value="n_obs", 31:ncol(.))
-
 # Export data
 ################################################################################
 
 # Export
 saveRDS(data, file=file.path(outdir, "MPA_Watch_2011_2022_surveys_ca_programs_wide.Rds"))
-saveRDS(data_long, file=file.path(outdir, "MPA_Watch_2011_2022_surveys_ca_programs_long.Rds"))
 

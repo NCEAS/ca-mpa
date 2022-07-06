@@ -6,6 +6,7 @@
 rm(list = ls())
 
 # Packages
+library(lubridate)
 library(tidyverse)
 library(countrycode)
 
@@ -21,12 +22,83 @@ mpas <- readRDS(file.path(traitdir, "CA_MPA_metadata.Rds"))
 # Read data
 data <- readRDS(file=file.path(reefdir, "REEF_1994_2022_survey_metadata.Rds"))
 
+# Types use
+types_use <- c("SMR", "SMRMA", "SMCA", "SMCA (No-Take)")
+
+
+# Survey coverage
+################################################################################
+
+# Build data
+#####################################
+
+# Build data
+reef_coverage <- data %>% 
+  # Reduce to MPAs
+  filter(!is.na(mpa)) %>% 
+  # Add MPA meta data
+  left_join(mpas %>% select(mpa, region, type)) %>% 
+  # MPAs of interest
+  filter(type %in% types_use) %>% 
+  # Add year, month, dummy date
+  mutate(year=lubridate::year(date),
+         month=lubridate::month(date),
+         date_dummy=lubridate::ymd(paste(year, month, 1, sep="-"))) %>% 
+  # Summarize
+  group_by(region, mpa, date_dummy) %>% 
+  summarize(nsurveys=n_distinct(survey_id)) %>% 
+  ungroup()
+
+# MPA order
+mpa_order <- reef_coverage %>% 
+  group_by(region, mpa) %>% 
+  summarize(nsurveys=sum(nsurveys)) %>% 
+  ungroup() %>% 
+  arrange(region, desc(nsurveys))
+
+
+# Plot data
+#####################################
+
+# Theme
+theme1 <-  theme(axis.text=element_text(size=6),
+                 axis.text.y=element_text(size=5),
+                 axis.title=element_text(size=8),
+                 axis.title.y=element_blank(),
+                 legend.text=element_text(size=6),
+                 legend.title=element_text(size=7),
+                 strip.text=element_text(size=7),
+                 # Gridlines
+                 panel.grid.major = element_blank(), 
+                 panel.grid.minor = element_blank(),
+                 panel.background = element_blank(), 
+                 axis.line = element_line(colour = "black"),
+                 # Legend
+                 legend.background = element_rect(fill=alpha('blue', 0)))
+
+# Plot data
+g <- ggplot(reef_coverage, aes(x=date_dummy, y=mpa %>% factor(., levels=mpa_order$mpa), fill=nsurveys)) +
+  facet_grid(region~., space="free_y", scale="free_y") +
+  geom_tile(color="grey30", lwd=0.05) +
+  # Labels
+  labs(x="Month", y="") +
+  scale_x_date(breaks=seq(ymd("1995-01-01"), ymd("2020-01-01"), by="5 year") %>% ymd(), 
+               date_labels="%Y") +
+  # Legend
+  scale_fill_gradientn(name="# of surveys", 
+                       colors=RColorBrewer::brewer.pal(9, "Spectral") %>% rev(), trans="log2") +
+  guides(fill = guide_colorbar(ticks.colour = "black", frame.colour = "black")) +
+  # Theme
+  theme_bw() + theme1
+g  
+
+# Export plot
+ggsave(g, filename=file.path(plotdir, "FigS3_reef_survery_coverage.png"), 
+       width=6.5, height=4.5, units="in", dpi=600)
+
 
 # Build data
 ################################################################################
-
-# Types use
-types_use <- c("SMR", "SMRMA", "SMCA", "SMCA (No-Take)")
 
 # Build MPA data
 range(data$date)
@@ -54,7 +126,22 @@ habitat_ts <- data %>%
   # Summarize
   group_by(year, habitat) %>% 
   summarize(nsurveys=n_distinct(survey_id)) %>% 
-  ungroup()
+  ungroup() %>% 
+  # Recode habitats
+  mutate(habitat=recode(habitat,
+                        "Sandy bottom"="Sand",
+                        "Mud/silt bottom"="Mud/silt",
+                        "Cobblestone/boulder field"="Cobble/boulder"),
+         habitat=factor(habitat,
+                        levels=c("Open ocean", "Sand", "Mud/silt",
+                                 "Artificial reef", "Rocky reef", "Cobble/boulder", "Pinnacle", "Wall",
+                                 "Eel grass", "Surf grass", "Bull kelp", "Kelp forest", "Mixed")))
+
+# Habitat colors
+hab_colors <- c("steelblue", "wheat1", "saddlebrown",
+                RColorBrewer::brewer.pal(5, "Purples"), 
+                RColorBrewer::brewer.pal(4, "YlGn"),
+                "darkorange")
 
 # Time series by surveyor type
 surveyor_ts <- data %>% 
@@ -141,10 +228,10 @@ g2 <- ggplot(habitat_ts, mapping=aes(x=year, y=nsurveys, fill=habitat)) +
   labs(x="Year", y="# of surveys", tag="B") +
   scale_x_continuous(breaks=seq(1995, 2020, 5)) +
   # Legend
-  scale_fill_discrete(name="Habitat") +
+  scale_fill_manual(name="Habitat", na.value="grey90", values=hab_colors) +
   # Theme
   theme_bw() + theme1 +
-  theme(legend.position=c(0.23, 0.65),
+  theme(legend.position=c(0.16, 0.68),
         legend.key.size = unit(0.15, "cm"))
 g2
 
@@ -155,10 +242,10 @@ g3 <- ggplot(depth_ts, mapping=aes(x=year, y=nsurveys, fill=max_depth)) +
   labs(x="Year", y="# of surveys", tag="C") +
   scale_x_continuous(breaks=seq(1995, 2020, 5)) +
   # Legend
-  scale_fill_ordinal(name="Max depth") +
+  scale_fill_ordinal(name="Max depth", na.value="grey90", direction=-1) +
   # Theme
   theme_bw() + theme1 +
-  theme(legend.position=c(0.23, 0.65),
+  theme(legend.position=c(0.14, 0.62),
         legend.key.size = unit(0.15, "cm"))
 g3
 

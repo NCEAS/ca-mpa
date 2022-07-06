@@ -21,9 +21,11 @@ data_orig <- readxl::read_excel(file.path(indir, "PACsurveys061522.xlsx"), na="N
 # Read MPAs
 mpas <- readRDS(file.path(basedir, "gis_data/processed", "CA_mpa_polygons.Rds"))
 
+# Get land
+usa <- rnaturalearth::ne_states(country="United States of America", returnclass = "sf")
+
 # To-do list
-# 1) Correct coords for 1 site on land
-# 2) Add coords for sites without lat/long
+# 1) Correct coords for 1 site on land - Kawika's Kone
 
 
 # Format data
@@ -205,8 +207,14 @@ if(F){
 
 # Plot data
 ggplot(data, aes(x=long_dd, y=lat_dd, color=habitat)) +
+  geom_sf(data=usa, fill="grey90", color="white", inherit.aes = F) +
   geom_point() +
+  coord_sf(xlim = c(-124.5, -117), ylim = c(32.5, 42)) +
   theme_bw()
+
+# Find bad point - Kawika's Kone
+check <- data %>% 
+  filter(lat_dd>36 & long_dd>-121.5)
 
 # Site key
 # Site id is unique but site name is not
@@ -223,6 +231,37 @@ site_key_no_xy <- site_key %>%
 write.csv(site_key_no_xy, file=file.path(outdir, "REEF_sites_without_xy_data.csv"), row.names = F)
 
 
+# Add missing coordinates
+################################################################################
+
+# Read coordinate key
+coord_key <- readxl::read_excel(file.path(outdir, "REEF_sites_without_xy_data.xlsx"), na="NA") %>% 
+  # Rename
+  rename(lat_dd2=lat_dd, long_dd2=long_dd, coord_source=source) %>% 
+  # Format
+  mutate(coord_source=recode(coord_source, "CDFW"="CDFW shapefile")) %>% 
+  # Simplify
+  select(site_id, long_dd2, lat_dd2, coord_source) %>% 
+  filter(!is.na(long_dd2))
+str(coord_key)
+table(coord_key$coord_source)
+
+# Build data
+data2 <- data %>% 
+  # Add new coordinates
+  left_join(coord_key, by="site_id") %>% 
+  # Format new coordinates
+  mutate(coord_source=case_when(!is.na(lat_dd) ~ "REEF",
+                               is.na(lat_dd) & !is.na(coord_source) ~ coord_source,
+                               T ~ "Unknown")) %>% 
+  mutate(lat_dd=ifelse(is.na(lat_dd), lat_dd2, lat_dd),
+         long_dd=ifelse(is.na(long_dd), long_dd2, long_dd)) %>% 
+  # Arrange
+  select(-c(lat_dd2, long_dd2)) 
+
+# Coordinate source
+table(data2$coord_source)
+
 # Mark if inside MPA
 ################################################################################
 
@@ -231,7 +270,7 @@ mpas_simple <- mpas %>% select(name)
 mpas_simple_sp <- mpas_simple %>% as(., "Spatial")
 
 # Data with xy
-data_xy <- data %>% 
+data_xy <- data2 %>% 
   filter(!is.na(lat_dd))
 
 # Convert to sf
@@ -253,14 +292,21 @@ data_sf_df <- data_sf %>%
   filter(!is.na(mpa))
 
 # Add MPA to data
-data2 <- data %>% 
+data3 <- data2 %>% 
   left_join(data_sf_df %>% select(survey_id, mpa))
 
+# Plot
+site_key2 <- data3 %>% 
+  select(site_id, site_name, long_dd, lat_dd) %>% 
+  unique()
+ggplot(site_key2, aes(x=long_dd, y=lat_dd)) +
+  geom_point() +
+  theme_bw()
 
 # Export data
 ################################################################################
 
 # Export data
-saveRDS(data2, file=file.path(outdir, "REEF_1994_2022_survey_metadata.Rds"))
+saveRDS(data3, file=file.path(outdir, "REEF_1994_2022_survey_metadata.Rds"))
 
 
