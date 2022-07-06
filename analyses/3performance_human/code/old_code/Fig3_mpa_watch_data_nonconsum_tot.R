@@ -8,7 +8,6 @@ rm(list = ls())
 
 # Packages
 library(tidyverse)
-library(tidytext)
 library(lubridate)
 
 # Directories
@@ -86,9 +85,7 @@ data_long <- data_wide %>%
   # Gather
   gather(key="activity_orig", value="activity_n", 10:ncol(.)) %>% 
   # Add column data
-  left_join(col_key %>% select(activity_orig, activity, activity_type1, activity_type2, activity_habitat), by="activity_orig") %>% 
-  # Order habitats
-  mutate(activity_habitat=factor(activity_habitat, levels=c("Sandy", "Rocky", "Offshore")))
+  left_join(col_key %>% select(activity_orig, activity, activity_type1, activity_type2, activity_habitat), by="activity_orig")
 
 # Inspect
 table(data_long$activity_type1)
@@ -106,11 +103,11 @@ data_long_act <- data_long %>%
   mutate(activity_type2=recode(activity_type2, 
                                "Beach recreation"="Beach recreation\n(e.g., walking, resting, playing)",
                                "Offshore recreation"="Offshore recreation\n(e.g., swimming, bodysurfing)",
-                               "Board sports"="Board sports\n(e.g., surfing, bodyboarding)")) %>% 
+                               "Board sports"="Board sports\n(e.g., surfing, boogie boarding)")) %>% 
   # Convert number of activities to numeric
   mutate(activity_n=as.numeric(activity_n)) %>% 
   # Summarize by larger activity type
-  group_by(region, mpa, mpa_id, survey_id, survey_type, date, duration_hr, activity_type2, activity_habitat) %>% 
+  group_by(region, mpa, mpa_id, survey_id, survey_type, date, duration_hr, activity_type2) %>% 
   summarize(activity_n=sum(activity_n)) %>% 
   ungroup() %>% 
   # Compute rate
@@ -144,22 +141,13 @@ stats_mpa <- data_long_act %>%
 nsurveys_tot <- n_distinct(data_long_act$survey_id)
 stats_network <- data_long_act %>% 
   # Summarize
-  group_by(activity_habitat, activity_type2) %>% 
+  group_by(activity_type2) %>% 
   summarize(nsurveys=sum(activity_n>0), 
             psurveys=nsurveys/nsurveys_tot) %>% 
   ungroup() %>% 
-  # Order activities
-  mutate(activity_type2=tidytext::reorder_within(activity_type2, -psurveys, activity_habitat))
-
-# Format activity CPUE for plotting
-data_long_act_plot <- data_long_act %>% 
-  # Reduce to non-zero
-  filter(activity_n>0) %>% 
-  # Add psurveys so you can order
-  left_join(stats_network %>% select(activity_habitat, activity_type2, psurveys)) %>% 
-  # Order by psurveys
-  mutate(activity_type2=tidytext::reorder_within(activity_type2, -psurveys, activity_habitat) %>% as.character(),
-         activity_type2=factor(activity_type2, levels=levels(stats_network$activity_type2)))
+  # Order
+  arrange(desc(psurveys)) %>%
+  mutate(activity_type2=factor(activity_type2, levels=activity_type2))
 
 # Build coverage data
 coverage <- data_wide %>% 
@@ -286,7 +274,6 @@ theme1 <-  theme(axis.text=element_text(size=5),
                  axis.line = element_line(colour = "black"),
                  # Legend
                  legend.key = element_blank(),
-                 legend.margin = margin(),
                  legend.background = element_rect(fill=alpha('blue', 0)))
 
 # Plot data
@@ -319,39 +306,35 @@ g1 <- ggplot() +
 g1
 
 # Plot activity frequency
-g2 <- ggplot(stats_network, aes(x=psurveys, y=activity_type2, fill=activity_habitat)) +
-  facet_grid(activity_habitat~., scales="free_y", space="free_y") +
-  geom_bar(stat="identity", color="grey30", lwd=0.15) +   
+g2 <- ggplot(stats_network, aes(x=psurveys, y=activity_type2)) +
+  geom_bar(stat="identity", fill="grey80", color="grey30", lwd=0.15) +   
   # Labels
   labs(x="Percent of surveys", y="", tag="B") +
   scale_x_continuous(labels=scales::percent) +
-  scale_y_reordered() +
-  # Legend
-  scale_fill_manual(name="", values=c("gold", "slategray4", "steelblue2")) +
   # Theme
   theme_bw() + theme1 +
-  theme(legend.position = "none")
+  theme(legend.position = c(0.8,0.8))
 g2
 
 # Plot activities per hour
-g3 <- ggplot(data_long_act_plot, aes(x=activity_hr, y=activity_type2, fill=activity_habitat)) +
-  facet_grid(activity_habitat~., scales="free_y", space="free_y") +
-  geom_boxplot(outlier.shape=1, outlier.size=0.5, outlier.stroke = 0.15, lwd=0.15, color="grey30") +
+g3 <- ggplot(data_long_act %>% filter(activity_n>0), 
+             aes(x=activity_hr, y=activity_type2 %>% factor(stats_network$activity_type2))) +
+  geom_boxplot(outlier.shape=1, outlier.size=0.5, outlier.stroke = 0.15, lwd=0.15, fill="grey80", color="grey30") +
   # Limits
-  scale_x_continuous(lim=c(0,75), breaks=seq(0,75,25), labels=c("0", "25", "50", ">75")) +
-  scale_y_reordered() +
+  scale_x_continuous(lim=c(0,100), breaks=seq(0,100,25), labels=c("0", "25", "50", "75", ">100")) +
   # Labels
   labs(x="Activities per hour", y="", tag="C") +
-  # Legend
-  scale_fill_manual(name="", values=c("gold", "slategray4", "steelblue2")) +
   # Theme
   theme_bw() + theme1 +
-  theme(legend.position = "none") +
-  theme(axis.text.y = element_blank())
+  theme(legend.position = "none",
+        axis.text.y = element_blank())
 g3
 
 # Merge
-g <- gridExtra::grid.arrange(g1, g2, g3, ncol=3, widths=c(0.35, 0.65*0.6, 0.65*0.4))
+layout_matrix <- matrix(c(1,2,3,
+                          1,4,4), byrow=T, ncol=3)
+g <- gridExtra::grid.arrange(g1, g2, g3, layout_matrix=layout_matrix,
+                             widths=c(0.35, 0.65*0.6, 0.65*0.4), heights=c(0.6, 0.4))
 g 
 
 # Export

@@ -261,7 +261,7 @@ layout_matrix <- matrix(c(1,2,
 g <- gridExtra::grid.arrange(g1, g2, g3, layout_matrix=layout_matrix, widths=c(0.52, 0.48))
 
 # Export
-ggsave(g, filename=file.path(plotdir, "Fig5_reef_data.png"), 
+ggsave(g, filename=file.path(plotdir, "Fig6_reef_data.png"), 
        width=6.5, height=5.25, units="in", dpi=600)
 
 

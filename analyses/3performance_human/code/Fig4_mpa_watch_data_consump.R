@@ -120,7 +120,7 @@ activity_order <- c("Hook and line fishing", "Hand collection", "Trap fishing", 
 nsurveys_tot <- n_distinct(data_long_act$survey_id)
 stats_network <- data_long_act %>% 
   # Summarize
-  group_by(region, mpa_type, activity_type2, activity_type3) %>% 
+  group_by(mpa_type, activity_type2, activity_type3) %>% 
   summarize(nsurveys=sum(activity_n>0), 
             psurveys=nsurveys/nsurveys_tot) %>% 
   ungroup() %>% 
@@ -129,7 +129,10 @@ stats_network <- data_long_act %>%
                                "Hand collection of biota"="Hand collection",
                                "Hook fishing"="Hook and line fishing",
                                "Passenger fishing"="CPFV fishing"),
-         activity_type2=factor(activity_type2, levels=activity_order))
+         activity_type2=factor(activity_type2, levels=activity_order)) %>% 
+  # Order sectors
+  mutate(activity_type3=factor(activity_type3, 
+                               levels=c("Recreational", "Commercial", "CPFV", "Unknown")))
 
 
 # Plot data
@@ -154,6 +157,7 @@ theme1 <-  theme(axis.text=element_text(size=5),
                  axis.line = element_line(colour = "black"),
                  # Legend
                  legend.key = element_blank(),
+                 legend.margin = margin(),
                  legend.background = element_rect(fill=alpha('blue', 0)))
 
 # Plot data
@@ -181,23 +185,26 @@ g1 <- ggplot() +
   # Theme
   theme_bw() + theme1 +
   theme(axis.title.y=element_blank(),
-        legend.position = c(0.8, 0.65),
+        legend.position = c(0.75, 0.65),
         legend.key.size = unit(0.3, "cm"),
         axis.text.y = element_text(angle = 90, hjust = 0.5))
 g1
 
 # Plot activity frequency
+colors <- c(RColorBrewer::brewer.pal(3, "Oranges") %>% rev(), "grey80")
 g2 <- ggplot(stats_network, aes(x=psurveys, y=activity_type2, fill=activity_type3)) +
   facet_grid(mpa_type~., scales="free_y", space="free_y") +
-  geom_bar(stat="identity", position = "stack") +   
+  geom_bar(stat="identity", 
+           position = position_stack(reverse = TRUE),
+           color="grey30", lwd=0.2) +   
   # Labels
   labs(x="Percent of surveys", y="", tag="B") +
   scale_x_continuous(labels=scales::percent) +
   # Legend
-  scale_fill_discrete(name="Type") +
+  scale_fill_manual(name="Fishing sector", values=colors) +
   # Theme
   theme_bw() + theme1 +
-  theme(legend.position = c(0.7, 0.8),
+  theme(legend.position = c(0.7, 0.88),
         legend.key.size=unit(0.3, "cm"))
 g2
 
@@ -221,7 +228,7 @@ g <- gridExtra::grid.arrange(g1, g2, g3, ncol=3, widths=c(0.35, 0.65*0.6, 0.65*0
 g 
 
 # Export
-ggsave(g, filename=file.path(plotdir, "Fig3_mpa_watch_data_consump.png"), 
+ggsave(g, filename=file.path(plotdir, "Fig4_mpa_watch_data_consump.png"), 
        width=6.5, height=3.5, units="in", dpi=600)
 
 
