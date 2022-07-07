@@ -75,7 +75,7 @@ g <- ggplot(coverage, aes(x=year, y=mpa %>% factor(., levels=mpa_order$mpa), fil
   labs(x="Year", y="") +
   scale_x_continuous(breaks=2012:2021) +
   # Legend
-  scale_fill_gradientn(name="# of surveys", 
+  scale_fill_gradientn(name="# of permits", 
                        colors=RColorBrewer::brewer.pal(9, "Spectral") %>% rev()) +
   guides(fill = guide_colorbar(ticks.colour = "black", frame.colour = "black")) +
   # Theme
@@ -188,7 +188,7 @@ layout_matrix <- matrix(c(1,2,
 g <- gridExtra::grid.arrange(g1, g2, layout_matrix=layout_matrix, widths=c(0.52, 0.48))
 
 # Export
-ggsave(g, filename=file.path(plotdir, "Fig6_scientific_permit_data.png"), 
+ggsave(g, filename=file.path(plotdir, "Fig7_scientific_permit_data.png"), 
        width=6.5, height=5.25, units="in", dpi=600)
 
 

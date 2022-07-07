@@ -163,7 +163,7 @@ g <-gridExtra::grid.arrange(g1, g2, nrow=1)
 g
 
 # Export figure
-ggsave(g, filename=file.path(plotdir, "Fig7_performance_scorecard_wide.png"), 
+ggsave(g, filename=file.path(plotdir, "Fig8_performance_scorecard_wide.png"), 
        width=6.5, height=6.5, units="in", dpi=600)
 
 
