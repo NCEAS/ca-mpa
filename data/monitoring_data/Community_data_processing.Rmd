@@ -37,7 +37,7 @@ CCFRP_CPUE <- CCFRP_CPUE %>%
                   mutate(mpa_class="smr", 
                          group="ccfrp") %>%
                   group_by(group, year, affiliated_mpa, mpa_class, mpa_designation, Grid_Cell_ID, Common_Name)%>%
-                  summarise(CPUE_mean = mean(CPUE_catch_per_angler_hour))%>%  #some species in the raw data have duplicate entries.
+                  dplyr::summarize(CPUE_mean = mean(CPUE_catch_per_angler_hour))%>%  #some species in the raw data have duplicate entries.
                   ungroup() %>%
                   tidyr::pivot_wider(names_from = Common_Name, 
                                      values_from = CPUE_mean) %>%
@@ -70,7 +70,16 @@ CCFRP_CPUE <- CCFRP_CPUE %>%
 #path_aurora <- "/home/shares/ca-mpa/data/sync-data/processed_data/ecological_community_data" 
 #write.csv(CCFRP_CPUE,file.path(path_aurora, "CCFRP_species_counts.csv"), row.names = FALSE)
 
+CCFRP_mpa_year <- CCFRP_CPUE %>%
+                  pivot_longer(cols=10:103, names_to="species",values_to="CPUE")%>%
+                  group_by(year, group, region3, region4, MHW, affiliated_mpa, mpa_class, mpa_designation, species)%>%
+                  dplyr::summarize(mean_CPUE = mean(CPUE))%>%
+                  ungroup()%>%
+                  pivot_wider(names_from = "species", values_from = "mean_CPUE")
 
+#Export
+#path_aurora <- "/home/shares/ca-mpa/data/sync-data/processed_data/ecological_community_data" 
+#write.csv(CCFRP_mpa_year,file.path(path_aurora, "CCFRP_mpa_year.csv"), row.names = FALSE)
 ```
 
 
@@ -90,7 +99,7 @@ kelp_fish_counts <- read.csv(file.path(data_path, input_file)) %>%
 kelp_fish_counts <- kelp_fish_counts %>%
                     dplyr::select(year, site, zone, level, transect, classcode, count)%>%
                     group_by(year, site, zone, level, transect, classcode)%>%
-                    summarize(total_count = sum(count)) #counts in raw data are grouped by size class. Take summary across all sizes
+                    dplyr::summarize(total_count = sum(count)) #counts in raw data are grouped by size class. Take summary across all sizes
 
 
 #join species names by class code 
@@ -156,7 +165,7 @@ kelp_fish_counts$mpa_defacto_designation <- tolower(kelp_fish_counts$mpa_defacto
 
 kelp_fish_counts <- kelp_fish_counts %>%
                     group_by(year, region3, region4, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation, zone, level, transect, species) %>%
-                    summarise(counts = sum(total_count)) #make sure species are not duplicates by summarizing at the transect level (total counts)
+                    dplyr::summarise(counts = sum(total_count)) #make sure species are not duplicates by summarizing at the transect level (total counts)
 
 
 
@@ -174,6 +183,16 @@ kelp_fish_counts <- kelp_fish_counts %>%
 #write.csv(kelp_fish_counts,file.path(path_aurora, "kelp_fish_counts.csv"), row.names = FALSE)
 
 
+kelp_fish_mpa_year <- kelp_fish_counts %>% 
+                  pivot_longer(cols=11:153, names_to="species",values_to="counts")%>%
+                  group_by(year, region3, region4, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation, MHW, species)%>%
+                  dplyr::summarize(total_counts = sum(counts))%>%
+                  ungroup()%>%
+                  pivot_wider(names_from = "species", values_from = "total_counts")
+
+#Export year                     
+#path_aurora <- "/home/shares/ca-mpa/data/sync-data/processed_data/ecological_community_data/year_level" 
+#write.csv(kelp_fish_mpa_year,file.path(path_aurora, "kelp_fish_mpa_year.csv"), row.names = FALSE)
 ```
 
 
@@ -191,7 +210,7 @@ kelp_swath_counts <- read.csv(file.path(data_path, input_file)) %>%
 kelp_swath_counts <- kelp_swath_counts %>%
                     dplyr::select(year, site, zone, transect, classcode, count)%>%
                     group_by(year, site, zone, transect, classcode)%>%
-                    summarize(total_count = sum(count)) #counts in raw data are grouped by size class. Take summary across all sizes
+                    dplyr::summarize(total_count = sum(count)) #counts in raw data are grouped by size class. Take summary across all sizes
 
 #join species names by class code 
 input_file <- "MLPA_kelpforest_taxon_table.4.csv"  
@@ -256,8 +275,13 @@ kelp_swath_counts$mpa_defacto_designation <- tolower(kelp_swath_counts$mpa_defac
 
 kelp_swath_counts <- kelp_swath_counts %>%
                     group_by(year, region3, region4, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation, zone, transect, species) %>%
-                    summarise(counts = sum(total_count)) #make sure species are not duplicates by summarizing at the transect level (total counts)
+                    dplyr::summarize(counts = sum(total_count)) #make sure species are not duplicates by summarizing at the transect level (total counts)
 
+
+#Run this code to aggregate at MPA-year level
+#kelp_swath_mpa_year <- kelp_swath_counts %>%
+#                    group_by(year, region3, region4, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation, species) %>%
+#                    dplyr::summarize(counts = sum(counts)) 
 
 
 #reshape to wide format
@@ -266,13 +290,24 @@ kelp_swath_counts <- kelp_swath_counts %>%
                     janitor::clean_names()%>%
                     drop_na(region4) %>%
                     mutate(MHW = ifelse(year>=2014 & year<=2016, "during",ifelse(year<2014, "before","after")))%>%
-                    dplyr::select(year, region3, region4, affiliated_mpa, mpa_defacto_class, MHW, zone, transect, everything())
+                    dplyr::select(year, region3, region4, affiliated_mpa, mpa_defacto_class, MHW, everything())
                     #dplyr::select(-c(no_organisms_present_in_this_sample))
 
 #Export
 #path_aurora <- "/home/shares/ca-mpa/data/sync-data/processed_data/ecological_community_data" 
-#write.csv(kelp_swath_counts,file.path(path_aurora, "kelp_swath_counts.csv"), row.names = FALSE)
+#write.csv(kelp_swath_mpa_year, file.path(path_aurora, "kelp_swath_mpa_year_counts.csv"), row.names = FALSE)
 
+kelp_swath_mpa_year <- kelp_swath_counts %>%
+                        pivot_longer(cols=10:177, names_to="species",values_to="counts")%>%
+                        group_by(year, region3, region4, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation, MHW, species)%>%
+                        dplyr::summarize(total_counts = sum(counts))%>%
+                        ungroup()%>%
+                        pivot_wider(names_from = "species", values_from = "total_counts")
+
+
+#Export year level
+path_aurora <- "/home/shares/ca-mpa/data/sync-data/processed_data/ecological_community_data/year_level" 
+write.csv(kelp_swath_mpa_year, file.path(path_aurora, "kelp_swath_mpa_year.csv"), row.names = FALSE)
 
 ```
 
@@ -282,15 +317,15 @@ kelp_swath_counts <- kelp_swath_counts %>%
 data_path <- "/home/shares/ca-mpa/data/sync-data/monitoring/monitoring_kelp"
 input_file <- "MLPA_kelpforest_upc.4.csv" 
 kelp_upc_counts <- read.csv(file.path(data_path, input_file)) %>%
-                    janitor::clean_names()
+                    janitor::clean_names()%>%
+                    filter(category=="COVER")
 
 
 #select vars and clean
 kelp_upc_counts <- kelp_upc_counts %>%
-                    filter(category=="COVER")%>%
-                    dplyr::select(year, site, zone, transect, classcode, count)%>%
-                    group_by(year, site, zone, transect, classcode)%>%
-                    summarize(total_count = sum(count)) #counts in raw data are grouped by size class. Take summary across all sizes
+                    dplyr::select(year, site, zone, transect, classcode, pct_cov)%>%
+                    group_by(year, site, zone, transect, classcode)#%>%
+                     #counts in raw data are grouped by size class. Take summary across all sizes
 
 
 #join species names by class code 
@@ -303,7 +338,7 @@ kelp_taxon <- read.csv(file.path(data_path, input_file)) %>%
 kelp_upc_counts<-  left_join(kelp_upc_counts, kelp_taxon, by="classcode")
 
 kelp_upc_counts <- kelp_upc_counts %>%
-                    dplyr::select(year, site, zone, transect, species=species_definition, total_count)
+                    dplyr::select(year, site, zone, transect, species=species_definition, pct_cov)
 
 
 #add affiliated_mpa
@@ -318,7 +353,7 @@ kelp_upc_counts <- left_join(kelp_upc_counts, kelp_sites, by="site")
 
 kelp_upc_counts <- kelp_upc_counts %>%
                     ungroup() %>%
-                    dplyr::select(year, affiliated_mpa=ca_mpa_name_short,mpa_class, mpa_designation, zone, transect, species, total_count) %>%
+                    dplyr::select(year, affiliated_mpa=ca_mpa_name_short,mpa_class, mpa_designation, zone, transect, species, pct_cov) %>%
                     mutate(mpa_designation = ifelse(mpa_designation=="reference","ref",mpa_class))
 
 
@@ -350,31 +385,29 @@ kelp_upc_counts <- left_join(kelp_upc_counts, defacto_smr, by="affiliated_mpa")
 #clean up
 kelp_upc_counts <- kelp_upc_counts %>%
                     mutate(mpa_defacto_designation = ifelse(mpa_designation=="ref","ref",mpa_class.y))%>%
-                    dplyr::select(year, region3, region4, affiliated_mpa, mpa_defacto_class = mpa_class.y, mpa_defacto_designation, zone, transect, species, total_count)
+                    dplyr::select(year, region3, region4, affiliated_mpa, mpa_defacto_class = mpa_class.y, mpa_defacto_designation, zone, transect, species, pct_cov)
                  
 kelp_upc_counts$mpa_defacto_class <- tolower(kelp_upc_counts$mpa_defacto_class)
 kelp_upc_counts$mpa_defacto_designation <- tolower(kelp_upc_counts$mpa_defacto_designation)
 
 kelp_upc_counts <- kelp_upc_counts %>%
-                    group_by(year, region3, region4, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation, zone, transect, species) %>%
-                    summarise(counts = sum(total_count)) #make sure species are not duplicates by summarizing at the transect level (total counts)
+                    group_by(year, region3, region4, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation,species) %>%
+                    dplyr::summarise(total_pct_cov = sum(pct_cov)) #make sure species are not duplicates by summarizing at the transect level (total counts)
 
 
 
 #reshape to wide format
-kelp_upc_counts <- kelp_upc_counts %>%
-                    pivot_wider(names_from=species, values_from=counts, values_fill = 0) %>%
+kelp_upc_mpa_year <- kelp_upc_counts %>%
+                    pivot_wider(names_from=species, values_from=total_pct_cov) %>%
                     janitor::clean_names()%>%
                     drop_na(region4) %>%
                     mutate(MHW = ifelse(year>=2014 & year<=2016, "during",ifelse(year<2014, "before","after")))%>%
-                    dplyr::select(year, region3, region4, affiliated_mpa, mpa_defacto_class, MHW, zone, transect, everything())
+                    dplyr::select(year, region3, region4, affiliated_mpa, mpa_defacto_class, MHW, everything())
                     #dplyr::select(-c(no_organisms_present_in_this_sample))
 
 #Export
-#path_aurora <- "/home/shares/ca-mpa/data/sync-data/processed_data/ecological_community_data" 
-#write.csv(kelp_upc_counts,file.path(path_aurora, "kelp_upc_counts.csv"), row.names = FALSE)
-
-
+#path_aurora <- "/home/shares/ca-mpa/data/sync-data/processed_data/ecological_community_data/year_level" 
+#write.csv(kelp_upc_mpa_year,file.path(path_aurora, "kelp_upc_mpa_year.csv"), row.names = FALSE)
 
 
 ```
@@ -396,7 +429,7 @@ deep_reef_counts <- deep_reef_counts_raw %>%
                            !grepl('SMR/SMCA',type))%>%  #remove undertain MPA types
                     dplyr::select(year, mpa_group, type, designation, scientific_name, count)%>%
                     group_by(year, mpa_group, type, designation, scientific_name)%>%
-                    summarize(total_count = sum(count)) #counts in raw data are grouped by size class. Take summary across all sizes 
+                    dplyr::summarize(total_count = sum(count)) #counts in raw data are grouped by size class. Take summary across all sizes 
 
 deep_reef_counts$mpa_group[deep_reef_counts$mpa_group == "N/A" ] <- NA     #replace missing data with NA and drop
 deep_reef_counts <- deep_reef_counts %>%
@@ -476,7 +509,7 @@ deep_reef_counts <- left_join(deep_reef_counts, regions, by=c("affiliated_mpa"="
 #clean
 deep_reef_counts <- deep_reef_counts %>%
                     group_by(year, region3, region4, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation, scientific_name) %>%
-                    summarise(counts = sum(total_count)) #make sure species are not duplicates by summarizing at the transect level (total counts)
+                    dplyr::summarise(counts = sum(total_count)) #make sure species are not duplicates by summarizing at the transect level (total counts)
 
 
 #reshape to wide format
@@ -490,9 +523,8 @@ deep_reef_counts_wide <- deep_reef_counts %>%
                     #dplyr::select(-c(no_organisms_present_in_this_sample))
 
 #Export
-#path_aurora <- "/home/shares/ca-mpa/data/sync-data/processed_data/ecological_community_data" 
-#write.csv(deep_reef_counts_wide,file.path(path_aurora, "deep_reef_fish_counts.csv"), row.names = FALSE)
-
+#path_aurora <- "/home/shares/ca-mpa/data/sync-data/processed_data/ecological_community_data/year_level" 
+#write.csv(deep_reef_counts_wide,file.path(path_aurora, "deep_reef_mpa_year.csv"), row.names = FALSE)
 
 ```
 
@@ -520,8 +552,8 @@ rocky_counts_raw <- rocky_counts_raw %>%
 
 
 #export
-path_aurora <- "/home/shares/ca-mpa/data/sync-data/processed_data/ecological_community_data" 
-write.csv(rocky_counts_raw, file.path(path_aurora, "rocky_counts.csv"), row.names = FALSE)
+#path_aurora <- "/home/shares/ca-mpa/data/sync-data/processed_data/ecological_community_data/year_level" 
+#write.csv(rocky_counts_raw, file.path(path_aurora, "rocky_mpa_year.csv"), row.names = FALSE)
 
 ```
 

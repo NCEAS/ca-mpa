@@ -47,26 +47,34 @@ phys_drivers <- phys_drivers %>%
                        mpa_age = 2022-as.numeric(implementation_year))
 
 
-# Load ecological data ----------------------------------------------------
+# Load biological data ----------------------------------------------------
 
 data_path <- "/home/shares/ca-mpa/data/sync-data/processed_data"
-input_file <- "targeted_nontargeted_fish_biomass_with_mods.csv" 
-meta.data <- read.csv(file.path(data_path, input_file))
-
-meta.data$mpa_class <- tolower(meta.data$mpa_class)
-meta.data$mpa_designation <- tolower(meta.data$mpa_designation)
-
-
-#next steps
-
-#run logistic regression with charismatic / typical as predictors
-#try discriminant analysis
+input_file <- "all_fish_diversity.csv" 
+fish_diversity <- read.csv(file.path(data_path, input_file))%>%
+                  filter(group == 'kelp forest-fish')%>%
+                  group_by(affiliated_mpa)%>%
+                  dplyr::summarize(H_fish = mean(mean, na.rm=TRUE))
 
 
+input_file <- "targeted_nontargeted_fish_biomass.csv"
+fish_biomass <- read.csv(file.path(data_path, input_file))%>%
+  filter(group == 'kelp')%>%
+  group_by(affiliated_mpa, target_status)%>%
+  dplyr::summarize(mean_fish_biomass = mean(sum_biomass, na.rm=TRUE))%>%
+  pivot_wider(names_from='target_status',values_from="mean_fish_biomass")%>%
+  dplyr::mutate(total_fish_biomass = rowSums(across(where(is.numeric))))
 
-#join data
 
-all_drivers <- left_join(charisma_data, phys_drivers, by="mpa")
+bio_drivers <- left_join(fish_diversity,fish_biomass, by='affiliated_mpa')%>%
+               dplyr::select(mpa=affiliated_mpa, H_fish, total_fish_biomass)
+
+
+#join data --------------------------------------------------------------
+
+
+phys_drivers_join <- left_join(charisma_data, phys_drivers, by="mpa")
+all_drivers <- left_join(phys_drivers_join, bio_drivers, by="mpa")
 
 all_drivers <- all_drivers %>%
   mutate_at('sandy_beach_km', ~replace_na(.,0))
@@ -74,18 +82,42 @@ all_drivers <- all_drivers %>%
 
 
 
-# Build logistic model ----------------------------------------------------
+# Build full logistic models ---------------------------------------------------
 
-logit_data <- all_drivers %>%
+
+#iNat logistic model
+logit_iNat <- all_drivers %>%
               mutate(logit_y = ifelse(charisma_yn=="Charismatic", "1", "0"))%>%
               filter(!(mpa=='robert w. crown smca'))
 
+iNat_full_model <-glm(as.numeric(logit_y) ~ 
+                        #npeople_50km+
+                        #size_km2+
+                        #shore_span_km+
+                        #protection + 
+                        #take + 
+                        #mpa_age + 
+                        mpa_within_or_part_of_state_park + 
+                        mpa_within_or_part_of_nat_marine_sanctuary+
+                        #port_size + 
+                        #distance_to_port+
+                        sandy_beach_km + 
+                        #rocky_inter_km +
+                        estuary_km2  
+                        #depth_range +
+                        #max_kelp_canopy_cdfw_km2 +
+                        #H_fish+#biological
+                        #total_fish_biomass 
+                        ,
+                  data = logit_iNat, family = binomial(link="logit"), 
+                  na.action=na.exclude)
+
+tab_model(iNat_full_model, show.aic=T, show.r2=T, title="reduced logistic models",auto.label=T,
+          #pred.labels = c("intercept","state parks (yes)","sandy beach","estuary","national marine sanctuary (yes)"),
+          dv.labels = c("iNaturalist"))
 
 
-#logit <-glm(as.numeric(logit_y) ~ protection + take + mpa_age + mpa_within_or_part_of_state_park +
-              port_size + sandy_beach_km + rocky_inter_km + max_kelp_canopy_cdfw_km2 + estuary_km2 +
-            mpa_within_or_part_of_nat_marine_sanctuary, data = logit_data, family = binomial(link="logit"))
-
+summary(iNat_full_model)
 
 #lowest score - AIC 78
 logit.1 <-glm(as.numeric(logit_y) ~ mpa_within_or_part_of_state_park + sandy_beach_km + estuary_km2 +
@@ -138,6 +170,8 @@ mpa_fq_all <- reef.meta %>%
 #Join REEF with phys drivers
 
 reef_drivers <- left_join(all_drivers, mpa_fq_all, by='mpa')
+#reef_drivers <- left_join(reef_phys_drivers, bio_drivers, by="mpa")
+
 
 #clean up
 reef_drivers <- reef_drivers %>%
@@ -146,18 +180,40 @@ reef_drivers <- reef_drivers %>%
                 filter(type=='focal') #select ONLY REEF survey
 
 
-logit_data <- reef_drivers %>%
+logit_reef <- reef_drivers %>%
   mutate(logit_y = ifelse(charisma_yn=="Charismatic", "1", "0")) %>%
   mutate_at('reef_n', ~replace_na(.,0))
 
-logit_data$logit_y = as.numeric(logit_data$logit_y)
+logit_reef$logit_y = as.numeric(logit_reef$logit_y)
 
 
+
+#reef full model
+
+reef_full_model <-glm(as.numeric(logit_y) ~ npeople_50km+
+                        size_km2+
+                        shore_span_km+
+                        protection + 
+                        take + 
+                        mpa_age + 
+                        mpa_within_or_part_of_state_park + 
+                        mpa_within_or_part_of_nat_marine_sanctuary+
+                        port_size + 
+                        sandy_beach_km + 
+                        rocky_inter_km +
+                        estuary_km2 + 
+                        depth_range +
+                        max_kelp_canopy_cdfw_km2 +
+                        H_fish+#biological
+                        total_fish_biomass, 
+                      data = logit_reef, family = binomial(link="logit"), na.action=na.exclude)
+
+summary(reef_full_model)
 
 
 #lowest score 
-logit.2 <-glm(as.numeric(logit_y) ~ npeople_50km + mpa_within_or_part_of_state_park + mpa_age + estuary_km2 + max_kelp_canopy_cdfw_km2+ 
-               mpa_within_or_part_of_nat_marine_sanctuary, data = logit_data, family = binomial(link="logit"))
+logit.2 <-glm(as.numeric(logit_y) ~ mpa_within_or_part_of_state_park + mpa_age + estuary_km2 + max_kelp_canopy_cdfw_km2+ 
+               mpa_within_or_part_of_nat_marine_sanctuary+H_fish+total_fish_biomass, data = logit_reef, family = binomial(link="logit"),na.action=na.exclude)
 
 
 summary(logit.2)
@@ -184,6 +240,18 @@ tidy_lofit <- tidy(logit)
 tab_model(logit.1, logit.2, show.aic=T, show.r2=T, title="reduced logistic models",auto.label=T,
           pred.labels = c("intercept","state parks (yes)","sandy beach","estuary","national marine sanctuary (yes)","population density","mpa age","max kelp canopy"),
           dv.labels = c("iNaturalist", "REEF"))
+
+tab_model(iNat_full_model, reef_full_model, show.aic=T, show.r2=T, title="reduced logistic models",auto.label=T
+          )
+
+
+
+
+
+
+
+
+
 
 
 
