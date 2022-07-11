@@ -99,7 +99,7 @@ g <- ggplot(reef_coverage, aes(x=date_dummy, y=mpa %>% factor(., levels=mpa_orde
 g  
 
 # Export plot
-ggsave(g, filename=file.path(plotdir, "FigS3_reef_survery_coverage.png"), 
+ggsave(g, filename=file.path(plotdir, "FigS4_reef_survery_coverage.png"), 
        width=6.5, height=5, units="in", dpi=600)
 
 
@@ -261,7 +261,7 @@ layout_matrix <- matrix(c(1,2,
 g <- gridExtra::grid.arrange(g1, g2, g3, layout_matrix=layout_matrix, widths=c(0.52, 0.48))
 
 # Export
-ggsave(g, filename=file.path(plotdir, "Fig6_reef_data.png"), 
+ggsave(g, filename=file.path(plotdir, "Fig7_reef_data.png"), 
        width=6.5, height=5.25, units="in", dpi=600)
 
 

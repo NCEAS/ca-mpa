@@ -106,7 +106,7 @@ g <- ggplot() +
 g
 
 # Export figure
-ggsave(g, filename=file.path(plotdir, "Fig9_population_engagement_corr.png"), 
+ggsave(g, filename=file.path(plotdir, "Fig10_population_engagement_corr.png"), 
        width=4.5, height=4.5, units="in", dpi=600)
 
 
