@@ -299,11 +299,11 @@ text(x =-2.1, y = 51.5, "targeted and nontargeted fish biomass 2019-20",  cex=1,
 
 
 #test moderator effect on targeted biomass
-(res.target.mods <- rma(yi, vi, mods = ~ region4*mean_age_smr+region4+mean_age_smr, data=dat_target))
+(res.target.mods <- rma(yi, vi, mods = ~ region4*mean_age_mpa_smr+region4+mean_age_mpa_smr, data=dat_target))
 
 
 #test moderator effect on nontargeted biomass
-(res.nontarget.mods <- rma(yi, vi, mods = ~ region4*mean_age_smr+region4+mean_age_smr, data=dat_nontarget))
+(res.nontarget.mods <- rma(yi, vi, mods = ~ region4*mean_age_mpa_smr+region4+mean_age_mpa_smr, data=dat_nontarget))
 
 
 

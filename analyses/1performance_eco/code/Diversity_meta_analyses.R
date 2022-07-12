@@ -21,7 +21,7 @@ require(boot)
 require(broom)
 require(waldo)
 require(ggpmisc)
-require(ggtext)
+
 
 
 # Load ecological data ----------------------------------------------------
@@ -35,7 +35,8 @@ meta.data <- read.csv(file.path(data_path, input_file))
 
 data_path <- "/home/shares/ca-mpa/data/sync-data/mpa_traits/processed"
 input_file <- "mpa_attributes_clean.csv" 
-traits <- read.csv(file.path(data_path, input_file)) %>%
+traits <- read.csv(file.path(data_path, input_file)) 
+traits <- traits %>%
   dplyr::select(affiliated_mpa=name, distance_to_port, implementation_date, size_km2) %>%
   mutate(implementation_year = format(as.Date(traits$implementation_date, format="%m/%d/%Y"),"%Y"))
 
@@ -248,7 +249,7 @@ abline(h=37, lty=1, col='#D3D3D3')
 
 text(x =-0.2, y = 50, "REF",  pos=2, font=2)
 text(x =1.1, y = 50, "SMR",  pos=2, font=2)
-text(x =-3.4, y = 51.5, "targeted and nontargeted fish diversity 2019-20",  cex=1, pos=2, font=3)
+text(x =-3.0, y = 51.5, "targeted and nontargeted fish diversity 2019-20",  cex=1, pos=2, font=3)
 
 
 
