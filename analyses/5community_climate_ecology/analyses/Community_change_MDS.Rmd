@@ -1509,13 +1509,15 @@ rocky_trajectory
 require('ggpubr')
 figure<-ggarrange(CCFRP_trajectory, kelp_fish_trajectory, deep_reef_trajectory,
           kelp_swath_trajectory, kelp_upc_trajectory, rocky_trajectory, common.legend = TRUE, legend="right",
-          font.label=list(size=40))+bgcolor('white')
+          font.label=list(size=40)) + bgcolor('white')
 annotate_figure(figure,
                 top = text_grob("central CA community structure", color = "black", face = "bold", size = 20)
 )
 
-
 #Export figure
+ggsave(here("analyses", "5community_climate_ecology", "figures", "community_trajectory.png"), figure, width = 12, units = "in", dpi = 300)
+
+
 #png("/home/joshsmith/CA_MPA_Project/ca-mpa/analyses/5community_climate_ecology/figures/community_trajectory.png")
 #aurora = "/home/joshsmith/CA_MPA_Project/ca-mpa/analyses/5community_climate_ecology/figures"
 #ggsave(plot=last_plot(), path = aurora, device='png',filename = "community_trajectory.png", scale=1, dpi=72)
