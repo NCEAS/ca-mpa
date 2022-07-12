@@ -329,10 +329,10 @@ rocky_distmat <-
 
 
 #save group vars
-#data_path <- "/home/shares/ca-mpa/data/sync-data/processed_data/ecological_community_data/year_level"
-#save(CCFRP_group_vars,kelp_swath_group_vars,kelp_upc_group_vars,kelp_fish_group_vars,
-#     deep_reef_group_vars,rocky_group_vars,
-#     file = file.path(data_path, "group_vars.rda"))
+data_path <- "/home/shares/ca-mpa/data/sync-data/processed_data/ecological_community_data/year_level"
+save(CCFRP_group_vars,kelp_swath_group_vars,kelp_upc_group_vars,kelp_fish_group_vars,
+   deep_reef_group_vars,rocky_group_vars,
+    file = file.path(data_path, "group_vars.rds"))
 
 
 #save distance matrices
