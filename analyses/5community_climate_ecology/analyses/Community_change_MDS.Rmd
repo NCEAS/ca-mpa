@@ -16,6 +16,7 @@ require(vegan)
 require(ggplot2)
 library(parallel)
 library(scales)
+library(here)
 ```
 
 
@@ -375,7 +376,7 @@ save(CCFRP_ord, kelp_swath_ord, kelp_fish_ord, kelp_upc_ord, deep_reef_ord, rock
 #CCFRP scores and plot
 ```{r}
 
-data_path<- "/home/shares/ca-mpa/data/sync-data/processed_data/ecological_community_data/"
+data_path <- "/home/shares/ca-mpa/data/sync-data/processed_data/ecological_community_data/"
 input_file <- "bray_nmds_scores.rda"
 
 data <- load(file.path(data_path, input_file))
@@ -794,9 +795,9 @@ cent$MHW <- factor(cent$MHW, level=c("before","during","after"))
 #combine plots 
 ```{r}
 require('ggpubr')
-figure<-ggarrange(CCFRP, KF_fish, deep_reef,
-          KF_swath, KF_upc, rocky, common.legend = TRUE, legend="right",
-          font.label=list(color="black",size=14))
+figure <- ggarrange(CCFRP, KF_fish, deep_reef,
+            KF_swath, KF_upc, rocky, common.legend = TRUE, legend="right",
+            font.label=list(color="black",size=14))
 annotate_figure(figure,
                 top = text_grob("central CA community structure", color = "black", face = "bold", size = 20)
                 #bottom = text_grob("Data source: \n ToothGrowth data set", color = "blue",
@@ -804,9 +805,9 @@ annotate_figure(figure,
                 #left = text_grob("Tooth length", color = "green", rot = 90),
                 #right = "I'm done, thanks :-)!",
                 #fig.lab = "Figure 1", fig.lab.face = "bold"
-)
+) + bgcolor("white")
 
-
+ggsave(here("analyses", "5community_climate_ecology", "figures", "community_structure_central.png"), figure, width = 12, units = "in", dpi = 300)
 ```
 
 
