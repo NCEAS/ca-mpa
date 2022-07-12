@@ -28,6 +28,7 @@ plotdir <- "data/ebird/figures"
 ################################################################################
 
 # Loop through sets of 1 million
+i <- 86
 for(i in 1:100){
   
   # Get columns names

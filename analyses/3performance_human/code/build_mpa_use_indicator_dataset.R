@@ -23,6 +23,7 @@ watch_orig <- readRDS(file.path(basedir, "mpa_watch/processed", "MPA_Watch_2011_
 inaturalist_orig <- readRDS(file.path(basedir, "inaturalist/processed", "2000_2020_inaturalist_data_inside_mpas_100m_buffer.Rds"))
 reef_orig <- readRDS(file.path(basedir, "reef/processed", "REEF_1994_2022_survey_metadata.Rds"))
 permits_orig <- readRDS(file.path(basedir, "scientific_permits/processed", "CA_2012_2021_mpa_scientific_permits.Rds")) 
+ebird_orig <- readRDS(file.path(basedir, "ebird/processed", "CA_ebird_data_inside_mpas_100m_buffer.Rds"))
 
 # Format data
 ################################################################################
@@ -41,6 +42,13 @@ inaturalist <- inaturalist_orig %>%
   group_by(mpa) %>% 
   summarize(inat_observers_tot=n_distinct(user_id),
             inat_observations_tot=n()) %>% 
+  ungroup()
+
+# MPA stats
+ebird <- ebird_orig %>%
+  # Summarize
+  group_by(mpa) %>%
+  summarize(ebirders_n=n_distinct(observer_id)) %>%
   ungroup()
 
 # REEF data
@@ -109,6 +117,8 @@ data <- mpas_orig %>%
   left_join(watch, by="mpa") %>% 
   # Add iNaturalist
   left_join(inaturalist, by="mpa") %>% 
+  # Add eBird
+  left_join(ebird, by="mpa") %>% 
   # Add REEF survey
   left_join(reef, by="mpa") %>% 
   # Add permits
