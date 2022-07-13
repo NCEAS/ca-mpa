@@ -271,9 +271,10 @@ F <- plot(rocky_disper, main="rocky", col=c('red','blue'))
 # test for significant dispersion between periods -------------------------
 
 
-anova(CCFRP_dispr)
-permutest(CCFRP_dispr)
-
+anova(deep_reef_disper)
+plot(deep_reef_disper
+     )
+permutest(deep_reef_disper)
 
 
 # extract params for meta regression ----------------------------------------
@@ -366,7 +367,42 @@ meta_params <- rbind(CCFRP_params,
 
 # Construct meta regression -----------------------------------------------
 
-                     
+#calculate effect size using log ratio
+dat <- escalc(measure="ROM", m1i=distance_before, m2i=distance_after, sd1i=sd_before, sd2i=sd_after, n1i=n_before, n2i=n_after, data=meta_params, slab=paste(group)) 
+
+
+### a little helper function to add Q-test, I^2, and tau^2 estimate info
+mlabfun <- function(text, y) {
+  bquote(paste(.(text),
+               " (Q = ", .(formatC(y$QE, digits=2, format="f")),
+               #", df = ", .(y$k - y$p),
+               ", p ", .(formatC(y$pval, digits=2, format="f")), #"; ",
+               #I^2, " = ", .(formatC(y$I2, digits=1, format="f")), "%, ",
+               #tau^2, " = ", .(formatC(y$tau2, digits=2, format="f")), 
+               ")"
+  )
+  )}
+
+
+forest(dat$yi, dat$vi, xlim=c(-0.7,1),
+       #ilab.xpos=c(-9.5,-8,-6,-4.5), 
+       cex=0.75, 
+       ylim=c(0, 9),
+       slab=paste(dat$group),
+       #header="Monitoring Group"
+       )
+
+text(-0.7, 7.2, pos=4, "Monitoring Group", font=2)
+text(0.55, 7.2, pos=4, "log response ratio", font=2)
+text(x =-0.02, y = 7.2, "Before",  pos=2, font=1)
+text(x =0.2, y = 7.2, "After",  pos=2, font=1)
+
+#fit random effects model
+res <- rma(yi, vi, method="REML", verbose=TRUE, digits=5, data=dat)
+
+addpoly(res, row=0.2, cex=0.75, mlab=mlabfun("RE Model", y=res), #col='red'
+)
+text(-0.7, 0.2, pos=4, cex=0.7, mlabfun("RE Model", y=res))
 
 
 
