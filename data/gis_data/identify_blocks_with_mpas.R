@@ -1,6 +1,5 @@
 
 
-
 # Read data
 ################################################################################
 
@@ -97,7 +96,11 @@ write.csv(block_stats, file=file.path(outdir, "CA_blocks_with_mpas_all_mpa_types
 block_key <- blocks_stats_sf %>% 
   sf::st_drop_geometry()
 
+<<<<<<< HEAD
 write.csv(block_key, file = file.path(outdir, "CA_blocks_all_all_mpa_types.csv"), row.names = F)
+=======
+write.csv(block_key, file = file.path(outdir, "CA_blocks_stats_all.csv"), row.names = F)
+>>>>>>> a6e94d246901164bd7bdea87b25a05d4d807fd15
 
 # Plot data
 ################################################################################

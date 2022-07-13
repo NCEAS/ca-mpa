@@ -1,0 +1,236 @@
+---
+title: "2-NMDS"
+author: "Cori Lopazanski"
+date: '2022-06-25'
+output: html_document
+---
+
+# Setup
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+# Packages 
+library(tidyverse)
+library(vegan)
+
+# Directories
+base.dir <- "/Volumes/GoogleDrive-105151121202188525604/Shared drives/NCEAS MPA network assessment/MPA Network Assessment: Working Group Shared Folder/data/sync-data" # Cori Local
+#base.dir <- "/home/shares/ca-mpa/data/sync-data/" # Aurora Base
+att.dir <- here::here(base.dir, "mpa_traits", "processed")
+
+# Read data
+att_raw <- read_csv(file.path(att.dir, "mpa_attributes_clean.csv"))
+```
+
+# Build data
+
+```{r}
+data <- att_raw %>% 
+  column_to_rownames("name") %>% 
+  select(four_region_north_ci,
+         size_km2,
+         sandy_beach_km,
+         rocky_inter_km,
+         max_kelp_canopy_cdfw_km2,
+         hard_substrate_predicted_0_30m_km2,
+         hard_substrate_mapped_0_30m_km2,
+         hard_substrate_30_100m_km2,
+         hard_substrate_100_200m_km2,
+         hard_substrate_200_3000m_km2,
+         soft_substrate_predicted_0_30m_km2,
+         soft_substrate_0_30m_km2,
+         soft_substrate_30_100m_km2,
+         soft_substrate_100_200m_km2,
+         soft_substrate_200_3000m_km2,
+         submarine_canyon_0_30m_km2,
+         submarine_canyon_30_100m_km2,
+         submarine_canyon_100_200m_km2,
+         submarine_canyon_200_3000m_km2,
+         estuary_km2,
+         surfgrass_km,
+         eelgrass_km2,
+         coastal_marsh_km2) %>% 
+  drop_na()
+
+data_meta <- att_raw %>% 
+  select(name, four_region_north_ci, mpa_class) %>% 
+  filter(name %in% rownames(data))
+```
+# metaMDS
+
+```{r}
+mds <- metaMDS(data[2:23], distance = "euclidean")
+mds
+stressplot(mds)
+plot(mds)
+```
+
+## plot 
+
+```{r}
+clean_background <- theme(plot.background = element_rect("white"),
+                          panel.background = element_rect("white"),
+                          panel.grid = element_line("white"),
+                          axis.line = element_line("gray25"),
+                          axis.text = element_text(size = 12, color = "gray25"),
+                          axis.title = element_text(color = "gray25"),
+                          legend.text = element_text(size = 12),
+                          legend.key = element_rect("white"))
+
+plot_df <- scores(mds, display = "sites") %>% 
+  as.data.frame() %>% 
+  rownames_to_column("name") %>% 
+  full_join(data_meta, by = "name")
+
+ggplot(plot_df, aes(x = NMDS1, y = NMDS2,
+                    color = four_region_north_ci,
+                    shape = four_region_north_ci)) +
+  geom_point(size = 3, alpha = 0.8) +
+  stat_ellipse(linetype = 2, size = 1) +
+  clean_background +
+  labs(title = "NMDS",
+       color = "",
+       shape = "")
+```
+
+##  envfit
+
+Determine the relative contribution of variables to the separation
+
+```{r}
+# Output of metaMDS and the original matrix
+fit <- envfit(mds, data, perm = 999)
+
+# Extract pvalues for each attribute
+fit_pval <- fit$vectors$pvals %>% 
+  as.data.frame() %>% 
+  rownames_to_column("attribute") %>% 
+  dplyr::rename("pvals" = ".")
+
+# Extract coordinates for each attribute, only keep = 0.001
+fit_att <- fit %>% 
+  scores(., display = "vectors") %>% 
+  as.data.frame() %>% 
+  rownames_to_column("attribute") %>% 
+  full_join(., fit_pval, by = "attribute") %>% 
+  filter(pvals == 0.001)
+
+# Plot dimensions with attributes
+ggplot(plot_df, aes(x = NMDS1, y = NMDS2)) +
+  coord_fixed() +
+  geom_point(aes(color = four_region_north_ci,
+                 shape = four_region_north_ci),
+             size = 3, alpha = 0.8) +
+  stat_ellipse(aes(color = four_region_north_ci)) +
+  geom_segment(data = fit_att, aes(x = 0, xend = NMDS1,
+                                   y = 0, yend = NMDS2),
+               arrow = arrow(length = unit(0.25, "cm")),
+               col = "black") +
+  geom_text(data = fit_att, aes(label = attribute)) +
+  clean_background
+```
+# separate estuaries
+
+## examine list 
+
+Examine which MPAs have estuarine characteristics
+
+```{r}
+estuaries <- data %>% 
+  filter_at(vars(estuary_km2, coastal_marsh_km2), any_vars(. > 0)) %>% 
+  filter_at(vars(max_kelp_canopy_cdfw_km2:submarine_canyon_200_3000m_km2), all_vars(. == 0)) %>% 
+  rownames_to_column("name")
+
+estuaries$name
+```
+## remove estuaries
+
+```{r}
+data_noest <- data %>% 
+  rownames_to_column("name") %>% 
+  filter(!(name %in% estuaries$name)) %>% 
+  column_to_rownames("name")
+
+data_noest_meta <- data_meta %>% 
+  filter(!(name %in% estuaries$name))
+```
+
+
+## metaMDS
+
+```{r}
+mds_noest <- metaMDS(data_noest[2:23], distance = "euclidean")
+mds_noest
+stressplot(mds_noest)
+plot(mds_noest)
+```
+
+## plot
+
+```{r}
+plot_df2 <- scores(mds_noest, display = "sites") %>% 
+  as.data.frame() %>% 
+  rownames_to_column("name") %>% 
+  full_join(data_noest_meta, by = "name")
+
+ggplot(plot_df2, aes(x = NMDS1, y = NMDS2,
+                    color = four_region_north_ci,
+                    shape = four_region_north_ci)) +
+  geom_point(size = 3, alpha = 0.8) +
+  stat_ellipse(linetype = 2, size = 1) +
+  clean_background +
+  labs(title = "NMDS - Estuarine MPAs Removed",
+       color = "",
+       shape = "")
+```
+
+## envfit
+
+```{r}
+# Determine relative contribution of variables to separation
+# Output of metaMDS and the original matrix
+fit_noest <- envfit(mds_noest, data_noest, perm = 999)
+
+# Extract pvalues for each attribute
+fit_pval_noest <- fit_noest$vectors$pvals %>% 
+  as.data.frame() %>% 
+  rownames_to_column("attribute") %>% 
+  dplyr::rename("pvals" = ".")
+
+# Extract coordinates for each attribute, only keep = 0.001
+fit_att_noest <- fit_noest %>% 
+  scores(., display = "vectors") %>% 
+  as.data.frame() %>% 
+  rownames_to_column("attribute") %>% 
+  full_join(., fit_pval_noest, by = "attribute") %>% 
+  filter(pvals == 0.001) %>% 
+  mutate(att.label = c("size", 
+                       "hard 0-30m", 
+                       "soft 30-100m",
+                       "soft 100-200m"))
+
+# Plot
+ggplot(plot_df2, aes(x = NMDS1, y = NMDS2)) +
+  coord_fixed() +
+  geom_point(aes(color = four_region_north_ci,
+                 shape = four_region_north_ci),
+             size = 3, alpha = 0.8) +
+  stat_ellipse(aes(color = four_region_north_ci)) +
+  geom_segment(data = fit_att_noest, aes(x = 0, xend = NMDS1,
+                                   y = 0, yend = NMDS2),
+               arrow = arrow(length = unit(0.25, "cm")),
+               col = "black") +
+  geom_text(data = fit_att_noest, 
+            aes(label = att.label)) +
+  clean_background
+```
+
+
+
+```{r}
+
+
+
+```
+

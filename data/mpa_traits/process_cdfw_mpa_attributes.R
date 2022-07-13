@@ -46,7 +46,10 @@ data <- raw %>%
                                soft_substratecal_200_3000m_km2)))) %>% 
   
   # Calculate depth range
-  mutate(depth_range = max_depth_m - min_depth_m)
+  mutate(depth_range = max_depth_m - min_depth_m) %>% 
+  
+  # Rename the mis-labeled submarine canyon column
+  rename(submarine_canyon_200_3000m_km2 = soft_substratecal_200_3000m_km2)
 
 ################################################################################
 # Export
