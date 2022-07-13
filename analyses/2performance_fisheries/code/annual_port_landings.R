@@ -10,8 +10,10 @@ rm(list = ls())
 library(tidyverse)
 
 ## Directories ----
+basedir <- "/Volumes/GoogleDrive-105151121202188525604/Shared drives/NCEAS MPA network assessment/MPA Network Assessment: Working Group Shared Folder/data/sync-data"
 datadir <- "/Volumes/GoogleDrive-105151121202188525604/My Drive/Research/NCEAS - California MPA Working Group/fisheries-data/raw"
 plotdir <- "analyses/2performance_fisheries/figures"
+outdir <- "/Volumes/GoogleDrive-105151121202188525604/My Drive/Research/NCEAS - California MPA Working Group/fisheries-data/processed"
 
 ## Read Data ----
 landings <- readRDS(file.path(datadir, "CDFW_2000_2020_landings_receipts.Rds"))
@@ -144,7 +146,7 @@ d1 <- ggplot(data = cumulative_usd) +
   theme_minimal() +
   theme(axis.text.y = element_text(size = 6))
 
-pd2 <- ggplot(data = cumulative_usd) +
+d2 <- ggplot(data = cumulative_usd) +
   geom_col(aes(x = total, y = port, fill = top_99),
            show.legend = F) +
   theme_minimal() +
@@ -198,7 +200,7 @@ lb2 <- ggplot(data = cumulative_lb) +
   theme(axis.text.y=element_blank())
 
 lb3 <- ggplot(data = cumulative_lb) +
-  geom_col(aes(x = num_vessels, y = port, fill = top_98)) +
+  geom_col(aes(x = num_vessels, y = port, fill = top_99)) +
   theme_minimal() +
   labs(x = "Number of Vessels Contributing to Annual Landings",
        fill = "Does the port\ncontribute to\ntop 98%\ntotal annual landings")+
@@ -206,3 +208,5 @@ lb3 <- ggplot(data = cumulative_lb) +
 
 gridExtra::grid.arrange(lb1, lb2, lb3, nrow = 1)
 
+# Export ----
+saveRDS(cumulative_lb, file.path(outdir, "annual_landings_per_port_lb.Rds"))
