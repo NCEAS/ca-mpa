@@ -4,21 +4,21 @@ author: "Joshua G. Smith"
 date: '2022-06-16'
 output: html_document
 ---
----
-title: "Community_data_processing"
-author: "Joshua G. Smith"
-date: '2022-06-16'
-output: html_document
----
+
+
 
 #load packages
 ```{r}
-require(dplyr)
+require(tidyverse)
 require(stringr)
-require(tidyr)
 require(janitor)
 require(vegan)
 require(ggplot2)
+library(parallel)
+library(scales)
+library(here)
+library(ggpubr)
+library(usedist)
 ```
 
 
@@ -26,153 +26,173 @@ require(ggplot2)
 
 ```{r}
 
-data_path <- "/home/shares/ca-mpa/data/sync-data/processed_data/ecological_community_data"
+data_path <- "/home/shares/ca-mpa/data/sync-data/processed_data/ecological_community_data/year_level"
+
 
 #load CCFRP
-input_file <- "CCFRP_species_counts.csv" 
-CCFRP <- read.csv(file.path(data_path, input_file))
+input_file <- "CCFRP_mpa_year.csv" 
+CCFRP_counts <- read.csv(file.path(data_path, input_file))%>%
+                filter(region4=='central')
+                     
+              
 
 #load kelp upc
-input_file <- "kelp_upc_counts.csv" 
-kelp_upc_counts <- read.csv(file.path(data_path, input_file))
+input_file <- "kelp_upc_mpa_year.csv" 
+kelp_upc_counts <- read.csv(file.path(data_path, input_file))%>%
+                    filter(region4=='central',
+                           mpa_defacto_designation=='smr'|mpa_defacto_designation=='ref')
 
 #load kelp swath
-input_file <- "kelp_swath_counts.csv" 
-kelp_swath_counts <- read.csv(file.path(data_path, input_file))
-
+input_file <- "kelp_swath_mpa_year.csv" 
+kelp_swath_counts <- read.csv(file.path(data_path, input_file))%>%
+                    filter(region4=='central')
 #load kelp_fish
-input_file <- "kelp_fish_counts.csv" 
-kelp_fish_counts <- read.csv(file.path(data_path, input_file))
+input_file <- "kelp_fish_mpa_year.csv" 
+kelp_fish_counts <- read.csv(file.path(data_path, input_file))%>%
+                    filter(region4=='central')
 
 #load deep reef
-input_file <- "deep_reef_fish_counts.csv" 
-deep_reef_counts <- read.csv(file.path(data_path, input_file))
+input_file <- "deep_reef_mpa_year.csv" 
+deep_reef_counts <- read.csv(file.path(data_path, input_file))%>%
+                    filter(region4=='central')
 
 #load rocky intertidal
-input_file <- "rocky_counts.csv" 
-rocky_counts <- read.csv(file.path(data_path, input_file))
+input_file <- "rocky_mpa_year.csv" 
+rocky_counts <- read.csv(file.path(data_path, input_file))%>%
+                    filter(region4=='central')
 
 ```
 
 
 #OLD -- test ordinate across YEARS and regions
-```{r}
+```{r, eval=FALSE}
 
-CCFRP_test <- CCFRP 
-
-year <- as.numeric(CCFRP_test$year)
-region <- CCFRP_test$region4
-mpa_designation <- CCFRP_test$mpa_designation
-
-CCFRP_test <- CCFRP_test%>%
-              dplyr::select(10:ncol(.))
-
-CCFRP_relative <- decostand(CCFRP_test, method = "total") #convert absolute abundance to relative abundance
-              
-distmat <- 
-    vegdist(CCFRP_relative, method = "eucl") #generates a euclidean based distance matrix
-
-
-ord <- metaMDS(distmat, distance="eucl") #ordinates the dist matrix
-
-
-
-plot(ord)
-ordiellipse(ord, year)
-ordispider(ord, year, label=F)
-
-
-
-scrs <- scores(ord)
-
-scrs <- cbind(as.data.frame(scrs), year, region, mpa_designation) #to facilitate computing centroids, add group var
-scrs$region <- factor(scrs$region, level = c("north","central","north islands","south")) #set order
-scrs$mpa_designation <- factor(scrs$mpa_designation, level = c("smr","ref")) #set order
-
-
-cent <- aggregate(cbind(NMDS1, NMDS2) ~ year+region+mpa_designation, data = scrs, FUN = mean) #computes centroids by MHW and region
-
-segs <- merge(scrs, setNames(cent, c('year','oNMDS1','oNMDS2')),
-              by = 'year', sort=FALSE) #to draw the spider, we need to use geom_segment() which required coordinates to draw the segment from and to. Our 'to'
-                                       # coordinates, the xend and yend aesthetics will be the centroids. So we need to replicate the group centroid for each
-                                       # observation in the group. T
-
-
-
-
-ggplot(scrs, aes(x = NMDS1, y=NMDS2, shape = region, color = mpa_designation, group=region)) +
-  #geom_segment(data = segs,
-               #mapping = aes(xend = oNMDS1, yend = oNMDS2)) + #spiders
-  geom_point(data = cent, size=5) +                           #centroids
-  geom_path(data = cent, size = 0.5, #aes(color=year)
-            )+           #line connecting groups (years)
-  #geom_point() +                                              #sample scores
-  #coord_fixed() +
-  geom_text(data=cent, aes(label=year), position=position_jitter(width=0.02, height=0.01))+
-  #xlim(-4.5,4.5)+
-  #ylim(-0.45,0.65)+
-  facet_wrap(~mpa_designation,
-             labeller = labeller(mpa_designation =
-                                   c("ref"="REF",
-                                     "smr"="SMR")))+
-  ggtitle("CCFRP assemblage structure over time")+
-  theme(strip.text = element_text(size=18, face="bold"))+
-  theme(plot.title = element_text(size=20, face="bold"))+
-  theme(text = element_text(20))
-  
-  #theme(legend.position='none')
-
+# CCFRP_test <- CCFRP 
+# 
+# year <- as.numeric(CCFRP_test$year)
+# region <- CCFRP_test$region4
+# mpa_designation <- CCFRP_test$mpa_designation
+# 
+# CCFRP_test <- CCFRP_test%>%
+#               dplyr::select(10:ncol(.))
+# 
+# CCFRP_relative <- decostand(CCFRP_test, method = "total") #convert absolute abundance to relative abundance
+#               
+# distmat <- 
+#     vegdist(CCFRP_relative, method = "eucl") #generates a euclidean based distance matrix
+# 
+# 
+# ord <- metaMDS(distmat, distance="eucl") #ordinates the dist matrix
+# 
+# 
+# 
+# plot(ord)
+# ordiellipse(ord, year)
+# ordispider(ord, year, label=F)
+# 
+# 
+# 
+# scrs <- scores(ord)
+# 
+# scrs <- cbind(as.data.frame(scrs), year, region, mpa_designation) #to facilitate computing centroids, add group var
+# scrs$region <- factor(scrs$region, level = c("north","central","north islands","south")) #set order
+# scrs$mpa_designation <- factor(scrs$mpa_designation, level = c("smr","ref")) #set order
+# 
+# 
+# cent <- aggregate(cbind(NMDS1, NMDS2) ~ year+region+mpa_designation, data = scrs, FUN = mean) #computes centroids by MHW and region
+# 
+# segs <- merge(scrs, setNames(cent, c('year','oNMDS1','oNMDS2')),
+#               by = 'year', sort=FALSE) #to draw the spider, we need to use geom_segment() which required coordinates to draw the segment from and to. Our 'to'
+#                                        # coordinates, the xend and yend aesthetics will be the centroids. So we need to replicate the group centroid for each
+#                                        # observation in the group. T
+# 
+# 
+# 
+# 
+# ggplot(scrs, aes(x = NMDS1, y=NMDS2, shape = region, color = mpa_designation, group=region)) +
+#   #geom_segment(data = segs,
+#                #mapping = aes(xend = oNMDS1, yend = oNMDS2)) + #spiders
+#   geom_point(data = cent, size=5) +                           #centroids
+#   geom_path(data = cent, size = 0.5, #aes(color=year)
+#             )+           #line connecting groups (years)
+#   #geom_point() +                                              #sample scores
+#   #coord_fixed() +
+#   geom_text(data=cent, aes(label=year), position=position_jitter(width=0.02, height=0.01))+
+#   #xlim(-4.5,4.5)+
+#   #ylim(-0.45,0.65)+
+#   facet_wrap(~mpa_designation,
+#              labeller = labeller(mpa_designation =
+#                                    c("ref"="REF",
+#                                      "smr"="SMR")))+
+#   ggtitle("CCFRP assemblage structure over time")+
+#   theme(strip.text = element_text(size=18, face="bold"))+
+#   theme(plot.title = element_text(size=20, face="bold"))+
+#   theme(text = element_text(20))
+#   
+#   #theme(legend.position='none')
+# 
 
 ```
 
 
 
 
-#clean data for ordination
+
+#clean up data for ordination
 ```{r}
 #CCFRP processing--------------------------------------------------------------
-CCFRP_process <- CCFRP %>%
+CCFRP_process <- CCFRP_counts %>%
                   rowwise() %>%
-                  mutate(sum = sum(across(10:ncol(.)), na.rm = T)) %>%
+                  dplyr::mutate(sum = sum(across(10:ncol(.)), na.rm = T)) %>%
                   filter(!(sum==0))%>%
-                  dplyr::select(-sum) #remove rows containing only zeros
+                  dplyr::select(-sum)%>%
+                  mutate(desig_state = paste(mpa_designation,MHW))%>%
+                  dplyr::select(desig_state, everything())#remove rows containing only zeros
 
 #define grouping vars
 CCFRP_group_vars <- CCFRP_process %>%
                     dplyr::select(1:9)
 
 #define data for ordination
-CCFRP_ord_data <- CCFRP_process%>%
+CCFRP_ord_data <- CCFRP_process %>%
               dplyr::select(10:ncol(.))
 
 
 #calculate relative abundance
-CCFRP_rel <- decostand(CCFRP_ord_data, method = "total")
+CCFRP_rel <- decostand(CCFRP_ord_data, method = "hellinger") %>%
+            dplyr::select(where(~any(. !=0)))
 
 #generate a BC dissim matrix
-CCFRP_distmat <- vegdist(CCFRP_rel, method = "bray") 
+CCFRP_distmat <- vegdist(CCFRP_rel, method = "bray", na.rm=T) 
 
 
 
 #kelp swath processing---------------------------------------------------------
 kelp_swath <- kelp_swath_counts %>%
                   rowwise() %>%
-                  mutate(sum = sum(across(10:ncol(.), na.rm = T))) %>%
+                  dplyr::mutate(sum = sum(across(8:ncol(.), na.rm = T))) %>%
                   filter(!(sum==0))%>% #remove rows containing only zeros
                   dplyr::select(-sum, unidentified_mobile_invert_species, 
-                                no_organisms_present_in_this_sample) #drop sum columns and non-species categories
+                                no_organisms_present_in_this_sample)%>%
+                  mutate(desig_state = paste(mpa_defacto_designation,MHW))%>%
+                  dplyr::select(desig_state, everything())%>%
+                  filter(mpa_defacto_designation=="smr" | mpa_defacto_designation=="ref")#remove rows containing only zeros #drop sum columns and non-species categories
 
 #define grouping vars
 kelp_swath_group_vars <- kelp_swath%>%
-                    dplyr::select(1:9)
+                    dplyr::select(1:8)
 
 #define data for ordination
 kelp_swath_ord_data <- kelp_swath%>%
               ungroup()%>%
-              dplyr::select(10:ncol(.))
+              dplyr::select(9:ncol(.))
+                         #%>%    #remove all-zero columns
+              #mutate_if(is.character, as.numeric)
+           
 
+          
 #calculate relative abundance
-kelp_swath_rel <- decostand(kelp_swath_ord_data, method = "total")
+kelp_swath_rel <- decostand(kelp_swath_ord_data, method = "hellinger")
   
 #generate a BC dissim matrix
 kelp_swath_distmat <- 
@@ -185,23 +205,29 @@ kelp_swath_distmat <-
 
 kelp_upc <- kelp_upc_counts %>%
                   rowwise() %>%
-                  mutate(sum = sum(across(10:ncol(.), na.rm = T))) %>%
-                  filter(!(sum==0))%>% #remove rows containing only zeros
+                  dplyr::mutate(sum = sum(across(8:ncol(.), na.rm = T))) %>%
+                  #filter(!(sum==0))%>% #remove rows containing only zeros
                   dplyr::select(-sum, bare_rock,unidentified_fish,
-                                bare_sand, shell_debris) #drop sum columns and non-species categories
+                                bare_sand, shell_debris)%>%
+                  mutate(desig_state = paste(mpa_defacto_designation,MHW))%>%
+                  dplyr::select(desig_state, everything())%>%
+                  filter(mpa_defacto_designation=="smr" | mpa_defacto_designation=="ref")#drop sum columns and non-species categories
+              
+
+kelp_upc[is.na(kelp_upc)] = 0                  
 
 #define grouping vars
 kelp_upc_group_vars <- kelp_upc%>%
-                    dplyr::select(1:9)
+                    dplyr::select(1:8)
 
 #define data for ordination
 kelp_upc_ord_data <- kelp_upc%>%
               ungroup()%>%
-              dplyr::select(10:ncol(.))
+              dplyr::select(9:ncol(.))
 
 
 #calculate relative abundance
-kelp_upc_rel <- decostand(kelp_upc_ord_data, method = "total")
+kelp_upc_rel <- decostand(kelp_upc_ord_data, method = "hellinger")
 
 #generate a BC dissim matrix
 kelp_upc_distmat <- 
@@ -214,21 +240,28 @@ kelp_upc_distmat <-
 
 kelp_fish <- kelp_fish_counts %>%
                   rowwise() %>%
-                  mutate(sum = sum(across(11:ncol(.), na.rm = T))) %>%
+                  dplyr::mutate(sum = sum(across(8:ncol(.), na.rm = T))) %>%
                   filter(!(sum==0))%>% #remove rows containing only zeros
-                  dplyr::select(-sum) #drop sum columns and non-species categories
+                  dplyr::select(-sum) %>%
+                               dplyr:: select(where(~ any(. != 0)))%>%
+                  mutate(desig_state = paste(mpa_defacto_designation,MHW))%>%
+                  dplyr::select(desig_state, everything())%>%
+                  filter(mpa_defacto_designation=="smr" | mpa_defacto_designation=="ref")#drop sum columns and non-species categories  #drop sum columns and non-species categories
+             
 
 #define grouping vars
-kelp_fish_group_vars <- kelp_fish%>%
-                    dplyr::select(1:10)
+kelp_fish_group_vars <- kelp_fish %>%
+                    dplyr::select(1:8)
 
 #define data for ordination
-kelp_fish_ord_data <- kelp_fish%>%
-              ungroup()%>%
-              dplyr::select(11:ncol(.))
+kelp_fish_ord_data <- kelp_fish %>%
+              ungroup() %>%
+              dplyr::select(9:ncol(.))
 
 #calculate relative abundance
-kelp_fish_rel <- decostand(kelp_fish_ord_data, method = "total")
+kelp_fish_rel <- decostand(kelp_fish_ord_data, method = "hellinger")
+
+#kelp_fish_rel <- kelp_fish_rel %>% slice_sample(n=2000) # testing if work on smaller
 
 #generate a BC dissim matrix
 kelp_fish_distmat <- 
@@ -240,25 +273,28 @@ kelp_fish_distmat <-
 
 deep_reef <- deep_reef_counts %>%
                   rowwise() %>%
-                  mutate(sum = sum(across(10:ncol(.), na.rm = T))) %>%
+                  dplyr::mutate(sum = sum(across(8:ncol(.), na.rm = T))) %>%
                   filter(!(sum==0))%>% #remove rows containing only zeros
                   dplyr::select(-c(sum, schooling_10_15_cm_sebastes_sp,
                                 schooling_10_15_cm_sebastes_sp,
                                 young_of_year_10_cm_sebastes_sp,
                                 synodus_lucioceps_or_ophiodon_elongatus,
-                                sebastes_melanops_or_mystinus_or_diaconus)) #drop sum columns and non-species categories
+                                sebastes_melanops_or_mystinus_or_diaconus))%>%
+                  mutate(desig_state = paste(mpa_defacto_designation,MHW))%>%
+                  dplyr::select(desig_state, everything())%>%
+                  filter(mpa_defacto_designation=="smr" | mpa_defacto_designation=="ref")#drop sum columns and non-species categories
 
 #define grouping vars
 deep_reef_group_vars <- deep_reef%>%
-                    dplyr::select(1:9)
+                    dplyr::select(1:8)
 
 #define data for ordination
 deep_reef_ord_data <- deep_reef%>%
               ungroup()%>%
-              dplyr::select(10:ncol(.))
+              dplyr::select(9:ncol(.))
 
 #calculate relative abundance
-deep_reef_rel <- decostand(deep_reef_ord_data, method="total")
+deep_reef_rel <- decostand(deep_reef_ord_data, method="hellinger")
 
 #generate a BC dissim mat
 deep_reef_distmat <- 
@@ -268,18 +304,23 @@ deep_reef_distmat <-
 
 #Intertidal processing---------------------------------------------------------
 
+rocky_counts <- rocky_counts %>%
+                  mutate(MHW = ifelse(year>=2014 & year<=2016, "during",ifelse(year<2014, "before","after")))%>%
+                  mutate(desig_state = paste(mpa_designation,MHW))%>%
+                  dplyr::select(desig_state, MHW, everything())%>%
+                  filter(mpa_designation=="smr" | mpa_designation=="ref")
 
 #define grouping vars
 rocky_group_vars <- rocky_counts%>%
-                    dplyr::select(1:6)
+                    dplyr::select(1:9)
 
 #define data for ordination
 rocky_ord_data <- rocky_counts %>%
               ungroup() %>%
-              dplyr::select(7:ncol(.))
+              dplyr::select(10:ncol(.))
 
 #calculate relative abundance
-rocky_rel <- decostand(rocky_ord_data, method = "total")
+rocky_rel <- decostand(rocky_ord_data, method = "hellinger")
 
 #generate a BC dissim matrix
 rocky_distmat <- 
@@ -287,34 +328,77 @@ rocky_distmat <-
 
 
 
+
+
+#save group vars
+#data_path <- "/home/shares/ca-mpa/data/sync-data/processed_data/ecological_community_data/year_level"
+#save(CCFRP_group_vars,kelp_swath_group_vars,kelp_upc_group_vars,kelp_fish_group_vars,
+#     deep_reef_group_vars,rocky_group_vars,
+#     file = file.path(data_path, "group_vars.rda"))
+
+
+#save distance matrices
+#data_path <- "/home/shares/ca-mpa/data/sync-data/processed_data/ecological_community_data/year_level"
+#save(CCFRP_distmat,kelp_swath_distmat,kelp_upc_distmat,kelp_fish_distmat,
+#     deep_reef_distmat,rocky_distmat,
+#     file = file.path(data_path, "distance_matrices_BC.rda"))
+
+
+
 ```
 
 
-#ordinate all datasets. NOTE: THIS CHUNK TAKES A LOT OF COMPUTATION TIME. Resulting objects are exported as .Rdata
+## ordinate all datasets. NOTE: THIS CHUNK TAKES A LOT OF COMPUTATION TIME. Resulting objects are exported as .Rdata
 #and can be loaded directly in next chunk.
+
 ```{R}
-CCFRP_ord <- metaMDS(CCFRP_distmat, distance="bray") #ordinates the dist matrix
-kelp_swath_ord <- metaMDS(kelp_swath_distmat, distance="bray") #ordinates the dist matrix
-kelp_fish_ord <- metaMDS(kelp_fish_distmat, distance="bray")
-kelp_upc_ord <- metaMDS(kelp_upc_distmat, distance="bray")
-deep_reef_ord <- metaMDS(deep_reef_distmat, distance="bray")
-rocky_ord <- metaMDS(rocky_distmat, distance="bray")
+# setting the seed 
+set.seed(123)
+num_cores=20
+
+message("Processing CCFRP_ord")
+CCFRP_ord <- metaMDS(CCFRP_distmat, distance="bray", trymax = 100, parallel = num_cores) #ordinates the dist matrix
+#CCFRP_ord <- metaMDS(CCFRP_distmat, previous.best = CCFRP_ord, noscore=0.2, trymax=100)
+message("Done processing CCFRP_ord")
+
+message("Processing kelp_swath_ord")
+kelp_swath_ord <- metaMDS(kelp_swath_distmat, distance="bray", trymax = 100, parallel = num_cores) #ordinates the dist matrix
+message("Done processing kelp_swath_ord")
+
+message("Processing kelp_fish_ord")
+kelp_fish_ord <- metaMDS(kelp_fish_distmat, distance="bray", noshare=0.2, parallel = num_cores)
+kelp_fish_ord <- metaMDS(kelp_fish_distmat, previous.best = kelp_fish_ord, noshare=0.1, trymax=300, parallel = num_cores)
+message("Done processing kelp_fish_ord")
+
+message("Processing kelp_upc_ord")
+kelp_upc_ord <- metaMDS(kelp_upc_distmat, distance="bray", noshare=0.2, parallel = num_cores)
+kelp_upc_ord <- metaMDS(kelp_upc_distmat,previous.best=kelp_upc_ord, noshare=0.2, trymax = 300, parallel = num_cores)
+message("Done processing kelp_upc_ord")
+
+message("Processing deep_reef_ord")
+deep_reef_ord <- metaMDS(deep_reef_distmat, distance="bray", trymax = 100, parallel = num_cores)
+message("Done processing deep_reef_ord")
+
+message("Processing rocky_ord")
+rocky_ord <- metaMDS(rocky_distmat, distance="bray", trymax = 100, parallel = num_cores)
+message("Done processing rocky_ord")
 
 
 #export to .RData
-path_aurora <- "/home/shares/ca-mpa/data/sync-data/processed_data/ecological_community_data" 
-save(CCFRP_ord, kelp_swath_ord, kelp_fish_ord, kelp_upc_ord, deep_reef_ord, rocky_ord, file = file.path(path_aurora, "bray_nmds_scores.rda"))
-
+data_path <- "/home/shares/ca-mpa/data/sync-data/processed_data/ecological_community_data/year_level"
+save(CCFRP_ord, kelp_swath_ord, kelp_fish_ord, kelp_upc_ord, deep_reef_ord, rocky_ord, file = file.path(data_path, "bray_nmds_scores.rda"))
 
 ```
+
 
 
 #CCFRP scores and plot
 ```{r}
-data_path <- "/home/shares/ca-mpa/data/sync-data/processed_data/ecological_community_data" 
+
+data_path <- "/home/shares/ca-mpa/data/sync-data/processed_data/ecological_community_data/"
 input_file <- "bray_nmds_scores.rda"
 
-data<- load(file.path(data_path, input_file))
+data <- load(file.path(data_path, input_file))
 
 
 
@@ -322,11 +406,16 @@ data<- load(file.path(data_path, input_file))
 #ordiellipse(ord, year)
 #ordispider(ord, year, label=F)
 
+#CCFRP_groups <- CCFRP_groups %>%
+                # mutate(MHW = ifelse(year>=2014 & year<=2016, "during",ifelse(year<2014, "before","after")))
+
+#en = envfit(CCFRP_ord, CCFRP_groups, permutations=999, na.rm=TRUE)
 
 
 scrs <- scores(CCFRP_ord)
 
-scrs <- cbind(as.data.frame(scrs), MHW=CCFRP_group_vars$MHW, region4=CCFRP_group_vars$region4, mpa_designation=CCFRP_group_vars$mpa_designation) #to facilitate computing centroids, add group var
+scrs <- cbind(as.data.frame(scrs), desig_state=CCFRP_group_vars$desig_state, year=CCFRP_group_vars$year, MHW=CCFRP_group_vars$MHW, region4=CCFRP_group_vars$region4, mpa_designation=CCFRP_group_vars$mpa_designation) #to facilitate computing centroids, add group var
+
 scrs$region4 <- factor(scrs$region4, level = c("north","central","north islands","south")) #set order
 scrs$MHW <- factor(scrs$MHW, level = c("before","during","after")) #set order
 scrs$mpa_designation <- factor(scrs$mpa_designation, level = c("smr","ref")) #set order
@@ -334,87 +423,1107 @@ scrs$mpa_designation <- factor(scrs$mpa_designation, level = c("smr","ref")) #se
 
 cent <- aggregate(cbind(NMDS1, NMDS2) ~ MHW+region4+mpa_designation, data = scrs, FUN = mean) #computes centroids by MHW and region
 
-segs <- merge(scrs, setNames(cent, c('MHW','oNMDS1','oNMDS2')),
-              by = 'MHW', sort=FALSE) #to draw the spider, we need to use geom_segment() which required coordinates to draw the segment from and to. Our 'to'
+segs <- merge(scrs, setNames(cent, c('year','oNMDS1','oNMDS2')),
+              by = 'year', sort=FALSE) #to draw the spider, we need to use geom_segment() which required coordinates to draw the segment from and to. Our 'to'
                                        # coordinates, the xend and yend aesthetics will be the centroids. So we need to replicate the group centroid for each
                                        # observation in the group. T
 
 
 
 
-ggplot(scrs, aes(x = NMDS1, y=NMDS2, shape = region4, color = mpa_designation, group=region4)) +
+ggplot(scrs, aes(x = NMDS1, y=NMDS2,  color = mpa_designation)) +
   #geom_segment(data = segs,
                #mapping = aes(xend = oNMDS1, yend = oNMDS2)) + #spiders
-  geom_point(data = cent, size=5) +                           #centroids
+  geom_point(data = cent, size=5, aes(shape=MHW)) +                           #centroids
   geom_path(data = cent, size = 0.5, #aes(color=year)
             )+           #line connecting groups (years)
   #geom_point() +                                              #sample scores
   #coord_fixed() +
-  geom_text(data=cent, aes(label=MHW), position=position_jitter(width=0.02, height=0.01))+
+  #geom_text(data=cent, aes(label=year), position=position_jitter(width=0.02, height=0.01))+
   #xlim(-4.5,4.5)+
   #ylim(-0.45,0.65)+
-  facet_wrap(~mpa_designation,
-             labeller = labeller(mpa_designation =
-                                   c("ref"="REF",
-                                     "smr"="SMR")))+
+  #facet_wrap(~mpa_designation,
+  #           labeller = labeller(mpa_designation =
+  #                                 c("ref"="REF",
+  #                                   "smr"="SMR")))+
   ggtitle("CCFRP assemblage structure over time")+
   theme(strip.text = element_text(size=18, face="bold"))+
   theme(plot.title = element_text(size=20, face="bold"))+
+  theme(text = element_text(20)) +
+  stat_ellipse(type="t")
+
+
+ord_scores <- cent %>%
+              dplyr:: select(NMDS1, NMDS2, groups=MHW)
+
+
+
+
+
+NMDS = data.frame(MDS1 = CCFRP_ord$points[,1], MDS2 = CCFRP_ord$points[,2],group=CCFRP_group_vars$desig_state, mpa_desig=CCFRP_group_vars$mpa_designation)
+
+plot(CCFRP_ord)
+ord<- ordiellipse(CCFRP_ord, CCFRP_group_vars$desig_state, kind = "se",conf=0.95, label=T)
+
+NMDS$group <- as.factor(NMDS$group)
+
+df_ell <- data.frame()
+for(g in levels(NMDS$group)){
+  df_ell <- rbind(df_ell, cbind(as.data.frame(with(NMDS[NMDS$group==g,],
+                  vegan:::veganCovEllipse(ord[[g]]$cov,ord[[g]]$center,ord[[g]]$scale)))
+                                ,group=g))
+}
+
+df_ell$mpa_type <- word(df_ell$group, 1)
+
+#ggplot(data = NMDS, aes(MDS1, MDS2)) + geom_point(aes(color = group)) +
+#  geom_path(data=df_ell, aes(x=NMDS1, y=NMDS2,colour=group), size=1, linetype=2)
+
+
+#reorder for plotting
+cent$mpa_designation <- factor(cent$mpa_designation, level=c("smr","ref"))
+cent$MHW <- factor(cent$MHW, level=c("before","during","after"))
+
+
+
+
+CCFRP<- ggplot(data=cent, aes(NMDS1, NMDS2)) +
+  #geom_segment(data = segs,
+               #mapping = aes(xend = oNMDS1, yend = oNMDS2)) + #spiders
+  geom_point(aes(shape=MHW, color=mpa_designation), size=4) +                           #centroids
+  geom_path(data = df_ell, aes(NMDS1, NMDS2, colour=mpa_type, group=group), size = 0.5, linetype=2 #aes(color=year)
+            )+           #line connecting groups (years)
+  #geom_point() +                                              #sample scores
+  #coord_fixed() +
+  #geom_text(data=cent, aes(label=year), position=position_jitter(width=0.02, height=0.01))+
+  #xlim(-4.5,4.5)+
+  #ylim(-0.45,0.65)+
+  #facet_wrap(~mpa_designation,
+  #           labeller = labeller(mpa_designation =
+  #                                 c("ref"="REF",
+  #                                   "smr"="SMR")))+
+  ggtitle("CCFRP")+
+  scale_color_manual(values=c('red','blue'))+
+  theme(strip.text = element_text(size=18, face="bold"))+
+  theme(plot.title = element_text(size=16, face="bold"))+
   theme(text = element_text(20))
+
+
+CCFRP
+
+
+```
+
+#Kelp swath scores and plot
+```{r}
+
+scrs<- scores(kelp_swath_ord)
+scrs <- cbind(as.data.frame(scrs), desig_state=kelp_swath_group_vars$desig_state, year=kelp_swath_group_vars$year, MHW=kelp_swath_group_vars$MHW, region4=kelp_swath_group_vars$region4, mpa_designation=kelp_swath_group_vars$mpa_defacto_designation) #to facilitate computing centroids, add group var
+
+cent <- aggregate(cbind(NMDS1, NMDS2) ~ MHW+region4+mpa_designation, data = scrs, FUN = mean) #computes centroids by MHW and region
+
+
+
+
+NMDS = data.frame(MDS1 = kelp_swath_ord$points[,1], MDS2 = kelp_swath_ord$points[,2],group=kelp_swath_group_vars$desig_state, mpa_desig=kelp_swath_group_vars$mpa_defacto_designation)
+
+
+plot(kelp_swath_ord)
+ord<- ordiellipse(kelp_swath_ord, kelp_swath_group_vars$desig_state, kind = "se",conf=0.95, label=T)
+
+NMDS$group <- as.factor(NMDS$group)
+
+df_ell <- data.frame()
+for(g in levels(NMDS$group)){
+  df_ell <- rbind(df_ell, cbind(as.data.frame(with(NMDS[NMDS$group==g,],
+                  vegan:::veganCovEllipse(ord[[g]]$cov,ord[[g]]$center,ord[[g]]$scale)))
+                                ,group=g))
+}
+
+df_ell$mpa_type <- word(df_ell$group, 1)
+
+#ggplot(data = NMDS, aes(MDS1, MDS2)) + geom_point(aes(color = group)) +
+#  geom_path(data=df_ell, aes(x=NMDS1, y=NMDS2,colour=group), size=1, linetype=2)
+
+
+#reorder for plotting
+cent$mpa_designation <- factor(cent$mpa_designation, level=c("smr","ref"))
+cent$MHW <- factor(cent$MHW, level=c("before","during","after"))
+
+KF_swath <- ggplot(data=cent, aes(NMDS1, NMDS2)) +
+  #geom_segment(data = segs,
+               #mapping = aes(xend = oNMDS1, yend = oNMDS2)) + #spiders
+  geom_point(aes(shape=MHW, color=mpa_designation), size=4) +                           #centroids
+  geom_path(data = df_ell, aes(NMDS1, NMDS2, colour=mpa_type, group=group), size = 0.5, linetype=2 #aes(color=year)
+            )+           #line connecting groups (years)
+  #geom_point() +                                              #sample scores
+  #coord_fixed() +
+  #geom_text(data=cent, aes(label=year), position=position_jitter(width=0.02, height=0.01))+
+  #xlim(-4.5,4.5)+
+  #ylim(-0.45,0.65)+
+  #facet_wrap(~mpa_designation,
+  #           labeller = labeller(mpa_designation =
+  #                                 c("ref"="REF",
+  #                                   "smr"="SMR")))+
+  ggtitle("kelp forest swath ")+
+  scale_color_manual(values=c('red','blue'))+
+  theme(strip.text = element_text(size=18, face="bold"))+
+  theme(plot.title = element_text(size=16, face="bold"))+
+  theme(text = element_text(20))
+
+
+```
+
+
+#Kelp upc scores and plot
+```{r}
+
+scrs<- scores(kelp_upc_ord)
+scrs <- cbind(as.data.frame(scrs), desig_state=kelp_upc_group_vars$desig_state, year=kelp_upc_group_vars$year, MHW=kelp_upc_group_vars$MHW, region4=kelp_upc_group_vars$region4, mpa_designation=kelp_upc_group_vars$mpa_defacto_designation) #to facilitate computing centroids, add group var
+
+cent <- aggregate(cbind(NMDS1, NMDS2) ~ MHW+region4+mpa_designation, data = scrs, FUN = mean) #computes centroids by MHW and region
+
+
+
+
+NMDS = data.frame(MDS1 = kelp_upc_ord$points[,1], MDS2 = kelp_upc_ord$points[,2],group=kelp_upc_group_vars$desig_state, mpa_desig=kelp_upc_group_vars$mpa_defacto_designation)
+
+
+plot(kelp_upc_ord)
+ord<- ordiellipse(kelp_upc_ord, kelp_upc_group_vars$desig_state, kind = "se",conf=0.95, label=T)
+
+NMDS$group <- as.factor(NMDS$group)
+
+df_ell <- data.frame()
+for(g in levels(NMDS$group)){
+  df_ell <- rbind(df_ell, cbind(as.data.frame(with(NMDS[NMDS$group==g,],
+                  vegan:::veganCovEllipse(ord[[g]]$cov,ord[[g]]$center,ord[[g]]$scale)))
+                                ,group=g))
+}
+
+df_ell$mpa_type <- word(df_ell$group, 1)
+
+#ggplot(data = NMDS, aes(MDS1, MDS2)) + geom_point(aes(color = group)) +
+#  geom_path(data=df_ell, aes(x=NMDS1, y=NMDS2,colour=group), size=1, linetype=2)
+
+
+#reorder for plotting
+cent$mpa_designation <- factor(cent$mpa_designation, level=c("smr","ref"))
+cent$MHW <- factor(cent$MHW, level=c("before","during","after"))
+
+(KF_upc <- ggplot(data=cent, aes(NMDS1, NMDS2)) +
+  #geom_segment(data = segs,
+               #mapping = aes(xend = oNMDS1, yend = oNMDS2)) + #spiders
+  geom_point(aes(shape=MHW, color=mpa_designation), size=4) +                           #centroids
+  geom_path(data = df_ell, aes(NMDS1, NMDS2, colour=mpa_type, group=group), size = 0.5, linetype=2 #aes(color=year)
+            )+           #line connecting groups (years)
+  #geom_point() +                                              #sample scores
+  #coord_fixed() +
+  #geom_text(data=cent, aes(label=year), position=position_jitter(width=0.02, height=0.01))+
+  #xlim(-4.5,4.5)+
+  #ylim(-0.45,0.65)+
+  #facet_wrap(~mpa_designation,
+  #           labeller = labeller(mpa_designation =
+  #                                 c("ref"="REF",
+  #                                   "smr"="SMR")))+
+  ggtitle("kelp forest UPC")+
+  scale_color_manual(values=c('red','blue'))+
+  theme(strip.text = element_text(size=18, face="bold"))+
+  theme(plot.title = element_text(size=16, face="bold"))+
+  theme(text = element_text(20))
+  )
+
+
+```
+
+
+#Kelp fish scores and plot
+```{r}
+
+scrs<- scores(kelp_fish_ord)
+scrs <- cbind(as.data.frame(scrs), desig_state=kelp_fish_group_vars$desig_state, year=kelp_fish_group_vars$year, MHW=kelp_fish_group_vars$MHW, region4=kelp_fish_group_vars$region4, mpa_designation=kelp_fish_group_vars$mpa_defacto_designation) #to facilitate computing centroids, add group var
+
+cent <- aggregate(cbind(NMDS1, NMDS2) ~ MHW+region4+mpa_designation, data = scrs, FUN = mean) #computes centroids by MHW and region
+
+
+
+
+NMDS = data.frame(MDS1 = kelp_fish_ord$points[,1], MDS2 = kelp_fish_ord$points[,2],group=kelp_fish_group_vars$desig_state, mpa_desig=kelp_fish_group_vars$mpa_defacto_designation)
+
+
+plot(kelp_fish_ord)
+ord<- ordiellipse(kelp_fish_ord, kelp_fish_group_vars$desig_state, kind = "se",conf=0.95, label=T)
+
+NMDS$group <- as.factor(NMDS$group)
+
+df_ell <- data.frame()
+for(g in levels(NMDS$group)){
+  df_ell <- rbind(df_ell, cbind(as.data.frame(with(NMDS[NMDS$group==g,],
+                  vegan:::veganCovEllipse(ord[[g]]$cov,ord[[g]]$center,ord[[g]]$scale)))
+                                ,group=g))
+}
+
+df_ell$mpa_type <- word(df_ell$group, 1)
+
+#ggplot(data = NMDS, aes(MDS1, MDS2)) + geom_point(aes(color = group)) +
+#  geom_path(data=df_ell, aes(x=NMDS1, y=NMDS2,colour=group), size=1, linetype=2)
+
+
+#reorder for plotting
+cent$mpa_designation <- factor(cent$mpa_designation, level=c("smr","ref"))
+cent$MHW <- factor(cent$MHW, level=c("before","during","after"))
+
+(KF_fish <- ggplot(data=cent, aes(NMDS1, NMDS2)) +
+  #geom_segment(data = segs,
+               #mapping = aes(xend = oNMDS1, yend = oNMDS2)) + #spiders
+  geom_point(aes(shape=MHW, color=mpa_designation), size=4) +                           #centroids
+  geom_path(data = df_ell, aes(NMDS1, NMDS2, colour=mpa_type, group=group), size = 0.5, linetype=2 #aes(color=year)
+            )+           #line connecting groups (years)
+  #geom_point() +                                              #sample scores
+  #coord_fixed() +
+  #geom_text(data=cent, aes(label=year), position=position_jitter(width=0.02, height=0.01))+
+  #xlim(-4.5,4.5)+
+  #ylim(-0.45,0.65)+
+  #facet_wrap(~mpa_designation,
+  #           labeller = labeller(mpa_designation =
+  #                                 c("ref"="REF",
+  #                                   "smr"="SMR")))+
+  ggtitle("kelp forest fish")+
+  scale_color_manual(values=c('red','blue'))+
+  theme(strip.text = element_text(size=18, face="bold"))+
+  theme(plot.title = element_text(size=16, face="bold"))+
+  theme(text = element_text(20))
+)
+
+
+```
+
+
+#deep reef scores and plot
+```{r}
+
+scrs<- scores(deep_reef_ord)
+scrs <- cbind(as.data.frame(scrs), desig_state=deep_reef_group_vars$desig_state, year=deep_reef_group_vars$year, MHW=deep_reef_group_vars$MHW, region4=deep_reef_group_vars$region4, mpa_designation=deep_reef_group_vars$mpa_defacto_designation) #to facilitate computing centroids, add group var
+
+cent <- aggregate(cbind(NMDS1, NMDS2) ~ MHW+region4+mpa_designation, data = scrs, FUN = mean) #computes centroids by MHW and region
+
+
+
+
+NMDS = data.frame(MDS1 = deep_reef_ord$points[,1], MDS2 = deep_reef_ord$points[,2],group=deep_reef_group_vars$desig_state, mpa_desig=deep_reef_group_vars$mpa_defacto_designation)
+
+
+plot(deep_reef_ord)
+ord<- ordiellipse(deep_reef_ord, deep_reef_group_vars$desig_state, kind = "se",conf=0.95, label=T)
+
+NMDS$group <- as.factor(NMDS$group)
+
+df_ell <- data.frame()
+for(g in levels(NMDS$group)){
+  df_ell <- rbind(df_ell, cbind(as.data.frame(with(NMDS[NMDS$group==g,],
+                  vegan:::veganCovEllipse(ord[[g]]$cov,ord[[g]]$center,ord[[g]]$scale)))
+                                ,group=g))
+}
+
+df_ell$mpa_type <- word(df_ell$group, 1)
+
+#ggplot(data = NMDS, aes(MDS1, MDS2)) + geom_point(aes(color = group)) +
+#  geom_path(data=df_ell, aes(x=NMDS1, y=NMDS2,colour=group), size=1, linetype=2)
+
+
+#reorder for plotting
+cent$mpa_designation <- factor(cent$mpa_designation, level=c("smr","ref"))
+cent$MHW <- factor(cent$MHW, level=c("before","during","after"))
+
+(deep_reef <- ggplot(data=cent, aes(NMDS1, NMDS2)) +
+  #geom_segment(data = segs,
+               #mapping = aes(xend = oNMDS1, yend = oNMDS2)) + #spiders
+  geom_point(aes(shape=MHW, color=mpa_designation), size=4) +                           #centroids
+  geom_path(data = df_ell, aes(NMDS1, NMDS2, colour=mpa_type, group=group), size = 0.5, linetype=2 #aes(color=year)
+            )+           #line connecting groups (years)
+  #geom_point() +                                              #sample scores
+  #coord_fixed() +
+  #geom_text(data=cent, aes(label=year), position=position_jitter(width=0.02, height=0.01))+
+  #xlim(-4.5,4.5)+
+  #ylim(-0.45,0.65)+
+  #facet_wrap(~mpa_designation,
+  #           labeller = labeller(mpa_designation =
+  #                                 c("ref"="REF",
+  #                                   "smr"="SMR")))+
+  ggtitle("deep reef fish")+
+  scale_color_manual(values=c('red','blue'))+
+  theme(strip.text = element_text(size=18, face="bold"))+
+  theme(plot.title = element_text(size=16, face="bold"))+
+  theme(text = element_text(20))
+)
+
+
+```
+
+
+#rocky scores and plot
+```{r}
+
+scrs<- scores(rocky_ord)
+scrs <- cbind(as.data.frame(scrs), desig_state=rocky_group_vars$desig_state, year=rocky_group_vars$year, MHW=rocky_group_vars$MHW, region4=rocky_group_vars$region4, mpa_designation=rocky_group_vars$mpa_designation) #to facilitate computing centroids, add group var
+
+cent <- aggregate(cbind(NMDS1, NMDS2) ~ MHW+region4+mpa_designation, data = scrs, FUN = mean) #computes centroids by MHW and region
+
+
+
+
+NMDS = data.frame(MDS1 = rocky_ord$points[,1], MDS2 = rocky_ord$points[,2], group=rocky_group_vars$desig_state, mpa_desig=rocky_group_vars$mpa_designation)
+
+
+plot(rocky_ord)
+ord<- ordiellipse(rocky_ord, rocky_group_vars$desig_state, kind = "se",conf=0.95, label=T)
+
+NMDS$group <- as.factor(NMDS$group)
+
+df_ell <- data.frame()
+for(g in levels(NMDS$group)){
+  df_ell <- rbind(df_ell, cbind(as.data.frame(with(NMDS[NMDS$group==g,],
+                  vegan:::veganCovEllipse(ord[[g]]$cov,ord[[g]]$center,ord[[g]]$scale)))
+                                ,group=g))
+}
+
+df_ell$mpa_type <- word(df_ell$group, 1)
+
+#ggplot(data = NMDS, aes(MDS1, MDS2)) + geom_point(aes(color = group)) +
+#  geom_path(data=df_ell, aes(x=NMDS1, y=NMDS2,colour=group), size=1, linetype=2)
+
+
+#reorder for plotting
+cent$mpa_designation <- factor(cent$mpa_designation, level=c("smr","ref"))
+cent$MHW <- factor(cent$MHW, level=c("before","during","after"))
+
+(rocky <- ggplot(data=cent, aes(NMDS1, NMDS2)) +
+  #geom_segment(data = segs,
+               #mapping = aes(xend = oNMDS1, yend = oNMDS2)) + #spiders
+  geom_point(aes(shape=MHW, color=mpa_designation), size=4) +                           #centroids
+  geom_path(data = df_ell, aes(NMDS1, NMDS2, colour=mpa_type, group=group), size = 0.5, linetype=2 #aes(color=year)
+            )+           #line connecting groups (years)
+  #geom_point() +                                              #sample scores
+  #coord_fixed() +
+  #geom_text(data=cent, aes(label=year), position=position_jitter(width=0.02, height=0.01))+
+  #xlim(-4.5,4.5)+
+  #ylim(-0.45,0.65)+
+  #facet_wrap(~mpa_designation,
+  #           labeller = labeller(mpa_designation =
+  #                                 c("ref"="REF",
+  #                                   "smr"="SMR")))+
+  ggtitle("rocky intertidal")+
+  scale_color_manual(values=c('red','blue'))+
+  theme(strip.text = element_text(size=18, face="bold"))+
+  theme(plot.title = element_text(size=16, face="bold"))+
+  theme(text = element_text(20))
+)
+
+```
+
+#combine plots 
+
+```{r}
+
+figure<-ggarrange(CCFRP, KF_fish, deep_reef,
+          KF_swath, KF_upc, rocky, common.legend = TRUE, legend="right",
+          font.label=list(color="black",size=14)) + bgcolor('white')
+
+annotate_figure(figure,
+                top = text_grob("central CA community structure", color = "black", face = "bold", size = 20)
+                #bottom = text_grob("Data source: \n ToothGrowth data set", color = "blue",
+                                  # hjust = 1, x = 1, face = "italic", size = 10),
+                #left = text_grob("Tooth length", color = "green", rot = 90),
+                #right = "I'm done, thanks :-)!",
+                #fig.lab = "Figure 1", fig.lab.face = "bold"
+)
+
+ggsave(here("analyses", "5community_climate_ecology", "figures", "community_structure_central.png"), figure, width = 12, units = "in", dpi = 300)
+```
+
+
+
+```{r}
+#TEST CODE ORDIELLIPSE
+
+CCFRP_process <- CCFRP_counts %>%
+                  rowwise() %>%
+                  dplyr::mutate(sum = sum(across(9:ncol(.)), na.rm = T)) %>%
+                  filter(!(sum==0))%>%
+                  dplyr::select(-sum)%>%
+                  mutate(desig_state = paste(mpa_designation,MHW))%>%
+                  dplyr::select(desig_state, everything())#remove rows containing only zeros
+                  
+
+#define grouping vars
+CCFRP_group_vars <- CCFRP_process %>%
+                    dplyr::select(1:9)
+
+#define data for ordination
+CCFRP_ord_data <- CCFRP_process %>%
+              dplyr::select(10:ncol(.))
+
+
+#calculate relative abundance
+CCFRP_rel <- decostand(CCFRP_ord_data, method = "hellinger") %>%
+            dplyr::select(where(~any(. !=0)))
+
+#generate a BC dissim matrix
+CCFRP_distmat <- vegdist(CCFRP_rel, method = "bray", na.rm=T) 
+
+
+
+
+PCO <- capscale(CCFRP_distmat ~1)
+
+plot(PCO, display="sites", type="n")
+plot.window(xlim=c(-1,1), ylim=c(-1,1))
+
+stats <- with(CCFRP_group_vars,
+              ordiellipse(PCO,CCFRP_group_vars$desig_state,kind="se",conf=0.95, label=T,
+                          col=c("red","blue","red","blue","red","blue")))
+
+scrs<- scores(PCO, display="sites")
+cent_MHW <- aggregate(scrs ~ desig_state, data=CCFRP_group_vars, FUN=mean)
+names(cent_MHW)[-1] <- colnames(scrs)
+
+
+
+
+
+points(cent_MHW[, -1], pch = 22, col='dark red', bg = c("red","blue","green"), cex = 1.1)
+
+cent_year <- aggregate(scrs ~ year, data=CCFRP_group_vars, FUN=mean)
+names(cent_year)[-1] <- colnames(scrs)
+
+points(cent_year[, -1], pch = 22, col='blue', bg = c("red","blue","green"), cex = 1.1)
+
+
+
+
+
+
+#https://stats.stackexchange.com/questions/34017/confidence-intervals-around-a-centroid-with-modified-gower-similarity
+
 ```
   
 
 
-#kelp swath scores and plot 
+
+**Part 1.2 -- Calculate Centroid Distance**
+#CCFRP_centroid distance
+```{r}
+
+CCFRP_process <- CCFRP_counts %>%
+                  rowwise() %>%
+                  dplyr::mutate(sum = sum(across(9:ncol(.)), na.rm = T)) %>%
+                  filter(!(sum==0))%>%
+                  dplyr::select(-sum) #remove rows containing only zeros
+
+#define grouping vars
+CCFRP_group_vars_smr <- CCFRP_process %>%
+                    filter(mpa_designation=='smr')%>%
+                    dplyr::select(1:8)
+
+CCFRP_group_vars_ref <- CCFRP_process %>%
+                    filter(mpa_designation=='ref')%>%
+                    dplyr::select(1:8)
+
+#define data for ordination
+CCFRP_ord_smr <- CCFRP_process %>%
+              filter(mpa_designation=='smr')%>%
+              dplyr::select(9:ncol(.))
+
+CCFRP_ord_ref <- CCFRP_process %>%
+              filter(mpa_designation=='ref')%>%
+              dplyr::select(9:ncol(.))
+
+#calculate relative abundance
+CCFRP_rel_smr <- decostand(CCFRP_ord_smr, method = "hellinger") %>%
+            dplyr::select(where(~any(. !=0)))
+
+CCFRP_rel_ref <- decostand(CCFRP_ord_ref, method = "hellinger") %>%
+            dplyr::select(where(~any(. !=0)))
+
+
+#generate a BC dissim matrix
+CCFRP_distmat_smr <- vegdist(CCFRP_rel_smr, method = "bray", na.rm=T) 
+CCFRP_distmat_ref <- vegdist(CCFRP_rel_ref, method = "bray", na.rm=T) 
+
+
+(CCFRP_smr_before_after<- cbind("CCFRP",dist_between_centroids(CCFRP_distmat_smr, 1:27,39:54),"smr"))
+(CCFRP_ref_before_after<- cbind("CCFRP",dist_between_centroids(CCFRP_distmat_ref, 1:27,39:54),"ref"))
+
+(dist_traveled <- rbind(CCFRP_smr_before_after,CCFRP_ref_before_after))
+
+```
+
+
+#Kelp swath_centroid distance
+```{r}
+
+kelp_swath <- kelp_swath %>%
+                  rowwise() %>%
+                  dplyr::mutate(sum = sum(across(9:ncol(.)), na.rm = T)) %>%
+                  filter(!(sum==0))%>%
+                  dplyr::select(-sum) #remove rows containing only zeros
+
+#define grouping vars
+kelp_swath_group_vars_smr <- kelp_swath %>%
+                    filter(mpa_defacto_designation=='smr')%>%
+                    dplyr::select(1:8)
+
+kelp_group_vars_ref <- kelp_swath %>%
+                    filter(mpa_defacto_designation=='ref')%>%
+                    dplyr::select(1:8)
+
+#define data for ordination
+kelp_ord_smr <- kelp_swath %>%
+              filter(mpa_defacto_designation=='smr')%>%
+              dplyr::select(9:ncol(.))
+
+kelp_ord_ref <- kelp_swath %>%
+              filter(mpa_defacto_designation=='ref')%>%
+              dplyr::select(9:ncol(.))
+
+#calculate relative abundance
+kelp_rel_smr <- decostand(kelp_ord_smr, method = "hellinger") %>%
+            dplyr::select(where(~any(. !=0)))
+
+kelp_rel_ref <- decostand(kelp_ord_ref, method = "hellinger") %>%
+            dplyr::select(where(~any(. !=0)))
+
+
+#generate a BC dissim matrix
+kelp_distmat_smr <- vegdist(kelp_rel_smr, method = "bray", na.rm=T) 
+kelp_distmat_ref <- vegdist(kelp_rel_ref, method = "bray", na.rm=T) 
+
+
+(kelp_smr_before_after<- cbind("kelp_swath",dist_between_centroids(kelp_distmat_smr, 1:101,110:124),"smr"))
+(kelp_ref_before_after<- cbind("kelp_swath",dist_between_centroids(kelp_distmat_ref, 1:109,121:139),"ref"))
+
+(dist_traveled <- rbind(dist_traveled,kelp_smr_before_after,kelp_ref_before_after))
+
+
+```
+
+
+Kelp upc_centroid distance
+```{r}
+
+kelp_upc <- kelp_upc_counts %>%
+                  rowwise() %>%
+                  dplyr::mutate(sum = sum(across(8:ncol(.), na.rm = T))) %>%
+                  replace(is.na(.), 0)
+                  
+
+#define grouping vars
+kelp_upc_vars_smr <- kelp_upc%>%
+                    filter(mpa_defacto_designation=='smr')%>%
+                    dplyr::select(1:7)
+kelp_upc_vars_ref <- kelp_upc%>%
+                    filter(mpa_defacto_designation=='ref')%>%
+                    dplyr::select(1:7)
+
+#define data for ordination
+kelp_upc_ord_smr <- kelp_upc%>%
+              filter(mpa_defacto_designation=='smr')%>%
+              ungroup()%>%
+              dplyr::select(8:ncol(.))
+
+kelp_upc_ord_ref <- kelp_upc%>%
+              filter(mpa_defacto_designation=='ref')%>%
+              ungroup()%>%
+              dplyr::select(8:ncol(.))
+
+#calculate relative abundance
+kelp_upc_rel_smr <- decostand(kelp_upc_ord_smr, method = "hellinger")
+kelp_upc_rel_ref <- decostand(kelp_upc_ord_ref, method = "hellinger")
+
+#generate a BC dissim matrix
+kelp_upc_distmat_smr <- 
+    vegdist(kelp_upc_rel_smr, method = "bray", na.rm=T) #generates a BC dissim matrix
+
+kelp_upc_distmat_ref <- 
+    vegdist(kelp_upc_rel_ref, method = "bray", na.rm=T)
+
+
+
+(kelp_upc_smr_before_after<- cbind("kelp_upc",dist_between_centroids(kelp_upc_distmat_smr, 1:101,111:125),"smr"))
+(kelp_upc_ref_before_after<- cbind("kelp_upc",dist_between_centroids(kelp_upc_distmat_ref, 1:109,121:139),"ref"))
+
+(dist_traveled <- rbind(dist_traveled,kelp_upc_smr_before_after,kelp_upc_ref_before_after))
+
+
+```
+
+
+#kelp fish centroid distance
+```{r}
+
+kelp_fish <- kelp_fish_counts %>%
+                  rowwise() %>%
+                  dplyr::mutate(sum = sum(across(8:ncol(.), na.rm = T)))%>%
+                  filter(!(sum==0))%>% #remove rows containing only zeros
+                  dplyr::select(-sum, MHW, everything()) #drop sum columns and non-species categories
+
+#define grouping vars
+kelp_fish_vars_smr <- kelp_fish %>%
+                    filter(mpa_defacto_designation=='smr')%>%
+                    dplyr::select(1:7)
+
+kelp_fish_vars_ref <- kelp_fish %>%
+                    filter(mpa_defacto_designation=='ref')%>%
+                    dplyr::select(1:7)
+
+#define data for ordination
+kelp_fish_ord_smr <- kelp_fish %>%
+              filter(mpa_defacto_designation=='smr')%>%
+              ungroup() %>%
+              dplyr::select(8:ncol(.))
+
+kelp_fish_ord_ref <- kelp_fish %>%
+              filter(mpa_defacto_designation=='ref')%>%
+              ungroup() %>%
+              dplyr::select(8:ncol(.))
+
+
+#calculate relative abundance
+kelp_fish_rel_smr <- decostand(kelp_fish_ord_smr, method = "hellinger")
+kelp_fish_rel_ref <- decostand(kelp_fish_ord_ref, method = "hellinger")
+
+
+#generate a BC dissim matrix
+kelp_fish_distmat_smr <- 
+    vegdist(kelp_fish_rel_smr, method = "bray", na.rm=T) #generates a BC dissim matrix
+kelp_fish_distmat_ref <- 
+    vegdist(kelp_fish_rel_ref, method = "bray", na.rm=T) 
+
+
+(kelp_fish_distmat_smr<- cbind("kelp_fish",dist_between_centroids(kelp_fish_distmat_smr, 1:100,110:124),"smr"))
+(kelp_fish_distmat_ref <- cbind("kelp_fish",dist_between_centroids(kelp_upc_distmat_ref, 1:106,118:137),"ref"))
+
+(dist_traveled <- rbind(dist_traveled,kelp_fish_distmat_smr,kelp_fish_distmat_ref))
+
+```
+
+#Deep reef centroid
+```{r}
+#deep reef processing---------------------------------------------------------
+
+deep_reef <- deep_reef_counts %>%
+                  rowwise() %>%
+                  dplyr::mutate(sum = sum(across(8:ncol(.), na.rm = T))) %>%
+                  filter(!(sum==0))%>% #remove rows containing only zeros
+                  dplyr::select(-c(sum, schooling_10_15_cm_sebastes_sp,
+                                schooling_10_15_cm_sebastes_sp,
+                                young_of_year_10_cm_sebastes_sp,
+                                synodus_lucioceps_or_ophiodon_elongatus,
+                                sebastes_melanops_or_mystinus_or_diaconus)) #drop sum columns and non-species categories
+
+#define grouping vars
+deep_reef_vars_smr <- deep_reef%>%
+                    filter(mpa_defacto_designation=='smr')%>%
+                    dplyr::select(1:7)
+
+deep_reef_vars_ref <- deep_reef%>%
+                    filter(mpa_defacto_designation=='ref')%>%
+                    dplyr::select(1:7)
+
+#define data for ordination
+deep_reef_ord_smr <- deep_reef%>%
+              filter(mpa_defacto_designation=='smr')%>%
+              ungroup()%>%
+              dplyr::select(8:ncol(.))
+
+deep_reef_ord_ref <- deep_reef%>%
+              filter(mpa_defacto_designation=='ref')%>%
+              ungroup()%>%
+              dplyr::select(8:ncol(.))
+
+#calculate relative abundance
+deep_reef_rel_smr <- decostand(deep_reef_ord_smr, method="hellinger")
+deep_reef_rel_ref <- decostand(deep_reef_ord_ref, method="hellinger")
+
+#generate a BC dissim mat
+deep_reef_distmat_smr <- 
+    vegdist(deep_reef_rel_smr, method = "bray", na.rm=T) #generates a BC dissim matrix
+deep_reef_distmat_ref <- 
+    vegdist(deep_reef_rel_ref, method = "bray", na.rm=T) #generates a BC dissim matrix
+
+
+
+(deep_reef_smr_before_after<- cbind("deep_reef",dist_between_centroids(deep_reef_distmat_smr, 1:15,16:22),"smr"))
+(deep_reef_ref_before_after<- cbind("deep_reef",dist_between_centroids(deep_reef_distmat_ref, 1:7,16:25),"ref"))
+
+(dist_traveled <- rbind(dist_traveled,deep_reef_smr_before_after,deep_reef_ref_before_after))
+
+```
+
+
+
+
+#intertidal 
+```{r}
+
+rocky_counts <- rocky_counts %>%
+                mutate(MHW = ifelse(year>=2014 & year<=2016, "during",ifelse(year<2014, "before","after")))%>%
+                dplyr::select(MHW, everything())%>%
+                arrange(MHW)
+                
+                
+
+#define grouping vars
+rocky_group_vars_smr <- rocky_counts%>%
+                    filter(mpa_designation=='smr')%>%
+                    dplyr::select(1:9)
+
+rocky_group_vars_ref <- rocky_counts%>%
+                    filter(mpa_designation=='ref')%>%
+                    dplyr::select(1:9)
+
+#define data for ordination
+rocky_ord_smr <- rocky_counts %>%
+              filter(mpa_designation=='smr')%>%
+              ungroup() %>%
+              dplyr::select(10:ncol(.))
+
+rocky_ord_ref <- rocky_counts %>%
+              filter(mpa_designation=='ref')%>%
+              ungroup() %>%
+              dplyr::select(10:ncol(.))
+
+
+#calculate relative abundance
+rocky_rel_smr <- decostand(rocky_ord_smr, method = "hellinger")
+rocky_rel_ref <- decostand(rocky_ord_ref, method = "hellinger")
+
+#generate a BC dissim matrix
+rocky_distmat_smr <- 
+    vegdist(rocky_rel_smr, method = "bray", na.rm=T) #generates a BC dissim matrix
+
+rocky_distmat_ref <- 
+    vegdist(rocky_rel_ref, method = "bray", na.rm=T) 
+
+
+
+(rocky_smr_before_after<- cbind("rocky", dist_between_centroids(rocky_distmat_smr, 1:21,22:101),"smr"))
+(rocky_ref_before_after<- cbind("rocky", dist_between_centroids(rocky_distmat_ref, 1:33,34:144),"ref"))
+
+(dist_traveled <- rbind(dist_traveled,rocky_smr_before_after,rocky_ref_before_after))
+
+
+```
+
+#create DF and plot
+```{r}
+dist_df = as.data.frame(dist_traveled)
+colnames(dist_df)= c("group","distance","MPA") 
+
+dist_df$community_type = c("fish","fish","inverts_algae","inverts_algae","inverts_algae","inverts_algae","fish","fish","fish","fish","inverts_algae","inverts_algae")
+
+
+dist_df$group <- factor(dist_df$group, levels=c("kelp_swath","deep_reef","kelp_upc","kelp_fish","CCFRP","rocky"))
+dist_df$MPA <- factor(dist_df$MPA, levels=c("ref","smr"))
+
+
+A<- dist_df %>%
+ggplot(aes(x=group, y=as.numeric(distance), fill=MPA))+
+  geom_bar(stat='identity', color='black', position=position_dodge())+
+  scale_fill_manual(values=c('#95B4CC','#ff392e'))+
+  scale_y_continuous(labels=label_number(accuracy=0.01), 
+                     breaks = seq(0,0.45,len=10))+
+  coord_flip()+
+  labs(
+    title = "Distance traveled before/after MHW",
+    x = "monitoring group",
+    y = "distance (Euclidean)"
+  )+
+  #theme(legend.text = element_text(size=16))+
+  theme_minimal(base_size=20)
+
+
+
+dist_df_wide <- dist_df%>%
+                pivot_wider(names_from = MPA, values_from='distance')%>%
+                mutate(logRR = log10((as.numeric(smr)/as.numeric(ref))),
+                       difference = as.numeric(smr)-as.numeric(ref),
+                       group = reorder(group, logRR))
+                
+    
+
+
+B <- dist_df_wide %>%
+ggplot()+
+  geom_bar(mapping = aes(x=group, y=logRR, fill=community_type), stat='identity', color='black', position=position_dodge())+
+  #scale_fill_manual(values=c('#95B4CC','#ff392e'))+
+  #scale_y_continuous(labels=label_number(accuracy=0.01), 
+  #                   breaks = seq(0,0.45,len=10))+
+  #xlim(-0.2,0.10)+
+  scale_y_continuous(limits=c(-0.20,0.10))+
+  coord_flip()+
+  scale_fill_brewer(palette = "Set2")+
+  labs(
+    title = "Distance traveled response ratio of distance traveled",
+    x = "monitoring group",
+    y = "response ratio (log(smr/ref))"
+  )+
+  theme_minimal(base_size=20)
+
+
+ggarrange(A,B,
+          labels="AUTO",
+          font.label = list(size=16))
+
+
+```
+
+
+
+
+
+
+
+
+
+
+**PART 1.3 COMMUNITY TRAJECTORY OVER TIME**
+
+
+#CCFRP scores and plot
 ```{r}
 
 
-ord <- metaMDS(distmat, distance="bray") #ordinates the dist matrix
+scrs <- scores(CCFRP_ord)
 
+scrs <- cbind(as.data.frame(scrs), desig_state=CCFRP_group_vars$desig_state, year=CCFRP_group_vars$year, MHW=CCFRP_group_vars$MHW, region4=CCFRP_group_vars$region4, mpa_designation=CCFRP_group_vars$mpa_designation) #to facilitate computing centroids, add group var
 
-
-#plot(ord)
-#ordiellipse(ord, year)
-#ordispider(ord, year, label=F)
-
-
-
-scrs <- scores(ord)
-
-scrs <- cbind(as.data.frame(scrs), mhw, region, mpa_designation) #to facilitate computing centroids, add group var
-scrs$region <- factor(scrs$region, level = c("north","central","north islands","south")) #set order
-scrs$mhw <- factor(scrs$mhw, level = c("before","during","after")) #set order
+scrs$region4 <- factor(scrs$region4, level = c("north","central","north islands","south")) #set order
+scrs$MHW <- factor(scrs$MHW, level = c("before","during","after")) #set order
 scrs$mpa_designation <- factor(scrs$mpa_designation, level = c("smr","ref")) #set order
 
 
-cent <- aggregate(cbind(NMDS1, NMDS2) ~ mhw+region+mpa_designation, data = scrs, FUN = mean) #computes centroids by MHW and region
-
-segs <- merge(scrs, setNames(cent, c('mhw','oNMDS1','oNMDS2')),
-              by = 'mhw', sort=FALSE) #to draw the spider, we need to use geom_segment() which required coordinates to draw the segment from and to. Our 'to'
-                                       # coordinates, the xend and yend aesthetics will be the centroids. So we need to replicate the group centroid for each
-                                       # observation in the group. T
+cent <- aggregate(cbind(NMDS1, NMDS2) ~ year+MHW+region4+mpa_designation, data = scrs, FUN = mean) #computes centroids by MHW and region
 
 
 
 
-ggplot(scrs, aes(x = NMDS1, y=NMDS2, shape = region, color = mpa_designation, group=region)) +
+CCFRP_trajectory<- ggplot(data=cent, aes(NMDS1, NMDS2)) +
   #geom_segment(data = segs,
                #mapping = aes(xend = oNMDS1, yend = oNMDS2)) + #spiders
-  geom_point(data = cent, size=5) +                           #centroids
-  geom_path(data = cent, size = 0.5, #aes(color=year)
+  geom_point(aes(shape=MHW, color=mpa_designation), size=4) +                           #centroids
+  geom_path(data=cent, aes(NMDS1, NMDS2, group=mpa_designation, color=mpa_designation), size = 0.5, linetype=1 #aes(color=year)
             )+           #line connecting groups (years)
-  #geom_point() +                                              #sample scores
-  #coord_fixed() +
-  geom_text(data=cent, aes(label=mhw), position=position_jitter(width=0.02, height=0.01))+
-  #xlim(-4.5,4.5)+
-  #ylim(-0.45,0.65)+
-  facet_wrap(~mpa_designation,
-             labeller = labeller(mpa_designation =
-                                   c("ref"="REF",
-                                     "smr"="SMR")))+
-  ggtitle("CCFRP assemblage structure over time")+
+  ggtitle("CCFRP")+
+  scale_color_manual(values=c('red','blue'))+
   theme(strip.text = element_text(size=18, face="bold"))+
-  theme(plot.title = element_text(size=20, face="bold"))+
+  theme(plot.title = element_text(size=16, face="bold"))+
   theme(text = element_text(20))
+  #geom_text(position=position_jitter(width=0.01, height=0.05))
+
+
+CCFRP_trajectory
+
 ```
+
+
+
+#kelp_swath scores and plot
+```{r}
+
+scrs <- scores(kelp_swath_ord)
+
+scrs <- cbind(as.data.frame(scrs), desig_state= kelp_swath_group_vars$desig_state, year=kelp_swath_group_vars$year, MHW=kelp_swath_group_vars$MHW, region4=kelp_swath_group_vars$region4, mpa_designation=kelp_swath_group_vars$mpa_defacto_designation) #to facilitate computing centroids, add group var
+
+scrs$region4 <- factor(scrs$region4, level = c("north","central","north islands","south")) #set order
+scrs$MHW <- factor(scrs$MHW, level = c("before","during","after")) #set order
+scrs$mpa_designation <- factor(scrs$mpa_designation, level = c("smr","ref")) #set order
+
+
+cent <- aggregate(cbind(NMDS1, NMDS2) ~ year+MHW+region4+mpa_designation, data = scrs, FUN = mean) #computes centroids by MHW and region
+
+kelp_swath_trajectory<- ggplot(data=cent, aes(NMDS1, NMDS2, label=year)) +
+  #geom_segment(data = segs,
+               #mapping = aes(xend = oNMDS1, yend = oNMDS2)) + #spiders
+  geom_point(aes(shape=MHW, color=mpa_designation), size=4) +                           #centroids
+  geom_path(data=cent, aes(NMDS1, NMDS2, group=mpa_designation, color=mpa_designation), size = 0.5, linetype=1 #aes(color=year)
+            )+           #line connecting groups (years)
+ 
+  ggtitle("kelp swath")+
+  scale_color_manual(values=c('red','blue'))+
+  theme(strip.text = element_text(size=18, face="bold"))+
+  theme(plot.title = element_text(size=16, face="bold"))+
+  theme(text = element_text(20))
+  #geom_text(position=position_jitter(width=0.01, height=0.05))
+
+
+kelp_swath_trajectory
+
+
+```
+
+
+
+#kelp_upc scores and plot
+```{r}
+
+scrs <- scores(kelp_upc_ord)
+
+scrs <- cbind(as.data.frame(scrs), desig_state= kelp_upc_group_vars$desig_state, year=kelp_upc_group_vars$year, MHW=kelp_upc_group_vars$MHW, region4=kelp_upc_group_vars$region4, mpa_designation=kelp_upc_group_vars$mpa_defacto_designation) #to facilitate computing centroids, add group var
+
+scrs$region4 <- factor(scrs$region4, level = c("north","central","north islands","south")) #set order
+scrs$MHW <- factor(scrs$MHW, level = c("before","during","after")) #set order
+scrs$mpa_designation <- factor(scrs$mpa_designation, level = c("smr","ref")) #set order
+
+
+cent <- aggregate(cbind(NMDS1, NMDS2) ~ year+MHW+region4+mpa_designation, data = scrs, FUN = mean) #computes centroids by MHW and region
+
+kelp_upc_trajectory<- ggplot(data=cent, aes(NMDS1, NMDS2, label=year)) +
+  #geom_segment(data = segs,
+               #mapping = aes(xend = oNMDS1, yend = oNMDS2)) + #spiders
+  geom_point(aes(shape=MHW, color=mpa_designation), size=4) +                           #centroids
+  geom_path(data=cent, aes(NMDS1, NMDS2, group=mpa_designation, color=mpa_designation), size = 0.5, linetype=1 #aes(color=year)
+            )+           #line connecting groups (years)
+ 
+  ggtitle("kelp UPC")+
+  scale_color_manual(values=c('red','blue'))+
+  theme(strip.text = element_text(size=18, face="bold"))+
+  theme(plot.title = element_text(size=16, face="bold"))+
+  theme(text = element_text(20))
+  #geom_text(position=position_jitter(width=0.01, height=0.05))
+
+
+kelp_upc_trajectory
+
+
+```
+
+
+#kelp_fish scores and plot
+```{r}
+
+scrs <- scores(kelp_fish_ord)
+
+scrs <- cbind(as.data.frame(scrs), desig_state= kelp_fish_group_vars$desig_state, year=kelp_fish_group_vars$year, MHW=kelp_fish_group_vars$MHW, region4=kelp_fish_group_vars$region4, mpa_designation=kelp_fish_group_vars$mpa_defacto_designation) #to facilitate computing centroids, add group var
+
+scrs$region4 <- factor(scrs$region4, level = c("north","central","north islands","south")) #set order
+scrs$MHW <- factor(scrs$MHW, level = c("before","during","after")) #set order
+scrs$mpa_designation <- factor(scrs$mpa_designation, level = c("smr","ref")) #set order
+
+
+cent <- aggregate(cbind(NMDS1, NMDS2) ~ year+MHW+region4+mpa_designation, data = scrs, FUN = mean) #computes centroids by MHW and region
+
+kelp_fish_trajectory<- ggplot(data=cent, aes(NMDS1, NMDS2, label=year)) +
+  #geom_segment(data = segs,
+               #mapping = aes(xend = oNMDS1, yend = oNMDS2)) + #spiders
+  geom_point(aes(shape=MHW, color=mpa_designation), size=4) +                           #centroids
+  geom_path(data=cent, aes(NMDS1, NMDS2, group=mpa_designation, color=mpa_designation), size = 0.5, linetype=1 #aes(color=year)
+            )+           #line connecting groups (years)
+ 
+  ggtitle("kelp UPC")+
+  scale_color_manual(values=c('red','blue'))+
+  theme(strip.text = element_text(size=18, face="bold"))+
+  theme(plot.title = element_text(size=16, face="bold"))+
+  theme(text = element_text(20))
+  #geom_text(position=position_jitter(width=0.01, height=0.05))
+
+
+kelp_fish_trajectory
+
+
+```
+
+
+
+#deep_reef scores and plot
+```{r}
+
+scrs <- scores(deep_reef_ord)
+
+scrs <- cbind(as.data.frame(scrs), desig_state= deep_reef_group_vars$desig_state, year=deep_reef_group_vars$year, MHW=deep_reef_group_vars$MHW, region4=deep_reef_group_vars$region4, mpa_designation=deep_reef_group_vars$mpa_defacto_designation) #to facilitate computing centroids, add group var
+
+scrs$region4 <- factor(scrs$region4, level = c("north","central","north islands","south")) #set order
+scrs$MHW <- factor(scrs$MHW, level = c("before","during","after")) #set order
+scrs$mpa_designation <- factor(scrs$mpa_designation, level = c("smr","ref")) #set order
+
+
+cent <- aggregate(cbind(NMDS1, NMDS2) ~ year+MHW+region4+mpa_designation, data = scrs, FUN = mean) #computes centroids by MHW and region
+
+deep_reef_trajectory<- ggplot(data=cent, aes(NMDS1, NMDS2, label=year)) +
+  #geom_segment(data = segs,
+               #mapping = aes(xend = oNMDS1, yend = oNMDS2)) + #spiders
+  geom_point(aes(shape=MHW, color=mpa_designation), size=4) +                           #centroids
+  geom_path(data=cent, aes(NMDS1, NMDS2, group=mpa_designation, color=mpa_designation), size = 0.5, linetype=1 #aes(color=year)
+            )+           #line connecting groups (years)
+ 
+  ggtitle("deep reef")+
+  scale_color_manual(values=c('red','blue'))+
+  theme(strip.text = element_text(size=18, face="bold"))+
+  theme(plot.title = element_text(size=16, face="bold"))+
+  theme(text = element_text(20))
+  #geom_text(position=position_jitter(width=0.01, height=0.05))
+
+
+deep_reef_trajectory
+
+
+```
+
+
+#rocky scores and plot
+```{r}
+
+scrs <- scores(rocky_ord)
+
+scrs <- cbind(as.data.frame(scrs), desig_state= rocky_group_vars$desig_state, year=rocky_group_vars$year, MHW=rocky_group_vars$MHW, region4=rocky_group_vars$region4, mpa_designation=rocky_group_vars$mpa_designation) #to facilitate computing centroids, add group var
+
+scrs$region4 <- factor(scrs$region4, level = c("north","central","north islands","south")) #set order
+scrs$MHW <- factor(scrs$MHW, level = c("before","during","after")) #set order
+scrs$mpa_designation <- factor(scrs$mpa_designation, level = c("smr","ref")) #set order
+
+
+cent <- aggregate(cbind(NMDS1, NMDS2) ~ year+MHW+region4+mpa_designation, data = scrs, FUN = mean) #computes centroids by MHW and region
+
+rocky_trajectory<- ggplot(data=cent, aes(NMDS1, NMDS2, label=year)) +
+  #geom_segment(data = segs,
+               #mapping = aes(xend = oNMDS1, yend = oNMDS2)) + #spiders
+  geom_point(aes(shape=MHW, color=mpa_designation), size=4) +                           #centroids
+  geom_path(data=cent, aes(NMDS1, NMDS2, group=mpa_designation, color=mpa_designation), size = 0.5, linetype=1 #aes(color=year)
+            )+           #line connecting groups (years)
+ 
+  ggtitle("rocky intertidal")+
+  scale_color_manual(values=c('red','blue'))+
+  theme(strip.text = element_text(size=18, face="bold"))+
+  theme(plot.title = element_text(size=16, face="bold"))+
+  theme(text = element_text(20))
+  #geom_text(position=position_jitter(width=0.01, height=0.05))
+
+
+rocky_trajectory
+
+
+```
+
+
+#combine plots 
+```{r}
+require('ggpubr')
+figure<-ggarrange(CCFRP_trajectory, kelp_fish_trajectory, deep_reef_trajectory,
+          kelp_swath_trajectory, kelp_upc_trajectory, rocky_trajectory, common.legend = TRUE, legend="right",
+          font.label=list(size=40)) + bgcolor('white')
+annotate_figure(figure,
+                top = text_grob("central CA community structure", color = "black", face = "bold", size = 20)
+)
+
+#Export figure
+ggsave(here("analyses", "5community_climate_ecology", "figures", "community_trajectory.png"), figure, width = 12, units = "in", dpi = 300)
+
+
+#png("/home/joshsmith/CA_MPA_Project/ca-mpa/analyses/5community_climate_ecology/figures/community_trajectory.png")
+#aurora = "/home/joshsmith/CA_MPA_Project/ca-mpa/analyses/5community_climate_ecology/figures"
+#ggsave(plot=last_plot(), path = aurora, device='png',filename = "community_trajectory.png", scale=1, dpi=72)
+#dev.off()
+```
+
+
 

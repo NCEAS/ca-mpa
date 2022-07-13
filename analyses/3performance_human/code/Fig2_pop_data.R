@@ -13,6 +13,7 @@ library(tidyverse)
 basedir <- "/Volumes/GoogleDrive/.shortcut-targets-by-id/1kCsF8rkm1yhpjh2_VMzf8ukSPf9d4tqO/MPA Network Assessment: Working Group Shared Folder/data/sync-data"
 popdir <- file.path(basedir, "census_data/processed")
 plotdir <- "analyses/3performance_human/figures"
+tabledir <- "analyses/3performance_human/tables"
 outdir <- "analyses/3performance_human/output"
 
 # Read population raster
@@ -30,6 +31,9 @@ foreign <- rnaturalearth::ne_countries(country=c("Canada", "Mexico"), returnclas
 types_use <- c("SMR", "SMRMA", "SMCA", "SMCA (No-Take)")
 mpas <- mpas_orig %>% 
   filter(type %in% types_use)
+
+# Read city key
+cities <- readxl::read_excel(file.path(tabledir, "city_key.xlsx"))
 
 # Plot data
 ################################################################################
@@ -70,6 +74,8 @@ g <- ggplot() +
   geom_tile(data=pop_ras, mapping=aes(x=long_dd, y=lat_dd, fill=people_sqkm)) +
   # Plot MPAs
   geom_point(data=mpas, mapping=aes(x=long_dd, y=lat_dd, size=npeople_50km/1e6)) +
+  # Plot city labels
+  geom_text(data=cities, aes(x=long, y=lat, label=city, hjust=hjust), size=2.5) +
   # Labels
   labs(x="", y="") +
   # Axes
