@@ -14,9 +14,12 @@ require(stringr)
 require(janitor)
 require(vegan)
 require(ggplot2)
-require(parallel)
-require(scales)
-require(ggpubr)
+library(parallel)
+library(scales)
+library(here)
+library(ggpubr)
+library(usedist)
+library(here)
 ```
 
 
@@ -393,7 +396,7 @@ save(CCFRP_ord, kelp_swath_ord, kelp_fish_ord, kelp_upc_ord, deep_reef_ord, rock
 #CCFRP scores and plot
 ```{r}
 
-data_path<- "/home/shares/ca-mpa/data/sync-data/processed_data/ecological_community_data/"
+data_path <- "/home/shares/ca-mpa/data/sync-data/processed_data/ecological_community_data/"
 input_file <- "bray_nmds_scores.rda"
 
 data <- load(file.path(data_path, input_file))
@@ -501,7 +504,7 @@ CCFRP<- ggplot(data=cent, aes(NMDS1, NMDS2)) +
   #                                 c("ref"="REF",
   #                                   "smr"="SMR")))+
   ggtitle("CCFRP")+
-  scale_color_manual(values=c('red','blue'))+
+  scale_color_manual(values=c('#EB6977','#13A0DD'))+
   theme(strip.text = element_text(size=18, face="bold"))+
   theme(plot.title = element_text(size=16, face="bold"))+
   theme(text = element_text(20))
@@ -564,7 +567,7 @@ KF_swath <- ggplot(data=cent, aes(NMDS1, NMDS2)) +
   #                                 c("ref"="REF",
   #                                   "smr"="SMR")))+
   ggtitle("kelp forest swath ")+
-  scale_color_manual(values=c('red','blue'))+
+   scale_color_manual(values=c('#EB6977','#13A0DD'))+
   theme(strip.text = element_text(size=18, face="bold"))+
   theme(plot.title = element_text(size=16, face="bold"))+
   theme(text = element_text(20))
@@ -625,7 +628,7 @@ cent$MHW <- factor(cent$MHW, level=c("before","during","after"))
   #                                 c("ref"="REF",
   #                                   "smr"="SMR")))+
   ggtitle("kelp forest UPC")+
-  scale_color_manual(values=c('red','blue'))+
+  scale_color_manual(values=c('#EB6977','#13A0DD'))+
   theme(strip.text = element_text(size=18, face="bold"))+
   theme(plot.title = element_text(size=16, face="bold"))+
   theme(text = element_text(20))
@@ -687,7 +690,7 @@ cent$MHW <- factor(cent$MHW, level=c("before","during","after"))
   #                                 c("ref"="REF",
   #                                   "smr"="SMR")))+
   ggtitle("kelp forest fish")+
-  scale_color_manual(values=c('red','blue'))+
+   scale_color_manual(values=c('#EB6977','#13A0DD'))+
   theme(strip.text = element_text(size=18, face="bold"))+
   theme(plot.title = element_text(size=16, face="bold"))+
   theme(text = element_text(20))
@@ -749,7 +752,7 @@ cent$MHW <- factor(cent$MHW, level=c("before","during","after"))
   #                                 c("ref"="REF",
   #                                   "smr"="SMR")))+
   ggtitle("deep reef fish")+
-  scale_color_manual(values=c('red','blue'))+
+   scale_color_manual(values=c('#EB6977','#13A0DD'))+
   theme(strip.text = element_text(size=18, face="bold"))+
   theme(plot.title = element_text(size=16, face="bold"))+
   theme(text = element_text(20))
@@ -811,19 +814,22 @@ cent$MHW <- factor(cent$MHW, level=c("before","during","after"))
   #                                 c("ref"="REF",
   #                                   "smr"="SMR")))+
   ggtitle("rocky intertidal")+
-  scale_color_manual(values=c('red','blue'))+
+   scale_color_manual(values=c('#EB6977','#13A0DD'))+
   theme(strip.text = element_text(size=18, face="bold"))+
   theme(plot.title = element_text(size=16, face="bold"))+
   theme(text = element_text(20))
 )
 
 ```
+
 #combine plots 
+
 ```{r}
-require('ggpubr')
+
 figure<-ggarrange(CCFRP, KF_fish, deep_reef,
           KF_swath, KF_upc, rocky, common.legend = TRUE, legend="right",
-          font.label=list(color="black",size=14))+bgcolor('white')
+          font.label=list(color="black",size=14)) + bgcolor('white')
+
 annotate_figure(figure,
                 top = text_grob("central CA community structure", color = "black", face = "bold", size = 20)
                 #bottom = text_grob("Data source: \n ToothGrowth data set", color = "blue",
@@ -833,7 +839,7 @@ annotate_figure(figure,
                 #fig.lab = "Figure 1", fig.lab.face = "bold"
 )
 
-
+ggsave(here("analyses", "5community_climate_ecology", "figures", "community_structure_central.png"), figure, width = 12, units = "in", dpi = 300)
 ```
 
 
@@ -1310,7 +1316,7 @@ CCFRP_trajectory<- ggplot(data=cent, aes(NMDS1, NMDS2)) +
   geom_path(data=cent, aes(NMDS1, NMDS2, group=mpa_designation, color=mpa_designation), size = 0.5, linetype=1 #aes(color=year)
             )+           #line connecting groups (years)
   ggtitle("CCFRP")+
-  scale_color_manual(values=c('red','blue'))+
+  scale_color_manual(values=c('#EB6977','#13A0DD'))+
   theme(strip.text = element_text(size=18, face="bold"))+
   theme(plot.title = element_text(size=16, face="bold"))+
   theme(text = element_text(20))
@@ -1345,7 +1351,7 @@ kelp_swath_trajectory<- ggplot(data=cent, aes(NMDS1, NMDS2, label=year)) +
             )+           #line connecting groups (years)
  
   ggtitle("kelp swath")+
-  scale_color_manual(values=c('red','blue'))+
+  scale_color_manual(values=c('#EB6977','#13A0DD'))+
   theme(strip.text = element_text(size=18, face="bold"))+
   theme(plot.title = element_text(size=16, face="bold"))+
   theme(text = element_text(20))
@@ -1381,7 +1387,7 @@ kelp_upc_trajectory<- ggplot(data=cent, aes(NMDS1, NMDS2, label=year)) +
             )+           #line connecting groups (years)
  
   ggtitle("kelp UPC")+
-  scale_color_manual(values=c('red','blue'))+
+  scale_color_manual(values=c('#EB6977','#13A0DD'))+
   theme(strip.text = element_text(size=18, face="bold"))+
   theme(plot.title = element_text(size=16, face="bold"))+
   theme(text = element_text(20))
@@ -1416,7 +1422,7 @@ kelp_fish_trajectory<- ggplot(data=cent, aes(NMDS1, NMDS2, label=year)) +
             )+           #line connecting groups (years)
  
   ggtitle("kelp UPC")+
-  scale_color_manual(values=c('red','blue'))+
+ scale_color_manual(values=c('#EB6977','#13A0DD'))+
   theme(strip.text = element_text(size=18, face="bold"))+
   theme(plot.title = element_text(size=16, face="bold"))+
   theme(text = element_text(20))
@@ -1452,7 +1458,7 @@ deep_reef_trajectory<- ggplot(data=cent, aes(NMDS1, NMDS2, label=year)) +
             )+           #line connecting groups (years)
  
   ggtitle("deep reef")+
-  scale_color_manual(values=c('red','blue'))+
+  scale_color_manual(values=c('#EB6977','#13A0DD'))+
   theme(strip.text = element_text(size=18, face="bold"))+
   theme(plot.title = element_text(size=16, face="bold"))+
   theme(text = element_text(20))
@@ -1487,7 +1493,7 @@ rocky_trajectory<- ggplot(data=cent, aes(NMDS1, NMDS2, label=year)) +
             )+           #line connecting groups (years)
  
   ggtitle("rocky intertidal")+
-  scale_color_manual(values=c('red','blue'))+
+  scale_color_manual(values=c('#EB6977','#13A0DD'))+
   theme(strip.text = element_text(size=18, face="bold"))+
   theme(plot.title = element_text(size=16, face="bold"))+
   theme(text = element_text(20))
@@ -1505,13 +1511,15 @@ rocky_trajectory
 require('ggpubr')
 figure<-ggarrange(CCFRP_trajectory, kelp_fish_trajectory, deep_reef_trajectory,
           kelp_swath_trajectory, kelp_upc_trajectory, rocky_trajectory, common.legend = TRUE, legend="right",
-          font.label=list(size=40))+bgcolor('white')
+          font.label=list(size=40)) + bgcolor('white')
 annotate_figure(figure,
                 top = text_grob("central CA community structure", color = "black", face = "bold", size = 20)
 )
 
-
 #Export figure
+ggsave(here("analyses", "5community_climate_ecology", "figures", "community_trajectory.png"), figure, height=8, width = 12, units = "in", dpi = 300)
+
+
 #png("/home/joshsmith/CA_MPA_Project/ca-mpa/analyses/5community_climate_ecology/figures/community_trajectory.png")
 #aurora = "/home/joshsmith/CA_MPA_Project/ca-mpa/analyses/5community_climate_ecology/figures"
 #ggsave(plot=last_plot(), path = aurora, device='png',filename = "community_trajectory.png", scale=1, dpi=72)
