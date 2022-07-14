@@ -8,6 +8,7 @@ require(vegan)
 require(dplyr)
 require(tidyr)
 require(metafor)
+require(gridExtra)
 
 
 data_path <- "/home/shares/ca-mpa/data/sync-data/processed_data/ecological_community_data/year_level"
@@ -260,7 +261,6 @@ CCFRP_disper <- betadisper(CCFRP_distmat, type="centroid", group=CCFRP_group_var
 A<- plot(CCFRP_disper, main="CCFRP", col=c('red','blue'))
 
 
-
 kelp_swath_disper <- betadisper(kelp_swath_distmat, type="centroid", group=kelp_swath_group_vars$MHW)
 B<- plot(kelp_swath_disper, main="kelp swath", col=c('red','blue'))
 
@@ -313,19 +313,12 @@ dist_between_mat[6,2] <- c("rocky")
 
 # test for significant dispersion between periods -------------------------
 
-
-anova(deep_reef_disper)
-plot(deep_reef_disper
-     )
-
-
-plot(deep_reef_disper, hull=FALSE, ellipse=TRUE, label=FALSE)
-
-
-#check if dispersion is the same, then run permanova
+permutest(CCFRP_disper)
+permutest(kelp_swath_disper)
+permutest(kelp_fish_disper)
+permutest(kelp_upc_disper)
 permutest(deep_reef_disper)
-adonis(formula = rocky_distmat ~ MHW, data = rocky_group_vars, permutations = 99)
-
+permutest(rocky_disper)
 
 
 #permanovas
@@ -335,6 +328,32 @@ kelp_swath_perm <- adonis(formula = kelp_swath_distmat ~ MHW, data = kelp_swath_
 kelp_fish_perm <- adonis(formula = kelp_fish_distmat ~ MHW, data = kelp_fish_group_vars, permutations = 99) 
 kelp_upc_perm <- adonis(formula = kelp_upc_distmat ~ MHW, data = kelp_upc_group_vars, permutations = 99) 
 CCFRP_perm <- adonis(formula = CCFRP_distmat ~ MHW, data = CCFRP_group_vars, permutations = 99) 
+
+#save output
+rocky_output <-as.data.frame(rocky_perm$aov.tab)[1,]%>%
+    mutate(group='rocky')
+CCFRP_output <-as.data.frame(CCFRP_perm$aov.tab)[1,]%>%
+  mutate(group='CCFRP')
+kelp_swath_output <-as.data.frame(kelp_swath_perm$aov.tab)[1,]%>%
+  mutate(group='kelp swath')
+kelp_upc_output <-as.data.frame(kelp_upc_perm$aov.tab)[1,]%>%
+  mutate(group='kelp upc')
+kelp_fish_output <-as.data.frame(kelp_fish_perm$aov.tab)[1,]%>%
+  mutate(group='kelp fish')
+deep_reef_output <-as.data.frame(deep_reef_perm$aov.tab)[1,]%>%
+  mutate(group='deep reef')
+
+aov_output <- rbind(rocky_output, CCFRP_output, kelp_swath_output, kelp_upc_output, kelp_fish_output,deep_reef_output)%>%
+              dplyr::select(group, everything())%>%
+              arrange(desc(F.Model))
+
+rownames(aov_output) <- NULL
+
+
+#pdf("/home/joshsmith/CA_MPA_Project/ca-mpa/analyses/5community_climate_ecology/tables/permanova_table.pdf")       # Export PDF
+#grid.table(aov_output)
+#dev.off()
+
 
 
 
@@ -431,6 +450,10 @@ meta_dist_params <- left_join(meta_params, dist_between_mat, by="group")
 
 
 
+
+
+
+
 # Construct meta regression -----------------------------------------------
 
 
@@ -486,64 +509,39 @@ pooled <- coef(summary(res)) %>%
 #set order
 test<- test %>% arrange(desc(-yi))
 
+#add labels
+test$community <- c("inverts and algae","fish","inverts and algae","fish","fish","inverts and algae")
+
 test$group <- as.character(test$group)
 #Then turn it back into a factor with the levels in the correct order
 test$group <- factor(test$group, levels=unique(test$group))
 
 #plot
-ggplot(test, aes(x=group,yi),y=yi)+
-  geom_point()+
-  geom_errorbar(aes(ymin=yi-vi, ymax=yi+vi), width=.2) +
-  geom_vline(xintercept = 0.5, color = "black", size = 0.4, linetype = "dashed") +
-  scale_x_discrete(expand = c(-.03, 1.6) )+
-  geom_point(aes(x=0.1, y=yi), data=pooled, shape=18, size = 5, colour="black")+
-  geom_errorbar(aes(x=0.1, ymin=yi-se, ymax=yi+se), data=pooled, colour="black", width=.2) +
+(figure<-ggplot(test, aes(x=group,yi, color=community),y=yi)+
+  geom_point(size=2)+
+  geom_errorbar(aes(ymin=yi-vi, ymax=yi+vi), width=.3, size=0.7) +
+  geom_vline(xintercept = 0.7, color = "black", size = 0.4, linetype = "dashed") +
+  #scale_x_discrete(expand = c(-.03, 1.6) )+
+  geom_point(aes(x=0.5, y=yi), data=pooled, shape=18, size = 5, colour="black")+
+  geom_errorbar(aes(x=0.5, ymin=yi-se, ymax=yi+se), data=pooled, colour="black", width=.2) +
   ylab("standardized distance")+
   xlab("")+
   coord_flip()+
-  theme_minimal()
-               
-
-
-
-# Construct meta regression -----------------------------------------------
-
-#calculate effect size using log ratio
-dat <- escalc(measure="ROM", m1i=distance_before, m2i=distance_after, sd1i=sd_before, sd2i=sd_after, n1i=n_before, n2i=n_after, data=meta_params, slab=paste(group)) 
-
-
-### a little helper function to add Q-test, I^2, and tau^2 estimate info
-mlabfun <- function(text, y) {
-  bquote(paste(.(text),
-               " (Q = ", .(formatC(y$QE, digits=2, format="f")),
-               #", df = ", .(y$k - y$p),
-               ", p ", .(formatC(y$pval, digits=2, format="f")), #"; ",
-               #I^2, " = ", .(formatC(y$I2, digits=1, format="f")), "%, ",
-               #tau^2, " = ", .(formatC(y$tau2, digits=2, format="f")), 
-               ")"
-  )
-  )}
-
-
-forest(dat$yi, dat$vi, xlim=c(-0.7,1),
-       #ilab.xpos=c(-9.5,-8,-6,-4.5), 
-       cex=0.75, 
-       ylim=c(0, 9),
-       slab=paste(dat$group),
-       #header="Monitoring Group"
-       )
-
-text(-0.7, 7.2, pos=4, "Monitoring Group", font=2)
-text(0.55, 7.2, pos=4, "log response ratio", font=2)
-text(x =-0.02, y = 7.2, "Before",  pos=2, font=1)
-text(x =0.2, y = 7.2, "After",  pos=2, font=1)
-
-#fit random effects model
-res <- rma(yi, vi, method="REML", verbose=TRUE, digits=5, data=dat)
-
-addpoly(res, row=0.2, cex=0.75, mlab=mlabfun("RE Model", y=res), #col='red'
+  theme_minimal(base_size=14)
 )
-text(-0.7, 0.2, pos=4, cex=0.7, mlabfun("RE Model", y=res))
+
+
+
+#export distance plot
+
+#ggsave(here("analyses", "5community_climate_ecology", "figures", "distance_meta.png"), figure, height=6, width = 8, units = "in", 
+#       dpi = 300, bg="white")
+
+
+
+
+
+
 
 
 
