@@ -9,6 +9,8 @@ require(dplyr)
 require(tidyr)
 require(metafor)
 require(gridExtra)
+require(usedist)
+require(ggplot2)
 
 
 data_path <- "/home/shares/ca-mpa/data/sync-data/processed_data/ecological_community_data/year_level"
@@ -225,7 +227,7 @@ rocky_counts <- rocky_counts %>%
   filter(mpa_designation=="smr" | mpa_designation=="ref")%>%
   filter(MHW=='before'|MHW=='after') %>%
   mutate(MHW=factor(MHW)) %>% 
-  mutate(MHW=fct_relevel(MHW,c("before","after"))) %>%
+  #mutate(MHW=fct_relevel(MHW,c("before","after"))) %>%
   arrange(MHW)
 
 
@@ -313,12 +315,12 @@ dist_between_mat[6,2] <- c("rocky")
 
 # test for significant dispersion between periods -------------------------
 
-permutest(CCFRP_disper)
-permutest(kelp_swath_disper)
-permutest(kelp_fish_disper)
-permutest(kelp_upc_disper)
-permutest(deep_reef_disper)
-permutest(rocky_disper)
+vegan::permutest(CCFRP_disper)
+vegan::permutest(kelp_swath_disper)
+vegan::permutest(kelp_fish_disper)
+vegan::permutest(kelp_upc_disper)
+vegan::permutest(deep_reef_disper)
+vegan::permutest(rocky_disper)
 
 
 #permanovas
