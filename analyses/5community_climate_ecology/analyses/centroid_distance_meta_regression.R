@@ -490,7 +490,7 @@ forest(test$yi, test$vi, #xlim=c(-0.7,1),
        #ilab.xpos=c(-9.5,-8,-6,-4.5), 
        cex=0.75, 
        #ylim=c(0, 9),
-       slab=paste(dat$group),
+       slab=paste(test$group),
        order=-test$yi
        #header="Monitoring Group"
 )
