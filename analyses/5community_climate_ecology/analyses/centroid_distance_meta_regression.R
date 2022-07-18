@@ -504,9 +504,9 @@ text(-4.5, 0.5, pos=4, cex=0.7, mlabfun("RE Model", y=res))
 
 
 
-# pooled <- coef(summary(res)) %>%
-#           mutate(group="pooled",
-#                  yi=estimate)
+pooled <- coef(summary(res)) %>%
+          mutate(group="pooled",
+                 yi=estimate)
 
 #set order
 test<- test %>% arrange(desc(-yi))
