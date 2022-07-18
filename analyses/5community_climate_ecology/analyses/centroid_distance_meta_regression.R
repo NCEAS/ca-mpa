@@ -4,11 +4,12 @@
 rm(list=ls())
 
 #required packages
-require(vegan)
-require(dplyr)
-require(tidyr)
-require(metafor)
-require(gridExtra)
+library(tidyverse)
+library(metafor)
+library(vegan)
+library(usedist)
+library(gridExtra)
+library(ggplot2)
 
 
 data_path <- "/home/shares/ca-mpa/data/sync-data/processed_data/ecological_community_data/year_level"
@@ -219,13 +220,14 @@ deep_reef_distmat <-
 #Intertidal processing---------------------------------------------------------
 
 rocky_counts <- rocky_counts %>%
-  mutate(MHW = ifelse(year>=2014 & year<=2016, "during",ifelse(year<2014, "before","after")))%>%
-  mutate(desig_state = paste(mpa_designation,MHW))%>%
-  dplyr::select(desig_state, MHW, everything())%>%
-  filter(mpa_designation=="smr" | mpa_designation=="ref")%>%
-  filter(MHW=='before'|MHW=='after') %>%
-  mutate(MHW=factor(MHW)) %>% 
-  mutate(MHW=fct_relevel(MHW,c("before","after"))) %>%
+  mutate(MHW = ifelse(year>=2014 & year<=2016, "during", 
+                      ifelse(year<2014, "before", "after"))) %>%
+  mutate(desig_state = paste(mpa_designation, MHW)) %>%
+  dplyr::select(desig_state, MHW, everything()) %>%               # Reorder columns
+  filter(mpa_designation == "smr" | mpa_designation =="ref") %>%
+  filter(MHW =='before'| MHW =='after') %>%
+  mutate(MHW = factor(MHW)) %>% 
+  mutate(MHW = fct_relevel(MHW, c("before", "after"))) %>%
   arrange(MHW)
 
 
@@ -233,7 +235,7 @@ rocky_counts <- rocky_counts %>%
 
 
 #define grouping vars
-rocky_group_vars <- rocky_counts%>%
+rocky_group_vars <- rocky_counts %>%
   dplyr::select(1:9)
 
 #define data for ordination
@@ -502,9 +504,9 @@ text(-4.5, 0.5, pos=4, cex=0.7, mlabfun("RE Model", y=res))
 
 
 
-pooled <- coef(summary(res)) %>%
-          mutate(group="pooled",
-                 yi=estimate)
+# pooled <- coef(summary(res)) %>%
+#           mutate(group="pooled",
+#                  yi=estimate)
 
 #set order
 test<- test %>% arrange(desc(-yi))
@@ -517,7 +519,7 @@ test$group <- as.character(test$group)
 test$group <- factor(test$group, levels=unique(test$group))
 
 #plot
-(figure<-ggplot(test, aes(x=group,yi, color=community),y=yi)+
+(figure <- ggplot(test, aes(x=group,yi, color=community),y=yi) +
   geom_point(size=2)+
   geom_errorbar(aes(ymin=yi-vi, ymax=yi+vi), width=.3, size=0.7) +
   geom_vline(xintercept = 0.7, color = "black", size = 0.4, linetype = "dashed") +
