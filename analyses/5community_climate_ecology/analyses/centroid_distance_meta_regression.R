@@ -315,12 +315,12 @@ dist_between_mat[6,2] <- c("rocky")
 
 # test for significant dispersion between periods -------------------------
 
-permutest(CCFRP_disper)
-permutest(kelp_swath_disper)
-permutest(kelp_fish_disper)
-permutest(kelp_upc_disper)
-permutest(deep_reef_disper)
-permutest(rocky_disper)
+vegan::permutest(CCFRP_disper)   # namespacing because metafor also have this function
+vegan::permutest(kelp_swath_disper)
+vegan::permutest(kelp_fish_disper)
+vegan::permutest(kelp_upc_disper)
+vegan::permutest(deep_reef_disper)
+vegan::permutest(rocky_disper)
 
 
 #permanovas
