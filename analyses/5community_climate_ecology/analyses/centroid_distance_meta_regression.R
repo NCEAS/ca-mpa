@@ -527,7 +527,7 @@ figure <- ggplot(test, aes(x=group,yi, color=community),y=yi) +
   #scale_x_discrete(expand = c(-.03, 1.6) ) +
   geom_point(aes(x=0.5, y=yi), data=pooled, shape=18, size = 5, colour="black") +
   geom_errorbar(aes(x=0.5, ymin=yi-se, ymax=yi+se), data=pooled, colour="black", width=.2) +
-  # scale_x_discrete(expand = expand_scale(mult = c(0.2, 1)), limit = ) +
+  scale_x_discrete(expand = expansion(mult = c(0.2, 0.1))) +
   ylab("standardized distance") +
   xlab("") +
   coord_flip() +
