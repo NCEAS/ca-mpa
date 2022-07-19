@@ -520,7 +520,7 @@ test$group <- as.character(test$group)
 test$group <- factor(test$group, levels=unique(test$group))
 
 #plot
-figure <- ggplot(test, aes(x=group,yi, color=community),y=yi) +
+(figure <- ggplot(test, aes(x=group,yi, color=community),y=yi) +
   geom_point(size=2) +
   geom_errorbar(aes(ymin=yi-vi, ymax=yi+vi), width=.3, size=0.7) +
   geom_vline(xintercept = 0.7, color = "black", size = 0.4, linetype = "dashed") +
@@ -532,8 +532,9 @@ figure <- ggplot(test, aes(x=group,yi, color=community),y=yi) +
   xlab("") +
   coord_flip() +
   theme_minimal(base_size=14) + theme(aspect.ratio = 1/3)
+)
 
-figure
+
 
 
 #export distance plot
