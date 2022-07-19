@@ -4,7 +4,6 @@
 rm(list=ls())
 
 #required packages
-<<<<<<< HEAD
 require(vegan)
 require(dplyr)
 require(tidyr)
@@ -12,7 +11,6 @@ require(metafor)
 require(gridExtra)
 require(usedist)
 require(ggplot2)
-=======
 library(tidyverse)
 library(metafor)
 library(vegan)
@@ -20,7 +18,6 @@ library(usedist)
 library(gridExtra)
 library(ggplot2)
 library(here)
->>>>>>> b6c43de87b1de175ee6338ef62a0889a57c6f924
 
 
 data_path <- "/home/shares/ca-mpa/data/sync-data/processed_data/ecological_community_data/year_level"
@@ -231,7 +228,6 @@ deep_reef_distmat <-
 #Intertidal processing---------------------------------------------------------
 
 rocky_counts <- rocky_counts %>%
-<<<<<<< HEAD
   mutate(MHW = ifelse(year>=2014 & year<=2016, "during",ifelse(year<2014, "before","after")))%>%
   mutate(desig_state = paste(mpa_designation,MHW))%>%
   dplyr::select(desig_state, MHW, everything())%>%
@@ -239,7 +235,6 @@ rocky_counts <- rocky_counts %>%
   filter(MHW=='before'|MHW=='after') %>%
   mutate(MHW=factor(MHW)) %>% 
   #mutate(MHW=fct_relevel(MHW,c("before","after"))) %>%
-=======
   mutate(MHW = ifelse(year>=2014 & year<=2016, "during", 
                       ifelse(year<2014, "before", "after"))) %>%
   mutate(desig_state = paste(mpa_designation, MHW)) %>%
@@ -248,7 +243,6 @@ rocky_counts <- rocky_counts %>%
   filter(MHW =='before'| MHW =='after') %>%
   mutate(MHW = factor(MHW)) %>% 
   mutate(MHW = fct_relevel(MHW, c("before", "after"))) %>%
->>>>>>> b6c43de87b1de175ee6338ef62a0889a57c6f924
   arrange(MHW)
 
 
@@ -336,11 +330,8 @@ dist_between_mat[6,2] <- c("rocky")
 
 # test for significant dispersion between periods -------------------------
 
-<<<<<<< HEAD
 vegan::permutest(CCFRP_disper)
-=======
 vegan::permutest(CCFRP_disper)   # namespacing because metafor also have this function
->>>>>>> b6c43de87b1de175ee6338ef62a0889a57c6f924
 vegan::permutest(kelp_swath_disper)
 vegan::permutest(kelp_fish_disper)
 vegan::permutest(kelp_upc_disper)
@@ -555,7 +546,7 @@ test$group <- factor(test$group, levels=unique(test$group))
   ylab("standardized distance") +
   xlab("") +
   coord_flip() +
-  theme_minimal(base_size=14) + theme(aspect.ratio = 1/3)
+  theme_minimal(base_size=14) + theme(aspect.ratio = 1/1.5)
 )
 
 
@@ -563,7 +554,7 @@ test$group <- factor(test$group, levels=unique(test$group))
 
 #export distance plot
 
-ggsave(here("analyses", "5community_climate_ecology", "figures", "distance_meta.png"), figure, height=4, width = 12, units = "in", 
+#ggsave(here("analyses", "5community_climate_ecology", "figures", "distance_meta.png"), figure, height=4, width = 12, units = "in", 
        dpi = 300, bg="white")
 
 

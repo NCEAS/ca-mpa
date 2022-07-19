@@ -11,6 +11,7 @@ require(metafor)
 require(gridExtra)
 require(usedist)
 require(ggplot2)
+require(reshape2)
 
 
 data_path <- "/home/shares/ca-mpa/data/sync-data/processed_data/ecological_community_data/year_level"
@@ -522,35 +523,114 @@ test_smr$group <- factor(test_smr$group, levels=unique(test_smr$group))
 test_ref$group <- factor(test_ref$group, levels=unique(test_ref$group))
 
 #plot
-(ggplot(test_smr, aes(x=group,yi),y=yi)+
-    geom_point(size=2, color='red', position = position_jitter(seed = 123, width =0.2))+
-    geom_errorbar(aes(ymin=yi-vi, ymax=yi+vi), color='red',width=.3, size=0.7, data=test_smr, position = position_jitter(seed = 123, width =0.2)) +
-    geom_point(data=test_ref, color='blue')+
-    geom_errorbar(aes(ymin=yi-vi, ymax=yi+vi), width=.3, size=0.7, data=test_ref, color='blue')+
+(figure<-ggplot(test_smr, aes(x=group,yi),y=yi)+
+    geom_point(size=2, color='#EB6977', position = position_jitter(seed = 123, width =0.2))+
+    geom_errorbar(aes(ymin=yi-vi, ymax=yi+vi), color='#EB6977',width=.3, size=0.7, data=test_smr, position = position_jitter(seed = 123, width =0.2)) +
+    geom_point(data=test_ref, color='#13A0DD')+
+    geom_errorbar(aes(ymin=yi-vi, ymax=yi+vi), width=.3, size=0.7, data=test_ref, color='#13A0DD')+
     geom_vline(xintercept = 0.7, color = "black", size = 0.4, linetype = "dashed") +
-    scale_x_discrete(expand = c(-.03, 1.6) )+
-    geom_point(aes(x=0.5, y=yi), data=pooled_ref, shape=18, size = 5, colour="blue")+
-    geom_errorbar(aes(x=0.5, ymin=yi-se, ymax=yi+se), data=pooled_ref, colour="blue", width=.2) +
-    geom_point(aes(x=0.18, y=yi), data=pooled_smr, shape=18, size = 5, colour="red")+
-    geom_errorbar(aes(x=0.18, ymin=yi-se, ymax=yi+se), data=pooled_smr, colour="red", width=.2) +
+    scale_x_discrete(expand = c(0.2, 0.1) )+
+    geom_point(aes(x=0.5, y=yi), data=pooled_ref, shape=18, size = 5, colour='#13A0DD')+
+    geom_errorbar(aes(x=0.5, ymin=yi-se, ymax=yi+se), data=pooled_ref, colour='#13A0DD', width=.2) +
+    geom_point(aes(x=0.18, y=yi), data=pooled_smr, shape=18, size = 5, colour='#EB6977')+
+    geom_errorbar(aes(x=0.18, ymin=yi-se, ymax=yi+se), data=pooled_smr, colour='#EB6977', width=.2) +
     ylab("standardized distance")+
     xlab("")+
     coord_flip()+
-    theme_minimal(base_size=14)
+    theme_minimal(base_size=14) + theme(aspect.ratio = 1/1.5)
 )
 
 
 
 #export distance plot
 
-#ggsave(here("analyses", "5community_climate_ecology", "figures", "distance_meta.png"), figure, height=6, width = 8, units = "in", 
+#ggsave(here("analyses", "5community_climate_ecology", "figures", "distance_MPA.png"), figure, height=4, width = 8, units = "in", 
 #       dpi = 300, bg="white")
 
 
 
 
 
+# Calculate MPA differences before, then after ----------------------------
+
+dist_between_MPA_mat <- as.data.frame(matrix(ncol=3, nrow=6))
+colnames(dist_between_MPA_mat) <- c("dist_between_before","distance_between_after","group")
+
+#CCFRP
+dist_between_MPA_mat[1,1] <- dist_between_centroids(CCFRP_distmat, 17:43,60:86) #ref to SMR before
+dist_between_MPA_mat[1,2] <- dist_between_centroids(CCFRP_distmat, 1:16,44:59) # ref to SMR after
+dist_between_MPA_mat[1,3] <- c("CCFRP")
+
+#kelp eswath
+dist_between_MPA_mat[2,1] <- dist_between_centroids(kelp_swath_distmat, 20:128,144:244) #ref to SMR before
+dist_between_MPA_mat[2,2] <- dist_between_centroids(kelp_swath_distmat, 129:143,1:19) #ref to SMR after
+dist_between_MPA_mat[2,3]<- c("kelp swath")
+
+#kelp upc
+dist_between_MPA_mat[3,1] <- dist_between_centroids(kelp_upc_distmat, 20:128,144:244) #ref to SMR before
+dist_between_MPA_mat[3,2] <- dist_between_centroids(kelp_upc_distmat, 1:19,129:143)  #ref to SMR after
+dist_between_MPA_mat[3,3] <- c("kelp upc")
+
+#kelp fish
+dist_between_MPA_mat[4,1] <- dist_between_centroids(kelp_fish_distmat, 21:126,142:241)#ref to SMR before
+dist_between_MPA_mat[4,2] <- dist_between_centroids(kelp_fish_distmat, 1:20,127:141) #ref to SMR after
+dist_between_MPA_mat[4,3] <- c("kelp fish")
+
+#deep reef
+dist_between_MPA_mat[5,1] <- dist_between_centroids(deep_reef_distmat, 11:17,25:32) #ref before to after
+dist_between_MPA_mat[5,2] <- dist_between_centroids(deep_reef_distmat, 1:10, 18:24) #smr before to after
+dist_between_MPA_mat[5,3] <- c("deep reef")
+
+#rocky
+dist_between_MPA_mat[6,1]  <- dist_between_centroids(rocky_distmat, 34:144,166:245) #ref before to after
+dist_between_MPA_mat[6,2]  <- dist_between_centroids(rocky_distmat, 1:33,145:165) #smr before to after
+dist_between_MPA_mat[6,3] <- c("rocky")
 
 
+
+#clean before plotting
+dist_between_MPA_mat.2 <- dist_between_MPA_mat %>%
+                        select(before = dist_between_before,
+                               after = distance_between_after,
+                               group)%>%
+                        melt(id.var='group', variable.name="distance")
+
+
+#join with beta params
+beta_params <- meta_params %>%
+                clean_names()%>%
+                select(group, sd_ref_after, sd_ref_before, 
+                       sd_smr_after, sd_smr_before, n_ref_after, n_ref_before, 
+                       n_smr_after, n_smr_before)
+
+dist_data <- left_join(dist_between_MPA_mat.2, beta_params, by="group") %>%
+            mutate(se = if_else(distance=='before',
+                                sqrt(((sd_ref_before^2)/n_ref_before))+((sd_smr_before^2)/n_smr_before),
+                                sqrt(((sd_ref_after^2)/n_ref_after))+((sd_smr_after^2)/n_smr_after)))
+            
+
+
+
+(dist_between_plot <- dist_data %>%
+  ggplot(aes(x=group, y=value, fill=distance))+
+  geom_bar(stat='identity', position="dodge", color="black", width=0.9)+
+  geom_errorbar(aes(ymin=value-se, ymax=value+se), position=position_dodge(0.9), width=.3, size=0.4) +
+  #scale_fill_manual(values=c('#95B4CC','#ff392e'))+
+  #scale_y_continuous(labels=label_number(accuracy=0.01), 
+      #               breaks = seq(0,0.45,len=10))+
+  #coord_flip()+
+  labs(
+    title = "Distance between SMR and reference centroids",
+    x = "monitoring group",
+    y = "distance (Euclidean)"
+  )+
+  #theme(legend.text = element_text(size=16))+
+  labs(fill='Marine heatwave')+
+  scale_fill_brewer(palette=14)+
+  theme_minimal(base_size=14)) + theme(aspect.ratio = 1/1.5)
+
+
+#ggsave(here("analyses", "5community_climate_ecology", "figures", "distance_MPA_barplot.png"), dist_between_plot, height=4, width = 8, units = "in", 
+       dpi = 300, bg="white")
 
 
