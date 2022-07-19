@@ -4,7 +4,6 @@
 rm(list=ls())
 
 #required packages
-<<<<<<< HEAD
 require(vegan)
 require(dplyr)
 require(tidyr)
@@ -12,15 +11,6 @@ require(metafor)
 require(gridExtra)
 require(usedist)
 require(ggplot2)
-=======
-library(tidyverse)
-library(metafor)
-library(vegan)
-library(usedist)
-library(gridExtra)
-library(ggplot2)
-library(here)
->>>>>>> b6c43de87b1de175ee6338ef62a0889a57c6f924
 
 
 data_path <- "/home/shares/ca-mpa/data/sync-data/processed_data/ecological_community_data/year_level"
@@ -69,7 +59,8 @@ CCFRP_process <- CCFRP_counts %>%
   dplyr::select(-sum)%>%
   mutate(desig_state = paste(mpa_designation,MHW))%>%
   dplyr::select(desig_state, everything())%>%
-  filter(MHW=='before'|MHW=='after')#remove rows containing only zeros
+  filter(MHW=='before'|MHW=='after') %>% #remove rows containing only zeros
+  arrange(desig_state)
 
 #define grouping vars
 CCFRP_group_vars <- CCFRP_process %>%
@@ -99,8 +90,9 @@ kelp_swath <- kelp_swath_counts %>%
   mutate(desig_state = paste(mpa_defacto_designation,MHW))%>%
   dplyr::select(desig_state, everything())%>%
   filter(mpa_defacto_designation=="smr" | mpa_defacto_designation=="ref")%>%
-  filter(MHW=='before'|MHW=='after')#remove rows containing only zeros #drop sum columns and non-species categories
-
+  filter(MHW=='before'|MHW=='after') %>% #remove rows containing only zeros #drop sum columns and non-species categories
+  arrange(desig_state)
+  
 #define grouping vars
 kelp_swath_group_vars <- kelp_swath%>%
   dplyr::select(1:8)
@@ -135,8 +127,8 @@ kelp_upc <- kelp_upc_counts %>%
   mutate(desig_state = paste(mpa_defacto_designation,MHW))%>%
   dplyr::select(desig_state, everything())%>%
   filter(mpa_defacto_designation=="smr" | mpa_defacto_designation=="ref")%>%
-  filter(MHW=='before'|MHW=='after')#drop sum columns and non-species categories
-
+  filter(MHW=='before'|MHW=='after') %>% #drop sum columns and non-species categories
+  arrange(desig_state)
 
 kelp_upc[is.na(kelp_upc)] = 0                  
 
@@ -171,8 +163,8 @@ kelp_fish <- kelp_fish_counts %>%
   mutate(desig_state = paste(mpa_defacto_designation,MHW))%>%
   dplyr::select(desig_state, everything())%>%
   filter(mpa_defacto_designation=="smr" | mpa_defacto_designation=="ref")%>%
-  filter(MHW=='before'|MHW=='after')#drop sum columns and non-species categories  #drop sum columns and non-species categories
-
+  filter(MHW=='before'|MHW=='after')%>% #drop sum columns and non-species categories  #drop sum columns and non-species categories
+  arrange(desig_state)
 
 #define grouping vars
 kelp_fish_group_vars <- kelp_fish %>%
@@ -208,8 +200,9 @@ deep_reef <- deep_reef_counts %>%
   mutate(desig_state = paste(mpa_defacto_designation,MHW))%>%
   dplyr::select(desig_state, everything())%>%
   filter(mpa_defacto_designation=="smr" | mpa_defacto_designation=="ref")%>%
-  filter(MHW=='before'|MHW=='after')#drop sum columns and non-species categories
-
+  filter(MHW=='before'|MHW=='after')%>%#drop sum columns and non-species categories
+  arrange(desig_state)
+  
 #define grouping vars
 deep_reef_group_vars <- deep_reef%>%
   dplyr::select(1:8)
@@ -231,7 +224,6 @@ deep_reef_distmat <-
 #Intertidal processing---------------------------------------------------------
 
 rocky_counts <- rocky_counts %>%
-<<<<<<< HEAD
   mutate(MHW = ifelse(year>=2014 & year<=2016, "during",ifelse(year<2014, "before","after")))%>%
   mutate(desig_state = paste(mpa_designation,MHW))%>%
   dplyr::select(desig_state, MHW, everything())%>%
@@ -239,24 +231,14 @@ rocky_counts <- rocky_counts %>%
   filter(MHW=='before'|MHW=='after') %>%
   mutate(MHW=factor(MHW)) %>% 
   #mutate(MHW=fct_relevel(MHW,c("before","after"))) %>%
-=======
-  mutate(MHW = ifelse(year>=2014 & year<=2016, "during", 
-                      ifelse(year<2014, "before", "after"))) %>%
-  mutate(desig_state = paste(mpa_designation, MHW)) %>%
-  dplyr::select(desig_state, MHW, everything()) %>%               # Reorder columns
-  filter(mpa_designation == "smr" | mpa_designation =="ref") %>%
-  filter(MHW =='before'| MHW =='after') %>%
-  mutate(MHW = factor(MHW)) %>% 
-  mutate(MHW = fct_relevel(MHW, c("before", "after"))) %>%
->>>>>>> b6c43de87b1de175ee6338ef62a0889a57c6f924
-  arrange(MHW)
+  arrange(desig_state)
 
 
 
 
 
 #define grouping vars
-rocky_group_vars <- rocky_counts %>%
+rocky_group_vars <- rocky_counts%>%
   dplyr::select(1:9)
 
 #define data for ordination
@@ -280,67 +262,72 @@ rocky_distmat <-
 # Plot --------------------------------------------------------------------
 
 
-CCFRP_disper <- betadisper(CCFRP_distmat, type="centroid", group=CCFRP_group_vars$MHW)
+CCFRP_disper <- betadisper(CCFRP_distmat, type="centroid", group=CCFRP_group_vars$desig_state)
 A<- plot(CCFRP_disper, main="CCFRP", col=c('red','blue'))
 
 
-kelp_swath_disper <- betadisper(kelp_swath_distmat, type="centroid", group=kelp_swath_group_vars$MHW)
+kelp_swath_disper <- betadisper(kelp_swath_distmat, type="centroid", group=kelp_swath_group_vars$desig_state)
 B<- plot(kelp_swath_disper, main="kelp swath", col=c('red','blue'))
 
 
 
-kelp_upc_disper <- betadisper(kelp_upc_distmat, type="centroid", group=kelp_upc_group_vars$MHW)
+kelp_upc_disper <- betadisper(kelp_upc_distmat, type="centroid", group=kelp_upc_group_vars$desig_state)
 C<- plot(kelp_upc_disper, main="kelp upc", col=c('red','blue'))
 
 
-kelp_fish_disper <- betadisper(kelp_fish_distmat, type="centroid", group=kelp_fish_group_vars$MHW)
+kelp_fish_disper <- betadisper(kelp_fish_distmat, type="centroid", group=kelp_fish_group_vars$desig_state)
 D<- plot(kelp_fish_disper, main="kelp fish", col=c('red','blue'))
 
 
-deep_reef_disper <- betadisper(deep_reef_distmat, type="centroid", group=deep_reef_group_vars$MHW)
+deep_reef_disper <- betadisper(deep_reef_distmat, type="centroid", group=deep_reef_group_vars$desig_state)
 E <- plot(deep_reef_disper, main="deep reef", col=c('red','blue'))
 
 
-rocky_disper <- betadisper(rocky_distmat, type="centroid", group=rocky_group_vars$MHW)
+rocky_disper <- betadisper(rocky_distmat, type="centroid", group=rocky_group_vars$desig_state)
 F <- plot(rocky_disper, main="rocky", col=c('red','blue'))
 
 
 
 # calculate dist between centroids ----------------------------------------
-dist_between_mat <- as.data.frame(matrix(ncol=2, nrow=6))
-colnames(dist_between_mat) <- c("dist_between","group")
+dist_between_mat <- as.data.frame(matrix(ncol=3, nrow=6))
+colnames(dist_between_mat) <- c("dist_between_ref","distance_between_smr","group")
 
 
-dist_between_mat[1,1] <- dist_between_centroids(CCFRP_distmat, 1:54,55:86)
-dist_between_mat[1,2] <- c("CCFRP")
+#CCFRP
+dist_between_mat[1,1] <- dist_between_centroids(CCFRP_distmat, 17:43,1:16) #ref before to ref after
+dist_between_mat[1,2] <- dist_between_centroids(CCFRP_distmat, 60:86,44:59) # smr before to after
+dist_between_mat[1,3] <- c("CCFRP")
 
-dist_between_mat[2,1] <- dist_between_centroids(kelp_swath_distmat, 1:210,211:244)
-dist_between_mat[2,2]<- c("kelp swath")
+#kelp eswath
+dist_between_mat[2,1] <- dist_between_centroids(kelp_swath_distmat, 20:128,1:19) #ref before to after
+dist_between_mat[2,2] <- dist_between_centroids(kelp_swath_distmat, 144:244,129:143) #SMR before to after
+dist_between_mat[2,3]<- c("kelp swath")
 
+#kelp upc
+dist_between_mat[3,1] <- dist_between_centroids(kelp_upc_distmat, 20:128,1:19) #ref before to after
+dist_between_mat[3,2] <- dist_between_centroids(kelp_upc_distmat, 144:244,129:143)  #smr before to after
+dist_between_mat[3,3] <- c("kelp upc")
 
-dist_between_mat[3,1] <- dist_between_centroids(kelp_upc_distmat, 1:210,211:244)
-dist_between_mat[3,2] <- c("kelp upc")
+#kelp fish
+dist_between_mat[4,1] <- dist_between_centroids(kelp_fish_distmat, 21:126,1:20) #ref before to after
+dist_between_mat[4,2] <- dist_between_centroids(kelp_fish_distmat, 142:241,127:141) #ref before to after
+dist_between_mat[4,3] <- c("kelp fish")
 
-dist_between_mat[4,1] <- dist_between_centroids(kelp_fish_distmat, 1:206,207:241)
-dist_between_mat[4,2] <- c("kelp fish")
+#deep reef
+dist_between_mat[5,1] <- dist_between_centroids(deep_reef_distmat, 11:17,1:10) #ref before to after
+dist_between_mat[5,2] <- dist_between_centroids(deep_reef_distmat, 25:32,18:24) #smr before to after
+dist_between_mat[5,3] <- c("deep reef")
 
-
-dist_between_mat[5,1] <- dist_between_centroids(deep_reef_distmat, 1:15,16:32)
-dist_between_mat[5,2] <- c("deep reef")
-
-
-dist_between_mat[6,1]  <- dist_between_centroids(rocky_distmat, 1:191,192:245)
-dist_between_mat[6,2] <- c("rocky")
+#rocky
+dist_between_mat[6,1]  <- dist_between_centroids(rocky_distmat, 34:144,1:33) #ref before to after
+dist_between_mat[6,2]  <- dist_between_centroids(rocky_distmat, 166:245,145:165) #smr before to after
+dist_between_mat[6,3] <- c("rocky")
 
 
 
 # test for significant dispersion between periods -------------------------
 
-<<<<<<< HEAD
 vegan::permutest(CCFRP_disper)
-=======
-vegan::permutest(CCFRP_disper)   # namespacing because metafor also have this function
->>>>>>> b6c43de87b1de175ee6338ef62a0889a57c6f924
 vegan::permutest(kelp_swath_disper)
 vegan::permutest(kelp_fish_disper)
 vegan::permutest(kelp_upc_disper)
@@ -349,16 +336,16 @@ vegan::permutest(rocky_disper)
 
 
 #permanovas
-rocky_perm <- adonis(formula = rocky_distmat ~ MHW, data = rocky_group_vars, permutations = 99) 
-deep_reef_perm <- adonis(formula = deep_reef_distmat ~ MHW, data = deep_reef_group_vars, permutations = 99) 
-kelp_swath_perm <- adonis(formula = kelp_swath_distmat ~ MHW, data = kelp_swath_group_vars, permutations = 99) 
-kelp_fish_perm <- adonis(formula = kelp_fish_distmat ~ MHW, data = kelp_fish_group_vars, permutations = 99) 
-kelp_upc_perm <- adonis(formula = kelp_upc_distmat ~ MHW, data = kelp_upc_group_vars, permutations = 99) 
-CCFRP_perm <- adonis(formula = CCFRP_distmat ~ MHW, data = CCFRP_group_vars, permutations = 99) 
+rocky_perm <- adonis(formula = rocky_distmat ~ MHW +  mpa_designation, data = rocky_group_vars, permutations = 99) 
+deep_reef_perm <- adonis(formula = deep_reef_distmat ~ MHW+desig_state, data = deep_reef_group_vars, permutations = 99) 
+kelp_swath_perm <- adonis(formula = kelp_swath_distmat ~ MHW+desig_state, data = kelp_swath_group_vars, permutations = 99) 
+kelp_fish_perm <- adonis(formula = kelp_fish_distmat ~ MHW+desig_state, data = kelp_fish_group_vars, permutations = 99) 
+kelp_upc_perm <- adonis(formula = kelp_upc_distmat ~ MHW+desig_state, data = kelp_upc_group_vars, permutations = 99) 
+CCFRP_perm <- adonis(formula = CCFRP_distmat ~ MHW+desig_state, data = CCFRP_group_vars, permutations = 99) 
 
 #save output
 rocky_output <-as.data.frame(rocky_perm$aov.tab)[1,]%>%
-    mutate(group='rocky')
+  mutate(group='rocky')
 CCFRP_output <-as.data.frame(CCFRP_perm$aov.tab)[1,]%>%
   mutate(group='CCFRP')
 kelp_swath_output <-as.data.frame(kelp_swath_perm$aov.tab)[1,]%>%
@@ -371,8 +358,8 @@ deep_reef_output <-as.data.frame(deep_reef_perm$aov.tab)[1,]%>%
   mutate(group='deep reef')
 
 aov_output <- rbind(rocky_output, CCFRP_output, kelp_swath_output, kelp_upc_output, kelp_fish_output,deep_reef_output)%>%
-              dplyr::select(group, everything())%>%
-              arrange(desc(F.Model))
+  dplyr::select(group, everything())%>%
+  arrange(desc(F.Model))
 
 rownames(aov_output) <- NULL
 
@@ -388,34 +375,34 @@ rownames(aov_output) <- NULL
 
 #CCFRP
 CCFRP_params <- as.data.frame(cbind(mean=tapply(CCFRP_disper$distances, CCFRP_disper$group, mean), 
-                      sd=tapply(CCFRP_disper$distances, CCFRP_disper$group, sd), 
-                      n=table(CCFRP_disper$group)))%>%
-                mutate(group="CCFRP") %>%
-                dplyr::select(group, distance=mean, sd, n) 
+                                    sd=tapply(CCFRP_disper$distances, CCFRP_disper$group, sd), 
+                                    n=table(CCFRP_disper$group)))%>%
+  mutate(group="CCFRP") %>%
+  dplyr::select(group, distance=mean, sd, n) 
 
 CCFRP_params <- cbind(period = rownames(CCFRP_params), CCFRP_params) %>%
-                pivot_wider(names_from=c('period'), values_from = c('distance','sd','n')) 
+  pivot_wider(names_from=c('period'), values_from = c('distance','sd','n')) 
 
-   
+
 
 #Kelp swath
 kelp_swath_params <- as.data.frame(cbind(mean=tapply(kelp_swath_disper$distances, kelp_swath_disper$group, mean), 
-                                    sd=tapply(kelp_swath_disper$distances, kelp_swath_disper$group, sd), 
-                                    n=table(kelp_swath_disper$group)))%>%
-                mutate(group="kelp swath") %>%
-                dplyr::select(group, distance=mean, sd, n) 
+                                         sd=tapply(kelp_swath_disper$distances, kelp_swath_disper$group, sd), 
+                                         n=table(kelp_swath_disper$group)))%>%
+  mutate(group="kelp swath") %>%
+  dplyr::select(group, distance=mean, sd, n) 
 
 kelp_swath_params <- cbind(period = rownames(kelp_swath_params), kelp_swath_params) %>%
-                 pivot_wider(names_from=c('period'), values_from = c('distance','sd','n')) 
+  pivot_wider(names_from=c('period'), values_from = c('distance','sd','n')) 
 
 
 
 #Kelp upc
 kelp_upc_params <- as.data.frame(cbind(mean=tapply(kelp_upc_disper$distances, kelp_upc_disper$group, mean), 
-                                         sd=tapply(kelp_upc_disper$distances, kelp_upc_disper$group, sd), 
-                                         n=table(kelp_upc_disper$group)))%>%
-                  mutate(group="kelp upc") %>%
-                  dplyr::select(group, distance=mean, sd, n) 
+                                       sd=tapply(kelp_upc_disper$distances, kelp_upc_disper$group, sd), 
+                                       n=table(kelp_upc_disper$group)))%>%
+  mutate(group="kelp upc") %>%
+  dplyr::select(group, distance=mean, sd, n) 
 
 kelp_upc_params <- cbind(period = rownames(kelp_upc_params), kelp_upc_params) %>%
   pivot_wider(names_from=c('period'), values_from = c('distance','sd','n')) 
@@ -426,10 +413,10 @@ kelp_upc_params <- cbind(period = rownames(kelp_upc_params), kelp_upc_params) %>
 
 #Kelp fish
 kelp_fish_params <- as.data.frame(cbind(mean=tapply(kelp_fish_disper$distances, kelp_fish_disper$group, mean), 
-                                       sd=tapply(kelp_fish_disper$distances, kelp_fish_disper$group, sd), 
-                                       n=table(kelp_fish_disper$group)))%>%
-                     mutate(group="kelp fish") %>%
-                      dplyr::select(group, distance=mean, sd, n) 
+                                        sd=tapply(kelp_fish_disper$distances, kelp_fish_disper$group, sd), 
+                                        n=table(kelp_fish_disper$group)))%>%
+  mutate(group="kelp fish") %>%
+  dplyr::select(group, distance=mean, sd, n) 
 
 kelp_fish_params <- cbind(period = rownames(kelp_fish_params), kelp_fish_params) %>%
   pivot_wider(names_from=c('period'), values_from = c('distance','sd','n')) 
@@ -442,8 +429,8 @@ kelp_fish_params <- cbind(period = rownames(kelp_fish_params), kelp_fish_params)
 deep_reef_params <- as.data.frame(cbind(mean=tapply(deep_reef_disper$distances, deep_reef_disper$group, mean), 
                                         sd=tapply(deep_reef_disper$distances, deep_reef_disper$group, sd), 
                                         n=table(deep_reef_disper$group)))%>%
-                     mutate(group="deep reef") %>%
-                     dplyr::select(group, distance=mean, sd, n) 
+  mutate(group="deep reef") %>%
+  dplyr::select(group, distance=mean, sd, n) 
 
 deep_reef_params <- cbind(period = rownames(deep_reef_params), deep_reef_params) %>%
   pivot_wider(names_from=c('period'), values_from = c('distance','sd','n')) 
@@ -454,10 +441,10 @@ deep_reef_params <- cbind(period = rownames(deep_reef_params), deep_reef_params)
 #rocky 
 
 rocky_params <- as.data.frame(cbind(mean=tapply(rocky_disper$distances, rocky_disper$group, mean), 
-                                        sd=tapply(rocky_disper$distances, rocky_disper$group, sd), 
-                                        n=table(rocky_disper$group)))%>%
-                 mutate(group="rocky") %>%
-                  dplyr::select(group, distance=mean, sd, n) 
+                                    sd=tapply(rocky_disper$distances, rocky_disper$group, sd), 
+                                    n=table(rocky_disper$group)))%>%
+  mutate(group="rocky") %>%
+  dplyr::select(group, distance=mean, sd, n) 
 
 rocky_params <- cbind(period = rownames(rocky_params), rocky_params) %>%
   pivot_wider(names_from=c('period'), values_from = c('distance','sd','n')) 
@@ -471,7 +458,7 @@ meta_params <- rbind(CCFRP_params,
                      rocky_params)
 
 meta_dist_params <- left_join(meta_params, dist_between_mat, by="group")
-                    
+
 
 
 
@@ -487,84 +474,77 @@ meta_dist_params <- left_join(meta_params, dist_between_mat, by="group")
 #calculate effect size
 
 #https://www.r-bloggers.com/2018/04/v-is-for-meta-analysis-variance/
+meta_dist_params <- meta_dist_params%>%
+    clean_names()
 
 meta_es <- meta_dist_params %>%
-           mutate(SMD = dist_between/
-                    (sqrt(((n_before-1)*sd_before^2 + (n_after-1)*sd_after^2) / 
-                            (n_before+n_after-2))), #divide distance by pooled SD
-                  vi= ((n_before+n_after)/(n_before*n_after)) + (SMD^2/(2*(n_before+n_after)))) 
-
-test <- escalc("SMD", yi=SMD, vi=vi, data=meta_es) 
-
-
-
-
-mlabfun <- function(text, y) {
-  bquote(paste(.(text),
-               " (Q = ", .(formatC(y$QE, digits=2, format="f")),
-               #", df = ", .(y$k - y$p),
-               ", p ", .(formatC(y$pval, digits=2, format="f")), #"; ",
-               #I^2, " = ", .(formatC(y$I2, digits=1, format="f")), "%, ",
-               #tau^2, " = ", .(formatC(y$tau2, digits=2, format="f")), 
-               ")"
-  )
-  )}
-
-
-forest(test$yi, test$vi, #xlim=c(-0.7,1),
-       #ilab.xpos=c(-9.5,-8,-6,-4.5), 
-       cex=0.75, 
-       #ylim=c(0, 9),
-       slab=paste(test$group),
-       order=-test$yi
-       #header="Monitoring Group"
-)
-
-
-res <- rma(yi, vi, method="REML", verbose=TRUE, digits=5, data=test)
-
-addpoly(res, row=0.5, cex=0.75, mlab=mlabfun("RE Model", y=res), #col='red'
-)
-text(-4.5, 0.5, pos=4, cex=0.7, mlabfun("RE Model", y=res))
+  mutate(SMD_ref = dist_between_ref/
+           (sqrt(((n_ref_before-1)*sd_ref_before^2 + (n_ref_after-1)*sd_ref_after^2) / 
+                   (n_ref_before+n_ref_after-2))), #divide distance by pooled SD
+         ref_vi= ((n_ref_before+n_ref_after)/(n_ref_before*n_ref_after)) + (SMD_ref^2/(2*(n_ref_before+n_ref_after))),
+         SMD_smr = distance_between_smr/
+           (sqrt(((n_smr_before-1)*sd_smr_before^2 + (n_smr_after-1)*sd_smr_after^2) / 
+                   (n_smr_before+n_smr_after-2))), 
+         smr_vi= ((n_smr_before+n_smr_after)/(n_smr_before*n_smr_after)) + (SMD_smr^2/(2*(n_smr_before+n_smr_after)))
+           ) 
 
 
 
-pooled <- coef(summary(res)) %>%
-          mutate(group="pooled",
-                 yi=estimate)
+REF_es <- escalc("SMD", yi=SMD_ref, vi=ref_vi, data=meta_es) 
+SMR_es <- escalc("SMD", yi=SMD_smr, vi = smr_vi, data=meta_es)
+
+
+
+res_ref <- rma(yi, vi, method="REML", verbose=TRUE, digits=5, data=REF_es)
+res_smr <- rma(yi, vi, method="REML", verbose=TRUE, digits=5, data=SMR_es)
+
+
+pooled_ref <- coef(summary(res_ref)) %>%
+  mutate(group="pooled",
+         yi=estimate)
+
+pooled_smr <- coef(summary(res_smr)) %>%
+  mutate(group="pooled",
+         yi=estimate)
 
 #set order
-test<- test %>% arrange(desc(-yi))
+test_ref<- REF_es %>% arrange(desc(-yi))
+test_smr <- SMR_es %>% arrange(desc(-yi))
 
 #add labels
-test$community <- c("inverts and algae","fish","inverts and algae","fish","fish","inverts and algae")
+test_ref$community <- c("inverts and algae","fish","inverts and algae","fish","fish","inverts and algae")
+test_smr$community <- c("inverts and algae","fish","inverts and algae","fish","fish","inverts and algae")
 
-test$group <- as.character(test$group)
+test_ref$group <- as.character(test_ref$group)
+test_smr$group <- as.character(test_smr$group)
 #Then turn it back into a factor with the levels in the correct order
-test$group <- factor(test$group, levels=unique(test$group))
+test_smr$group <- factor(test_smr$group, levels=unique(test_smr$group))
+test_ref$group <- factor(test_ref$group, levels=unique(test_ref$group))
 
 #plot
-(figure <- ggplot(test, aes(x=group,yi, color=community),y=yi) +
-  geom_point(size=2) +
-  geom_errorbar(aes(ymin=yi-vi, ymax=yi+vi), width=.3, size=0.7) +
-  geom_vline(xintercept = 0.7, color = "black", size = 0.4, linetype = "dashed") +
-  #scale_x_discrete(expand = c(-.03, 1.6) ) +
-  geom_point(aes(x=0.5, y=yi), data=pooled, shape=18, size = 5, colour="black") +
-  geom_errorbar(aes(x=0.5, ymin=yi-se, ymax=yi+se), data=pooled, colour="black", width=.2) +
-  scale_x_discrete(expand = expansion(mult = c(0.2, 0.1))) +
-  ylab("standardized distance") +
-  xlab("") +
-  coord_flip() +
-  theme_minimal(base_size=14) + theme(aspect.ratio = 1/3)
+(ggplot(test_smr, aes(x=group,yi),y=yi)+
+    geom_point(size=2, color='red', position = position_jitter(seed = 123, width =0.2))+
+    geom_errorbar(aes(ymin=yi-vi, ymax=yi+vi), color='red',width=.3, size=0.7, data=test_smr, position = position_jitter(seed = 123, width =0.2)) +
+    geom_point(data=test_ref, color='blue')+
+    geom_errorbar(aes(ymin=yi-vi, ymax=yi+vi), width=.3, size=0.7, data=test_ref, color='blue')+
+    geom_vline(xintercept = 0.7, color = "black", size = 0.4, linetype = "dashed") +
+    scale_x_discrete(expand = c(-.03, 1.6) )+
+    geom_point(aes(x=0.5, y=yi), data=pooled_ref, shape=18, size = 5, colour="blue")+
+    geom_errorbar(aes(x=0.5, ymin=yi-se, ymax=yi+se), data=pooled_ref, colour="blue", width=.2) +
+    geom_point(aes(x=0.18, y=yi), data=pooled_smr, shape=18, size = 5, colour="red")+
+    geom_errorbar(aes(x=0.18, ymin=yi-se, ymax=yi+se), data=pooled_smr, colour="red", width=.2) +
+    ylab("standardized distance")+
+    xlab("")+
+    coord_flip()+
+    theme_minimal(base_size=14)
 )
-
 
 
 
 #export distance plot
 
-ggsave(here("analyses", "5community_climate_ecology", "figures", "distance_meta.png"), figure, height=4, width = 12, units = "in", 
-       dpi = 300, bg="white")
+#ggsave(here("analyses", "5community_climate_ecology", "figures", "distance_meta.png"), figure, height=6, width = 8, units = "in", 
+#       dpi = 300, bg="white")
 
 
 
