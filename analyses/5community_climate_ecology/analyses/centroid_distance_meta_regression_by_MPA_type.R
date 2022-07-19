@@ -631,6 +631,42 @@ dist_data <- left_join(dist_between_MPA_mat.2, beta_params, by="group") %>%
 
 
 #ggsave(here("analyses", "5community_climate_ecology", "figures", "distance_MPA_barplot.png"), dist_between_plot, height=4, width = 8, units = "in", 
-       dpi = 300, bg="white")
+    #   dpi = 300, bg="white")
+
+
+
+
+
+
+
+# -------------------------------------------------------------------------
+
+
+
+# SIMPER tables Before & after heatwave (no consideration of MPAs)--------------
+
+
+sim_CCFRP <- with(CCFRP_group_vars, simper(CCFRP_ord_data, MHW))
+sim_kelp_swath <- with(kelp_swath_group_vars, simper(kelp_swath_ord_data, MHW))
+sim_kelp_upc <- with(kelp_upc_group_vars, simper(kelp_upc_ord_data, MHW))
+sim_kelp_fish <- with(kelp_fish_group_vars, simper(kelp_fish_ord_data, MHW))
+sim_deep_reef <- with(deep_reef_group_vars, simper(deep_reef_ord_data, MHW))
+sim_rocky <- with(rocky_group_vars, simper(rocky_ord_data, MHW))
+
+
+
+# SIMPER tables w/ MPAs added (all combinations)--------------------------------
+
+sim_CCFRP_MPA <- with(CCFRP_group_vars, simper(CCFRP_ord_data, desig_state))
+sim_kelp_swath_MPA <- with(kelp_swath_group_vars, simper(kelp_swath_ord_data, desig_state))
+sim_kelp_upc_MPA <- with(kelp_upc_group_vars, simper(kelp_upc_ord_data, desig_state))
+sim_kelp_fish_MPA <- with(kelp_fish_group_vars, simper(kelp_fish_ord_data, desig_state))
+sim_deep_reef_MPA <- with(deep_reef_group_vars, simper(deep_reef_ord_data, desig_state))
+sim_rocky_MPA <- with(rocky_group_vars, simper(rocky_ord_data, desig_state))
+
+
+
+
+
 
 
