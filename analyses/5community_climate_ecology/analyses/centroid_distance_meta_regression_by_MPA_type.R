@@ -12,6 +12,7 @@ require(gridExtra)
 require(usedist)
 require(ggplot2)
 require(reshape2)
+require(ggfittext)
 
 
 data_path <- "/home/shares/ca-mpa/data/sync-data/processed_data/ecological_community_data/year_level"
@@ -22,7 +23,8 @@ data_path <- "/home/shares/ca-mpa/data/sync-data/processed_data/ecological_commu
 #load CCFRP
 input_file <- "CCFRP_mpa_year.csv" 
 CCFRP_counts <- read.csv(file.path(data_path, input_file))%>%
-  filter(region4=='central')
+  filter(region4=='central')%>%
+  select(-total)
 
 #load kelp upc
 input_file <- "kelp_upc_mpa_year.csv" 
@@ -646,12 +648,77 @@ dist_data <- left_join(dist_between_MPA_mat.2, beta_params, by="group") %>%
 # SIMPER tables Before & after heatwave (no consideration of MPAs)--------------
 
 
-sim_CCFRP <- with(CCFRP_group_vars, simper(CCFRP_ord_data, MHW))
+sim_CCFRP <- with(CCFRP_group_vars, simper(CCFRP_ord_data, MHW), ordered=TRUE)
 sim_kelp_swath <- with(kelp_swath_group_vars, simper(kelp_swath_ord_data, MHW))
 sim_kelp_upc <- with(kelp_upc_group_vars, simper(kelp_upc_ord_data, MHW))
 sim_kelp_fish <- with(kelp_fish_group_vars, simper(kelp_fish_ord_data, MHW))
 sim_deep_reef <- with(deep_reef_group_vars, simper(deep_reef_ord_data, MHW))
 sim_rocky <- with(rocky_group_vars, simper(rocky_ord_data, MHW))
+
+
+#collect tables
+
+CCFRP_a_b_table <- as.data.frame(summary(sim_CCFRP)$after_before)%>%
+                    mutate(group="CCFRP",
+                           contrib = cumsum-lag(cumsum, default=0),
+                           perc_change = (ava-avb)/avb,
+                           sign = ifelse(perc_change > 0, "positive","negative"))
+                    
+kelp_swath_a_b_table <- as.data.frame(summary(sim_kelp_swath)$after_before)%>%
+                    mutate(group="kelp_swath",
+                           contrib = cumsum-lag(cumsum, default=0),
+                           perc_change = (ava-avb)/avb,
+                           sign = ifelse(perc_change > 0, "positive","negative"))
+
+kelp_upc_a_b_table <- as.data.frame(summary(sim_kelp_upc)$after_before)%>%
+                    mutate(group="kelp_upc",
+                           contrib = cumsum-lag(cumsum, default=0),
+                           perc_change = (ava-avb)/avb,
+                           sign = ifelse(perc_change > 0, "positive","negative"))
+
+kelp_fish_a_b_table <- as.data.frame(summary(sim_kelp_fish)$after_before)%>%
+                    mutate(group="kelp_fish",
+                           contrib = cumsum-lag(cumsum, default=0),
+                           perc_change = (ava-avb)/avb,
+                           sign = ifelse(perc_change > 0, "positive","negative"))
+
+deep_reef_a_b_table <- as.data.frame(summary(sim_deep_reef)$after_before)%>%
+                    mutate(group="deep_reef",
+                           contrib = cumsum-lag(cumsum, default=0),
+                           perc_change = (ava-avb)/avb,
+                           sign = ifelse(perc_change > 0, "positive","negative"))
+
+rocky_a_b_table <- as.data.frame(summary(sim_rocky)$after_before)%>%
+                    mutate(group="rocky",
+                           contrib = cumsum-lag(cumsum, default=0),
+                           perc_change = (ava-avb)/avb,
+                           sign = ifelse(perc_change > 0, "positive","negative"))
+
+
+simper_a_b_table <- rbind(CCFRP_a_b_table, kelp_swath_a_b_table, kelp_upc_a_b_table, kelp_fish_a_b_table, deep_reef_a_b_table, rocky_a_b_table)%>%
+                    tibble::rownames_to_column(var = "species") %>%
+                    filter(cumsum <0.80)%>%
+                    select(group, species, avg_before = avb, avg_after=ava, cumsum, contrib, perc_change, sign)
+
+#plot
+
+#set order
+simper_a_b_table$group <- factor(simper_a_b_table$group, levels = c('CCFRP', 'kelp_swath', 
+                                                                    'rocky','kelp_fish',
+                                                                    'kelp_upc','deep_reef'))
+
+ggplot(simper_a_b_table, aes(x = group, y = contrib, label = species, fill=sign)) +
+  geom_bar(stat = "identity", color="black") +
+  geom_text(size = 3, position = position_stack(vjust = 0.5), color="black", fontface="bold")+
+  theme_minimal(base_size = 21)+
+  scale_fill_discrete(name = "direction of change")+
+  ylab("cumulative contribution")
+  
+  #scale_fill_brewer(palette=1)+
+
+
+
+
 
 
 
@@ -663,8 +730,6 @@ sim_kelp_upc_MPA <- with(kelp_upc_group_vars, simper(kelp_upc_ord_data, desig_st
 sim_kelp_fish_MPA <- with(kelp_fish_group_vars, simper(kelp_fish_ord_data, desig_state))
 sim_deep_reef_MPA <- with(deep_reef_group_vars, simper(deep_reef_ord_data, desig_state))
 sim_rocky_MPA <- with(rocky_group_vars, simper(rocky_ord_data, desig_state))
-
-
 
 
 
