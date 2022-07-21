@@ -1,0 +1,63 @@
+---
+title: "monitoring_site_locations"
+author: "Joshua G. Smith"
+date: '2022-07-21'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+rm(list=ls())
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r libraries, warning=FALSE, message=FALSE}
+library(tidyverse)
+library(lubridate)
+library(purrr)
+library(sf)
+library(tmap)
+library(RColorBrewer)
+```
+
+## Read data
+
+```{r paths}
+
+# Define the paths and file names
+
+path_aurora <- "/home/shares/ca-mpa/data/sync-data/monitoring"
+input_file <- "/site_locations.rda"
+load(file.path(path_aurora, input_file))
+
+
+#load CDFW mpa polygons
+location.data <- st_read(file.path("/home/shares/ca-mpa/data/sync-data/gis_data/raw/CA_MPA_boundaries/ds582", "ds582.shp"), stringsAsFactors = F)
+
+data.sf <- st_transform(x = location.data, crs=4326) #transform to WGS84
+
+
+
+# Read California border
+ca <- st_read(shp_ca)
+# st_crs(ca)
+
+```
+
+#Take a look
+
+```{r}
+plot(st_geometry(data.sf))
+
+# Transform monitoring locations into an sf object
+mon_sites <- st_as_sf(site_locations, coords = c("lon","lat"), crs = 4326) #load into WGS84
+
+# Reproject to Albers
+site_albers <- st_transform(mon_sites, crs=3310) #transform to albers
+
+
+
+```
+
+
+
+
