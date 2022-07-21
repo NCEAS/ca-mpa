@@ -140,7 +140,15 @@ surf_data <- surf_process
 # join --------------------------------------------------------------------
 
 
-site_locations <- rbind(ccfrp_data, deep_reef_data,kelp_data, rocky_data, surf_data)
+site_locations <- rbind(ccfrp_data, deep_reef_data,kelp_data, rocky_data, surf_data) 
 
+site_locations <- site_locations[-which(site_locations$lon == ""), ] #drop missing lon row
+site_locations <- site_locations[-which(site_locations$lon == "#NAME?"), ] 
+                  
+
+
+#export to .RData
+data_path <- "/home/shares/ca-mpa/data/sync-data/monitoring/"
+save(site_locations, file = file.path(data_path, "site_locations.rda"))
 
 
