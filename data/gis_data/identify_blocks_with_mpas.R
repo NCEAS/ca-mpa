@@ -1,41 +1,32 @@
 
 
-# Read data
-################################################################################
+# Setup -----------------------------------------------------------------------------
 
 # Clear workspace
 rm(list = ls())
 
-# Packages
+## Packages ----
 library(tidyverse)
 library(countrycode)
 
-# Directories
-# basedir <- "/Volumes/GoogleDrive-105151121202188525604/Shared drives/NCEAS MPA network assessment/MPA Network Assessment: Working Group Shared Folder/data/sync-data" # Cori Local
-basedir <- "/Volumes/GoogleDrive/.shortcut-targets-by-id/1kCsF8rkm1yhpjh2_VMzf8ukSPf9d4tqO/MPA Network Assessment: Working Group Shared Folder/data/sync-data"
+## Directories ----
+basedir <- "/Volumes/GoogleDrive-105151121202188525604/Shared drives/NCEAS MPA network assessment/MPA Network Assessment: Working Group Shared Folder/data/sync-data" # Cori Local
+#basedir <- "/Volumes/GoogleDrive/.shortcut-targets-by-id/1kCsF8rkm1yhpjh2_VMzf8ukSPf9d4tqO/MPA Network Assessment: Working Group Shared Folder/data/sync-data"
 outdir <- file.path(basedir, "gis_data/processed")
 plotdir <- "data/gis_data/figures"
 
-# Read MPA data
+## Read MPA data ----
 mpas <- readRDS(file.path(outdir, "CA_MPA_polygons.Rds"))
 mpa_pts <- mpas %>%
   sf::st_drop_geometry()
 
-# Blocks
+## Get Blocks ----
 blocks <- wcfish::blocks
 
 
-# Build data
-################################################################################
+# P1: Build Data - All MPA Types ------------------------------------------------------
 
-# Only look at SMRs/SMCAs and FMRs, FMCAs
-# types_use <- c("SMR", "SMRMA", "SMCA", "SMCA (No-Take)", "FMR", "FMCA")
-# mpas_use <- mpas %>% 
-#   filter(type %in% types_use)
-# mpa_use_pts <- mpas_use %>%
-#   sf::st_drop_geometry()
-
-# Simplify MPAs/blocks
+# Simplify MPAs
 mpas_simple <- mpas %>%
   select(name)
 
@@ -71,7 +62,7 @@ intersection_areas <- data1 %>%
 data2 <- data1 %>%
   mutate(area_km2=intersection_areas)
 
-# Compute block stats
+## Summarize MPA coverage for each block ----
 block_stats <- data2 %>%
   sf::st_drop_geometry() %>%
   group_by(block_id) %>%
@@ -80,30 +71,76 @@ block_stats <- data2 %>%
             mpa_km2=sum(area_km2)) %>%
   ungroup()
 
-# Add MPA block stats to block sf
-blocks_stats_sf <- blocks %>%
-  filter(block_state=="California" & block_type=="Inshore") %>%
-  left_join(block_stats, by="block_id")
-
-# Export block sf
-saveRDS(blocks_stats_sf, file = file.path(outdir, "CA_blocks_stats_all_mpa_types.Rds"))
-
-
-# Export block key: only blocks with MPAs
+## Export block key: only blocks with MPAs (all MPAs) ----
 write.csv(block_stats, file=file.path(outdir, "CA_blocks_with_mpas_all_mpa_types.csv"), row.names=F)
 
-# Export block key: all blocks
-block_key <- blocks_stats_sf %>% 
+
+# P2: Build Data - Only SMRs/SMCAs and FMRs/FMCAs ---------------------------
+
+# Only look at SMRs/SMCAs and FMRs, FMCAs
+types_use <- c("SMR", "SMRMA", "SMCA", "SMCA (No-Take)", "FMR", "FMCA")
+mpas_use <- mpas %>% 
+  filter(type %in% types_use)
+mpa_use_pts <- mpas_use %>%
   sf::st_drop_geometry()
 
-<<<<<<< HEAD
-write.csv(block_key, file = file.path(outdir, "CA_blocks_all_all_mpa_types.csv"), row.names = F)
-=======
-write.csv(block_key, file = file.path(outdir, "CA_blocks_stats_all.csv"), row.names = F)
->>>>>>> a6e94d246901164bd7bdea87b25a05d4d807fd15
+# Simplify MPAs
+mpas_simple <- mpas_use %>%
+  select(name)
 
-# Plot data
-################################################################################
+# Simplify blocks
+blocks_simple <- blocks %>%
+  select(block_id)
+
+# Calculate block area
+blocks_area <- blocks_simple %>% 
+  sf::st_area() %>% as.numeric() %>% 
+  measurements::conv_unit(., "m2", "km2")
+
+# Add block area to main block dataframe
+blocks <- blocks %>% 
+  mutate(block_area_km2 = blocks_area)
+
+# Add block area to simple block dataframe
+blocks_simple <- blocks_simple %>% 
+  mutate(block_area_km2 = blocks_area)
+
+# Test for any overlap among MPA polygons 
+overlap <- sf::st_overlaps(mpas_simple, mpas_simple, sparse = FALSE)
+isTRUE(overlap) # if FALSE, there is no overlap
+
+# Intersect MPAs/blocks
+data1 <- sf::st_intersection(x=blocks_simple, y=mpas_simple)
+
+# Calculate MPA area
+intersection_areas <- data1 %>%
+  sf::st_area() %>% as.numeric() %>% measurements::conv_unit(., "m2", "km2")
+
+# Add areas to intersection sf
+data2 <- data1 %>%
+  mutate(area_km2=intersection_areas)
+
+# Summarize MPA coverage
+block_stats <- data2 %>%
+  sf::st_drop_geometry() %>%
+  group_by(block_id) %>%
+  dplyr::summarize(mpa_n=n_distinct(name),
+                   mpas=paste(name, collapse=", "),
+                   mpa_km2=sum(area_km2)) %>%
+  ungroup()
+
+# Add MPA block stats to block dataframe
+blocks_stats_df <- blocks %>%
+  filter(block_state=="California" & block_type=="Inshore") %>%
+  left_join(block_stats, by="block_id") %>% 
+  st_drop_geometry() %>% 
+  select(block_id, mpa_n, mpas, mpa_km2)
+
+# Export as RDS
+saveRDS(blocks_stats_df, file.path(outdir, "block_mpa_coverage_reduced_types.Rds"))
+
+
+# P3: Plot data  ------------------------------------------------------------------
 
 # Setup theme
 my_theme <-  theme(axis.text=element_text(size=6),
