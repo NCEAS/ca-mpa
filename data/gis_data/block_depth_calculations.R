@@ -23,12 +23,12 @@ blocks_orig <- wcfish::blocks
 depth_raw <- read_stars(file.path(data.dir, "200mEEZ_BathyGrids", "bd200m_v2i", "w001001.adf")) # meters
 depth_raw_fa <- read_stars(file.path(data.dir, "200mEEZ_BathyGrids", "bd200fa_v2i", "w001001.adf")) # fathoms
 
-# Process Depth Data  (Meters) ----------------------------------------------------------
+# Process Depth Data  (Meters) --------------------------------------------------
 ## Transform to wgs84
 depth <- sf::st_transform(depth_raw, crs = st_crs("+proj=longlat +datum=WGS84"))
 names(depth) = "depth"
 
-## Simplify to CA
+## Simplify blocks to CA
 blocks <- blocks_orig %>% 
   filter(block_state == "California") 
 
@@ -40,34 +40,29 @@ depth_median <- aggregate(depth, by = blocks, median, na.rm = TRUE)
 depth_mean_sf <- st_as_sf(depth_mean)
 depth_median_sf <- st_as_sf(depth_median)
 
-## Export mean and median data
-saveRDS(depth_mean_sf, file.path(out.dir, "block_mean_depth_meters.Rds"))
-saveRDS(depth_median_sf, file.path(out.dir, "block_median_depth_meters.Rds"))
+## Add to block dataframe
+data <- blocks %>% 
+  mutate(block_mean_depth_m = depth_mean_sf$depth)
 
-# Process Depth Data (Fathoms) -------------------------------------------------
+## Drop geometry
+data2 <- data %>% 
+  sf::st_drop_geometry()
+
+# Convert Depth Data to Fathoms -------------------------------------------------
 ## Since fishermen work in fathoms it could be more relevant to do our depth
-## analyses in fathoms
+## analyses in fathoms.
 
-## Clear some space
-rm(depth, depth_raw, depth_mean, depth_median, depth_mean_sf, depth_median_sf) 
-gc()
+# Number of fathoms in 1 meter
+fa_in_m <- 0.546807
 
-## Transform to wgs84
-depth_fa <- sf::st_transform(depth_raw_fa, crs = st_crs("+proj=longlat +datum=WGS84"))
-names(depth_fa) = "depth"
+# Convert 
+data3 <- data2 %>% 
+  mutate(block_mean_depth_fa = block_mean_depth_m*fa_in_m) %>% 
+  select(block_id, block_mean_depth_m, block_mean_depth_fa)
 
-## Get depth values for each block
-depth_fa_mean <- aggregate(depth_fa, by = blocks, mean, na.rm = TRUE)
-depth_fa_median <- aggregate(depth_fa, by = blocks, median, na.rm = TRUE)
-
-## Convert to sf object
-depth_fa_mean_sf <- st_as_sf(depth_fa_mean)
-depth_fa_median_sf <- st_as_sf(depth_fa_median)
 
 ## Export mean and median data
-saveRDS(depth_fa_mean_sf, file.path(out.dir, "block_mean_depth_fathoms.Rds"))
-saveRDS(depth_fa_median_sf, file.path(out.dir, "block_median_depth_fathoms.Rds"))
-
+saveRDS(data3, file.path(out.dir, "block_mean_depth.Rds"))
 
 # Plot -------------------------------------------------------------------------
 #plot(depth_mean_sf)
