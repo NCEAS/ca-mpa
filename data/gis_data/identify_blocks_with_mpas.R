@@ -11,8 +11,8 @@ library(tidyverse)
 library(countrycode)
 
 # Directories
-basedir <- "/Volumes/GoogleDrive-105151121202188525604/Shared drives/NCEAS MPA network assessment/MPA Network Assessment: Working Group Shared Folder/data/sync-data" # Cori Local
-#basedir <- "/Volumes/GoogleDrive/.shortcut-targets-by-id/1kCsF8rkm1yhpjh2_VMzf8ukSPf9d4tqO/MPA Network Assessment: Working Group Shared Folder/data/sync-data"
+# basedir <- "/Volumes/GoogleDrive-105151121202188525604/Shared drives/NCEAS MPA network assessment/MPA Network Assessment: Working Group Shared Folder/data/sync-data" # Cori Local
+basedir <- "/Volumes/GoogleDrive/.shortcut-targets-by-id/1kCsF8rkm1yhpjh2_VMzf8ukSPf9d4tqO/MPA Network Assessment: Working Group Shared Folder/data/sync-data"
 outdir <- file.path(basedir, "gis_data/processed")
 plotdir <- "data/gis_data/figures"
 
@@ -29,14 +29,14 @@ blocks <- wcfish::blocks
 ################################################################################
 
 # Only look at SMRs/SMCAs and FMRs, FMCAs
-types_use <- c("SMR", "SMRMA", "SMCA", "SMCA (No-Take)", "FMR", "FMCA")
-mpas_use <- mpas %>% 
-  filter(type %in% types_use)
-mpa_use_pts <- mpas_use %>%
-  sf::st_drop_geometry()
+# types_use <- c("SMR", "SMRMA", "SMCA", "SMCA (No-Take)", "FMR", "FMCA")
+# mpas_use <- mpas %>% 
+#   filter(type %in% types_use)
+# mpa_use_pts <- mpas_use %>%
+#   sf::st_drop_geometry()
 
 # Simplify MPAs/blocks
-mpas_simple <- mpas_use %>%
+mpas_simple <- mpas %>%
   select(name)
 
 # Simplify blocks
@@ -49,7 +49,7 @@ blocks_area <- blocks_simple %>%
   measurements::conv_unit(., "m2", "km2")
 
 # Add block area to main block dataframe
-blocks<- blocks %>% 
+blocks <- blocks %>% 
   mutate(block_area_km2 = blocks_area)
 
 # Add block area to simple block dataframe
@@ -86,17 +86,21 @@ blocks_stats_sf <- blocks %>%
   left_join(block_stats, by="block_id")
 
 # Export block sf
-saveRDS(blocks_stats_sf, file = file.path(outdir, "CA_blocks_stats.Rds"))
+saveRDS(blocks_stats_sf, file = file.path(outdir, "CA_blocks_stats_all_mpa_types.Rds"))
 
 
 # Export block key: only blocks with MPAs
-write.csv(block_stats, file=file.path(outdir, "CA_blocks_with_mpas.csv"), row.names=F)
+write.csv(block_stats, file=file.path(outdir, "CA_blocks_with_mpas_all_mpa_types.csv"), row.names=F)
 
 # Export block key: all blocks
 block_key <- blocks_stats_sf %>% 
   sf::st_drop_geometry()
 
+<<<<<<< HEAD
+write.csv(block_key, file = file.path(outdir, "CA_blocks_all_all_mpa_types.csv"), row.names = F)
+=======
 write.csv(block_key, file = file.path(outdir, "CA_blocks_stats_all.csv"), row.names = F)
+>>>>>>> a6e94d246901164bd7bdea87b25a05d4d807fd15
 
 # Plot data
 ################################################################################
