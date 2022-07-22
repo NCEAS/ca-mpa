@@ -24,8 +24,14 @@ base.dir <- "/Volumes/GoogleDrive-105151121202188525604/Shared drives/NCEAS MPA 
 gis.dir <- file.path(base.dir, "gis_data", "processed")
 
 
+# Read Data --------------------------------------------------------------------
+block_stats <- readRDS(file.path(gis.dir,"CA_blocks_stats.Rds")) 
+depth <- readRDS(file.path(gis.dir, "block_mean_depth.Rds")) 
+shore <- read_csv(file.path(gis.dir, "block_distance_to_shore.csv"))
+port <- readRDS(file.path(gis.dir, "block_distance_to_port.Rds"))
 
-# Read Data --------------------------------------------------------------------------
-depth <- readRDS(file.path(gis.dir, "block_mean_depth_fathoms.Rds"))
-shore <- read_csv(file.path(gis.dir, "CA_blocks_"))
-test <- readRDS(file.path(gis.dir, "CA_blocks_stats_all_mpa_types.Rds"))
+# Build Data -------------------------------------------------------------------
+data <- block_stats %>% 
+  left_join(., depth) %>% 
+  left_join(., shore) %>% 
+  left_join(., port)
