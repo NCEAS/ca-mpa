@@ -28,19 +28,18 @@ att_raw <- read_csv(file.path(att.dir, "mpa_attributes_clean.csv"))
 ```{r}
 data <- att_raw %>% 
   column_to_rownames("name") %>% 
+  mutate(hard_substrate_0_30m_km2_comb = hard_substrate_predicted_0_30m_km2 + hard_substrate_mapped_0_30m_km2,
+         soft_substrate_0_30m_km2_comb = soft_substrate_0_30m_km2 + soft_substrate_predicted_0_30m_km2) %>% 
   select(four_region_north_ci,
          size_km2,
          sandy_beach_km,
          rocky_inter_km,
          max_kelp_canopy_cdfw_km2,
-         hard_substrate_predicted_0_30m_km2,
-         hard_substrate_mapped_0_30m_km2,
+         hard_substrate_0_30m_km2_comb,
          hard_substrate_30_100m_km2,
          hard_substrate_100_200m_km2,
          hard_substrate_200_3000m_km2,
-         soft_substrate_predicted_0_30m_km2,
-         soft_substrate_0_30m_km2,
-         soft_substrate_30_100m_km2,
+         soft_substrate_0_30m_km2_comb,
          soft_substrate_100_200m_km2,
          soft_substrate_200_3000m_km2,
          submarine_canyon_0_30m_km2,
@@ -57,10 +56,12 @@ data_meta <- att_raw %>%
   select(name, four_region_north_ci, mpa_class) %>% 
   filter(name %in% rownames(data))
 ```
+
+
 # metaMDS
 
 ```{r}
-mds <- metaMDS(data[2:23], distance = "euclidean")
+mds <- metaMDS(data[2:20], distance = "euclidean")
 mds
 stressplot(mds)
 plot(mds)
@@ -128,7 +129,10 @@ ggplot(plot_df, aes(x = NMDS1, y = NMDS2)) +
                arrow = arrow(length = unit(0.25, "cm")),
                col = "black") +
   geom_text(data = fit_att, aes(label = attribute)) +
-  clean_background
+  clean_background +
+    labs(title = "NMDS",
+       color = "",
+       shape = "")
 ```
 # separate estuaries
 
@@ -160,7 +164,7 @@ data_noest_meta <- data_meta %>%
 ## metaMDS
 
 ```{r}
-mds_noest <- metaMDS(data_noest[2:23], distance = "euclidean")
+mds_noest <- metaMDS(data_noest[2:20], distance = "euclidean")
 mds_noest
 stressplot(mds_noest)
 plot(mds_noest)
@@ -204,11 +208,7 @@ fit_att_noest <- fit_noest %>%
   as.data.frame() %>% 
   rownames_to_column("attribute") %>% 
   full_join(., fit_pval_noest, by = "attribute") %>% 
-  filter(pvals == 0.001) %>% 
-  mutate(att.label = c("size", 
-                       "hard 0-30m", 
-                       "soft 30-100m",
-                       "soft 100-200m"))
+  filter(pvals == 0.001) 
 
 # Plot
 ggplot(plot_df2, aes(x = NMDS1, y = NMDS2)) +
@@ -221,16 +221,128 @@ ggplot(plot_df2, aes(x = NMDS1, y = NMDS2)) +
                                    y = 0, yend = NMDS2),
                arrow = arrow(length = unit(0.25, "cm")),
                col = "black") +
-  geom_text(data = fit_att_noest, 
-            aes(label = att.label)) +
+  geom_text(data = fit_att_noest, aes(label = attribute)) +
+   labs(title = "NMDS - Estuarine MPAs Removed",
+       color = "",
+       shape = "") +
   clean_background
 ```
 
 
 
 ```{r}
+# Reconfigure
+data3 <- data_noest %>% 
+  rownames_to_column()
 
+# Distance Matrix
+dismat <- vegdist(data3[3:21], method = "euclidean")
 
+disper <- betadisper(dismat, type = "centroid", group = data_noest$four_region_north_ci)
+
+plot(disper)
+
+# Test for differences in dispersion
+test <- permutest(disper)
+test
+
+# Difference among groups (regions)
+permanova <- adonis2(formula = dismat ~ four_region_north_ci, 
+                     mwrhos = "euclidean",
+                    data = data3)
+
+permanova
+
+hsd <- TukeyHSD(disper)
+hsd
 
 ```
+# Kelp Forest Community
+
+```{r}
+kf_fish <- readRDS(file.path("intermediate_data", "species_matrix_kelp_fish_1620.Rds")) %>% 
+  mutate(name = str_to_lower(ca_mpa_name_short)) 
+
+kf_env <- att_raw %>% 
+  filter(name %in% kf_fish$name) %>% 
+  mutate(hard_substrate_0_30m_km2_comb = hard_substrate_predicted_0_30m_km2 + hard_substrate_mapped_0_30m_km2,
+         soft_substrate_0_30m_km2_comb = soft_substrate_0_30m_km2 + soft_substrate_predicted_0_30m_km2) %>% 
+  select(name, four_region_north_ci,
+         size_km2,
+         sandy_beach_km,
+         rocky_inter_km,
+         max_kelp_canopy_cdfw_km2,
+         hard_substrate_0_30m_km2_comb,
+         hard_substrate_30_100m_km2,
+         hard_substrate_100_200m_km2,
+         hard_substrate_200_3000m_km2,
+         soft_substrate_0_30m_km2_comb,
+         soft_substrate_100_200m_km2,
+         soft_substrate_200_3000m_km2,
+         submarine_canyon_0_30m_km2,
+         submarine_canyon_30_100m_km2,
+         submarine_canyon_100_200m_km2,
+         submarine_canyon_200_3000m_km2,
+         estuary_km2,
+         surfgrass_km,
+         eelgrass_km2,
+         coastal_marsh_km2) %>% 
+  drop_na()
+
+kf_data <- kf_fish %>% 
+  filter(name %in% kf_env$name) 
+
+kf_data[is.na(kf_data)] <- 0
+
+kf_data <- kf_data %>% column_to_rownames("name")
+kf_env <- kf_env %>% column_to_rownames("name")
+
+kf_bioenv <- bioenv(comm = kf_data[2:111], env = kf_env[2:20])
+kf_bioenv
+summary(kf_bioenv)
+```
+# ROV Community
+
+```{r}
+rov <- readRDS(file.path("intermediate_data", "species_matrix_rov_1620.Rds")) 
+
+rov_env <- att_raw %>% 
+  filter(name %in% rov$name) %>% 
+  mutate(hard_substrate_0_30m_km2_comb = hard_substrate_predicted_0_30m_km2 + hard_substrate_mapped_0_30m_km2,
+         soft_substrate_0_30m_km2_comb = soft_substrate_0_30m_km2 + soft_substrate_predicted_0_30m_km2) %>% 
+  select(name, four_region_north_ci,
+         size_km2,
+         sandy_beach_km,
+         rocky_inter_km,
+         max_kelp_canopy_cdfw_km2,
+         hard_substrate_0_30m_km2_comb,
+         hard_substrate_30_100m_km2,
+         hard_substrate_100_200m_km2,
+         hard_substrate_200_3000m_km2,
+         soft_substrate_0_30m_km2_comb,
+         soft_substrate_100_200m_km2,
+         soft_substrate_200_3000m_km2,
+         submarine_canyon_0_30m_km2,
+         submarine_canyon_30_100m_km2,
+         submarine_canyon_100_200m_km2,
+         submarine_canyon_200_3000m_km2,
+         estuary_km2,
+         surfgrass_km,
+         eelgrass_km2,
+         coastal_marsh_km2) %>% 
+  drop_na()
+
+rov_data <- rov %>% 
+  filter(name %in% rov_env$name)
+
+rov_data <- rov_data %>% column_to_rownames("name")
+rov_env <- rov_env %>% column_to_rownames("name")
+
+rov_bioenv <- bioenv(comm = rov_data, env = rov_env[2:20])
+rov_bioenv
+summary(rov_bioenv)
+```
+
+# 
+
 
