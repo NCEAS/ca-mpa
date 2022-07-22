@@ -19,7 +19,7 @@ plot.dir <- "data/gis_data/figures"
 ## Read Data --------------------------------------------------------------------
 
 ### Read Block Stats
-block_stats <- readRDS(file.path(gis.dir,"CA_blocks_stats.Rds"))
+block_stats <- wcfish::blocks
 
 ### Read MPA Data
 mpas <- readRDS(file.path(gis.dir, "CA_MPA_polygons.Rds"))

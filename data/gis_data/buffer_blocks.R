@@ -18,8 +18,10 @@ plot.dir <- "data/gis_data/figures"
 
 ## Read Data --------------------------------------------------------------------
 
-### Read Block Stats
-block_stats <- readRDS(file.path(gis.dir,"CA_blocks_stats.Rds"))
+### Get Blocks
+block_stats <- wcfish::blocks %>% 
+  filter(block_state == "California") %>% 
+  select(block_id)
 
 # Generate Block Buffers -------------------------------------------------------
 

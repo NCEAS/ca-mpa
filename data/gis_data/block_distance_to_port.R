@@ -22,8 +22,6 @@ port_totals <- readRDS(file.path(datadir, "annual_landings_per_port_lb.Rds"))
 ports <- readRDS(file.path(gisdir, "processed", "CA_ports.Rds"))
 blocks_orig <- wcfish::blocks
 
-#ports <- sf::st_read(file.path(gisdir, "raw", "Ports", "CUL_CA_Ports.shp"))
-
 # Build Data -------------------------------------------------------------------
 
 ## Reduce blocks to just CA ----

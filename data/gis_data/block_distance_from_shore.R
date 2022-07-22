@@ -20,7 +20,6 @@ plotdir <- "analyses/2performance_fisheries/figures"
 state_waters_poly <- readRDS(file.path(gisdir, "CA_state_waters_polygons.Rds"))
 state_waters_line <- readRDS(file.path(gisdir, "CA_state_waters_polyline.Rds"))
 mpas_orig <- readRDS(file.path(gisdir, "CA_MPA_polygons.Rds"))
-block_mpa_key <- read.csv(file.path(gisdir, "CA_blocks_with_mpas.csv"), as.is=T)
 coast <- sf::st_read(file.path(basedir, "gis_data/raw", "Coastn83", "coastn83.shp"))
 
 
@@ -54,13 +53,13 @@ data1 <- blocks %>%
   select(block_id) %>% 
   mutate(distance_to_shore_km = dist_to_shore)
 
-## Remove geom from block key for csv export ----
-data2 <- data %>% 
-  sf::st_drop_geometry() %>% 
+## Remove geom from block key for export ----
+data2 <- data1 %>% 
+  sf::st_drop_geometry()
   
 
-## Export block key csv ----
-write.csv(data2, file=file.path(gisdir, "block_distance_to_shore.csv"), row.names=F)
+## Export block key ----
+saveRDS(data2, file=file.path(gisdir, "block_distance_to_shore.Rds"))
 
 
 # Plot Data --------------------------------------------------------------------
