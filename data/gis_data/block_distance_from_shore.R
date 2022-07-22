@@ -60,7 +60,7 @@ data2 <- data %>%
   
 
 ## Export block key csv ----
-write.csv(data2, file=file.path(gisdir, "CA_blocks_dist_from_shore.csv"), row.names=F)
+write.csv(data2, file=file.path(gisdir, "block_distance_to_shore.csv"), row.names=F)
 
 
 # Plot Data --------------------------------------------------------------------

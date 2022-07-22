@@ -19,15 +19,10 @@ plotdir <- "analyses/2performance_fisheries/figures"
 
 ## Read data ---- 
 port_totals <- readRDS(file.path(datadir, "annual_landings_per_port_lb.Rds"))
-ports <- sf::st_read(file.path(gisdir, "raw", "Ports", "CUL_CA_Ports.shp"))
+ports <- readRDS(file.path(gisdir, "processed", "CA_ports.Rds"))
 blocks_orig <- wcfish::blocks
 
-state_waters_poly <- readRDS(file.path(gisdir, "CA_state_waters_polygons.Rds"))
-state_waters_line <- readRDS(file.path(gisdir, "CA_state_waters_polyline.Rds"))
-mpas_orig <- readRDS(file.path(gisdir, "CA_MPA_polygons.Rds"))
-block_mpa_key <- read.csv(file.path(gisdir, "CA_blocks_with_mpas.csv"), as.is=T)
-coast <- sf::st_read(file.path(basedir, "gis_data/raw", "Coastn83", "coastn83.shp"))
-
+#ports <- sf::st_read(file.path(gisdir, "raw", "Ports", "CUL_CA_Ports.shp"))
 
 # Build Data -------------------------------------------------------------------
 
@@ -40,9 +35,7 @@ block_centroids <- st_centroid(blocks)
 
 ## Join port totals with shapefile data ----
 port_comb <- ports %>% 
-  full_join(port_totals, by = c("PORTCODE" = "port_id")) %>% 
-  sf::st_transform(crs = st_crs("+proj=longlat +datum=WGS84"))
-
+  full_join(port_totals, by = c("port_code" = "port_id")) 
 
 ## Reduce port shapefile to those in "major port" list
 port_major <- port_comb %>% 
