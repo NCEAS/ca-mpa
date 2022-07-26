@@ -37,6 +37,9 @@ rov <- rov_raw %>%
 
 rov$name[rov$name == "farallon island smr"] = "southeast farallon island smr"
 rov$name[rov$name == "farallon island smca"] = "southeast farallon island smca"
+rov$name[rov$name == "north farallon island smca"] = "north farallon islands smr"
+rov$name[rov$name == "north farallon island smr"] = "north farallon islands smr"
+
 
 # Summary Dataframe -------------------------------------------------------------
 rov_1620 <- rov %>% 
@@ -49,7 +52,8 @@ rov_1620 <- rov %>%
 sp_matrix <- rov_1620 %>% 
   pivot_wider(id_cols = name,
               names_from = scientific_name,
-              values_from = total_count)
+              values_from = total_count) %>% 
+  ungroup()
 
 sp_matrix[is.na(sp_matrix)] <- 0
 
