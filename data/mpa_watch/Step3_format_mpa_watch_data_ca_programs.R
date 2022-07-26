@@ -8,6 +8,7 @@ rm(list = ls())
 
 # Packages
 library(tidyverse)
+library(lubridate)
 
 # Directories
 basedir <- "/Volumes/GoogleDrive/.shortcut-targets-by-id/1kCsF8rkm1yhpjh2_VMzf8ukSPf9d4tqO/MPA Network Assessment: Working Group Shared Folder/data/sync-data/"
@@ -34,12 +35,14 @@ mpas <- readRDS(file.path(basedir, "mpa_traits/processed", "CA_mpa_metadata.Rds"
 
 # Site key
 site_key <- data_orig %>% 
-  # Unique sites
+  # Renam
   janitor::clean_names("snake") %>% 
-  select(mpa, mpa_id) %>% 
+  rename(site=mpa, site_id=mpa_id) %>% 
+  # Unique sites
+  select(site, site_id) %>% 
   unique() %>% 
   # Recode a few MPA names
-  mutate(mpa=recode(mpa,
+  mutate(site=recode(site,
                     "Blue Cavern (Catalina Island) SMCA"="Blue Cavern Offshore SMCA",
                     "Cat Harbor (Catalina Island) SMCA"="Cat Harbor SMCA",
                     "Laguna Beach SMCA"="Laguna Beach SMCA (No-Take)",
@@ -48,29 +51,29 @@ site_key <- data_orig %>%
                     "Campus Point SMCA"="Campus Point SMCA (No-Take)",
                     "Lovers Point SMR"="Lovers Point - Julia Platt SMR")) %>%
   # Mark MPA or control
-  mutate(survey_type=ifelse(!grepl("control", tolower(mpa)), "MPA", "Control")) %>% 
+  mutate(site_type=ifelse(!grepl("control", tolower(site)), "MPA", "Control"))# %>% 
   # Format control names
-  mutate(mpa=gsub("CONTROL |control |Control |", "", mpa))
+  # mutate(mpa=gsub("CONTROL |control |Control |", "", mpa))
 
 # Confirm that all MPAs are in MPA key
-site_key$mpa[!site_key$mpa %in% mpas$mpa & site_key$survey_type=="MPA"]
+site_key$mpa[!site_key$site %in% mpas$mpa & site_key$site_type=="MPA"]
   
 
 # Format data
 ################################################################################
-
-# conve
 
 # Format data
 data <- data_orig %>%
   # Rename
   janitor::clean_names("snake") %>% 
   # Rename columns
-  rename(tide_ft=tide_height,
+  rename(site=mpa,
+         site_id=mpa_id, 
+         tide_ft=tide_height,
          air_temp_f=air_temperature) %>%
   # Add corrected MPA name and site type
-  select(-mpa) %>% 
-  left_join(site_key, by="mpa_id") %>% 
+  select(-site) %>% 
+  left_join(site_key, by="site_id") %>% 
   # Convert date/time
   mutate(date=lubridate::ymd(date),
          time_start1=lubridate::hms(time_start),
@@ -113,7 +116,7 @@ data <- data_orig %>%
   # Assume that NA in number of activities is a zero
   mutate_at(vars(c(beach_rec_sandy, beach_rec_rocky, wildlife_viewing_sandy:unknown_fishing)), ~replace_na(., 0)) %>% 
   # Arrange
-  select(survey_id, program, mpa_id, mpa, survey_type, 
+  select(survey_id, program, site_id, site, site_type, 
          survey_site:time_end, time_start1, time_end1, time_start2, time_end2, duration_hr, everything())
 
 # Inspect data
@@ -122,7 +125,7 @@ freeR::complete(data)
 
 # Inspect data
 table(data$program)
-table(data$survey_type)
+table(data$site_type)
 table(data$survey_site_type)
 table(data$beach_status)
 table(data$clouds)
