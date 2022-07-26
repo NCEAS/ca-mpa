@@ -81,8 +81,6 @@ write.csv(block_stats, file=file.path(outdir, "CA_blocks_with_mpas_all_mpa_types
 types_use <- c("SMR", "SMRMA", "SMCA", "SMCA (No-Take)", "FMR", "FMCA")
 mpas_use <- mpas %>% 
   filter(type %in% types_use)
-mpa_use_pts <- mpas_use %>%
-  sf::st_drop_geometry()
 
 # Simplify MPAs
 mpas_simple <- mpas_use %>%
@@ -133,8 +131,8 @@ block_stats <- data2 %>%
 blocks_stats_df <- blocks %>%
   filter(block_state=="California" & block_type=="Inshore") %>%
   left_join(block_stats, by="block_id") %>% 
-  st_drop_geometry() %>% 
-  select(block_id, mpa_n, mpas, mpa_km2)
+  sf::st_drop_geometry() %>% 
+  select(block_id, block_area_km2, mpa_n, mpas, mpa_km2)
 
 # Export as RDS
 saveRDS(blocks_stats_df, file.path(outdir, "block_mpa_coverage_reduced_types.Rds"))

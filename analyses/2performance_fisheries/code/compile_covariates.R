@@ -25,13 +25,15 @@ gis.dir <- file.path(base.dir, "gis_data", "processed")
 
 
 # Read Data --------------------------------------------------------------------
-block_stats <- readRDS(file.path(gis.dir,"CA_blocks_stats.Rds")) 
+block_stats <- readRDS(file.path(gis.dir,"block_mpa_coverage_reduced_types.Rds")) 
 depth <- readRDS(file.path(gis.dir, "block_mean_depth.Rds")) 
-shore <- read_csv(file.path(gis.dir, "block_distance_to_shore.csv"))
+shore <- readRDS(file.path(gis.dir, "block_distance_to_shore.Rds"))
 port <- readRDS(file.path(gis.dir, "block_distance_to_port.Rds"))
 
 # Build Data -------------------------------------------------------------------
+
 data <- block_stats %>% 
   left_join(., depth) %>% 
   left_join(., shore) %>% 
   left_join(., port)
+
