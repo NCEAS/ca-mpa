@@ -349,14 +349,14 @@ cenfun2 <- function(group, x) {
   start <- levels(group$year)[1:(n - 1)]
   end <- levels(group$year)[2:n]
   map2_dfr(start, end, ~ {
-  idx1 <- which(group$year == .x)
-  idx2 <- which(group$year == .y)
-  tibble(
-    start_centroid = .x,
-    end_centroid = .y,
-    distance = dist_between_centroids(x, idx1, idx2)
-  )
-})
+    idx1 <- which(group$year == .x)
+    idx2 <- which(group$year == .y)
+    tibble(
+      start_centroid = .x,
+      end_centroid = .y,
+      distance = dist_between_centroids(x, idx1, idx2)
+    )
+  })
 } #start and end are grouping vars, x is distmat
 
 
