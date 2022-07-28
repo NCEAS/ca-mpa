@@ -26,9 +26,8 @@ col_key <- readxl::read_excel(file.path(outdir, "column_key_ca_programs.xlsx"))
 mpas <- readRDS(file.path(basedir, "mpa_traits/processed", "CA_mpa_metadata.Rds"))
 
 # To-do list
-# 1) Determine wind speed units
-# 2) The temperature column is messed up - handle if you care?
-# 3) Clean weather/tide station names/coordinates -- probably optional
+# 1) The temperature column is messed up - handle if you care?
+# 2) Clean weather/tide station names/coordinates -- probably optional
 
 # Site key
 ################################################################################
@@ -71,6 +70,7 @@ data <- data_orig %>%
          subsite_id=survey_site_id, 
          subsite_type=survey_site_type,
          tide_ft=tide_height,
+         wind_speed_mph=wind_speed,
          air_temp_f=air_temperature) %>%
   # Add corrected MPA name and site type
   select(-site) %>% 
@@ -109,9 +109,9 @@ data <- data_orig %>%
                              "On-Site Observation +EZfishn website"="On-Site Observation + EZfishn website")) %>% 
   # Format tide and wind speed
   mutate(tide_ft=ifelse(tide_ft==-9999, NA, tide_ft),
-         wind_speed=ifelse(wind_speed==-9999, NA, wind_speed),
+         wind_speed_mph=ifelse(wind_speed_mph==-9999, NA, wind_speed_mph),
          wind=recode(wind, "Not windy"="Calm"),
-         air_temp_f=ifelse(air_temp_f %in% c(-9999, 0), NA, wind_speed)) %>% 
+         air_temp_f=ifelse(air_temp_f %in% c(-9999, 0), NA, air_temp_f)) %>% 
   # Compute survey duration
   mutate(duration_hr=lubridate::time_length(time_end1-time_start1, unit="hours")) %>% 
   # Assume that NA in number of activities is a zero
@@ -145,7 +145,7 @@ table(data$air_temp_f)  # lots of problems
 # Inspect numeric data
 range(data$date)
 range(data$tide_ft, na.rm=T)
-range(data$wind_speed, na.rm=T) # not sure what units are
+range(data$wind_speed_mph, na.rm=T) # not sure what units are
 
 # Weather station key
 # Some lat/long need to be swapped and some long need to be negative

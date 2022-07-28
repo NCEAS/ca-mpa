@@ -13,10 +13,11 @@ library(tidyverse)
 basedir <- "/Volumes/GoogleDrive/.shortcut-targets-by-id/1kCsF8rkm1yhpjh2_VMzf8ukSPf9d4tqO/MPA Network Assessment: Working Group Shared Folder/data/sync-data/"
 indir <- file.path(basedir, "mpa_watch/raw")
 outdir <- file.path(basedir, "mpa_watch/processed")
+gisdir <- file.path(basedir, "gis_data/processed")
 plotdir <- "data/mpa_watch/figures"
 
 # Read MPA data
-mpas <- readRDS(file.path(basedir, "mpa_traits/processed", "CA_mpa_metadata.Rds"))
+mpas <- readRDS(file.path(gisdir, "CA_MPA_polygons.Rds"))
 
 # Read monitoring data
 data_orig <- readRDS(file=file.path(outdir, "MPA_Watch_2011_2022_surveys_ca_programs_wide.Rds"))
@@ -52,7 +53,14 @@ sites <- sites_orig %>%
   # Arrange
   select(program, site_id, site, site_type, subsite_id, subsite, subsite_type, lat_dd, long_dd) %>% 
   # Format a few MPA names
-  mutate(site=recode(site, "A√±o Nuevo SMR"="Año Nuevo SMR"))
+  mutate(site=recode(site, "A√±o Nuevo SMR"="Año Nuevo SMR")) %>% 
+  # Fill in some missing coords
+  # Table Rock LB-SMCA: 33.501924, -117.746359
+  # CHSMCA1: 33.434476, -118.503406
+  mutate(lat_dd=ifelse(subsite=="Table Rock LB-SMCA", 33.501924, lat_dd),
+         long_dd=ifelse(subsite=="Table Rock LB-SMCA", -117.746359, long_dd),
+         lat_dd=ifelse(subsite=="CHSMCA1", 33.434476, lat_dd),
+         long_dd=ifelse(subsite=="CHSMCA1", -118.503406, long_dd))
 
 # Subsites should be unique
 anyDuplicated(sites$subsite_id)
@@ -61,6 +69,58 @@ anyDuplicated(sites$subsite)
 # Check MPA names
 mpa_names <- sort(unique(sites$site[sites$site_type=="MPA"]))
 mpa_names[!mpa_names %in% mpas$mpa]
+
+
+
+# Identify MPA closest to each control site
+################################################################################
+
+# MPAs with MPA Watch data
+mpas_use <- mpas %>% 
+  filter(name %in% mpa_names)
+
+# Convert MPA Watch sites to sf
+sites_sf <- sf::st_as_sf(sites, coords=c("long_dd", "lat_dd"), crs=sf::st_crs(mpas_use))
+
+# Calculate distance (meters) of each site to each MPA
+dist_mat <- sf::st_distance(sites_sf, mpas_use)
+dist_df <- dist_mat %>% 
+  as.data.frame() %>% 
+  # Set row/col name
+  magrittr::set_rownames(sites$subsite) %>% 
+  magrittr::set_colnames(mpas_use$name) %>% 
+  rownames_to_column(var="subsite") %>% 
+  # Gather
+  gather(key="mpa", value="dist_m", 2:ncol(.)) %>% 
+  # Convert meters to kilometers
+  mutate(dist_km=dist_m %>% as.numeric() / 1000) %>% 
+  # Find the closest MPA to each site
+  group_by(subsite) %>% 
+  arrange(subsite, dist_km) %>% 
+  slice(1) %>% 
+  ungroup() %>% 
+  # Rename
+  rename(mpa_closest=mpa, mpa_closest_km=dist_km) %>% 
+  select(-dist_m)
+
+# Add distance to site
+sites1 <- sites %>% 
+  left_join(dist_df, by="subsite")
+
+# Are the MPA sites all closest to the correct MPA? Yes, w/ fuzzy understanding of Laguna Beach
+check1 <- sites1 %>% 
+  filter(site_type=="MPA") %>% 
+  mutate(check=site==mpa_closest)
+
+# Are all 49 MPAs represent in control sites? No
+sites1 %>% 
+  filter(site_type=="Control") %>% 
+  pull(mpa_closest) %>% n_distinct()
+
+hist(sites1$mpa_closest_km[sites1$site_type=="MPA"])
+hist(sites1$mpa_closest_km[sites1$site_type=="Control"])
+
+
 
 # Export
 saveRDS(sites, file=file.path(outdir, "mpa_watch_survey_sites_clean.Rds"))
@@ -101,7 +161,7 @@ g <- ggplot() +
   geom_sf(data=foreign, fill="grey80", color="white", lwd=0.3) +
   geom_sf(data=usa, fill="grey80", color="white", lwd=0.3) +
   # Plot sites
-  geom_point(data=sites, mapping=aes(x=long_dd, y=lat_dd, color=site_type)) +
+  geom_point(data=sites, mapping=aes(x=long_dd, y=lat_dd, fill=site_type), pch=21, size=3, alpha=0.5) +
   # Labels
   labs(x="", y="") +
   scale_color_discrete(name="Site type") +
