@@ -332,9 +332,6 @@ CCFRP_mean_dist$year <- as.numeric(CCFRP_mean_dist$year)
 
 
 # calculate dist between centroids for each year ----------------------------------------
-dist_between_mat <- matrix(ncol=4, nrow=200)
-colnames(dist_between_mat) <- c("group","centroid_1","centroid_2","distance")
-
 
 
 #create helper function to calculate distance between centroids. Inputs are 
@@ -352,27 +349,52 @@ cenfun2 <- function(group, x) {
     idx1 <- which(group$year == .x)
     idx2 <- which(group$year == .y)
     tibble(
-      start_centroid = .x,
-      end_centroid = .y,
+      centroid_1 = .x,
+      centroid_2 = .y,
       distance = dist_between_centroids(x, idx1, idx2)
     )
   })
 } #start and end are grouping vars, x is distmat
 
 
-cenfun2(group=CCFRP_group_vars, x=CCFRP_distmat)
-cenfun2(group=kelp_upc_group_vars, x=kelp_upc_distmat)
+
+#calculate distances
+
+ccfrp <- cenfun2(group=CCFRP_group_vars, x=CCFRP_distmat)
+ccfrp$group <- c("ccfrp")
+
+kelp_upc <- cenfun2(group=kelp_upc_group_vars, x=kelp_upc_distmat)
+kelp_upc$group <- c("kelp_upc")
+
+kelp_swath <- cenfun2(group=kelp_swath_group_vars, x=kelp_swath_distmat)
+kelp_swath$group <- c("kelp_swath")
+
+kelp_fish <- cenfun2(group=kelp_fish_group_vars, x=kelp_fish_distmat)
+kelp_fish$group <- c("kelp_fish")
+
+deep_reef <- cenfun2(group=deep_reef_group_vars, x=deep_reef_distmat)
+deep_reef$group <- c("deep_reef")
+
+rocky <- cenfun2(group=rocky_group_vars, x=rocky_distmat)
+rocky$group <- c("rocky")
+
+cen_distances <- rbind(ccfrp, kelp_upc, kelp_swath, kelp_fish, deep_reef, rocky)
 
 
+cen_annual_distance<- cen_distances %>%
+  filter(centroid_2>=2010)%>%
+  ggplot(aes(x=as.numeric(centroid_2), y=distance, color=group))+
+  geom_point(alpha=0.4, aes(shape=group), size=3)+
+  geom_line(alpha=0.4)+
+  stat_summary(fun=mean, geom="line",colour="black", size=1)+
+  annotate("rect", xmin = 2014, xmax = 2016, ymin = 0, ymax = 0.35,
+           alpha = .15, fill='red')+
+  xlab("year")+
+  ylab("distance")+
+  theme_minimal()+theme(aspect.ratio = 1/1.5)
 
-
-
-
-
-
-
-
-
+#ggsave(here("analyses", "5community_climate_ecology", "figures", "cen_annual_distances.png"), cen_annual_distance, height=4, width = 8, units = "in", 
+#   dpi = 600, bg="white")
 
 
 
