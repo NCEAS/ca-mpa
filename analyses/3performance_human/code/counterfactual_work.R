@@ -18,7 +18,7 @@ outputdir <- "analyses/3performance_human/output"
 # Read site locations
 load(file.path(basedir, "monitoring/site_locations.rda"))
 
-# Read data
+# Read GIS data
 state_waters_poly <- readRDS(file.path(gisdir, "CA_state_waters_polygons.Rds"))
 state_waters_line <- readRDS(file.path(gisdir, "CA_state_waters_polyline.Rds"))
 mpas_orig <- readRDS(file.path(gisdir, "CA_MPA_polygons.Rds"))
@@ -27,6 +27,13 @@ mpas_orig <- readRDS(file.path(gisdir, "CA_MPA_polygons.Rds"))
 usa <- rnaturalearth::ne_states(country="United States of America", returnclass = "sf")
 foreign <- rnaturalearth::ne_countries(country=c("Canada", "Mexico"), returnclass = "sf")
 
+# Read MPA watch sites
+mpa_watch <- readRDS(file.path(basedir, "mpa_watch/processed/mpa_watch_survey_sites_clean.rds"))
+
+
+# Format data
+################################################################################
+
 # Reduce to MPAs of interest
 sort(unique(mpas_orig$type))
 types_use <- c("SMR", "SMRMA", "SMCA", "SMCA (No-Take)")
@@ -34,7 +41,6 @@ types <- c("SMR", "SMRMA", "SMCA (No-Take)", "SMCA", "SMP", "Special Closure", "
 mpas <- mpas_orig %>% 
   # Order types
   mutate(type=factor(type, types))
-
 
 # Format sites
 sites <- site_locations %>% 
@@ -52,9 +58,9 @@ sites <- site_locations %>%
   # Format site type
   mutate(site_type=ifelse(site_type=="ref", "Reference", "MPA"))
 
+
 # Plot data
 ################################################################################
-
 
 # MPA regions
 # CA/OR, Alder Creek, Pigeon Point, Point Conception, CA/MEX 
@@ -89,12 +95,14 @@ g <- ggplot() +
   # Plot land
   geom_sf(data=foreign, fill="grey80", color="white", lwd=0.3) +
   geom_sf(data=usa, fill="grey80", color="white", lwd=0.3) +
-  # Plot MPAs
-  geom_sf(data=mpas, fill=NA, color="black", lwd=0.5) +
   # Plot sampling sites
   geom_point(data=sites, mapping=aes(x=long_dd, y=lat_dd, color=site_type, shape=habitat)) +
+  # Plot MPA watch sites
+  geom_point(data=mpa_watch, mapping=aes(x=long_dd, y=lat_dd), color="black", pch="x", size=4) +
   # Plot state waters
   geom_sf(data=state_waters_line, color="grey40", lwd=0.1) +
+  # Plot MPAs
+  geom_sf(data=mpas, fill=NA, color="black", lwd=0.4) +
   # Labels
   labs(x="", y="") +
   # Legend

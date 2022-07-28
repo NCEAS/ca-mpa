@@ -37,7 +37,7 @@ mpas <- readRDS(file.path(basedir, "mpa_traits/processed", "CA_mpa_metadata.Rds"
 site_key <- data_orig %>% 
   # Renam
   janitor::clean_names("snake") %>% 
-  rename(site=mpa, site_id=mpa_id) %>% 
+  rename(site=mpa, site_id=mpa_id, subsite=survey_site, subsite_id=survey_site_id, subsite_type=survey_site_type) %>% 
   # Unique sites
   select(site, site_id) %>% 
   unique() %>% 
@@ -51,12 +51,10 @@ site_key <- data_orig %>%
                     "Campus Point SMCA"="Campus Point SMCA (No-Take)",
                     "Lovers Point SMR"="Lovers Point - Julia Platt SMR")) %>%
   # Mark MPA or control
-  mutate(site_type=ifelse(!grepl("control", tolower(site)), "MPA", "Control"))# %>% 
-  # Format control names
-  # mutate(mpa=gsub("CONTROL |control |Control |", "", mpa))
+  mutate(site_type=ifelse(!grepl("control", tolower(site)), "MPA", "Control"))
 
 # Confirm that all MPAs are in MPA key
-site_key$mpa[!site_key$site %in% mpas$mpa & site_key$site_type=="MPA"]
+site_key$site[!site_key$site %in% mpas$mpa & site_key$site_type=="MPA"]
   
 
 # Format data
@@ -69,6 +67,9 @@ data <- data_orig %>%
   # Rename columns
   rename(site=mpa,
          site_id=mpa_id, 
+         subsite=survey_site, 
+         subsite_id=survey_site_id, 
+         subsite_type=survey_site_type,
          tide_ft=tide_height,
          air_temp_f=air_temperature) %>%
   # Add corrected MPA name and site type
@@ -116,8 +117,11 @@ data <- data_orig %>%
   # Assume that NA in number of activities is a zero
   mutate_at(vars(c(beach_rec_sandy, beach_rec_rocky, wildlife_viewing_sandy:unknown_fishing)), ~replace_na(., 0)) %>% 
   # Arrange
-  select(survey_id, program, site_id, site, site_type, 
-         survey_site:time_end, time_start1, time_end1, time_start2, time_end2, duration_hr, everything())
+  select(survey_id, program, 
+         site_id, site, site_type, 
+         subsite_id, subsite, subsite_type,
+         date, time_start, time_end, time_start1, time_end1, time_start2, time_end2, duration_hr, 
+         everything())
 
 # Inspect data
 str(data)
@@ -144,7 +148,7 @@ range(data$tide_ft, na.rm=T)
 range(data$wind_speed, na.rm=T) # not sure what units are
 
 # Weather station key
-# Some lat/long need to be sweapped and some long need to be negative
+# Some lat/long need to be swapped and some long need to be negative
 weather_key <- data %>% 
   select(weather_station_name, weather_station_lon, weather_station_lat) %>% 
   unique() %>% 
