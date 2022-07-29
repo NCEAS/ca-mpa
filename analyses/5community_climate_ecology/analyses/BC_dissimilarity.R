@@ -344,6 +344,8 @@ CCFRP_mean_dist3 <- melt(CCFRP_mean_dist2) %>% #melt to three column columns
                     select(group, year = year_1, dissim = value)
 
 
+sim <- anosim(CCFRP_distmat, grouping=CCFRP_group_vars2$desig_state)
+
 #kelp_swath 
 kelp_swath_dist2 <- meandist(kelp_swath_distmat, grouping = kelp_swath_group_vars2$desig_state_year)
 
@@ -560,17 +562,6 @@ MHW_df %>%
 
 
 
-
-
-
-
-
-
-
-
-
-
-
 # calculate dist between centroids for each year ----------------------------------------
 
 # Question: how far did communities move regardless of MPA status?
@@ -722,5 +713,27 @@ ref_smr_distance <- all_mpa %>%
 
 #ggsave(here("analyses", "5community_climate_ecology", "figures", "ref_smr_distance_all_years.png"), ref_smr_distance, height=4, width = 8, units = "in", 
 #   dpi = 600, bg="white")
+
+
+
+
+
+
+
+
+
+# SIMPER tables Before & after heatwave (no consideration of MPAs)--------------
+
+
+sim_CCFRP <- with(CCFRP_group_vars2, simper(CCFRP_ord_data, desig_state), ordered=TRUE)
+sim_kelp_swath <- with(kelp_swath_group_vars, simper(kelp_swath_ord_data, MHW))
+sim_kelp_upc <- with(kelp_upc_group_vars, simper(kelp_upc_ord_data, MHW))
+sim_kelp_fish <- with(kelp_fish_group_vars, simper(kelp_fish_ord_data, MHW))
+sim_deep_reef <- with(deep_reef_group_vars, simper(deep_reef_ord_data, MHW))
+sim_rocky <- with(rocky_group_vars, simper(rocky_ord_data, MHW))
+
+
+
+
 
 
