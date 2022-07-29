@@ -26,9 +26,8 @@ col_key <- readxl::read_excel(file.path(outdir, "column_key_ca_programs.xlsx"))
 mpas <- readRDS(file.path(basedir, "mpa_traits/processed", "CA_mpa_metadata.Rds"))
 
 # To-do list
-# 1) Determine wind speed units
-# 2) The temperature column is messed up - handle if you care?
-# 3) Clean weather/tide station names/coordinates -- probably optional
+# 1) The temperature column is messed up - handle if you care?
+# 2) Clean weather/tide station names/coordinates -- probably optional
 
 # Site key
 ################################################################################
@@ -37,7 +36,7 @@ mpas <- readRDS(file.path(basedir, "mpa_traits/processed", "CA_mpa_metadata.Rds"
 site_key <- data_orig %>% 
   # Renam
   janitor::clean_names("snake") %>% 
-  rename(site=mpa, site_id=mpa_id) %>% 
+  rename(site=mpa, site_id=mpa_id, subsite=survey_site, subsite_id=survey_site_id, subsite_type=survey_site_type) %>% 
   # Unique sites
   select(site, site_id) %>% 
   unique() %>% 
@@ -51,12 +50,10 @@ site_key <- data_orig %>%
                     "Campus Point SMCA"="Campus Point SMCA (No-Take)",
                     "Lovers Point SMR"="Lovers Point - Julia Platt SMR")) %>%
   # Mark MPA or control
-  mutate(site_type=ifelse(!grepl("control", tolower(site)), "MPA", "Control"))# %>% 
-  # Format control names
-  # mutate(mpa=gsub("CONTROL |control |Control |", "", mpa))
+  mutate(site_type=ifelse(!grepl("control", tolower(site)), "MPA", "Control"))
 
 # Confirm that all MPAs are in MPA key
-site_key$mpa[!site_key$site %in% mpas$mpa & site_key$site_type=="MPA"]
+site_key$site[!site_key$site %in% mpas$mpa & site_key$site_type=="MPA"]
   
 
 # Format data
@@ -69,7 +66,11 @@ data <- data_orig %>%
   # Rename columns
   rename(site=mpa,
          site_id=mpa_id, 
+         subsite=survey_site, 
+         subsite_id=survey_site_id, 
+         subsite_type=survey_site_type,
          tide_ft=tide_height,
+         wind_speed_mph=wind_speed,
          air_temp_f=air_temperature) %>%
   # Add corrected MPA name and site type
   select(-site) %>% 
@@ -108,16 +109,19 @@ data <- data_orig %>%
                              "On-Site Observation +EZfishn website"="On-Site Observation + EZfishn website")) %>% 
   # Format tide and wind speed
   mutate(tide_ft=ifelse(tide_ft==-9999, NA, tide_ft),
-         wind_speed=ifelse(wind_speed==-9999, NA, wind_speed),
+         wind_speed_mph=ifelse(wind_speed_mph==-9999, NA, wind_speed_mph),
          wind=recode(wind, "Not windy"="Calm"),
-         air_temp_f=ifelse(air_temp_f %in% c(-9999, 0), NA, wind_speed)) %>% 
+         air_temp_f=ifelse(air_temp_f %in% c(-9999, 0), NA, air_temp_f)) %>% 
   # Compute survey duration
   mutate(duration_hr=lubridate::time_length(time_end1-time_start1, unit="hours")) %>% 
   # Assume that NA in number of activities is a zero
   mutate_at(vars(c(beach_rec_sandy, beach_rec_rocky, wildlife_viewing_sandy:unknown_fishing)), ~replace_na(., 0)) %>% 
   # Arrange
-  select(survey_id, program, site_id, site, site_type, 
-         survey_site:time_end, time_start1, time_end1, time_start2, time_end2, duration_hr, everything())
+  select(survey_id, program, 
+         site_id, site, site_type, 
+         subsite_id, subsite, subsite_type,
+         date, time_start, time_end, time_start1, time_end1, time_start2, time_end2, duration_hr, 
+         everything())
 
 # Inspect data
 str(data)
@@ -141,10 +145,10 @@ table(data$air_temp_f)  # lots of problems
 # Inspect numeric data
 range(data$date)
 range(data$tide_ft, na.rm=T)
-range(data$wind_speed, na.rm=T) # not sure what units are
+range(data$wind_speed_mph, na.rm=T) # not sure what units are
 
 # Weather station key
-# Some lat/long need to be sweapped and some long need to be negative
+# Some lat/long need to be swapped and some long need to be negative
 weather_key <- data %>% 
   select(weather_station_name, weather_station_lon, weather_station_lat) %>% 
   unique() %>% 
