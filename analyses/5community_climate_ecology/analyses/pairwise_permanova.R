@@ -14,6 +14,8 @@ require(usedist)
 require(ggplot2)
 require(reshape2)
 require(ggfittext)
+require(pairwiseAdonis)
+require(here)
 
 
 data_path <- "/home/shares/ca-mpa/data/sync-data/processed_data/ecological_community_data/year_level"
@@ -264,27 +266,27 @@ rocky_distmat <-
 
 #add dummy var
 CCFRP_group_vars2 <- CCFRP_group_vars %>%
-  mutate(desig_state_year = paste(year,mpa_designation)) %>%
+  mutate(desig_state_year = paste(year,mpa_designation)) 
 
 
 kelp_swath_group_vars2 <- kelp_swath_group_vars %>%
-  mutate(desig_state_year = paste(year,mpa_defacto_designation))%>%
+  mutate(desig_state_year = paste(year,mpa_defacto_designation))
 
 
 kelp_upc_group_vars2 <- kelp_upc_group_vars %>%
-  mutate(desig_state_year = paste(year,mpa_defacto_designation))%>%
+  mutate(desig_state_year = paste(year,mpa_defacto_designation))
 
 
 kelp_fish_group_vars2 <- kelp_fish_group_vars %>%
-  mutate(desig_state_year = paste(year,mpa_defacto_designation))%>%
+  mutate(desig_state_year = paste(year,mpa_defacto_designation))
 
 
 deep_reef_group_vars2 <- deep_reef_group_vars %>%
-  mutate(desig_state_year = paste(year,mpa_defacto_designation))%>%
+  mutate(desig_state_year = paste(year,mpa_defacto_designation))
 
 
 rocky_group_vars2 <- rocky_group_vars %>%
-  mutate(desig_state_year = paste(year,mpa_designation))%>%
+  mutate(desig_state_year = paste(year,mpa_designation))
 
 
 
@@ -331,18 +333,22 @@ ggplot() +
                                                       "ref after vs smr after",
                                                       "ref before vs smr before")),
                 color="black", fill=signif)) +
-  geom_text(aes(size=10, x = group, y = pairs, label = p.value)) + 
+  geom_text(aes(size=10, x = group, y = pairs, label = p.value), vjust=0) + 
+  #geom_text(aes(size=10, x = group, y = pairs, label = R2), vjust=-1) + 
   scale_x_discrete(name = '', expand = c(0, 0)) +
   scale_y_discrete(name = '', expand = c(0, 0)) +
   scale_color_manual(values="black")+
   scale_fill_manual(values=c('#c1f2f3','#f0c8c5'))+
   theme_bw() +
-  theme(legend.position = 'none'
+  theme(legend.position = 'none',
+        text = element_text(size=14),
+        aspect.ratio = (1/1.5)
   )
+  
 
 
-ggsave(here("analyses", "5community_climate_ecology", "figures", "pairwise_permanova_output.png"), permanova_fig, height=4, width = 8, units = "in", 
-   dpi = 600, bg="white")
+#ggsave(here("analyses", "5community_climate_ecology", "figures", "pairwise_permanova_output.png"), permanova_fig, height=4, width = 8, units = "in", 
+#   dpi = 600, bg="white")
 
 
 
