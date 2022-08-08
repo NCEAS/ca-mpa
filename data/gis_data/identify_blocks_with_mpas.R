@@ -78,7 +78,7 @@ write.csv(block_stats, file=file.path(outdir, "CA_blocks_with_mpas_all_mpa_types
 # P2: Build Data - Only SMRs/SMCAs and FMRs/FMCAs ---------------------------
 
 # Only look at SMRs/SMCAs and FMRs, FMCAs
-types_use <- c("SMR", "SMRMA", "SMCA", "SMCA (No-Take)", "FMR", "FMCA")
+types_use <- c("SMR", "SMCA", "SMCA (No-Take)", "FMR", "FMCA")
 mpas_use <- mpas %>% 
   filter(type %in% types_use)
 
@@ -96,11 +96,11 @@ blocks_area <- blocks_simple %>%
   measurements::conv_unit(., "m2", "km2")
 
 # Add block area to main block dataframe
-blocks <- blocks %>% 
+blocks2 <- blocks %>% 
   mutate(block_area_km2 = blocks_area)
 
 # Add block area to simple block dataframe
-blocks_simple <- blocks_simple %>% 
+blocks_simple2 <- blocks_simple %>% 
   mutate(block_area_km2 = blocks_area)
 
 # Test for any overlap among MPA polygons 
@@ -128,8 +128,8 @@ block_stats <- data2 %>%
   ungroup()
 
 # Add MPA block stats to block dataframe
-blocks_stats_df <- blocks %>%
-  filter(block_state=="California" & block_type=="Inshore") %>%
+blocks_stats_df <- blocks2 %>%
+  filter(block_state=="California") %>%
   left_join(block_stats, by="block_id") %>% 
   sf::st_drop_geometry() %>% 
   select(block_id, block_area_km2, mpa_n, mpas, mpa_km2)
