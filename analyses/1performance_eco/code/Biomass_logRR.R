@@ -5,12 +5,15 @@ require(ggpubr)
 require(tidytext)
 require(dplyr)
 require(ggplot2)
+require(ggpmisc)
 
 
 data_path <- "/home/shares/ca-mpa/data/sync-data/processed_data"
-input_file <- "targeted_nontargeted_biomass_logRRs.csv" 
+input_file <- "targeted_nontargeted_fish_biomass_logRRs.csv" 
 
 means.data <- read.csv(file.path(data_path, input_file))
+
+
 
 
 ##========2016-2020 -- BIOMASS=======
@@ -69,30 +72,47 @@ A <- mu_site %>%
 
 biomass_traject <- means.data %>%
                   group_by(year, group, region4, mpa_class, target_status)%>%
-                  summarise(mean_RR = mean(logRR))%>%
+                  summarise(mean_RR = mean(logRR),
+                            ssize = n())%>%
                   filter(group == 'ccfrp'|group == 'kelp'|group == 'deep_reef',
                          mpa_class == 'smr')
-  
+                  
+means.data$region4<-factor(means.data$region4,levels=c("north","central","north islands","south"))
 
-
-ggplot(biomass_traject, aes(x=year, y=mean_RR, color=target_status))+
+biomass_plot <- ggplot(means.data %>%
+         filter(group == 'ccfrp'|group == 'kelp'|group == 'deep_reef',
+                mpa_class == 'smr')
+       , aes(x=year, y=logRR, color=target_status))+
   geom_hline(yintercept=0, linetype="dashed", color = "gray", size = 0.5) +
   #geom_ribbon(aes(ymax=eCI_95, ymin=eCI_5), group=1, alpha=0.2, fill = "#BC1605") +
-  geom_point(shape=19, size=3) +
-  geom_smooth(method='lm', se = T, formula=y~x, linetype='solid', size=0.5) +
-  stat_poly_eq(formula = y ~ x, 
-               aes(label = paste(..rr.label.., ..p.value.label.., sep = "*`,`~")), 
-               parse = TRUE,
-               label.x.npc = "right",
-               vstep = 0.1) + # sets vertical spacing
-  scale_color_manual(values=c("blue", "red"), drop = FALSE) +
+  #geom_point(shape=19, size=3) +
+  stat_summary(
+    geom = "point",
+    fun = "mean",
+    size = 1,
+    shape = 19,
+    aes(color=target_status))+
+  geom_smooth(method='lm', level=0.95, formula=y~x, linetype='solid', size=0.5
+             ) +
+  #stat_poly_eq(formula = y ~ x, 
+  #            aes(label = paste(..rr.label.., ..p.value.label.., sep = "*`,`~")), 
+  #            parse = TRUE,
+  #           label.x.npc = "right",
+  #           vstep = 0.1) + # sets vertical spacing
+  scale_color_manual(values=c("#6187eb", "#ec7560"), drop = FALSE) +
   scale_linetype_manual(values=c("solid","twodash"), drop = FALSE) +
-  labs(y=expression(bold(Log(Biomass[MPA]/Biomass[REF])))) +
+  labs(y=expression(bold(Log(Biomass[MPA]/Biomass[REF]))),
+       x = expression(bold(year))) +
   labs(colour = 'Difference', linetype = 'Slope') +
-  facet_wrap(region4~group, scales="fixed", nrow=4)+
+  facet_wrap(region4~group, scales="free", nrow=4)+
   scale_x_continuous()+
-  theme_classic() 
+  labs(colour = "fished status") +
+  theme_classic(base_size = 8) #+ theme(aspect.ratio = 1/1.5)
 
+
+
+#ggsave(here("analyses", "1performance_eco", "figures", "biomass_trajectory_2.png"), biomass_plot, height=6, width = 8, units = "in", 
+#   dpi = 600, bg="white")
 
 
 
