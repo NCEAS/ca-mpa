@@ -996,7 +996,7 @@ distance_MPA_table <- left_join(MHW_table, mpa_table, by=c("group","mpa_designat
    #stat_summary(fun=mean, geom="line",colour="black", size=1)+
    #annotate("rect", xmin = 2014, xmax = 2016, ymin = 0, ymax = 0.55,
    #     alpha = .15, fill='red')+
-   xlab("year")+
+   xlab("monitoring group")+
    ylab("distance")+
    facet_wrap(~mpa_designation)+
    geom_hline(data = distance_MPA_table %>% filter(mpa_designation == "ref" & name=="before_to_after"), aes(yintercept = median(value),
@@ -1018,8 +1018,11 @@ distance_MPA_table <- left_join(MHW_table, mpa_table, by=c("group","mpa_designat
    guides(color = "none",
           fill=guide_legend(title="distance"))
 
-#ggsave(here("analyses", "5community_climate_ecology", "figures", "travel_vs_MHW_distance.png"), travel_distance, height=4, width = 8, units = "in", 
-#  dpi = 600, bg="white")
+ggsave(here("analyses", "5community_climate_ecology", "figures", "travel_vs_MHW_distance.png"), travel_distance, height=4, width = 8, units = "in", 
+  dpi = 600, bg="white")
+
+
+
 
 
 
