@@ -120,8 +120,6 @@ sites1 %>%
 hist(sites1$mpa_closest_km[sites1$site_type=="MPA"])
 hist(sites1$mpa_closest_km[sites1$site_type=="Control"])
 
-
-
 # Export
 saveRDS(sites, file=file.path(outdir, "mpa_watch_survey_sites_clean.Rds"))
 
