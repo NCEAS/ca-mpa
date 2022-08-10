@@ -44,7 +44,7 @@ table(mpas$type)
 region_lats <- c(39.0, 37.18, 34.5)
 
 # Region labels
-region_labels <- tibble(long_dd=c(-123.9, -122.9, -121.7, -121, -118, -119.5),
+region_labels <- tibble(long_dd=c(-123.9, -122.9, -121.8, -121, -118, -119.5),
                         lat_dd=c(40.5, 38.7, 37.6, 36, 34.1, 34.8),
                         label=c("North\n(Dec 2012)", "North Central\n(May 2010)", "San Francisco Bay\n(prior to 2007)",
                                 "Central\n(Sep 2007)", "South\n(Jan 2012)", "N. Channel\nIslands (2003)"))
