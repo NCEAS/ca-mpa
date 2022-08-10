@@ -35,6 +35,10 @@ mpas <- mpas_orig %>%
 # Build data
 data_orig <- readRDS(file.path(datadir, "2000_2020_inaturalist_data_inside_mpas_100m_buffer.Rds"))
 
+# Stats
+nrow(data_orig)
+n_distinct(data_orig$user_id)
+
 # Summarize
 stats <- data_orig %>% 
   # 2018
