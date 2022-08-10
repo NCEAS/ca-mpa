@@ -34,7 +34,7 @@ sites <- site_locations %>%
                         "ccfrp"="Rocky reef",
                         "deep_reef"="Deep reef",
                         "kelp"="Kelp",
-                        "Rocky intertidal"="rocky",
+                        "rocky"="Rocky intertidal",
                         "surf-zone"="Surf zone")) %>% 
   # Format site type
   mutate(site_type=ifelse(site_type=="ref", "Reference", "MPA")) %>% 
@@ -57,16 +57,20 @@ sites <- site_locations %>%
                     "Piedras Blancas SMCA/ Smcr"="Piedras Blancas SMR/SMCA",     
                     "Point Arena "="Point Arena SMR/SMCA", # is this right? both SMR/SMCA or one?                       
                     "Point Vicente SMCA"="Point Vicente SMCA (No-Take)",                
-                    "Soquel Canyon SMR"="Soquel Canyon SMCA",                 
+                    "Soquel Canyon SMR"="Soquel Canyon SMCA",       
+                    # "Trinidad SMR"=""
                     "Swamis SMCA"="Swami's SMCA"),
-         mpa=ifelse(mpa=="", NA, mpa))   %>%                 
-                    # "Trinidad SMR"="")) %>% 
+         mpa=ifelse(mpa=="", NA, mpa)) %>%
   # Fill in missing site names
-  mutate(site_temp=make.unique(paste(mpa, site_type, sep="-"), sep="-")) %>% 
-  mutate(site=ifelse(is.na(site), site_temp, site)) %>% 
+  # mutate(site_temp=make.unique(paste(mpa, site_type, sep="-"), sep="-")) %>% 
+  # mutate(site=ifelse(is.na(site), site_temp, site)) %>% 
   # Remove unimportant columns
   select(-c(mpa_class, site_temp))
-  
+
+
+#   
+# centroid of the deep reef polygons - site name becomes easy
+
 
 # Inspect MPA names
 mpas_in_data <- sort(unique(sites$mpa))  
