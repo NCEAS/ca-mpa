@@ -51,6 +51,8 @@ sst_ts <- sst_ts_orig %>%
   select(habitat, mpa, site, site_type, date, everything()) %>% 
   arrange(habitat, mpa, site, site_type, date)
 
+# Export SST time series
+saveRDS(sst_ts, file.path(outputdir, "2002_2022_mursst_monthly_by_monitoring_site.Rds"))
 
 
 
