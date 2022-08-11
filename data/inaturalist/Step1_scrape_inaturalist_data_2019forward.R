@@ -63,7 +63,7 @@ key <- expand.grid(year=2019:2021,
 
 # Loop through and scrape
 i <- 1 
-for(i in 1:nrow(key)){
+for(i in 746:nrow(key)){
 
   # Grab data
   print(i)
