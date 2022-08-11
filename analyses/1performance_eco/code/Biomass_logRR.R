@@ -71,16 +71,20 @@ A <- mu_site %>%
 # Biomass trajectory ------------------------------------------------------
 
 biomass_traject <- means.data %>%
-                  group_by(year, group, region4, mpa_class, target_status)%>%
-                  summarise(mean_RR = mean(logRR),
+                  dplyr::group_by(year, group, region4, mpa_class, target_status)%>%
+                  dplyr::summarise(mean_RR = mean(logRR),
                             ssize = n())%>%
-                  filter(group == 'ccfrp'|group == 'kelp'|group == 'deep_reef',
-                         mpa_class == 'smr')
+                  dplyr::filter(group == 'ccfrp'|group == 'kelp'|group == 'deep_reef',
+                         mpa_class == 'smr')%>%
+                  dplyr::filter(!(group=='ccfrp'&target_status=='targeted'))
                   
-means.data$region4<-factor(means.data$region4,levels=c("north","central","north islands","south"))
+biomass_traject$region4<-factor(biomass_traject$region4,levels=c("north","central","north islands","south"))
 
-biomass_plot <- ggplot(means.data %>%
-         filter(group == 'ccfrp'|group == 'kelp'|group == 'deep_reef',
+means_plot <- means.data %>%
+  dplyr::filter(!(group=='ccfrp'&target_status=='nontargeted'))
+
+biomass_plot <- ggplot(means_plot %>%
+         dplyr::filter(group == 'ccfrp'|group == 'kelp'|group == 'deep_reef',
                 mpa_class == 'smr')
        , aes(x=year, y=logRR, color=target_status))+
   geom_hline(yintercept=0, linetype="dashed", color = "gray", size = 0.5) +
@@ -111,8 +115,8 @@ biomass_plot <- ggplot(means.data %>%
 
 
 
-#ggsave(here("analyses", "1performance_eco", "figures", "biomass_trajectory_2.png"), biomass_plot, height=6, width = 8, units = "in", 
-#   dpi = 600, bg="white")
+#ggsave(here::here("analyses", "CDFW_modules", "figures","module_1_eco_perform", "biomass_trajectory.png"), biomass_plot, height=6, width = 8, units = "in", 
+#  dpi = 600, bg="white")
 
 
 
