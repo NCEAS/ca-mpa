@@ -15,6 +15,7 @@ basedir <- "/Volumes/GoogleDrive/.shortcut-targets-by-id/1kCsF8rkm1yhpjh2_VMzf8u
 gisdir <- file.path(basedir, "gis_data/processed")
 datadir <- file.path(basedir, "mpa_watch/processed")
 plotdir <- "analyses/3performance_human/figures"
+outputdir <- "analyses/3performance_human/output"
 
 # Get land
 usa <- rnaturalearth::ne_states(country="United States of America", returnclass = "sf")
@@ -37,16 +38,17 @@ types_use <- c("SMR", "SMRMA", "SMCA (No-Take)", "SMCA")
 # Build data
 data_wide <- data_orig %>% 
   # Reduce to MPAs
-  filter(survey_type=="MPA") %>% 
+  filter(site_type=="MPA") %>% 
   # Add MPA metadata
-  left_join(mpas_orig %>% select(mpa, region, type), by="mpa") %>% 
+  left_join(mpas_orig %>% select(mpa, region, type), by=c("site"="mpa")) %>% 
+  rename(mpa=site) %>% 
   # Reduce to MPAs of interest
   filter(type %in% types_use) %>% 
   # Order MPA types
   mutate(type=factor(type, levels=types_use)) %>% 
   rename(mpa_type=type) %>% 
   # Simplify
-  select(region, mpa_type, mpa, mpa_id, survey_id, survey_type,
+  select(region, mpa_type, mpa, survey_id, site_type,
          date, time_start2, time_end2, duration_hr, total_activities:comments) %>% 
   select(-comments) %>% 
   # Remove invalid surveys
@@ -58,7 +60,7 @@ freeR::complete(data_wide)
 # Build data
 data_long <- data_wide %>% 
   # Gather
-  gather(key="activity_orig", value="activity_n", 11:ncol(.)) %>% 
+  gather(key="activity_orig", value="activity_n", 10:ncol(.)) %>% 
   # Add column data
   left_join(col_key %>% select(activity_orig, activity, activity_type1, activity_type2, activity_type3, activity_type4), by="activity_orig") %>% 
   # Reduce
@@ -76,7 +78,7 @@ data_long_act <- data_long %>%
   # Convert number of activities to numeric
   mutate(activity_n=as.numeric(activity_n)) %>% 
   # Summarize by larger activity type
-  group_by(region, mpa, mpa_id, mpa_type, survey_id, survey_type, date, duration_hr, 
+  group_by(region, mpa, mpa_type, survey_id, site_type, date, duration_hr, 
            activity_type1, activity_type2, activity_type3) %>% 
   summarize(activity_n=sum(activity_n)) %>% 
   ungroup() %>% 
@@ -93,7 +95,7 @@ freeR::complete(data_long_act)
 # Build MPA specific stats
 stats_mpa <- data_long_act %>% 
   # Summarize into broad type
-  group_by(region, mpa, mpa_id, survey_id, survey_type, date, duration_hr, activity_type1) %>% 
+  group_by(region, mpa, survey_id, site_type, date, duration_hr, activity_type1) %>% 
   summarize(activity_n=sum(activity_n),
             activity_hr=sum(activity_hr),
             activity_yn=activity_n>0) %>% 
@@ -133,6 +135,9 @@ stats_network <- data_long_act %>%
   # Order sectors
   mutate(activity_type3=factor(activity_type3, 
                                levels=c("Recreational", "Commercial", "CPFV", "Unknown")))
+
+# Export data
+saveRDS(stats_mpa, file=file.path(outputdir, "mpa_watch_consumptive_stats.Rds"))
 
 
 # Plot data
