@@ -94,10 +94,10 @@ diversity_plot <- ggplot(means_final %>%
   labs(colour = "fished status") +
   theme_classic(base_size = 8) #+ theme(aspect.ratio = 1/1.5)
 
+setwd("/home/joshsmith/CA_MPA_Project/ca-mpa/")
 
-
-#ggsave(here("analyses", "CDFW_modules", "figures","module_1_eco_perform", "diversity_trajectory.png"), diversity_plot, height=6, width = 8, units = "in", 
-#   dpi = 600, bg="white")
+ggsave(here::here("analyses","CDFW_modules", "figures","module_1_eco_perform", "diversity_trajectory.png"), diversity_plot, height=6, width = 8, units = "in", 
+   dpi = 600, bg="white")
 
 
 
