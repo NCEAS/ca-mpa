@@ -193,17 +193,18 @@ g2 <- ggplot(data, aes(x=npeople_50km/1e6, y=ncitations, fill=region, size=area_
   # Plot regression
   geom_smooth(formula='y ~ x',
               # aes(x=npeople_50km/1e6, y=inat_observers_tot),
-              method=lm, color="grey50", fill="grey80", alpha=0.5, show.legend = F) +
+              method=glm, method.args = list(family = 'poisson'), 
+              color="grey50", fill="grey80", alpha=0.5, show.legend = F) +
   # Plot points
   geom_point(pch=21) +
   # Labels
   labs(x="Human population size\n(millions of people within 50 km)", y="Number of citations", tag="B") +
   # Legend
   scale_fill_ordinal(name="Region", guide="none") +
-  scale_size_continuous(name="Area (sqkm)") +
+  scale_size_continuous(name="Area (sqkm)", breaks=c(20,40,80), range=c(0.1,5)) +
   # Theme
   theme_bw() + theme1 +
-  theme(legend.position = c(0.7, 0.7),
+  theme(legend.position = c(0.7, 0.75),
         legend.key.size = unit(0.3, "cm"))
 g2
 
@@ -212,7 +213,8 @@ g3 <- ggplot(data, aes(x=inat_observers_tot, y=ncitations, fill=region)) +
   # Plot regression
   geom_smooth(formula='y ~ x',
               # aes(x=npeople_50km/1e6, y=inat_observers_tot),
-              method=lm, color="grey50", fill="grey80", alpha=0.5, show.legend = F) +
+              method=glm, method.args = list(family = 'poisson'), 
+              color="grey50", fill="grey80", alpha=0.5, show.legend = F) +
   # Plot points
   geom_point(pch=21) +
   # Labels
@@ -221,7 +223,7 @@ g3 <- ggplot(data, aes(x=inat_observers_tot, y=ncitations, fill=region)) +
   scale_fill_ordinal(name="Region") +
   # Theme
   theme_bw() + theme1 +
-  theme(legend.position = c(0.7, 0.7),
+  theme(legend.position = c(0.7, 0.75),
         legend.key.size = unit(0.3, "cm"))
 g3
 
@@ -230,7 +232,8 @@ g4 <- ggplot(data, aes(x=psurveys, y=ncitations, fill=region, size=activity_hr))
   # Plot regression
   geom_smooth(formula='y ~ x',
               # aes(x=npeople_50km/1e6, y=inat_observers_tot),
-              method=lm, color="grey50", fill="grey80", alpha=0.5, show.legend = F) +
+              method=glm, method.args = list(family = 'poisson'), 
+              color="grey50", fill="grey80", alpha=0.5, show.legend = F) +
   # Plot points
   geom_point(pch=21) +
   # Labels
@@ -238,10 +241,10 @@ g4 <- ggplot(data, aes(x=psurveys, y=ncitations, fill=region, size=activity_hr))
   scale_x_continuous(labels=scales::percent) +
   # Legend
   scale_fill_ordinal(name="Region", guide="none") +
-  scale_size_continuous(name="Activities per hour") +
+  scale_size_continuous(name="Activities per hour", range=c(0.1, 5)) +
   # Theme
   theme_bw() + theme1 +
-  theme(legend.position = c(0.7, 0.7),
+  theme(legend.position = c(0.7, 0.75),
         legend.key.size = unit(0.3, "cm"))
 g4
 
@@ -249,7 +252,7 @@ g4
 layout_matrix <- matrix(c(1,2, 
                           1,3,
                           1,4), ncol=2, byrow=T)
-g <- gridExtra::grid.arrange(g1, g2, g3, g4, layout_matrix=layout_matrix, widths=c(0.6, 0.4))
+g <- gridExtra::grid.arrange(g1, g2, g3, g4, layout_matrix=layout_matrix, widths=c(0.62, 0.38))
 
 # Export
 ggsave(g, filename=file.path(plotdir, "Fig9_citation_data.png"), 
