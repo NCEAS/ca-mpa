@@ -9,7 +9,6 @@
 
 library(ggplot2)
 library(metafor)
-library(forestplot)
 library(dplyr)
 library(tidyr)
 library(reshape2)
@@ -154,10 +153,16 @@ mlabfun <- function(text, y) {
 
 
 
+
+
 ### set up forest plot (with 2x2 table counts added; the 'rows' argument is
 ### used to specify in which rows the outcomes will be plotted)
 
 cols <- c("red", "blue")[match(dat$target_status, c("targeted", "nontargeted"))]
+
+
+#png("/home/joshsmith/CA_MPA_Project/ca-mpa/analyses/1performance_eco/figures/fish_biomass_forestplot.png", width = 2400, height = 2400, res=300)
+
 
 forest(dat$yi, dat$vi, xlim=c(-8, 6), #at=log(c(0.05, 0.25, 1, 4)), #atransf=exp,
        #ilab=cbind(dat$tpos, dat$tneg, dat$cpos, dat$cneg),
@@ -288,7 +293,7 @@ abline(h=36, lty=1, col='#D3D3D3')
 
 text(x =-0.2, y = 50, "REF",  pos=2, font=2)
 text(x =1.1, y = 50, "SMR",  pos=2, font=2)
-text(x =-2.1, y = 51.5, "targeted and nontargeted fish biomass 2019-20",  cex=1, pos=2, font=3)
+text(x =-1.2, y = 52, "targeted and nontargeted fish biomass 2019-20",  cex=1, pos=2, font=3)
 
 
 
@@ -307,4 +312,9 @@ text(x =-2.1, y = 51.5, "targeted and nontargeted fish biomass 2019-20",  cex=1,
 
 
 
+
+
+
+# 3. Close the file
+#dev.off()
 
