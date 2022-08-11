@@ -40,16 +40,28 @@ data <- data_orig %>%
   mutate(mpa=recode(mpa, 
                     "Blue Caverns Offshore SMCA"="Blue Cavern Offshore SMCA",                              
                     "Blue Caverns Onshore SMCA (No-Take)"="Blue Cavern Onshore SMCA (No-Take)",                      
-                    # "Bolsa Chica MPA - Unidentified"="",                     
+                    # As indicated by Amanda Van Diggelen
+                    "Bolsa Chica MPA - Unidentified"="Bolsa Chica MPA - unidentified",
                     "Egg (Devil's Slide Rock) to Devil's Slide Special Closure"="Egg (Devil's Slide) Rock to Devil's Slide Special Closure", 
-                    # "Farnsworth SMCA"="",                                         
+                    # Confirmed by Amanda Van Diggelen
+                    "Farnsworth SMCA"="Farnsworth SMCA - unidentified",                                         
                     "Goelta Slough SMCA (No-Take)"="Goleta Slough SMCA (No-Take)",                             
-                    "Lover's Point - Julia Platt SMR"="Lovers Point - Julia Platt SMR"                       
-                    # "Ten Mile SMCA"=""
-                    ))
+                    "Lover's Point - Julia Platt SMR"="Lovers Point - Julia Platt SMR",
+                    # Confirmed by Amanda Van Diggelen
+                    "Ten Mile SMCA"="Ten Mile SMR")) %>% 
+  # Add region
+  select(-region) %>% 
+  left_join(mpas %>% select(mpa, region, type), by="mpa") %>% 
+  mutate(region=as.character(region),
+         region=ifelse(mpa%in% c("Bolsa Chica MPA - unidentified", "Farnsworth SMCA - unidentified"), "South Coast", region)) %>% 
+  # Add zeros for NA values
+  mutate(ncitations=ifelse(is.na(ncitations), 0, ncitations)) %>% 
+  # Arrange
+  select(region, mpa, type, everything())
 
 # Inspect
 table(data$region)
+freeR::complete(data)
 
 # Check names
 mpas_in_data <- sort(unique(data$mpa))
