@@ -10,7 +10,8 @@ rm(list = ls())
 library(tidyverse)
 
 # Directories
-basedir <- "/Volumes/GoogleDrive/.shortcut-targets-by-id/1kCsF8rkm1yhpjh2_VMzf8ukSPf9d4tqO/MPA Network Assessment: Working Group Shared Folder/data/sync-data"
+# basedir <- "/Volumes/GoogleDrive/.shortcut-targets-by-id/1kCsF8rkm1yhpjh2_VMzf8ukSPf9d4tqO/MPA Network Assessment: Working Group Shared Folder/data/sync-data"
+basedir <- "/home/shares/ca-mpa/data/sync-data"
 plotdir <- "analyses/3performance_human/figures"
 gisdir <- file.path(basedir, "gis_data/processed")
 outputdir <- "analyses/3performance_human/output"
