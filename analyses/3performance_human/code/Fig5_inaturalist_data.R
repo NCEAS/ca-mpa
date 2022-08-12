@@ -14,6 +14,7 @@ basedir <- "/Volumes/GoogleDrive/.shortcut-targets-by-id/1kCsF8rkm1yhpjh2_VMzf8u
 mpadir <- file.path(basedir, "mpa_traits/processed")
 datadir <- file.path(basedir, "inaturalist/processed")
 plotdir <- "analyses/3performance_human/figures"
+outputdir <- "analyses/3performance_human/output"
 
 # Read data
 mpas_orig <- readRDS(file.path(mpadir, "CA_mpa_metadata.Rds"))
@@ -56,7 +57,7 @@ stats1 <- mpas %>%
   left_join(stats, by="mpa")
 
 # Number of MPAs with observations
-stats1 %>% filter(!is.na(nobservers)) %>% pull(name) %>% n_distinct(.)
+stats1 %>% filter(!is.na(nobservers)) %>% pull(mpa) %>% n_distinct(.)
 
 # Time series stats
 observations_ts <- data_orig %>% 

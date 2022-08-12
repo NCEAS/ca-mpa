@@ -85,15 +85,23 @@ data_long_act <- data_long %>%
   # Compute rate
   mutate(activity_hr=activity_n/duration_hr) %>% 
   # Reduce to surveys 10-60 minutes
-  filter(duration_hr>=0.15 & duration_hr<=1) %>% 
-  # Recode MPA type
-  mutate(mpa_type=recode(mpa_type, "SMRMA"="SMR"))
+  filter(duration_hr>=0.15 & duration_hr<=1)
+
+# Reduce and format
+data_long_act_reduced <- data_long_act %>% 
+  rename(type=mpa_type) %>% 
+  # Reduce to MPAs of interest
+  filter(type %in% types_use) %>% 
+  # Order MPA types
+  mutate(type=recode(type, "SMRMA"="SMCA"),
+         type=factor(type, levels=types_use))
+  
 
 # Inspect (should be complete!)
 freeR::complete(data_long_act)
 
 # Build MPA specific stats
-stats_mpa <- data_long_act %>% 
+stats_full <- data_long_act %>% 
   # Summarize into broad type
   group_by(region, mpa, survey_id, site_type, date, duration_hr, activity_type1) %>% 
   summarize(activity_n=sum(activity_n),
@@ -108,21 +116,34 @@ stats_mpa <- data_long_act %>%
             activity_hr=median(activity_hr[activity_yn==T])) %>% 
   ungroup() %>% 
   # Add coordinates
-  left_join(mpas_orig %>% select(mpa, type, long_dd, lat_dd)) %>% 
+  left_join(mpas_orig %>% select(mpa, type, long_dd, lat_dd)) 
+
+# Export data
+saveRDS(stats_full, file=file.path(outputdir, "mpa_watch_consumptive_indicators.Rds"))
+
+# Reduce and format
+stats <- stats_full %>% 
   # Reduce to MPAs of interest
   filter(type %in% types_use) %>% 
   # Order MPA types
-  mutate(type=factor(type, levels=types_use),
-         type=recode(type, "SMRMA"="SMCA"))
+  mutate(type=recode(type, "SMRMA"="SMCA"),
+         type=factor(type, levels=types_use))
 
 # Build network wide stats
 # % of surveys with different activities
 activity_order <- c("Hook and line fishing", "Hand collection", "Trap fishing", "Spear fishing", 
                     "Net fishing", "Dive fishing", "CPFV fishing", "Kelp harvest")
 nsurveys_tot <- n_distinct(data_long_act$survey_id)
-stats_network <- data_long_act %>% 
+stats_network <- data_long_act %>%
+  # Add type
+  left_join(mpas_orig %>% select(mpa, type), by="mpa") %>% 
+  # Reduce to MPAs of interest
+  filter(type %in% types_use) %>% 
+  # Order MPA types
+  mutate(type=recode(type, "SMRMA"="SMCA"),
+         type=factor(type, levels=types_use)) %>% 
   # Summarize
-  group_by(mpa_type, activity_type2, activity_type3) %>% 
+  group_by(type, activity_type2, activity_type3) %>% 
   summarize(nsurveys=sum(activity_n>0), 
             psurveys=nsurveys/nsurveys_tot) %>% 
   ungroup() %>% 
@@ -135,9 +156,6 @@ stats_network <- data_long_act %>%
   # Order sectors
   mutate(activity_type3=factor(activity_type3, 
                                levels=c("Recreational", "Commercial", "CPFV", "Unknown")))
-
-# Export data
-saveRDS(stats_mpa, file=file.path(outputdir, "mpa_watch_consumptive_stats.Rds"))
 
 
 # Plot data
@@ -173,7 +191,7 @@ g1 <- ggplot() +
   geom_sf(data=foreign, fill="grey80", color="white", lwd=0.3) +
   geom_sf(data=usa, fill="grey80", color="white", lwd=0.3) +
   # Plot MPAs
-  geom_point(data=stats_mpa,
+  geom_point(data=stats,
              mapping=aes(x=long_dd, y=lat_dd, size=activity_hr, fill=psurveys, pch=type), 
              inherit.aes = F) +
   # Labels
@@ -198,7 +216,7 @@ g1
 # Plot activity frequency
 colors <- c(RColorBrewer::brewer.pal(3, "Oranges") %>% rev(), "grey80")
 g2 <- ggplot(stats_network, aes(x=psurveys, y=activity_type2, fill=activity_type3)) +
-  facet_grid(mpa_type~., scales="free_y", space="free_y") +
+  facet_grid(type~., scales="free_y", space="free_y") +
   geom_bar(stat="identity", 
            position = position_stack(reverse = TRUE),
            color="grey30", lwd=0.2) +   
@@ -214,9 +232,9 @@ g2 <- ggplot(stats_network, aes(x=psurveys, y=activity_type2, fill=activity_type
 g2
 
 # Plot activities per hour
-g3 <- ggplot(data_long_act %>% filter(activity_n>0), 
+g3 <- ggplot(data_long_act_reduced %>% filter(activity_n>0), 
              aes(x=activity_hr, y=activity_type2)) +
-  facet_grid(mpa_type~., scales="free_y", space="free_y") +
+  facet_grid(type~., scales="free_y", space="free_y") +
   geom_boxplot(outlier.shape=1, outlier.size=0.5, outlier.stroke = 0.15, lwd=0.15, fill="grey80") +
   # Limits
   scale_x_continuous(lim=c(0,25), breaks=seq(0,25,5), labels=c("0", "5", "10", "15", "20", ">25")) +
