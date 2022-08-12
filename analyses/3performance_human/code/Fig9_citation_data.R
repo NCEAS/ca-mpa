@@ -11,14 +11,18 @@ library(tidyverse)
 
 # Directories
 basedir <- "/Volumes/GoogleDrive/.shortcut-targets-by-id/1kCsF8rkm1yhpjh2_VMzf8ukSPf9d4tqO/MPA Network Assessment: Working Group Shared Folder/data/sync-data"
-datadir <- file.path(basedir, "scientific_permits/processed")
+datadir <- file.path(basedir, "citations/processed")
+popdir <- file.path(basedir, "census_data/processed")
 traitdir <- file.path(basedir, "mpa_traits/processed")
 plotdir <- "analyses/3performance_human/figures"
 outputdir <- "analyses/3performance_human/output"
 
 # Read data
 mpas <- readRDS(file=file.path(traitdir, "CA_mpa_metadata.Rds"))
-data_orig <- readRDS(file=file.path(datadir, "CA_2012_2021_mpa_scientific_permits.Rds"))
+data_orig <- readRDS(file=file.path(datadir, "2016_2021_citations.Rds"))
+pop_orig <- readRDS(file=file.path(popdir, "MPA_population_within_50km.Rds"))
+inaturalist_orig <- readRDS(file.path(basedir, "inaturalist/processed", "2000_2020_inaturalist_data_inside_mpas_100m_buffer.Rds"))
+mpa_watch <- readRDS("analyses/3performance_human/output/mpa_watch_consumptive_stats.Rds")
 
 # Get land
 usa <- rnaturalearth::ne_states(country="United States of America", returnclass = "sf")
@@ -44,9 +48,9 @@ coverage <- data_orig %>%
 # MPA order
 mpa_order <- coverage %>% 
   group_by(region, mpa) %>% 
-  summarize(npermits=sum(npermits)) %>% 
+  summarize(ncitations=sum(ncitations)) %>% 
   ungroup() %>% 
-  arrange(region, desc(npermits))
+  arrange(region, desc(ncitations))
 
 
 # Plot data
@@ -69,14 +73,14 @@ theme1 <-  theme(axis.text=element_text(size=6),
                  legend.background = element_rect(fill=alpha('blue', 0)))
 
 # Plot data
-g <- ggplot(coverage, aes(x=year, y=mpa %>% factor(., levels=mpa_order$mpa), fill=npermits)) +
+g <- ggplot(coverage, aes(x=year, y=mpa %>% factor(., levels=mpa_order$mpa), fill=ncitations)) +
   facet_grid(region~., space="free_y", scale="free_y") +
   geom_tile(color="grey30", lwd=0.05) +
   # Labels
   labs(x="Year", y="") +
   scale_x_continuous(breaks=2012:2021) +
   # Legend
-  scale_fill_gradientn(name="# of permits", 
+  scale_fill_gradientn(name="# of citations", 
                        colors=RColorBrewer::brewer.pal(9, "Spectral") %>% rev()) +
   guides(fill = guide_colorbar(ticks.colour = "black", frame.colour = "black")) +
   # Theme
@@ -84,40 +88,56 @@ g <- ggplot(coverage, aes(x=year, y=mpa %>% factor(., levels=mpa_order$mpa), fil
 g  
 
 # Export plot
-ggsave(g, filename=file.path(plotdir, "FigS5_sci_permit_coverage.png"), 
+ggsave(g, filename=file.path(plotdir, "FigS6_citation_coverage.png"), 
        width=6.5, height=7.75, units="in", dpi=600)
 
 
 # Build data
 ################################################################################
 
+# Summarize iNat data
+# Total # of observers/observations, 2000-2018
+range(inaturalist_orig$date_obs)
+inaturalist <- inaturalist_orig %>% 
+  filter(year_obs <= 2018) %>% 
+  # Summarize
+  group_by(mpa) %>% 
+  summarize(inat_observers_tot=n_distinct(user_id),
+            inat_observations_tot=n()) %>% 
+  ungroup()
+
 # Build data
 data_full <- data_orig %>% 
-  # Summ
-  group_by(mpa) %>% 
-  summarize(npermits=sum(npermits),
+  # Remove years without citatons (so count of years with works)
+  filter(ncitations>0) %>% 
+  # Summarize
+  group_by(region, mpa) %>% 
+  summarize(ncitations=sum(ncitations),
             nyears=n_distinct(year)) %>% 
   ungroup() %>% 
   # Add lat/long and type
-  left_join(mpas %>% select(mpa, type, lat_dd, long_dd), by="mpa")
-  
-# Reduce
+  left_join(mpas %>% select(mpa, type, lat_dd, long_dd, area_sqkm), by="mpa") %>% 
+  mutate(region=factor(region, 
+                       levels=c("South Coast", "Central Coast", "North Central Coast", "North Coast") %>% rev())) 
+
+# Export
+saveRDS(data_full, file=file.path(outputdir, "citations_indicators.Rds"))
+
+# Add and reduce
 data <- data_full %>% 
+  # Add population data
+  left_join(pop_orig %>% select(name, npeople_50km), by=c("mpa"="name")) %>% 
+  # Add iNat data
+  left_join(inaturalist %>% select(mpa, inat_observers_tot), by="mpa") %>% 
+  # Add MPA watch data
+  left_join(mpa_watch %>% select(mpa, psurveys, activity_hr), by="mpa") %>% 
   # Types of interest
   filter(type %in% types_use)
 
-# Export
-saveRDS(data_full, file=file.path(outputdir, "scientific_permits_indicators.Rds"))
-
 # Stats for manuscript
 n_distinct(data$mpa)
-sum(data$npermits)
+sum(data$ncitations)
 
-# Data time series
-data_ts <- data_orig %>% 
-  group_by(year, region) %>% 
-  summarize(npermits=sum(npermits)) %>% 
-  ungroup()
 
 
 # Plot data
@@ -157,15 +177,15 @@ g1 <- ggplot() +
   geom_sf(data=foreign, fill="grey80", color="white", lwd=0.3) +
   geom_sf(data=usa, fill="grey80", color="white", lwd=0.3) +
   # Plot MPAs
-  geom_point(data=data, mapping=aes(x=long_dd, y=lat_dd, size=npermits, fill=nyears), pch=21) +
+  geom_point(data=data, mapping=aes(x=long_dd, y=lat_dd, size=ncitations, fill=nyears), pch=21) +
   # Labels
   labs(x="", y="", tag="A") +
   # Axes
   scale_y_continuous(breaks=32:42) +
   # Legend
-  scale_fill_gradientn(name="# of years with permits", colors=RColorBrewer::brewer.pal(9, "Blues")) +
+  scale_fill_gradientn(name="# of years with citations", colors=RColorBrewer::brewer.pal(9, "Blues")) +
   guides(fill = guide_colorbar(ticks.colour = "black", frame.colour = "black")) +
-  scale_size_continuous(name="# of scientific permits\nissued from 2012-2021") +
+  scale_size_continuous(name="# of citations\nissued from 2016-2021") +
   # Crop
   coord_sf(xlim = c(-124.5, -117), ylim = c(32.5, 42)) +
   # Theme
@@ -175,27 +195,74 @@ g1 <- ggplot() +
         legend.key.size = unit(0.4, "cm"))
 g1
 
-# Plot time series
-g2 <- ggplot(data_ts, aes(x=year, y=npermits, fill=region)) +
-  geom_bar(stat="identity", color="grey30", lwd=0.1) + 
+# Plot correlation with population size
+g2 <- ggplot(data, aes(x=npeople_50km/1e6, y=ncitations, fill=region, size=area_sqkm)) +
+  # Plot regression
+  geom_smooth(formula='y ~ x',
+              # aes(x=npeople_50km/1e6, y=inat_observers_tot),
+              method=glm, method.args = list(family = 'poisson'), 
+              color="grey50", fill="grey80", alpha=0.5, show.legend = F) +
+  # Plot points
+  geom_point(pch=21) +
   # Labels
-  labs(x="Year", y="Number of permits", tag="B") +
-  scale_x_continuous(breaks=2012:2021) +
+  labs(x="Human population size\n(millions of people within 50 km)", y="Number of citations", tag="B") +
+  # Legend
+  scale_fill_ordinal(name="Region", guide="none") +
+  scale_size_continuous(name="Area (sqkm)", breaks=c(20,40,80), range=c(0.1,5)) +
+  # Theme
+  theme_bw() + theme1 +
+  theme(legend.position = c(0.7, 0.75),
+        legend.key.size = unit(0.3, "cm"))
+g2
+
+# Plot correlation with engagement
+g3 <- ggplot(data, aes(x=inat_observers_tot, y=ncitations, fill=region)) +
+  # Plot regression
+  geom_smooth(formula='y ~ x',
+              # aes(x=npeople_50km/1e6, y=inat_observers_tot),
+              method=glm, method.args = list(family = 'poisson'), 
+              color="grey50", fill="grey80", alpha=0.5, show.legend = F) +
+  # Plot points
+  geom_point(pch=21) +
+  # Labels
+  labs(x="Human engagement\n(# of iNaturalist obervers, 2000-2018)", y="Number of citations", tag="C") +
   # Legend
   scale_fill_ordinal(name="Region") +
   # Theme
   theme_bw() + theme1 +
-  theme(legend.position = c(0.8, 0.8),
+  theme(legend.position = c(0.7, 0.75),
         legend.key.size = unit(0.3, "cm"))
-g2
+g3
+
+# Plot correlation with consumptive activitiees
+g4 <- ggplot(data, aes(x=psurveys, y=ncitations, fill=region, size=activity_hr)) +
+  # Plot regression
+  geom_smooth(formula='y ~ x',
+              # aes(x=npeople_50km/1e6, y=inat_observers_tot),
+              method=glm, method.args = list(family = 'poisson'), 
+              color="grey50", fill="grey80", alpha=0.5, show.legend = F) +
+  # Plot points
+  geom_point(pch=21) +
+  # Labels
+  labs(x="Consumptive activity\n(% of MPA Watch surveys))", y="Number of citations", tag="D") +
+  scale_x_continuous(labels=scales::percent) +
+  # Legend
+  scale_fill_ordinal(name="Region", guide="none") +
+  scale_size_continuous(name="Activities per hour", range=c(0.1, 5)) +
+  # Theme
+  theme_bw() + theme1 +
+  theme(legend.position = c(0.7, 0.75),
+        legend.key.size = unit(0.3, "cm"))
+g4
 
 # Merge data
 layout_matrix <- matrix(c(1,2, 
-                          1,3), ncol=2, byrow=T)
-g <- gridExtra::grid.arrange(g1, g2, layout_matrix=layout_matrix, widths=c(0.52, 0.48))
+                          1,3,
+                          1,4), ncol=2, byrow=T)
+g <- gridExtra::grid.arrange(g1, g2, g3, g4, layout_matrix=layout_matrix, widths=c(0.62, 0.38))
 
 # Export
-ggsave(g, filename=file.path(plotdir, "Fig8_scientific_permit_data.png"), 
-       width=6.5, height=5.25, units="in", dpi=600)
+ggsave(g, filename=file.path(plotdir, "Fig9_citation_data.png"), 
+       width=6.5, height=6.5, units="in", dpi=600)
 
 

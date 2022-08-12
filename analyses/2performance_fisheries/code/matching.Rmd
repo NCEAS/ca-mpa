@@ -1,0 +1,79 @@
+---
+title: "counterfactual analysis"
+author: "Cori Lopazanski"
+date: '2022-07-26'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+# Packages
+library(tidyverse)
+library(MatchIt)
+```
+
+## 1. Check covariate balance
+
+Values of standardized mean differences and eCDF statistics close to zero and values of variance ratios close to one indicate good balance, and here many of them are far from their ideal values.
+
+```{r}
+# Covariate balance
+m.out0 <- matchit(block_treatment ~ block_area_km2 + block_mean_depth_fa + 
+                    distance_to_shore_km + dist_to_port_km,
+                  data = data2, method = NULL, distance = "glm")
+summary(m.out0)
+```
+### Balance w/ offshore blocks removed
+
+```{r}
+blocks <- wcfish::blocks
+
+offshore_id <- blocks %>%
+  sf::st_drop_geometry() %>% 
+  filter(block_type == "Offshore") 
+
+data3 <- data2 %>% 
+  filter(!(block_id %in% offshore_id$block_id))
+```
+
+```{r}
+m.out1 <- matchit(block_treatment ~ block_area_km2 + block_mean_depth_fa + 
+                    distance_to_shore_km + dist_to_port_km,
+                  data = data3, method = NULL, distance = "glm")
+summary(m.out1)
+```
+### Matching
+
+```{r}
+# Original (all) blocks
+m.out2 <- matchit(block_treatment ~ block_area_km2 + block_mean_depth_fa + 
+                    distance_to_shore_km + dist_to_port_km,
+                  data = data2, 
+                  method = "nearest", 
+                  distance = "glm")
+summary(m.out2)
+
+# Offshore blocks removed
+m.out3 <- matchit(block_treatment ~ block_area_km2 + block_mean_depth_fa + 
+                    distance_to_shore_km + dist_to_port_km,
+                  data = data3, 
+                  method = "nearest", 
+                  distance = "glm")
+summary(m.out3)
+```
+
+```{r}
+summary(m.out3, un = FALSE)
+```
+```{r}
+plot(m.out3, type = "jitter", interactive = FALSE)
+```
+
+```{r}
+plot(m.out3, type = "qq", interactive = FALSE)
+
+```
+
+Require neighbor or not
+Once with replacement or not
