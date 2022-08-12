@@ -5,8 +5,13 @@ date: '2022-06-16'
 output: html_document
 ---
 
-#load packages
+
+
+#clear workspace and load packages
 ```{r}
+
+rm(list = ls())
+
 require(dplyr)
 require(stringr)
 require(tidyr)
@@ -14,8 +19,11 @@ require(janitor)
 ```
 
 
-#Process CCFRP data
 
+**Step 1 - process ecological data in species counts / year format**
+
+
+#Process CCFRP data
 ```{r}
 # ccfrp -------------------------------------------------------------------
 
@@ -306,8 +314,8 @@ kelp_swath_mpa_year <- kelp_swath_counts %>%
 
 
 #Export year level
-path_aurora <- "/home/shares/ca-mpa/data/sync-data/processed_data/ecological_community_data/year_level" 
-write.csv(kelp_swath_mpa_year, file.path(path_aurora, "kelp_swath_mpa_year.csv"), row.names = FALSE)
+#path_aurora <- "/home/shares/ca-mpa/data/sync-data/processed_data/ecological_community_data/year_level" 
+#write.csv(kelp_swath_mpa_year, file.path(path_aurora, "kelp_swath_mpa_year.csv"), row.names = FALSE)
 
 ```
 
@@ -511,9 +519,86 @@ deep_reef_counts <- deep_reef_counts %>%
                     group_by(year, region3, region4, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation, scientific_name) %>%
                     dplyr::summarise(counts = sum(total_count)) #make sure species are not duplicates by summarizing at the transect level (total counts)
 
+#drop species per PI based on incorrect range or ID
+
+deep_reef_counts_drop <- deep_reef_counts %>%
+                         #drop from all regions
+                         filter(!(scientific_name=='Hippoglossus stenolepis'|
+                                  scientific_name=='Hypsypops rubicundus'|
+                                  scientific_name=='Merluccius_productus'|
+                                  scientific_name=='Sebastes rosenblatti'|
+                                  scientific_name=='Ammodytes hexapterus'|
+                                  scientific_name=='Anisotremus davidsonii'|
+                                  scientific_name=='Pristigenys serrula'|
+                                  scientific_name=='Mola mola'|
+                                  scientific_name=='Alopias vulpinus'| 
+                                  scientific_name=='Lythrypnus dalli'|
+                                  scientific_name=='Brachyistius frenatus'|
+                                  scientific_name=='Sebastes caurinus or carnatus'|
+                                  scientific_name=='Sebastes pinniger or miniatus'|
+                                  scientific_name=='Engraulis mordax'|
+                                  scientific_name=='Aulorhynchus flavidus'|
+                                  scientific_name=='Aulorhynchus flavidus'|
+                                  scientific_name=='Sebastes serranoides or flavidus'|
+                                  scientific_name=='Sebastes hopkinsi or entomelas'|
+                                  scientific_name=='Sebastes melanops or mystinus or diaconus'|
+                          #drop for north only
+                                  scientific_name=='Pleuronichthys ritteri' &
+                                      region4=='north' |
+                                  scientific_name=='Hypsurus caryi' &
+                                      region4=='north'|
+                                  scientific_name=='Paralabrax nebulifer' &
+                                      region4=='north'|
+                                  scientific_name=='Sebastes umbrosus' &
+                                      region4=='north'|
+                                  scientific_name=='Phanerodon atripes' &
+                                      region4=='north'|
+                                  scientific_name=='Sebastes atrovirens' &
+                                      region4=='north'|
+                                  scientific_name=='Girella nigricans' &
+                                      region4=='north'|
+                                  scientific_name=='Paralabrax clathratus' &
+                                      region4=='north'|
+                                scientific_name=='Semicossyphus pulcher' &
+                                      region4=='north'|
+                                scientific_name=='Scorpaena guttata' &
+                                      region4=='north'|
+                                scientific_name=='Heterodontus francisci' &
+                                      region4=='north'|
+                                scientific_name=='Gymnothorax mordax' &
+                                      region4=='north'|
+                                scientific_name=='Cephaloscyllium entriosum' &
+                                      region4=='north'|
+                                scientific_name=='Seriola lalandi' &
+                                      region4=='north'|
+                                scientific_name=='Halichoeres semicinctus' &
+                                      region4=='north'|
+                        #drop for central
+                                scientific_name=='Heterodontus francisci' &
+                                      region4=='central'|
+                                scientific_name=='Gymnothorax mordax' &
+                                      region4=='central'|
+                                scientific_name=='Cephaloscyllium ventriosum' &
+                                      region4=='central'|
+                                scientific_name=='Seriola lalandi' &
+                                      region4=='central'|
+                                scientific_name=='Halichoeres semicinctus' &
+                                      region4=='central'|
+                        #drop for south
+                                scientific_name=='Enophrys bison' &
+                                      region4=='south'|
+                                scientific_name=='Platichthys stellatus' &
+                                      region4=='south'|
+                        #drop for n. islands
+                                scientific_name=='Enophrys bison' &
+                                      region4=='north islands'
+                            )
+                        )
+
+
 
 #reshape to wide format
-deep_reef_counts_wide <- deep_reef_counts %>%
+deep_reef_counts_wide <- deep_reef_counts_drop %>%
                     pivot_wider(names_from=scientific_name, values_from=counts) %>%
                     janitor::clean_names()%>%
                     drop_na(region4) %>%
@@ -521,6 +606,8 @@ deep_reef_counts_wide <- deep_reef_counts %>%
                     dplyr::select(year, region3, region4, affiliated_mpa, mpa_defacto_class,mpa_defacto_designation, MHW, everything()) %>%
                     replace(is.na(.),0)
                     #dplyr::select(-c(no_organisms_present_in_this_sample))
+
+
 
 #Export
 #path_aurora <- "/home/shares/ca-mpa/data/sync-data/processed_data/ecological_community_data/year_level" 
@@ -560,6 +647,26 @@ rocky_counts_raw <- rocky_counts_raw %>%
 
 
 
+
+
+
+
+
+**part 2 - process environmental data**
+
+
+
+
+
+
+
+
+
+#export
+```{r}
+
+
+```
 
 
 
