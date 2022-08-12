@@ -329,7 +329,9 @@ MOCI_step2 <- left_join(MOCI_step1, MOCI_annual, by="year") %>%
 envr_vars_all <- left_join(envr_join_step5, MOCI_step2, by=c("year","region3"))
 
 #path_aurora <- "/home/shares/ca-mpa/data/sync-data/environmental/processed"
-#saveRDS(envr_data, file.path(path_aurora, "envr_anomalies_at_mpas.Rds"))
+#saveRDS(envr_vars_all, file.path(path_aurora, "envr_anomalies_at_mpas.Rds"))
+
+
 
 
 
@@ -352,7 +354,7 @@ envr_plot$index <- factor(envr_plot$index, levels = c("beuti_anom", "cuti_anom",
 
 
 envr_plot%>%
-  filter(year>=2010)%>%
+  filter(year>=2000)%>%
   ggplot(aes(x=as.numeric(year),y=value,color=index, fill=index, group=index))+
   geom_point()+
   stat_summary(fun=mean, geom="line", aes(color = index), size=2)+
@@ -366,8 +368,10 @@ envr_plot%>%
   #  sec.axis = sec_axis(trans=~ . * .0001, name = "cuti_anom")
   #)+
   theme_minimal(base_size = 22,)+
-  theme(legend.position="none")+
-  scale_x_continuous(breaks= scales::pretty_breaks())
+  theme(legend.position="none",
+        plot.title=element_text(hjust=0.5))+
+  scale_x_continuous(breaks= scales::pretty_breaks())+
+  labs(title="Central CA oceanographic anomalies")
 
 
 
