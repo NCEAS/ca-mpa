@@ -15,6 +15,7 @@ basedir <- "/Volumes/GoogleDrive/.shortcut-targets-by-id/1kCsF8rkm1yhpjh2_VMzf8u
 reefdir <- file.path(basedir, "reef/processed")
 traitdir <- file.path(basedir, "mpa_traits/processed")
 plotdir <- "analyses/3performance_human/figures"
+outputdir <- "analyses/3performance_human/output"
 
 # Read MPA metadata
 mpas <- readRDS(file.path(traitdir, "CA_MPA_metadata.Rds"))
@@ -108,7 +109,7 @@ ggsave(g, filename=file.path(plotdir, "FigS4_reef_survery_coverage.png"),
 
 # Build MPA data
 range(data$date)
-mpa_key <- data %>% 
+stats_full <- data %>% 
   # MPA site only
   filter(!is.na(mpa)) %>% 
   # Add year
@@ -119,7 +120,13 @@ mpa_key <- data %>%
             nyrs=n_distinct(year)) %>% 
   ungroup() %>% 
   # Add MPA types and coordinates
-  left_join(mpas) %>% 
+  left_join(mpas)
+
+# Export
+saveRDS(stats_full, file=file.path(outputdir, "reef_indicators.Rds"))
+  
+# Reduce to MPAs of interest
+stats <- stats_full %>% 
   # Reduce to types of interest
   filter(type %in% types_use)
 
@@ -208,7 +215,7 @@ g1 <- ggplot() +
   geom_sf(data=foreign, fill="grey80", color="white", lwd=0.3) +
   geom_sf(data=usa, fill="grey80", color="white", lwd=0.3) +
   # Plot REEF sites
-  geom_point(data=mpa_key, mapping=aes(x=long_dd, y=lat_dd, size=nsurveys, fill=nyrs), pch=21) +
+  geom_point(data=stats, mapping=aes(x=long_dd, y=lat_dd, size=nsurveys, fill=nyrs), pch=21) +
   # Labels
   labs(x="", y="", tag="A") +
   # Axes

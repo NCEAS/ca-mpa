@@ -99,7 +99,8 @@ g <- ggplot() +
                            mapping=aes(x=npeople_50km/1e6, y=inat_observers_tot, label=mpa_short), 
                            inherit.aes = F, size=2, max.overlaps = 1000, color="grey60") +
   # Labels
-  labs(x="Millions of people\nwithin 50 km", y="Total iNaturalist observers\nfrom 2000 to 2018") +
+  labs(x="Human population size\n(millions of people within 50 km)", 
+       y="Human engagement\n(# of iNaturalist observers, 2000-2018)") +
   scale_fill_discrete(name="MPA type") +
   # Theme
   theme_bw() + my_theme

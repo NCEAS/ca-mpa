@@ -16,6 +16,7 @@ basedir <- "/Volumes/GoogleDrive/.shortcut-targets-by-id/1kCsF8rkm1yhpjh2_VMzf8u
 gisdir <- file.path(basedir, "gis_data/processed")
 datadir <- file.path(basedir, "mpa_watch/processed")
 plotdir <- "analyses/3performance_human/figures"
+outputdir <- "analyses/3performance_human/output"
 
 # Get land
 usa <- rnaturalearth::ne_states(country="United States of America", returnclass = "sf")
@@ -38,13 +39,14 @@ types_use <- c("SMR", "SMRMA", "SMCA", "SMCA (No-Take)")
 # Build data
 data_wide <- data_orig %>% 
   # Add MPA metadata
-  left_join(mpas_orig %>% select(mpa, region), by="mpa") %>% 
+  left_join(mpas_orig %>% select(mpa, region), by=c("site"="mpa")) %>%
+  # Reduce to MPAs
+  filter(site_type=="MPA") %>% 
+  rename(mpa=site) %>% 
   # Simplify
-  select(region, mpa, mpa_id, survey_id, survey_type,
+  select(region, mpa,  survey_id, site_type,
          date, time_start2, time_end2, duration_hr, total_activities:comments) %>% 
   select(-comments) %>% 
-  # Reduce to MPAs
-  filter(survey_type=="MPA") %>% 
   # Remove invalid surveys
   filter(duration_hr > 0)
 
@@ -110,7 +112,7 @@ data_long_act <- data_long %>%
   # Convert number of activities to numeric
   mutate(activity_n=as.numeric(activity_n)) %>% 
   # Summarize by larger activity type
-  group_by(region, mpa, mpa_id, survey_id, survey_type, date, duration_hr, activity_type2, activity_habitat) %>% 
+  group_by(region, mpa, survey_id, site_type, date, duration_hr, activity_type2, activity_habitat) %>% 
   summarize(activity_n=sum(activity_n)) %>% 
   ungroup() %>% 
   # Compute rate
@@ -122,9 +124,9 @@ data_long_act <- data_long %>%
 freeR::complete(data_long_act)
 
 # Build MPA specific stats
-stats_mpa <- data_long_act %>% 
+stats_full <- data_long_act %>% 
   # Summarize into broad type
-  group_by(region, mpa, mpa_id, survey_id, survey_type, date, duration_hr) %>% 
+  group_by(region, mpa, survey_id, site_type, date, duration_hr) %>% 
   summarize(activity_n=sum(activity_n),
             activity_hr=sum(activity_hr),
             activity_yn=activity_n>0) %>% 
@@ -137,7 +139,14 @@ stats_mpa <- data_long_act %>%
             activity_hr=median(activity_hr[activity_yn==T])) %>% 
   ungroup() %>% 
   # Add coordinates
-  left_join(mpas_orig %>% select(mpa, long_dd, lat_dd))
+  left_join(mpas_orig %>% select(mpa, long_dd, lat_dd, type))
+
+# Export
+saveRDS(stats_full, file=file.path(outputdir, "mpa_watch_nonconsumptive_indicators.Rds"))
+
+# Reduce
+stats <- stats_full %>% 
+  filter(type %in% types_use)
 
 # Build network wide stats
 # % of surveys with different activities
@@ -164,14 +173,14 @@ data_long_act_plot <- data_long_act %>%
 # Build coverage data
 coverage <- data_wide %>% 
   # Number of activies on each survey by location/type
-  select(survey_id, mpa, mpa_id, survey_type, date) %>% 
+  select(survey_id, mpa, site_type, date) %>% 
   unique() %>% 
   # Add year, month, dummy date
   mutate(year=lubridate::year(date),
          month=lubridate::month(date),
          date_dummy=lubridate::ymd(paste(year, month, 1, sep="-"))) %>% 
   # Number of surveys
-  group_by(year, month, date_dummy, mpa, mpa_id, survey_type) %>% 
+  group_by(year, month, date_dummy, mpa, site_type) %>% 
   summarize(nsurveys=n_distinct(survey_id)) %>% 
   ungroup() %>% 
   # Add MPA meda data
@@ -297,7 +306,7 @@ g1 <- ggplot() +
   geom_sf(data=foreign, fill="grey80", color="white", lwd=0.3) +
   geom_sf(data=usa, fill="grey80", color="white", lwd=0.3) +
   # Plot MPAs
-  geom_point(data=stats_mpa,
+  geom_point(data=stats,
              mapping=aes(x=long_dd, y=lat_dd, size=activity_hr, fill=psurveys), 
              pch=21, inherit.aes = F) +
   # Labels

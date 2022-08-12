@@ -15,6 +15,7 @@ basedir <- "/Volumes/GoogleDrive/.shortcut-targets-by-id/1kCsF8rkm1yhpjh2_VMzf8u
 mpadir <- file.path(basedir, "mpa_traits/processed")
 datadir <- file.path(basedir, "ebird/processed")
 plotdir <- "analyses/3performance_human/figures"
+outputdir <- "analyses/3performance_human/output"
 
 # Read data
 data_orig <- readRDS(file.path(datadir, "CA_ebird_data_inside_mpas_100m_buffer.Rds"))
@@ -118,7 +119,7 @@ data_orig %>%
             n_mpas=n_distinct(mpa))
 
 # MPA stats
-mpa_stats <- data_orig %>%
+stats_full <- data_orig %>%
   # Summarize
   group_by(mpa) %>%
   summarize(n_observers=n_distinct(observer_id),
@@ -127,7 +128,13 @@ mpa_stats <- data_orig %>%
             n_species=n_distinct(taxon_concept_id)) %>%
   ungroup() %>% 
   # Add MPA meta-data
-  left_join(mpas_orig %>% select(mpa, type, region, lat_dd, long_dd), by="mpa") %>% 
+  left_join(mpas_orig %>% select(mpa, type, region, lat_dd, long_dd), by="mpa")
+
+# Export
+saveRDS(stats_full, file=file.path(outputdir, "ebird_indicators.Rds"))
+  
+# Reduce
+stats <- stats_full %>% 
   # Reduce to MPAs of interest
   filter(type %in% types_use)
 
@@ -195,7 +202,7 @@ g1 <- ggplot() +
   geom_sf(data=foreign, fill="grey80", color="white", lwd=0.3) +
   geom_sf(data=usa, fill="grey80", color="white", lwd=0.3) +
   # Plot MPAs
-  geom_point(data=mpa_stats, 
+  geom_point(data=stats, 
              mapping=aes(x=long_dd, y=lat_dd, size=n_observers, fill=n_surveys), 
              pch=21, inherit.aes = F) +
   # Labels

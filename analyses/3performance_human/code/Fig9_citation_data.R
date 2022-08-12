@@ -15,6 +15,7 @@ datadir <- file.path(basedir, "citations/processed")
 popdir <- file.path(basedir, "census_data/processed")
 traitdir <- file.path(basedir, "mpa_traits/processed")
 plotdir <- "analyses/3performance_human/figures"
+outputdir <- "analyses/3performance_human/output"
 
 # Read data
 mpas <- readRDS(file=file.path(traitdir, "CA_mpa_metadata.Rds"))
@@ -106,7 +107,7 @@ inaturalist <- inaturalist_orig %>%
   ungroup()
 
 # Build data
-data <- data_orig %>% 
+data_full <- data_orig %>% 
   # Remove years without citatons (so count of years with works)
   filter(ncitations>0) %>% 
   # Summarize
@@ -117,15 +118,21 @@ data <- data_orig %>%
   # Add lat/long and type
   left_join(mpas %>% select(mpa, type, lat_dd, long_dd, area_sqkm), by="mpa") %>% 
   mutate(region=factor(region, 
-                       levels=c("South Coast", "Central Coast", "North Central Coast", "North Coast") %>% rev())) %>% 
-  # Types of interest
-  filter(type %in% types_use) %>% 
+                       levels=c("South Coast", "Central Coast", "North Central Coast", "North Coast") %>% rev())) 
+
+# Export
+saveRDS(data_full, file=file.path(outputdir, "citations_indicators.Rds"))
+
+# Add and reduce
+data <- data_full %>% 
   # Add population data
   left_join(pop_orig %>% select(name, npeople_50km), by=c("mpa"="name")) %>% 
   # Add iNat data
   left_join(inaturalist %>% select(mpa, inat_observers_tot), by="mpa") %>% 
   # Add MPA watch data
-  left_join(mpa_watch %>% select(mpa, psurveys, activity_hr), by="mpa")
+  left_join(mpa_watch %>% select(mpa, psurveys, activity_hr), by="mpa") %>% 
+  # Types of interest
+  filter(type %in% types_use)
 
 # Stats for manuscript
 n_distinct(data$mpa)
