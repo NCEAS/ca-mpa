@@ -650,18 +650,6 @@ rocky_counts_raw <- rocky_counts_raw %>%
 
 
 
-
-
-**part 2 - process environmental data**
-
-
-
-
-
-
-
-
-
 #export
 ```{r}
 
