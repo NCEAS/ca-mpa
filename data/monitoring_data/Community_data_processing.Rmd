@@ -19,6 +19,19 @@ require(janitor)
 ```
 
 
+#load environmental data
+```{r}
+
+#load data and get mpa-year level means
+envr_dat <- readRDS("/home/shares/ca-mpa/data/sync-data/environmental/processed/envr_anomalies_at_mpas.Rds") %>%
+            group_by(group, mpa_name, mpa_class, mpa_designation, mpa_defacto_class, mpa_defacto_designation,
+                     region3, region4, year)%>%
+            dplyr::summarise(across(c("sst_annual_baseline", "sst_monthly_baseline", "sst_annual_obs", "sst_monthly_obs", "sst_monthly_anom",       
+            "cuti_annual_baseline", "cuti_monthly_baseline", "cuti_annual_obs", "cuti_monthly_obs", "cuti_monthly_anom",     
+            "beuti_annual_baseline", "beuti_monthly_baseline", "beuti_annual_obs", "beuti_monthly_obs", "beuti_monthly_anom",     
+              "annual_MOCI"), ~ mean(.x, na.rm = TRUE)))
+
+```
 
 **Step 1 - process ecological data in species counts / year format**
 
@@ -78,16 +91,25 @@ CCFRP_CPUE <- CCFRP_CPUE %>%
 #path_aurora <- "/home/shares/ca-mpa/data/sync-data/processed_data/ecological_community_data" 
 #write.csv(CCFRP_CPUE,file.path(path_aurora, "CCFRP_species_counts.csv"), row.names = FALSE)
 
-CCFRP_mpa_year <- CCFRP_CPUE %>%
+CCFRP_mpa_year_step1 <- CCFRP_CPUE %>%
                   pivot_longer(cols=10:103, names_to="species",values_to="CPUE")%>%
                   group_by(year, group, region3, region4, MHW, affiliated_mpa, mpa_class, mpa_designation, species)%>%
                   dplyr::summarize(mean_CPUE = mean(CPUE))%>%
                   ungroup()%>%
                   pivot_wider(names_from = "species", values_from = "mean_CPUE")
 
+CCFRP_mpa_year <- left_join(CCFRP_mpa_year_step1, envr_dat, by=c("year","group",
+                                                       "region3","region4",
+                                                       "mpa_class"="mpa_defacto_class",
+                                                       "mpa_designation"="mpa_defacto_designation",
+                                                       "affiliated_mpa"="mpa_name"))%>%
+                  filter(!(affiliated_mpa=="trinidad smr"))%>% #not a real MPA per PI
+                  dplyr::select(!(c("total", "mpa_class.y","mpa_designation.y")))%>%
+                  dplyr::select(1:8,102:117,9:101)
+
 #Export
-#path_aurora <- "/home/shares/ca-mpa/data/sync-data/processed_data/ecological_community_data" 
-#write.csv(CCFRP_mpa_year,file.path(path_aurora, "CCFRP_mpa_year.csv"), row.names = FALSE)
+path_aurora <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/ecological_community_data/year_level_with_envr_vars" 
+write.csv(CCFRP_mpa_year,file.path(path_aurora, "CCFRP_mpa_year.csv"), row.names = FALSE)
 ```
 
 
@@ -191,15 +213,27 @@ kelp_fish_counts <- kelp_fish_counts %>%
 #write.csv(kelp_fish_counts,file.path(path_aurora, "kelp_fish_counts.csv"), row.names = FALSE)
 
 
-kelp_fish_mpa_year <- kelp_fish_counts %>% 
+kelp_fish_mpa_year_step1 <- kelp_fish_counts %>% 
                   pivot_longer(cols=11:153, names_to="species",values_to="counts")%>%
                   group_by(year, region3, region4, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation, MHW, species)%>%
                   dplyr::summarize(total_counts = sum(counts))%>%
                   ungroup()%>%
-                  pivot_wider(names_from = "species", values_from = "total_counts")
+                  pivot_wider(names_from = "species", values_from = "total_counts") %>%
+                  mutate(group = "kelp")
+
+kelp_fish_mpa_year <- left_join(kelp_fish_mpa_year_step1, envr_dat, by=c("year","group",
+                                                       "region3","region4",
+                                                       "mpa_defacto_class",
+                                                       "mpa_defacto_designation",
+                                                       "affiliated_mpa"="mpa_name"))%>%
+                  dplyr::select(1:7,151:169,8:150) %>%
+                  dplyr::select(!c("mpa_class","mpa_designation")) %>%
+                  dplyr::select(group, everything()) %>%
+                  mutate(group=recode(group,kelp="kelp_fish"))
+
 
 #Export year                     
-#path_aurora <- "/home/shares/ca-mpa/data/sync-data/processed_data/ecological_community_data/year_level" 
+#path_aurora <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/ecological_community_data/year_level_with_envr_vars" 
 #write.csv(kelp_fish_mpa_year,file.path(path_aurora, "kelp_fish_mpa_year.csv"), row.names = FALSE)
 ```
 
@@ -305,16 +339,29 @@ kelp_swath_counts <- kelp_swath_counts %>%
 #path_aurora <- "/home/shares/ca-mpa/data/sync-data/processed_data/ecological_community_data" 
 #write.csv(kelp_swath_mpa_year, file.path(path_aurora, "kelp_swath_mpa_year_counts.csv"), row.names = FALSE)
 
-kelp_swath_mpa_year <- kelp_swath_counts %>%
+kelp_swath_mpa_year_step1 <- kelp_swath_counts %>%
                         pivot_longer(cols=10:177, names_to="species",values_to="counts")%>%
                         group_by(year, region3, region4, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation, MHW, species)%>%
                         dplyr::summarize(total_counts = sum(counts))%>%
                         ungroup()%>%
-                        pivot_wider(names_from = "species", values_from = "total_counts")
+                        pivot_wider(names_from = "species", values_from = "total_counts")%>%
+                        mutate(group="kelp")
+
+
+kelp_swath_mpa_year <- left_join(kelp_swath_mpa_year_step1, envr_dat, 
+                                      by=c("year","group",
+                                                       "region3","region4",
+                                                       "mpa_defacto_class",
+                                                       "mpa_defacto_designation",
+                                                       "affiliated_mpa"="mpa_name"))%>%
+                  dplyr::select(1:7,176:194,8:175) %>%
+                  dplyr::select(!c("mpa_class","mpa_designation")) %>%
+                  dplyr::select(group, everything()) %>%
+                  mutate(group=recode(group,kelp="kelp_swath"))
 
 
 #Export year level
-#path_aurora <- "/home/shares/ca-mpa/data/sync-data/processed_data/ecological_community_data/year_level" 
+#path_aurora <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/ecological_community_data/year_level_with_envr_vars" 
 #write.csv(kelp_swath_mpa_year, file.path(path_aurora, "kelp_swath_mpa_year.csv"), row.names = FALSE)
 
 ```
@@ -405,13 +452,28 @@ kelp_upc_counts <- kelp_upc_counts %>%
 
 
 #reshape to wide format
-kelp_upc_mpa_year <- kelp_upc_counts %>%
+kelp_upc_mpa_year_step1 <- kelp_upc_counts %>%
                     pivot_wider(names_from=species, values_from=total_pct_cov) %>%
                     janitor::clean_names()%>%
                     drop_na(region4) %>%
                     mutate(MHW = ifelse(year>=2014 & year<=2016, "during",ifelse(year<2014, "before","after")))%>%
-                    dplyr::select(year, region3, region4, affiliated_mpa, mpa_defacto_class, MHW, everything())
+                    dplyr::select(year, region3, region4, affiliated_mpa, mpa_defacto_class, MHW, everything())%>%
+                    mutate(group='kelp')
                     #dplyr::select(-c(no_organisms_present_in_this_sample))
+
+
+kelp_upc_mpa_year <- left_join(kelp_upc_mpa_year_step1, envr_dat, 
+                               by=c("year","group",
+                                                       "region3","region4",
+                                                       "mpa_defacto_class",
+                                                       "mpa_defacto_designation",
+                                                       "affiliated_mpa"="mpa_name"))%>%
+                  dplyr::select(1:7,80:98,8:79) %>%
+                  dplyr::select(!c("mpa_class","mpa_designation")) %>%
+                  dplyr::select(group, everything()) %>%
+                  mutate(group=recode(group,kelp="kelp_upc"))
+
+
 
 #Export
 #path_aurora <- "/home/shares/ca-mpa/data/sync-data/processed_data/ecological_community_data/year_level" 
@@ -491,7 +553,7 @@ deep_reef_counts <- left_join(deep_reef_counts, defacto_smr, by="affiliated_mpa"
 #clean
 deep_reef_counts <- deep_reef_counts %>%
                     mutate(mpa_defacto_designation = ifelse(mpa_designation=='ref',mpa_designation,mpa_class.y))%>%
-                    dplyr::select(year, affiliated_mpa, mpa_defacto_class=mpa_class.y, mpa_defacto_designation=mpa_designation, scientific_name, total_count)
+                    dplyr::select(year, affiliated_mpa,mpa_class=mpa_class.x, mpa_designation, mpa_defacto_class=mpa_class.y, mpa_defacto_designation=mpa_designation, scientific_name, total_count)
 
 deep_reef_counts$scientific_name[deep_reef_counts$scientific_name == "" ] <- NA     #replace missing data with NA and drop
 
@@ -516,7 +578,7 @@ deep_reef_counts <- left_join(deep_reef_counts, regions, by=c("affiliated_mpa"="
 
 #clean
 deep_reef_counts <- deep_reef_counts %>%
-                    group_by(year, region3, region4, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation, scientific_name) %>%
+                    group_by(year, region3, region4, affiliated_mpa,mpa_class, mpa_defacto_class, mpa_defacto_designation, scientific_name) %>%
                     dplyr::summarise(counts = sum(total_count)) #make sure species are not duplicates by summarizing at the transect level (total counts)
 
 #drop species per PI based on incorrect range or ID
@@ -603,15 +665,25 @@ deep_reef_counts_wide <- deep_reef_counts_drop %>%
                     janitor::clean_names()%>%
                     drop_na(region4) %>%
                     mutate(MHW = ifelse(year>=2014 & year<=2016, "during",ifelse(year<2014, "before","after")))%>%
-                    dplyr::select(year, region3, region4, affiliated_mpa, mpa_defacto_class,mpa_defacto_designation, MHW, everything()) %>%
-                    replace(is.na(.),0)
+                    dplyr::select(year, region3, region4, affiliated_mpa,mpa_class, mpa_defacto_class, mpa_defacto_designation, MHW, everything()) %>%
+                    replace(is.na(.),0)%>%
+                    mutate(group='deep_reef')
                     #dplyr::select(-c(no_organisms_present_in_this_sample))
 
 
+deep_reef_counts_wide$mpa_class <- tolower(deep_reef_counts_wide$mpa_class)
+
+
+deep_reef_counts_envr <- anti_join(deep_reef_counts_wide, envr_dat, 
+                                  by=c("year","group",
+                                                    "region3","region4",
+                                                    "mpa_class"="mpa_class",
+                                                    "mpa_defacto_designation"="mpa_designation",
+                                                  "affiliated_mpa"="mpa_name"))
 
 #Export
 #path_aurora <- "/home/shares/ca-mpa/data/sync-data/processed_data/ecological_community_data/year_level" 
-#write.csv(deep_reef_counts_wide,file.path(path_aurora, "deep_reef_mpa_year.csv"), row.names = FALSE)
+write.csv(deep_reef_counts_wide,file.path(path_aurora, "deep_reef_mpa_year.csv"), row.names = FALSE)
 
 ```
 
