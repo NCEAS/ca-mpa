@@ -22,7 +22,7 @@ mpas <- readRDS(file=file.path(traitdir, "CA_mpa_metadata.Rds"))
 data_orig <- readRDS(file=file.path(datadir, "2016_2021_citations.Rds"))
 pop_orig <- readRDS(file=file.path(popdir, "MPA_population_within_50km.Rds"))
 inaturalist_orig <- readRDS(file.path(basedir, "inaturalist/processed", "2000_2020_inaturalist_data_inside_mpas_100m_buffer.Rds"))
-mpa_watch <- readRDS("analyses/3performance_human/output/mpa_watch_consumptive_stats.Rds")
+mpa_watch <- readRDS("analyses/3performance_human/output/mpa_watch_consumptive_indicators.Rds")
 
 # Get land
 usa <- rnaturalearth::ne_states(country="United States of America", returnclass = "sf")
@@ -200,7 +200,7 @@ g2 <- ggplot(data, aes(x=npeople_50km/1e6, y=ncitations, fill=region, size=area_
   # Plot regression
   geom_smooth(formula='y ~ x',
               # aes(x=npeople_50km/1e6, y=inat_observers_tot),
-              method=glm, method.args = list(family = 'poisson'), 
+              method=glm, method.args = list(family = 'poisson'),
               color="grey50", fill="grey80", alpha=0.5, show.legend = F) +
   # Plot points
   geom_point(pch=21) +

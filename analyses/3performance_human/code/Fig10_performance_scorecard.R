@@ -151,7 +151,7 @@ g2 <- ggplot(data2, aes(x=indicator, y=mpa, fill=value_scaled)) +
   # Labels
   labs(x="", y="") +
   # Legend
-  scale_fill_gradient2("Performance\n(scaled and centered)", 
+  scale_fill_gradient2("Engagement\n(scaled and centered)", 
                        midpoint = 0, low="darkred", high="navy", mid="white", na.value="grey50") +
   guides(fill = guide_colorbar(ticks.colour = "black", frame.colour = "black")) +
   # Theme

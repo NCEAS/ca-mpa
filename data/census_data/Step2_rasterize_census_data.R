@@ -26,6 +26,9 @@ utm10 <- sf::st_crs(" +proj=utm +zone=10 +datum=NAD83 +units=m +no_defs")
 # Read data
 tract_data <- readRDS(file.path(outdir, "CA_2010_census_tot_pop_by_tract.Rds"))
 
+# Size of blocks
+range(tract_data$area_sqkm)
+
 # Project to meters
 tract_data_m <- tract_data %>% 
   sf::st_transform(utm10)
