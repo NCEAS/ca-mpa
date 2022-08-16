@@ -17,15 +17,18 @@ outputdir <- "analyses/3performance_human/output"
 # Read MPA attributes
 mpas_orig <- readRDS(file.path(basedir, "mpa_traits/processed", "CA_mpa_metadata.Rds"))
 
-# Read score card ingredients
+# Read indicators
 pop_orig <- readRDS(file.path(basedir, "census_data/processed", "MPA_population_within_50km.Rds"))
-watch_orig <- readRDS(file.path(basedir, "mpa_watch/processed", "MPA_Watch_2011_2022_surveys_ca_programs_wide.Rds"))
-inaturalist_orig <- readRDS(file.path(basedir, "inaturalist/processed", "2000_2020_inaturalist_data_inside_mpas_100m_buffer.Rds"))
-reef_orig <- readRDS(file.path(basedir, "reef/processed", "REEF_1994_2022_survey_metadata.Rds"))
-permits_orig <- readRDS(file.path(basedir, "scientific_permits/processed", "CA_2012_2021_mpa_scientific_permits.Rds")) 
-ebird_orig <- readRDS(file.path(basedir, "ebird/processed", "CA_ebird_data_inside_mpas_100m_buffer.Rds"))
+watch_consump_orig <- readRDS(file.path(outputdir,  "mpa_watch_consumptive_indicators.Rds"))
+watch_nonconsump_orig <- readRDS(file.path(outputdir,  "mpa_watch_nonconsumptive_indicators.Rds"))
+inaturalist_orig <- readRDS(file.path(outputdir,  "inaturalist_indicators.Rds"))
+reef_orig <- readRDS(file.path(outputdir, "reef_indicators.Rds"))
+ebird_orig <- readRDS(file.path(outputdir, "ebird_indicators.Rds"))
+permits_orig <- readRDS(file.path(outputdir, "scientific_permits_indicators.Rds")) 
+citations_orig <- readRDS(file.path(outputdir, "citations_indicators.Rds"))
 
-# Format data
+
+# Format indicators data
 ################################################################################
 
 # Population data
@@ -33,78 +36,58 @@ pop <- pop_orig %>%
   select(name, npeople_50km) %>% 
   rename(mpa=name)
 
+# MPA Watch non-consumptive
+head(watch_nonconsump_orig)
+watch_nonconsump <- watch_nonconsump_orig %>% 
+  select(mpa, psurveys, activity_hr) %>% 
+  rename(nonconsump_psurveys=psurveys, 
+         nonconsump_hr=activity_hr)
+
+# MPA Watch consumptive
+head(watch_consump_orig)
+watch_consump <- watch_consump_orig %>% 
+  select(mpa, psurveys, activity_hr) %>% 
+  rename(consump_psurveys=psurveys, 
+         consump_hr=activity_hr)
+
 # iNaturalist data
-# Total # of observers/observations, 2000-2018
-range(inaturalist_orig$date_obs)
-inaturalist <- inaturalist_orig %>% 
-  filter(year_obs <= 2018) %>% 
-  # Summarize
-  group_by(mpa) %>% 
-  summarize(inat_observers_tot=n_distinct(user_id),
-            inat_observations_tot=n()) %>% 
-  ungroup()
+head(inaturalist_orig)
+inat <- inaturalist_orig %>% 
+  select(-nspecies) %>% 
+  rename(inat_observers_n=nobservers,
+         inat_observations_n=nobservations)
 
-# MPA stats
+# eBird data
+head(ebird_orig)
 ebird <- ebird_orig %>%
-  # Summarize
-  group_by(mpa) %>%
-  summarize(ebirders_n=n_distinct(observer_id)) %>%
-  ungroup()
-
+  select(mpa, n_observers,  n_observations) %>% # n_surveys, n_species
+  rename(ebird_observers_n=n_observers, 
+         ebird_observations_n=n_observations)
+  
 # REEF data
-# Total number of surveys, 1993-2022
-range(reef_orig$date)
+head(reef_orig)
 reef <- reef_orig %>% 
-  # Reduce to MPA sites
-  filter(!is.na(mpa)) %>% 
-  # Add year
-  mutate(year=lubridate::year(date)) %>% 
-  # Total by MPA
-  group_by(mpa) %>% 
-  summarise(reef_surveys_tot=n()) %>% 
-  ungroup()
-  # # Total by MPA-year
-  # group_by(mpa) %>% 
-  # summarize(n=n()) %>% 
-  # ungroup() %>% 
-  # # Fill in missing MPA-years
-  # complete(fill=list(n=0)) %>%
-  # # Average annual
-  # group_by(mpa) %>% 
-  # summarize(reef_surveys_yr=mean(n)) %>% 
-  # ungroup()
+  select(mpa, nsurveys, nyrs) %>% 
+  rename(reef_n=nsurveys, 
+         reef_nyr=nyrs)
 
 # Permit data
-# Total # of permits, 2012-2021
-range(permits_orig$year)
+head(permits_orig)
 permits <- permits_orig %>% 
-  group_by(mpa) %>% 
-  summarize(npermits_tot=sum(npermits)) %>% 
-  ungroup()
+  select(mpa, npermits, nyears) %>% 
+  rename(permits_n=npermits, 
+         permits_nyr=nyears)
 
-# MPA Watch data
-# Average annual activities/hour
-watch <- watch_orig %>% 
-  # Simplify
-  select(survey_id, mpa, mpa_id, survey_type, date, time_start1, time_end1, duration_hr, 
-         total_nonconsumptive_activities, total_consumptive_activities) %>% 
-  # Reduce to valid surveys inside MPAs
-  filter(duration_hr > 0 & survey_type=="MPA") %>% 
-  # Reduce to surveys during years w/ similar coverage
-  filter(date>="2015-01-01" & date<="2021-12-31") %>% 
-  # Reduce to surveys occurring during the day
-  filter(lubridate::hour(time_start1) >= 7 & lubridate::hour(time_start1) <= 19) %>% 
-  # Calculate activities/hour
-  mutate(consump_hr=total_consumptive_activities/duration_hr,
-         nonconsump_hr=total_nonconsumptive_activities/duration_hr) %>% 
-  # Summarize by MPA
-  group_by(mpa) %>% 
-  summarize(consump_hr=median(consump_hr),
-            nonconsump_hr=median(nonconsump_hr)) %>% 
-  ungroup()
+# Citation data
+head(citations_orig)
+citations <- citations_orig %>% 
+  select(mpa, ncitations, nyears) %>% 
+  rename(citations_n=ncitations, 
+         citations_nyr=nyears)
 
 
-# Merge data
+
+# Merge indicators
 ################################################################################
 
 # Build data
@@ -112,20 +95,25 @@ data <- mpas_orig %>%
   # Simplify
   select(mpa, mpa_short, authority, type, region, area_sqkm, long_dd, lat_dd) %>% 
   # Add population
-  left_join(pop, by="mpa") %>% 
-  # Add MPA watch
-  left_join(watch, by="mpa") %>% 
+  left_join(pop, by="mpa") %>%
+  # Add MPA watch non-consumptive
+  left_join(watch_nonconsump, by="mpa") %>% 
+  # Add MPA watch consumptive
+  left_join(watch_consump, by="mpa") %>% 
   # Add iNaturalist
-  left_join(inaturalist, by="mpa") %>% 
+  left_join(inat, by="mpa") %>%
   # Add eBird
   left_join(ebird, by="mpa") %>% 
-  # Add REEF survey
+  # Add REEF
   left_join(reef, by="mpa") %>% 
   # Add permits
-  left_join(permits, by="mpa") 
+  left_join(permits, by="mpa") %>% 
+  # Add citations
+  left_join(citations, by="mpa")
 
 # Inspect
 freeR::complete(data)
+
 
 # Export data
 ################################################################################

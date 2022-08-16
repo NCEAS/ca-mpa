@@ -24,24 +24,32 @@ data_orig <- readRDS(file=file.path(datadir, "CA_MPA_human_use_indicators.Rds"))
 # MPAs of interest
 types_use <- c("SMR", "SMRMA", "SMCA", "SMCA (No-Take)")
 
+# Indicators of interest
+indicators_use <- c("npeople_50km", 
+                    "nonconsump_psurveys", "consump_psurveys", 
+                    "inat_observers_n", "ebird_observers_n", "reef_n",
+                    "permits_n", "citations_n")
+
 # Build data
 data <- data_orig %>% 
   # Reduce to MPAs of interest
   filter(type %in% types_use) %>% 
   # Recode region
-  mutate(region=plyr::revalue(region, c("San Francisco Bay"="North Central Coast"))) %>% 
+  mutate(region=plyr::revalue(region, c("San Francisco Bay"="North Central Coast"))) %>%
   # Gather indicators
   gather(key="indicator", value="value", 9:ncol(.)) %>% 
+  # Reduce to indicators of interest
+  filter(indicator %in% indicators_use) %>% 
   # Format indicators
   mutate(indicator=recode_factor(indicator,
                                  "npeople_50km"="Population size",
-                                 "inat_observations_tot"="iNaturalist observations",  
-                                 "inat_observers_tot"="iNaturalist observers",
-                                 "ebirders_n"='eBird observers',
-                                 "reef_surveys_tot"="REEF surveys",
-                                 "nonconsump_hr"="MPA Watch (non-consumptive)", 
-                                 "consump_hr"="MPA Watch (consumptive)",
-                                 "npermits_tot"="Scientific permits")) %>% 
+                                 "inat_observers_n"="iNaturalist observers",
+                                 "ebird_observers_n"='eBird observers',
+                                 "reef_n"="REEF surveys",
+                                 "nonconsump_psurveys"="MPA Watch (non-consumptive)", 
+                                 "consump_psurveys"="MPA Watch (consumptive)",
+                                 "permits_n"="Scientific permits",
+                                 "citations_n"="Citations")) %>% 
   # Scale metrics
   group_by(indicator) %>% 
   mutate(value_scaled=scale(value, center=T, scale=T)) %>% 
@@ -86,7 +94,7 @@ g <- ggplot(data_ordered, aes(x=indicator, y=mpa, fill=value_scaled)) +
   # Labels
   labs(x="", y="") +
   # Legend
-  scale_fill_gradient2("Performance\n(scaled and centered)", 
+  scale_fill_gradient2("Engagement\n(scaled and centered)", 
                        midpoint = 0, low="darkred", high="navy", mid="white", na.value="grey50") +
   guides(fill = guide_colorbar(ticks.colour = "black", frame.colour = "black")) +
   # Theme
