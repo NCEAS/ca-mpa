@@ -679,11 +679,15 @@ deep_reef_counts_envr <- left_join(deep_reef_counts_wide, envr_dat,
                                                     "region3","region4",
                                                     "mpa_class"="mpa_class",
                                                     "mpa_defacto_designation"="mpa_designation",
-                                                  "affiliated_mpa"="mpa_name"))
+                                                  "affiliated_mpa"="mpa_name")) %>%
+                  dplyr::select(1:8,114:132,9:113) %>%
+                  dplyr::select(!c("mpa_defacto_class.y","mpa_defacto_designation.y"),
+                                mpa_defacto_class="mpa_defacto_class.x") %>%
+                  dplyr::select(group, everything())
 
 #Export
 #path_aurora <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/ecological_community_data/year_level_with_envr_vars" 
-#write.csv(deep_reef_counts_wide,file.path(path_aurora, "deep_reef_mpa_year.csv"), row.names = FALSE)
+#write.csv(deep_reef_counts_envr,file.path(path_aurora, "deep_reef_mpa_year.csv"), row.names = FALSE)
 
 ```
 
