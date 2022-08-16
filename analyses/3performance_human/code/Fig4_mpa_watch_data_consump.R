@@ -192,15 +192,15 @@ g1 <- ggplot() +
   geom_sf(data=usa, fill="grey80", color="white", lwd=0.3) +
   # Plot MPAs
   geom_point(data=stats,
-             mapping=aes(x=long_dd, y=lat_dd, size=activity_hr, fill=psurveys, pch=type), 
-             inherit.aes = F) +
+             mapping=aes(x=long_dd, y=lat_dd, size=activity_hr, fill=psurveys, pch=type), #  pch=type, if plotting shape
+             inherit.aes = F) + #  pch=21, if not plotting shape
   # Labels
   labs(x="", y="", tag="A") +
   # Axes
   scale_y_continuous(breaks=32:42) +
   # Legend
   scale_size_continuous(name="Activities per hour") +
-  scale_shape_manual(name="MPA type", values=c(21, 22, 23, 24)) +
+  scale_shape_manual(name="MPA type", values=c(21, 22, 23, 24)) + # if plotting shape
   scale_fill_gradientn(name="% of surveys", colors=RColorBrewer::brewer.pal(9, "Blues"), labels=scales::percent) +
   guides(fill = guide_colorbar(ticks.colour = "black", frame.colour = "black", order=2), size=guide_legend(order=1)) +
   # Crop
@@ -208,7 +208,8 @@ g1 <- ggplot() +
   # Theme
   theme_bw() + theme1 +
   theme(axis.title.y=element_blank(),
-        legend.position = c(0.75, 0.65),
+        # legend.position = c(0.75, 0.75), # if not plotting shape
+        legend.position = c(0.75, 0.65), # if plotting shape
         legend.key.size = unit(0.3, "cm"),
         axis.text.y = element_text(angle = 90, hjust = 0.5))
 g1

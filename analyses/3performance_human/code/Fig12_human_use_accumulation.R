@@ -24,6 +24,13 @@ data_orig <- readRDS(file=file.path(datadir, "CA_MPA_human_use_indicators.Rds"))
 # MPAs of interest
 types_use <- c("SMR", "SMRMA", "SMCA", "SMCA (No-Take)")
 
+# Indicators of interest
+head(data_orig)
+indicators_use <- c("npeople_50km", 
+                    "nonconsump_psurveys", "consump_psurveys", 
+                    "inat_observers_n", "ebird_observers_n", "reef_n",
+                    "permits_n", "citations_n")
+
 # Build data
 data <- data_orig %>% 
   # Reduce to MPAs of interest
@@ -32,17 +39,19 @@ data <- data_orig %>%
   mutate(region=plyr::revalue(region, c("San Francisco Bay"="North Central Coast"))) %>% 
   # Gather indicators
   gather(key="indicator", value="value", 9:ncol(.)) %>% 
+  # Reduce to indicators of interest
+  filter(indicator %in% indicators_use) %>% 
   # Format indicators
   mutate(indicator=recode_factor(indicator,
                                  "npeople_50km"="Population size",
-                                 "inat_observations_tot"="iNaturalist observations",  
-                                 "inat_observers_tot"="iNaturalist observers",
-                                 "ebirders_n"='eBird observers',
-                                 "reef_surveys_tot"="REEF surveys",
-                                 "nonconsump_hr"="MPA Watch (non-consumptive)", 
-                                 "consump_hr"="MPA Watch (consumptive)",
-                                 "npermits_tot"="Scientific permits")) %>% 
-  # FReduce to only MPAs with data
+                                 "inat_observers_n"="iNaturalist observers",
+                                 "ebird_observers_n"='eBird observers',
+                                 "reef_n"="REEF surveys",
+                                 "nonconsump_psurveys"="MPA Watch (non-consumptive)", 
+                                 "consump_psurveys"="MPA Watch (consumptive)",
+                                 "permits_n"="Scientific permits",
+                                 "citations_n"="Citations")) %>% 
+  # Reduce to only MPAs with data
   filter(!is.na(value)) %>% 
   # Order MPAs by value
   group_by(indicator) %>% 
@@ -97,18 +106,19 @@ g <- ggplot(data_ind, aes(x=rank_perc, y=value_cum_prop, color=indicator)) +
   # Indicator lines
   geom_line() +
   # Reference lines
-  geom_line(data=data_ref, aes(x=rank_perc, y=value_cum_prop, linetype=indicator), inherit.aes = F) +
+  geom_line(data=data_ref, aes(x=rank_perc, y=value_cum_prop, linetype=indicator, size=indicator), inherit.aes = F) +
   # Reference labels
-  annotate(geom="text", x=0.1, y=0.9, label="More selective\nusers", hjust=0.5, size=2.7, color="grey30") +
-  annotate(geom="text", x=0.47, y=0.6, label="Less selective\nusers", hjust=0.5, size=2.7, color="grey30") +
+  annotate(geom="text", x=0.1, y=0.9, label="More selective\nusers", hjust=0.5, size=2.7, color="grey60") +
+  annotate(geom="text", x=0.47, y=0.6, label="Less selective\nusers", hjust=0.5, size=2.7, color="grey60") +
   # Labels
-  labs(x="Standardized rank order\nof an MPA's contribution to network-wide performance", 
-       y="Percent of\nnetwork-wide performance") +
+  labs(x="Standardized rank order\nof an MPA's contribution to network-wide engagement", 
+       y="Percent of\nnetwork-wide engagement") +
   # scale_x_continuous(labels=scales::percent) +
   scale_y_continuous(labels=scales::percent) +
   # Legend
   scale_color_discrete(name="Human use indictor") +
   scale_linetype_manual(name="Reference indicator", values=c("dashed", "dotted")) +
+  scale_size_manual(name="", guide="none", values=c(0.8, 1.0)) +
   # Theme
   theme_bw() + my_theme
 g

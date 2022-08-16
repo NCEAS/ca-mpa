@@ -26,8 +26,6 @@ foreign <- rnaturalearth::ne_countries(country=c("Canada", "Mexico"), returnclas
 # Reduce to MPAs of interest
 sort(unique(mpas_orig$type))
 types_use <- c("SMR", "SMRMA", "SMCA", "SMCA (No-Take)")
-mpas <- mpas_orig %>% 
-  filter(type %in% types_use)
 
 
 # Build data
@@ -41,23 +39,26 @@ nrow(data_orig)
 n_distinct(data_orig$user_id)
 
 # Summarize
-stats <- data_orig %>% 
-  # 2018
-  filter(year_obs==2018) %>% 
+stats_full <- data_orig %>% 
+  # Before 2018
+  filter(year_obs<=2018) %>% 
   # Summarize
   group_by(mpa) %>% 
   summarize(nobservers=n_distinct(user_id),
             nobservations=n(),
             nspecies=n_distinct(sci_name)) %>% 
   ungroup()
-  
-# Spatialize
-stats1 <- mpas %>% 
-  select(mpa, region, area_sqkm, lat_dd, long_dd) %>% 
-  left_join(stats, by="mpa")
 
+# Export data
+saveRDS(stats_full, file=file.path(outputdir, "inaturalist_indicators.Rds"))
+
+# Reduce and spatialize
+stats <- stats_full %>% 
+  left_join(mpas %>% select(mpa, type, lat_dd, long_dd)) %>% 
+  filter(type %in% types_use)
+  
 # Number of MPAs with observations
-stats1 %>% filter(!is.na(nobservers)) %>% pull(mpa) %>% n_distinct(.)
+stats %>% filter(!is.na(nobservers)) %>% pull(mpa) %>% n_distinct(.)
 
 # Time series stats
 observations_ts <- data_orig %>% 
@@ -217,7 +218,7 @@ g1 <- ggplot() +
   geom_sf(data=foreign, fill="grey80", color="white", lwd=0.3) +
   geom_sf(data=usa, fill="grey80", color="white", lwd=0.3) +
   # Plot MPAs
-  geom_point(data=stats1, mapping=aes(x=long_dd, y=lat_dd, size=nobservers, fill=nobservations), pch=21, inherit.aes = F) +
+  geom_point(data=stats, mapping=aes(x=long_dd, y=lat_dd, size=nobservers, fill=nobservations), pch=21, inherit.aes = F) +
   # Labels
   labs(x="", y="", tag="A") +
   # Axes

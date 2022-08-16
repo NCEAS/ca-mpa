@@ -178,6 +178,10 @@ depth_ts <- data %>%
   summarize(nsurveys=n_distinct(survey_id)) %>% 
   ungroup()
 
+# Stats for paper
+nrow(data) # number of surveys
+sum(stats$nsurveys) # number in protected areas
+sum(stats$nsurveys) / nrow(data) *100
 
 # Plot data
 ################################################################################
