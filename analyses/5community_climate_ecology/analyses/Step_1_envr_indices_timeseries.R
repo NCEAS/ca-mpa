@@ -26,11 +26,12 @@ envr_plot <- envr_vars_all %>%
   ) %>%
   pivot_longer(names_to = "index", cols=c("beuti_anom","cuti_anom","sst_anom","MOCI"))
 
-envr_plot$index <- factor(envr_plot$index, levels = c("beuti_anom", "cuti_anom", "sst_anom", "MOCI"))
+envr_plot$index <- factor(envr_plot$index, levels = c("sst_anom", "MOCI","beuti_anom", "cuti_anom"))
 
 
 
 # Examine time series of indices ------------------------------------------
+
 
 envr_ts <- envr_plot%>%
   filter(year>=2000)%>%
@@ -45,11 +46,11 @@ envr_ts <- envr_plot%>%
   #      alpha = .2, fill="pink")+
   facet_wrap(~index, ncol=2, nrow=2, scale="free_y",
              strip.position = "left",
-             labeller = as_labeller(c(beuti_anom="BEUTI anomaly", 
+             labeller = as_labeller(c(sst_anom = "SST anomaly (°C)",
+                                      beuti_anom="BEUTI anomaly", 
                                       cuti_anom = "CUTI anomaly",
-                                      sst_anom = "SST anomaly (deg C)",
                                       MOCI = "MOCI")))+
-  xlab("year")+
+  xlab("Year")+
   ylab(NULL)+
   #scale_y_continuous(
   #  "beuti_anom", 
@@ -60,8 +61,8 @@ envr_ts <- envr_plot%>%
         plot.title=element_text(hjust=0.5),
         strip.background = element_blank(),
         strip.placement = "outside")+
-  scale_x_continuous(breaks= scales::pretty_breaks())+
-  labs(title="Central CA oceanographic anomalies")
+  scale_x_continuous(breaks= scales::pretty_breaks())
+  #labs(title="Central CA oceanographic anomalies")
  # theme(aspect.ratio=0.5/1.5)
 
 print(envr_ts)
