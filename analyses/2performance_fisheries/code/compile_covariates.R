@@ -24,6 +24,7 @@ base.dir <- "/Volumes/GoogleDrive-105151121202188525604/Shared drives/NCEAS MPA 
 gis.dir <- file.path(base.dir, "gis_data", "processed")
 
 blocks <- wcfish::blocks
+blocks_simple <- blocks %>% sf::st_drop_geometry()
 
 # Read Data --------------------------------------------------------------------
 block_stats <- readRDS(file.path(gis.dir,"block_mpa_coverage_reduced_types.Rds")) 
@@ -45,8 +46,16 @@ data2 <- data %>%
   select(block_id, block_treatment, block_area_km2, mpa_km2, block_mean_depth_fa, 
          distance_to_shore_km, dist_to_port_km)
 
-data2$mpa_km2[is.na(data2$mpa_km2)] <- 0         
+data2$mpa_km2[is.na(data2$mpa_km2)] <- 0
 
+# Remove midshore and offshore blocks
+data3 <- data2 %>% 
+  filter(!(block_id %in% blocks$block_id[blocks$block_type %in% c("Offshore", "Midshore")]))
 
-  
-  
+# Add lat/long for nearest proximity
+block_latlon <- blocks_simple %>% 
+  select(block_id, block_long_dd, block_lat_dd)
+
+data4 <- data3 %>% 
+  left_join(., block_latlon)
+
