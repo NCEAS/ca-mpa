@@ -26,7 +26,10 @@ int.dir <- file.path("analyses", "7habitat","intermediate_data")
 # Read Data
 ## Attributes
 att_data <- readRDS(file.path(int.dir, "mpa_attributes_nmds_subset.Rds"))
-  
+
+## Attribute metadata
+att_meta <- readRDS(file.path(int.dir, "mpa_attributes_nmds_metadata.Rds"))
+
 ## Kelp Fish Counts
 kf_fish <- readRDS(file.path(int.dir, "species_matrix_kelp_fish_1620.Rds")) 
 
@@ -42,16 +45,23 @@ Species matrix for 2016-2020 average count per year.
 ```{r}
 # Get MPA attributes for MPAs in kelp species matrix 
 kf_env <- att_data %>% 
-  filter(name %in% kf_fish$name) 
+  filter(rownames(.) %in% kf_fish$name) 
 
 # Save metadata df
-kf_md <- kf_env %>% 
-  select(name, region)
+kf_md <- att_meta %>% 
+  select(name, region) %>% 
+  filter(name %in% rownames(kf_env))
 
 # Set up species matrix for vegan analyses
 kf_fish[is.na(kf_fish)] <- 0
 kf_fish <- kf_fish %>% column_to_rownames("name")
-kf_env <- kf_env %>% column_to_rownames("name") %>% select(!region)
+kf_env[is.na(kf_env)] <- 0
+
+# Drop two species: BAIT (baitball) and ATHE (atherinidae)
+# Following recommendations by P.R. and M.C.
+kf_fish <- kf_fish %>% 
+  select(-BAITBALL, -ATHE)
+
 ```
 
 ### examine richness and diversity
@@ -80,7 +90,7 @@ kf_perm # no diff
 
 ```{r}
 # nmds of fish community
-kf_mds <- metaMDS(kf_fish, distance = "euclidean", trymax = 999)
+kf_mds <- metaMDS(kf_fish, autotransform = F)
 kf_mds
 stressplot(kf_mds)
 
@@ -92,7 +102,7 @@ kf_df <- scores(kf_mds, display = "sites") %>%
 
 kf_plot <- ggplot(kf_df,
                   aes(x = NMDS1, y = NMDS2,
-                      color = region, shape = region)) +
+                      color = region)) +
   geom_point(size = 3, alpha = 0.5) +
   labs(title = "KF Fish NMDS") + 
   theme_classic()
@@ -116,8 +126,9 @@ kf_fit_pvals <- kf_fit$vectors$pvals %>%
 
 ```{r}
 # bioenv how do env vars contribute to dissimilarity
-kf_bioenv <- bioenv(comm = kf_fish, env = kf_env)
+kf_bioenv <- bioenv(comm = kf_fish, env = kf_env, metric = "euclidean")
 kf_bioenv
+summary(kf_bioenv)
 
 # select best model
 kf_model <- kf_bioenv$models[[kf_bioenv$whichbest]] 
@@ -130,19 +141,17 @@ kf_envfit <- envfit(kf_mds, kf_env[, kf_keep], perm = 999, na.rm = TRUE)
 kf_envfit_coords <- kf_envfit %>% 
   scores(., display = "vectors") %>% 
   as.data.frame() %>% 
-  rownames_to_column("attribute")%>% 
-  mutate(att.label = c("beach", "rocky intertidal", "kelp", "hard 0-30", "soft 0-30",
-                       "soft 200-3000", "canyon 0-30", "surfgrass", "eelgrass"))
+  rownames_to_column("attribute") %>% 
+  mutate(att.label = c("soft 200-3000", "surfgrass", "eelgrass", "coastal marsh"))
 
 # plot
 ggplot(kf_df, aes(x = NMDS1, y = NMDS2)) +
-  coord_fixed() +
   geom_point(aes(color = region,
                  shape = region),
              size = 3, alpha = 0.8) +
   geom_segment(data = kf_envfit_coords, 
-               aes(x = 0, xend = NMDS1,
-                   y = 0, yend = NMDS2),
+               aes(x = 0, xend = NMDS1*10,
+                   y = 0, yend = NMDS2*10),
                arrow = arrow(length = unit(0.15, "cm")),
                col = "black") +
   geom_text(data = kf_envfit_coords, 
@@ -159,120 +168,118 @@ ggplot(kf_df, aes(x = NMDS1, y = NMDS2)) +
 ## Swath (Algae/Inverts)
 
 ```{r}
-# Get MPA attributes for MPAs in kelp species matrix 
-ks_env <- att_data %>% 
-  filter(name %in% kf_swath$name) 
-
-# Save metadata df
-ks_md <- ks_env %>% 
-  select(name, region)
-
-# Set up species matrix for vegan analyses
-kf_swath[is.na(kf_swath)] <- 0
-kf_swath <- kf_swath %>% column_to_rownames("name")
-ks_env <- ks_env %>% column_to_rownames("name") %>% select(!region)
-
+# # Get MPA attributes for MPAs in kelp species matrix 
+# ks_env <- att_data %>% 
+#   filter(rownames(.) %in% kf_swath$name) 
+# 
+# # Save metadata df
+# ks_md <- att_meta %>% 
+#   select(name, region) %>% 
+#   filter(name %in% rownames(ks_env))
+# 
+# # Set up species matrix for vegan analyses
+# kf_swath[is.na(kf_swath)] <- 0
+# kf_swath <- kf_swath %>% column_to_rownames("name")
+# ks_env[is.na(ks_env)] <- 0
 ```
 
 ### examine richness and diversity
 
 ```{r}
-# kf fish richness
-ks_sppr <- specnumber(kf_swath)
-
-# difference in richness between regions?
-ks_sppr_aov <- aov(ks_sppr ~ region, data = ks_md)
-summary(ks_sppr_aov) # no diff
-
-# kf fish diversity
-ks_shan <- diversity(kf_swath)
-
-# difference in diversity between regions?
-ks_shan_aov <- aov(ks_shan ~ region, data = ks_md)
-summary(ks_shan_aov) # no diff
-
-# difference in species composition between regions?
-ks_perm <- adonis2(kf_swath ~ region, data = ks_md)
-ks_perm # no diff
+# # kf swath richness
+# ks_sppr <- specnumber(kf_swath)
+# 
+# # difference in richness between regions?
+# ks_sppr_aov <- aov(ks_sppr ~ region, data = ks_md)
+# summary(ks_sppr_aov) # no diff
+# 
+# # kf fish diversity
+# ks_shan <- diversity(kf_swath)
+# 
+# # difference in diversity between regions?
+# ks_shan_aov <- aov(ks_shan ~ region, data = ks_md)
+# summary(ks_shan_aov) # no diff
+# 
+# # difference in species composition between regions?
+# ks_perm <- adonis2(kf_swath ~ region, data = ks_md)
+# ks_perm # no diff
 ```
 
 ### nmds
 
 ```{r}
-# nmds of invert/algae community
-ks_mds <- metaMDS(kf_swath, distance = "euclidean", trymax = 999)
-ks_mds
-stressplot(ks_mds)
-
-# plot nmds of fish community
-ks_df <- scores(ks_mds, display = "sites") %>% 
-  as.data.frame() %>% 
-  rownames_to_column("name") %>% 
-  full_join(ks_md, by = "name")
-
-ks_plot <- ggplot(ks_df,
-                  aes(x = NMDS1, y = NMDS2,
-                      color = region, shape = region)) +
-  geom_point(size = 3, alpha = 0.5) +
-  labs(title = "KF Swath NMDS") + 
-  theme_classic()
-ks_plot
+# # nmds of invert/algae community
+# ks_mds <- metaMDS(kf_swath, distance = "euclidean", trymax = 999)
+# ks_mds
+# stressplot(ks_mds)
+# 
+# # plot nmds of fish community
+# ks_df <- scores(ks_mds, display = "sites") %>% 
+#   as.data.frame() %>% 
+#   rownames_to_column("name") %>% 
+#   full_join(ks_md, by = "name")
+# 
+# ks_plot <- ggplot(ks_df,
+#                   aes(x = NMDS1, y = NMDS2,
+#                       color = region)) +
+#   geom_point(size = 3, alpha = 0.5) +
+#   labs(title = "KF Swath NMDS") + 
+#   theme_classic()
+# ks_plot
 ```
 
 ### envfit: species driving separation?
 
 ```{r}
-# envfit - how do species contribute to dissimilarity
-ks_fit <- envfit(ks_mds, kf_swath, perm = 999)
-
-ks_fit_pvals <- ks_fit$vectors$pvals %>% 
-  as.data.frame() %>% 
-  rownames_to_column("species") %>% 
-  dplyr::rename("pvals" = ".") # over half of them have = 0.001
+# # envfit - how do species contribute to dissimilarity
+# ks_fit <- envfit(ks_mds, kf_swath, perm = 999)
+# 
+# ks_fit_pvals <- ks_fit$vectors$pvals %>% 
+#   as.data.frame() %>% 
+#   rownames_to_column("species") %>% 
+#   dplyr::rename("pvals" = ".") # over half of them have = 0.001
 
 ```
 
 ### bioenv: link environmental variables to community dissimilarity
 
 ```{r}
-# bioenv how do env vars contribute to dissimilarity
-ks_bioenv <- bioenv(comm = kf_swath, env = ks_env)
-ks_bioenv
-
-# select best model
-ks_model <- ks_bioenv$models[[ks_bioenv$whichbest]] 
-ks_keep <- ks_model$best
-
-# use envfit to get vectors for top model variables
-ks_envfit <- envfit(ks_mds, ks_env[, ks_keep], perm = 999, na.rm = TRUE)
-
-# extract coordinates for each attribute
-ks_envfit_coords <- ks_envfit %>% 
-  scores(., display = "vectors") %>% 
-  as.data.frame() %>% 
-  rownames_to_column("attribute") %>% 
-  mutate(label.att = c("sandy", "rocky intertidal", "hard 200-3000m", "soft 200-3000m",
-                       "canyon 0-30m", "canyon 100-200m", "surfgrass", "eelgrass", "marsh"))
-
-# plot
-ggplot(ks_df, aes(x = NMDS1, y = NMDS2)) +
-  coord_fixed() +
-  geom_point(aes(color = region,
-                 shape = region),
-             size = 3, alpha = 0.8) +
-  geom_segment(data = ks_envfit_coords, 
-               aes(x = 0, xend = NMDS1,
-                   y = 0, yend = NMDS2),
-               arrow = arrow(length = unit(0.15, "cm")),
-               col = "black") +
-  geom_text(data = ks_envfit_coords, aes(label = label.att), size = 3) +
-  geom_vline(xintercept = c(0), color = "grey70", linetype = 2) +
-  geom_hline(yintercept = c(0), color = "grey70", linetype = 2) +
-  scale_x_continuous(limits = c(-0.2, 0.25)) +
-  scale_y_continuous(limits = c(-0.05, 0.25)) +
-  labs(title = "KF Swath",
-       color = "",
-       shape = "") + 
-  theme_classic()
+# # bioenv how do env vars contribute to dissimilarity
+# ks_bioenv <- bioenv(comm = kf_swath, env = ks_env)
+# ks_bioenv
+# 
+# # select best model
+# ks_model <- ks_bioenv$models[[ks_bioenv$whichbest]] 
+# ks_keep <- ks_model$best
+# 
+# # use envfit to get vectors for top model variables
+# ks_envfit <- envfit(ks_mds, ks_env[, ks_keep], perm = 999, na.rm = TRUE)
+# 
+# # extract coordinates for each attribute
+# ks_envfit_coords <- ks_envfit %>% 
+#   scores(., display = "vectors") %>% 
+#   as.data.frame() %>% 
+#   rownames_to_column("attribute")
+# 
+# #plot
+# ggplot(ks_df, aes(x = NMDS1, y = NMDS2)) +
+#   coord_fixed() +
+#   geom_point(aes(color = region,
+#                  shape = region),
+#              size = 3, alpha = 0.8) +
+#   geom_segment(data = ks_envfit_coords,
+#                aes(x = 0, xend = NMDS1,
+#                    y = 0, yend = NMDS2),
+#                arrow = arrow(length = unit(0.15, "cm")),
+#                col = "black") +
+#   geom_text(data = ks_envfit_coords, aes(label = attribute), size = 3) +
+#   geom_vline(xintercept = c(0), color = "grey70", linetype = 2) +
+#   geom_hline(yintercept = c(0), color = "grey70", linetype = 2) +
+#   scale_x_continuous(limits = c(-0.2, 0.25)) +
+#   scale_y_continuous(limits = c(-0.05, 0.25)) +
+#   labs(title = "KF Swath",
+#        color = "",
+#        shape = "") +
+#   theme_classic()
 ```
 
