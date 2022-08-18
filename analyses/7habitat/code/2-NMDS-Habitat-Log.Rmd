@@ -146,6 +146,9 @@ ggplot(nmds_df, aes(x = NMDS1, y = NMDS2)) +
             aes(x = NMDS1*(scale_factor + 0.5),
                 y = NMDS2*(scale_factor + 0.5),
                 label = att_short), size = 2.5) +
+  geom_text(data = nmds_df %>% 
+              filter(NMDS1 < -3), aes(x = NMDS1, y = NMDS2, label = name),
+            size = 2.5, color = "grey50") +
   # Formatting
   coord_fixed() +
   labs(title = "NMDS",
@@ -267,6 +270,10 @@ ggplot(nmds_df_noest, aes(x = NMDS1, y = NMDS2)) +
             aes(x = NMDS1*(scale_factor_noest+0.5),
                 y = NMDS2*(scale_factor_noest+0.5),
                 label = att_short), size = 2.5) +
+    geom_text(data = nmds_df_noest %>% 
+              filter(NMDS1 < -3 | NMDS1 > 3 | NMDS2 > 2.75 | NMDS2 < -2.5), 
+              aes(x = NMDS1, y = NMDS2, label = name),
+            size = 2.5, color = "grey50") +
   # Formatting
   coord_fixed() +
   labs(title = "NMDS",

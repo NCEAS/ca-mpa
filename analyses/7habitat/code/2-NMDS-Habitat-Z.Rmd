@@ -141,13 +141,16 @@ ggplot(nmds_df, aes(x = NMDS1, y = NMDS2)) +
   geom_text(data = fit_att, 
             aes(x = NMDS1*10.5,
                 y = NMDS2*10.5,
-                label = att_short), size = 2.5) +
+                label = att_short), size = 3) +
+  geom_text(data = nmds_df %>% 
+              filter(NMDS1 > 6 | NMDS2 > 5), aes(x = NMDS1, y = NMDS2, label = name),
+            size = 2.5, color = "grey50") +
   # Formatting
   coord_fixed() +
-  labs(title = "NMDS",
-       color = "",
+  labs(color = "",
        shape = "") + 
-  theme_classic()
+  theme_classic() +
+  theme(legend.position = c(0.95, 0.35))
 ```
 
 #### centroids and ellipses
@@ -168,8 +171,7 @@ ggplot(nmds_df, aes(x = NMDS1, y = NMDS2)) +
             linetype = 5) + 
   # Formatting
   coord_fixed() +
-  labs(title = "NMDS",
-       color = "",
+  labs(color = "",
        shape = "") + 
   theme_classic()
 ```
@@ -184,6 +186,7 @@ mds_noest <- metaMDS(att_noest, distance = "euclidean",
                      maxit = 999, trymax = 999, autotransform = F, trace = F)
 mds_noest
 stressplot(mds_noest)
+
 ```
 
 ### envfit for vectors

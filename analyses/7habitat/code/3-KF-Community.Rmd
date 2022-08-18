@@ -19,6 +19,8 @@ knitr::opts_chunk$set(
 # Packages
 library(tidyverse)
 library(vegan)
+library(ggbiplot)
+library(naniar)
 
 # Directories
 int.dir <- file.path("analyses", "7habitat","intermediate_data")
@@ -34,8 +36,14 @@ att_meta <- readRDS(file.path(int.dir, "mpa_attributes_nmds_metadata.Rds"))
 kf_fish <- readRDS(file.path(int.dir, "species_matrix_kelp_fish_1620.Rds")) 
 
 ## Kelp Swath Counts
-kf_swath <- readRDS(file.path(int.dir, "species_matrix_kelp_swath_1620.Rds"))
+#kf_swath <- readRDS(file.path(int.dir, "species_matrix_kelp_swath_1620.Rds"))
 
+# MPA Coordinates
+mpas <- readRDS(file.path(int.dir, "mpa_coords.Rds")) %>% 
+  select(name, lat_dd) %>% 
+  mutate(name = str_replace(name, " \\s*\\([^\\)]+\\)", ""))
+
+rownames(mpas) <- NULL
 ```
 
 ## Fish Community
@@ -62,6 +70,15 @@ kf_env[is.na(kf_env)] <- 0
 kf_fish <- kf_fish %>% 
   select(-BAITBALL, -ATHE)
 
+# Get latitude
+mpa_lat <- mpas %>% 
+  mutate(name = str_to_lower(name)) %>% 
+  column_to_rownames("name")
+
+# Join latitude to env data
+kf_env <- merge(kf_env, mpa_lat, by = "row.names") %>% 
+  column_to_rownames("Row.names")
+
 ```
 
 ### examine richness and diversity
@@ -86,10 +103,10 @@ kf_perm <- adonis2(kf_fish ~ region, data = kf_md)
 kf_perm # no diff
 ```
 
-### nmds
+### nmds 
 
 ```{r}
-# nmds of fish community
+# nmds of fish community (raw)
 kf_mds <- metaMDS(kf_fish, autotransform = F)
 kf_mds
 stressplot(kf_mds)
@@ -104,10 +121,19 @@ kf_plot <- ggplot(kf_df,
                   aes(x = NMDS1, y = NMDS2,
                       color = region)) +
   geom_point(size = 3, alpha = 0.5) +
-  labs(title = "KF Fish NMDS") + 
+  labs(title = "KF Fish Community NMDS - RAW") + 
   theme_classic()
 kf_plot
+
+# nmds of fish community (log)
+kf_fish_log <- kf_fish %>% mutate_if(., is.numeric, log1p)
+kf_mds_log <- metaMDS(kf_fish_log, autotransform = F)
+kf_mds
+stressplot(kf_mds)
+
 ```
+
+
 
 ### envfit: species driving separation?
 
@@ -164,6 +190,30 @@ ggplot(kf_df, aes(x = NMDS1, y = NMDS2)) +
        shape = "") + 
   theme_classic()
 ```
+
+### pca of kf_env
+
+```{r}
+# pca
+pca <- prcomp(kf_env, scale = T)
+summary(pca)
+
+# retain
+pca_scores <- scores(pca, display = "sites")
+
+pca_retain <- pca_scores[,1:4] %>% as.data.frame()
+
+# model
+cca <- cca(kf_fish ~ ., data = pca_retain)
+
+# test
+anova(cca, by = "axis")
+
+# plot
+plot(cca)
+```
+
+
 
 ## Swath (Algae/Inverts)
 
