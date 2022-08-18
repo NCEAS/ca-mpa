@@ -29,7 +29,6 @@ The Working Group is led by Jenn Caselle and Kerry Nickols and is a collaboratio
 * Cori Lopazanski, UC Santa Barbara
 * David Gill, Duke University
 * David Mouillot, U. Montpellier
-* Heather Leslie, U. Maine
 * Jacob Eurich, EDF
 * Jenn Caselle, UC Santa Barbara
 * Jenny Dugan, UC Santa Barbara
