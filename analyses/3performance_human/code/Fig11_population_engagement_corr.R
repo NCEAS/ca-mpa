@@ -29,7 +29,8 @@ data <- data_orig %>%
   # Reduce to MPAs of interest
   filter(type %in% types_use) %>% 
   # Simplify
-  select(mpa, mpa_short, npeople_50km, inat_observers_tot) %>% 
+  select(mpa, mpa_short, npeople_50km, inat_observers_n) %>% 
+  # NA omit
   na.omit()
 
 
@@ -37,7 +38,7 @@ data <- data_orig %>%
 ################################################################################
 
 # Fit linear model
-lmfit <- lm(inat_observers_tot ~ npeople_50km, data)
+lmfit <- lm(inat_observers_n ~ npeople_50km, data)
 summary(lmfit)
 
 # Extract residuals and predictions
@@ -60,7 +61,7 @@ data1 <- data %>%
 write.csv(data1, file=file.path(datadir, "CA_MPA_charisma_key.csv"), row.names = F)
 
 # Fit linear model to typical
-lmfit2 <- lm(inat_observers_tot ~ npeople_50km, data1 %>% filter(charisma_yn=="Typical"))
+lmfit2 <- lm(inat_observers_n ~ npeople_50km, data1 %>% filter(charisma_yn=="Typical"))
 summary(lmfit2)
 
 # Plot data 
@@ -85,28 +86,29 @@ my_theme <-  theme(axis.text=element_text(size=7),
 g <- ggplot() +
   # Plot regression
   geom_smooth(data=data1, formula='y ~ x',
-              aes(x=npeople_50km/1e6, y=inat_observers_tot),
+              aes(x=npeople_50km/1e6, y=inat_observers_n),
               method=lm, color="grey50", fill="grey80", alpha=0.5) +
   # Plot regression
   geom_smooth(data=data1 %>% filter(charisma_yn=="Typical"), formula='y ~ x',
-              aes(x=npeople_50km/1e6, y=inat_observers_tot),
+              aes(x=npeople_50km/1e6, y=inat_observers_n),
               method=lm, color="darkred", fill="red", alpha=0.5) +
   # Plot points
-  geom_point(data=data1, mapping=aes(x=npeople_50km/1e6, y=inat_observers_tot, fill=charisma_yn), 
+  geom_point(data=data1, mapping=aes(x=npeople_50km/1e6, y=inat_observers_n, fill=charisma_yn), 
              pch=21, size=1.9) +
   # Plot labels
   ggrepel::geom_text_repel(data1 %>% filter(charisma_yn=="Charismatic"),
-                           mapping=aes(x=npeople_50km/1e6, y=inat_observers_tot, label=mpa_short), 
+                           mapping=aes(x=npeople_50km/1e6, y=inat_observers_n, label=mpa_short), 
                            inherit.aes = F, size=2, max.overlaps = 1000, color="grey60") +
   # Labels
-  labs(x="Millions of people\nwithin 50 km", y="Total iNaturalist observers\nfrom 2000 to 2018") +
+  labs(x="Human population size\n(millions of people within 50 km)", 
+       y="Human engagement\n(# of iNaturalist observers, 2000-2018)") +
   scale_fill_discrete(name="MPA type") +
   # Theme
   theme_bw() + my_theme
 g
 
 # Export figure
-ggsave(g, filename=file.path(plotdir, "Fig10_population_engagement_corr.png"), 
+ggsave(g, filename=file.path(plotdir, "Fig11_population_engagement_corr.png"), 
        width=4.5, height=4.5, units="in", dpi=600)
 
 

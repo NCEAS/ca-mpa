@@ -33,7 +33,12 @@ mpas <- mpas_orig %>%
   # Reduce
   # filter(type %in% types_use)
 
-table(mpas$type)
+# Stats for paper
+mpas %>% 
+  sf::st_drop_geometry() %>% 
+  group_by(type) %>% 
+  summarize(n=n(),
+            area_km2=sum(area_sqkm))
 
 
 # Plot data
@@ -44,9 +49,10 @@ table(mpas$type)
 region_lats <- c(39.0, 37.18, 34.5)
 
 # Region labels
-region_labels <- tibble(long_dd=c(-123.9, -122.9, -121, -118, -119.5),
-                        lat_dd=c(40.5, 38.7, 36, 34.1, 34.8),
-                        label=c("North\n(Dec 2012)", "North Central\n(May 2010)", "Central\n(Sep 2007)", "South\n(Jan 2012)", "N. Channel\nIslands (2003)"))
+region_labels <- tibble(long_dd=c(-123.9, -122.9, -121.8, -121, -118, -119.5),
+                        lat_dd=c(40.5, 38.7, 37.6, 36, 34.1, 34.8),
+                        label=c("North\n(Dec 2012)", "North Central\n(May 2010)", "San Francisco Bay\n(prior to 2007)",
+                                "Central\n(Sep 2007)", "South\n(Jan 2012)", "N. Channel\nIslands (2003/2007)"))
 
 # Theme
 my_theme <-  theme(axis.text=element_text(size=6),

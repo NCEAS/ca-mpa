@@ -16,12 +16,15 @@ plotdir <- "analyses/3performance_human/figures"
 tabledir <- "analyses/3performance_human/tables"
 outdir <- "analyses/3performance_human/output"
 
+# Read MPA attributes
+mpas_orig <- readRDS(file.path(basedir, "mpa_traits/processed", "CA_mpa_metadata.Rds"))
+
 # Read population raster
 pop_ras <- readRDS(file=file.path(popdir, "CA_2010_census_tot_pop_by_block_raster.Rds")) %>% 
   filter(!is.na(people) & people>0)
 
 # Read MPA population data
-mpas_orig <- readRDS(file=file.path(outdir, "CA_MPA_human_use_indicators.Rds"))
+pop_orig <- readRDS(file.path(basedir, "census_data/processed", "MPA_population_within_50km.Rds"))
 
 # Get land
 usa <- rnaturalearth::ne_states(country="United States of America", returnclass = "sf")
@@ -29,11 +32,14 @@ foreign <- rnaturalearth::ne_countries(country=c("Canada", "Mexico"), returnclas
 
 # Reduce MPA data
 types_use <- c("SMR", "SMRMA", "SMCA", "SMCA (No-Take)")
-mpas <- mpas_orig %>% 
+pop <- pop_orig %>% 
+  rename(mpa=name) %>% 
+  left_join(mpas_orig %>% select(mpa, type), by="mpa") %>% 
   filter(type %in% types_use)
 
 # Read city key
 cities <- readxl::read_excel(file.path(tabledir, "city_key.xlsx"))
+
 
 # Plot data
 ################################################################################
@@ -73,7 +79,7 @@ g <- ggplot() +
   # Plot raster
   geom_tile(data=pop_ras, mapping=aes(x=long_dd, y=lat_dd, fill=people_sqkm)) +
   # Plot MPAs
-  geom_point(data=mpas, mapping=aes(x=long_dd, y=lat_dd, size=npeople_50km/1e6)) +
+  geom_point(data=pop, mapping=aes(x=long_dd, y=lat_dd, size=npeople_50km/1e6)) +
   # Plot city labels
   geom_text(data=cities, aes(x=long, y=lat, label=city, hjust=hjust), size=2.5) +
   # Labels

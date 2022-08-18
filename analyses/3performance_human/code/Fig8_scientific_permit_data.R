@@ -14,6 +14,7 @@ basedir <- "/Volumes/GoogleDrive/.shortcut-targets-by-id/1kCsF8rkm1yhpjh2_VMzf8u
 datadir <- file.path(basedir, "scientific_permits/processed")
 traitdir <- file.path(basedir, "mpa_traits/processed")
 plotdir <- "analyses/3performance_human/figures"
+outputdir <- "analyses/3performance_human/output"
 
 # Read data
 mpas <- readRDS(file=file.path(traitdir, "CA_mpa_metadata.Rds"))
@@ -91,16 +92,22 @@ ggsave(g, filename=file.path(plotdir, "FigS5_sci_permit_coverage.png"),
 ################################################################################
 
 # Build data
-data <- data_orig %>% 
+data_full <- data_orig %>% 
   # Summ
   group_by(mpa) %>% 
   summarize(npermits=sum(npermits),
             nyears=n_distinct(year)) %>% 
   ungroup() %>% 
   # Add lat/long and type
-  left_join(mpas %>% select(mpa, type, lat_dd, long_dd), by="mpa") %>% 
+  left_join(mpas %>% select(mpa, type, lat_dd, long_dd), by="mpa")
+  
+# Reduce
+data <- data_full %>% 
   # Types of interest
   filter(type %in% types_use)
+
+# Export
+saveRDS(data_full, file=file.path(outputdir, "scientific_permits_indicators.Rds"))
 
 # Stats for manuscript
 n_distinct(data$mpa)
