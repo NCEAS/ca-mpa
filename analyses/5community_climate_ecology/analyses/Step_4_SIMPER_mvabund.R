@@ -12,6 +12,7 @@ require(usedist)
 require(ggplot2)
 require(reshape2)
 require(ggfittext)
+require(mvabund)
 
 
 
@@ -106,20 +107,35 @@ ggplot(simper_a_b_table, aes(x = group, y = contrib, label = species, fill=sign)
   scale_fill_discrete(name = "direction of change")+
   ylab("cumulative contribution")
 
-#scale_fill_brewer(palette=1)+
-
-
-
-
-
 
 
 # SIMPER tables w/ MPAs added (all combinations)--------------------------------
 
 sim_CCFRP_MPA <- with(CCFRP_group_vars, simper(CCFRP_ord_data, desig_state))
-sim_kelp_swath_MPA <- with(kelp_swath_group_vars, simper(kelp_swath_ord_data, desig_state))
-sim_kelp_upc_MPA <- with(kelp_upc_group_vars, simper(kelp_upc_ord_data, desig_state))
-sim_kelp_fish_MPA <- with(kelp_fish_group_vars, simper(kelp_fish_ord_data, desig_state))
-sim_deep_reef_MPA <- with(deep_reef_group_vars, simper(deep_reef_ord_data, desig_state))
+sim_kelp_swath_MPA <- with(kelp_swath_group_vars, simper(kelp_swath_ord_data, 
+                                                         desig_state))
+sim_kelp_upc_MPA <- with(kelp_upc_group_vars, simper(kelp_upc_ord_data, 
+                                                     desig_state))
+sim_kelp_fish_MPA <- with(kelp_fish_group_vars, simper(kelp_fish_ord_data, 
+                                                       desig_state))
+sim_deep_reef_MPA <- with(deep_reef_group_vars, simper(deep_reef_ord_data, 
+                                                       desig_state))
 sim_rocky_MPA <- with(rocky_group_vars, simper(rocky_ord_data, desig_state))
+
+
+
+
+
+
+# mvabund -----------------------------------------------------------------
+
+
+
+
+
+
+
+
+
+
 
