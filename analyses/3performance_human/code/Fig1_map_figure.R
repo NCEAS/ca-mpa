@@ -33,7 +33,12 @@ mpas <- mpas_orig %>%
   # Reduce
   # filter(type %in% types_use)
 
-table(mpas$type)
+# Stats for paper
+mpas %>% 
+  sf::st_drop_geometry() %>% 
+  group_by(type) %>% 
+  summarize(n=n(),
+            area_km2=sum(area_sqkm))
 
 
 # Plot data
