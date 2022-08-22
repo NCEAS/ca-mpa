@@ -68,7 +68,7 @@ envr_ts <- envr_plot%>%
 print(envr_ts)
 
 #ggsave(here::here("analyses", "5community_climate_ecology", "figures", "oceanographic_indices_timeseries.png"), 
-#       bg="white",envr_ts,height=5, width = 8.5, units = "in", dpi = 300)
+#       bg="white",envr_ts,height=5, width = 8, units = "in", dpi = 600)
 
 
 
