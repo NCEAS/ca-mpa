@@ -22,12 +22,12 @@ data_orig <- readRDS(file=file.path(datadir, "CA_MPA_human_use_indicators.Rds"))
 ################################################################################
 
 # MPAs of interest
-types_use <- c("SMR", "SMRMA", "SMCA", "SMCA (No-Take)")
+types_use <- c("SMR", "SMCA", "SMCA (No-Take)", "SMP")
 
 # Indicators of interest
 head(data_orig)
 indicators_use <- c("npeople_50km", 
-                    "nonconsump_psurveys", "consump_psurveys", 
+                    "nonconsump_hr", "consump_hr", 
                     "inat_observers_n", "ebird_observers_n", "reef_n",
                     "permits_n", "citations_n")
 
@@ -36,7 +36,7 @@ data <- data_orig %>%
   # Reduce to MPAs of interest
   filter(type %in% types_use) %>% 
   # Recode region
-  mutate(region=plyr::revalue(region, c("San Francisco Bay"="North Central Coast"))) %>% 
+  # mutate(region=plyr::revalue(region, c("San Francisco Bay"="North Central Coast"))) %>% 
   # Gather indicators
   gather(key="indicator", value="value", 9:ncol(.)) %>% 
   # Reduce to indicators of interest
@@ -47,10 +47,12 @@ data <- data_orig %>%
                                  "inat_observers_n"="iNaturalist observers",
                                  "ebird_observers_n"='eBird observers',
                                  "reef_n"="REEF surveys",
-                                 "nonconsump_psurveys"="MPA Watch (non-consumptive)", 
-                                 "consump_psurveys"="MPA Watch (consumptive)",
+                                 "nonconsump_hr"="MPA Watch (non-consumptive)", 
+                                 "consump_hr"="MPA Watch (consumptive)",
                                  "permits_n"="Scientific permits",
                                  "citations_n"="Citations")) %>% 
+  # Add zeros for all but MPA Watch
+  mutate(value=ifelse(is.na(value) & !grepl("MPA Watch", indicator), 0, value)) %>% 
   # Reduce to only MPAs with data
   filter(!is.na(value)) %>% 
   # Order MPAs by value

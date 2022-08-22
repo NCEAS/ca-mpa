@@ -25,8 +25,8 @@ foreign <- rnaturalearth::ne_countries(country=c("Canada", "Mexico"), returnclas
 
 # Reduce to MPAs of interest
 sort(unique(mpas_orig$type))
-types_use <- c("SMR", "SMRMA", "SMCA", "SMCA (No-Take)")
-types <- c("SMR", "SMRMA", "SMCA (No-Take)", "SMCA", "SMP", "Special Closure", "FMR", "FMCA")
+types_use <- c("SMR", "SMCA", "SMCA (No-Take)", "SMP")
+types <- c("SMR", "SMCA (No-Take)", "SMCA", "SMP", "SMRMA", "Special Closure", "FMR", "FMCA")
 mpas <- mpas_orig %>% 
   # Order types
   mutate(type=factor(type, types))
@@ -52,7 +52,7 @@ region_lats <- c(39.0, 37.18, 34.5)
 region_labels <- tibble(long_dd=c(-123.9, -122.9, -121.8, -121, -118, -119.5),
                         lat_dd=c(40.5, 38.7, 37.6, 36, 34.1, 34.8),
                         label=c("North\n(Dec 2012)", "North Central\n(May 2010)", "San Francisco Bay\n(prior to 2007)",
-                                "Central\n(Sep 2007)", "South\n(Jan 2012)", "N. Channel\nIslands (2003/2007)"))
+                                "Central\n(Sep 2007)", "South\n(Jan 2012)", "Northern Channel\nIslands (2003/2007)"))
 
 # Theme
 my_theme <-  theme(axis.text=element_text(size=6),

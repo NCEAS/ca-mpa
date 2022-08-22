@@ -29,7 +29,7 @@ usa <- rnaturalearth::ne_states(country="United States of America", returnclass 
 foreign <- rnaturalearth::ne_countries(country=c("Canada", "Mexico"), returnclass = "sf")
 
 # MPA types
-types_use <- c("SMR", "SMRMA", "SMCA", "SMCA (No-Take)")
+types_use <- c("SMR", "SMCA", "SMCA (No-Take)", "SMP")
 
 
 # Survey coverage

@@ -30,7 +30,7 @@ data_orig <- readRDS(file.path(datadir, "MPA_Watch_2011_2022_surveys_ca_programs
 col_key <- readxl::read_excel(file.path(datadir, "column_key_ca_programs.xlsx"))
 
 # MPA types
-types_use <- c("SMR", "SMRMA", "SMCA", "SMCA (No-Take)")
+types_use <- c("SMR", "SMCA", "SMCA (No-Take)", "SMP")
 
 
 # Build data
@@ -185,7 +185,10 @@ coverage <- data_wide %>%
   ungroup() %>% 
   # Add MPA meda data
   left_join(mpas_orig %>% select(mpa, region, type)) %>% 
-  filter(type %in% types_use)
+  # Reduce to MPA of interest
+  filter(type %in% types_use) %>% 
+  # Recode region
+  mutate(region=recode(region, "San Francisco Bay"="North Central Coast"))
 
 # Build coverage order
 mpa_order <- coverage %>% 
