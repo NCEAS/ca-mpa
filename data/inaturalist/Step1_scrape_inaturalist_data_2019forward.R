@@ -61,9 +61,9 @@ key <- expand.grid(year=2019:2021,
   arrange(year, month, lat_lo)
 
 
-# Loop through and scrape
+# Loop through and scrape: 1342 never worked
 i <- 1 
-for(i in 746:nrow(key)){
+for(i in 1373:nrow(key)){
 
   # Grab data
   print(i)
