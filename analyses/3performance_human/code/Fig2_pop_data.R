@@ -79,7 +79,8 @@ g <- ggplot() +
   # Plot raster
   geom_tile(data=pop_ras, mapping=aes(x=long_dd, y=lat_dd, fill=people_sqkm)) +
   # Plot MPAs
-  geom_point(data=pop, mapping=aes(x=long_dd, y=lat_dd, size=npeople_50km/1e6)) +
+  geom_point(data=pop, mapping=aes(x=long_dd, y=lat_dd, size=npeople_50km/1e6), 
+             pch=21, fill="grey50", color="black", alpha=0.4) +
   # Plot city labels
   geom_text(data=cities, aes(x=long, y=lat, label=city, hjust=hjust), size=2.5) +
   # Labels
