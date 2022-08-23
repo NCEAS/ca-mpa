@@ -25,7 +25,7 @@ usa <- rnaturalearth::ne_states(country="United States of America", returnclass 
 foreign <- rnaturalearth::ne_countries(country=c("Canada", "Mexico"), returnclass = "sf")
 
 # MPA types
-types_use <- c("SMR", "SMRMA", "SMCA", "SMCA (No-Take)")
+types_use <- c("SMR", "SMCA", "SMCA (No-Take)", "SMP")
 
 
 # Survey coverage
@@ -115,6 +115,10 @@ sum(data$npermits)
 
 # Data time series
 data_ts <- data_orig %>% 
+  # MPAs of interesrt
+  left_join(mpas %>% select(mpa, type), by="mpa") %>% 
+  filter(type %in% types_use) %>% 
+  # Summarize
   group_by(year, region) %>% 
   summarize(npermits=sum(npermits)) %>% 
   ungroup()

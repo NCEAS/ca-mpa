@@ -29,7 +29,7 @@ data_orig <- readRDS(file.path(datadir, "MPA_Watch_2011_2022_surveys_ca_programs
 col_key <- readxl::read_excel(file.path(datadir, "column_key_ca_programs.xlsx"))
 
 # MPA types
-types_use <- c("SMR", "SMRMA", "SMCA (No-Take)", "SMCA")
+types_use <- c("SMR", "SMCA (No-Take)", "SMCA", "SMP")
 
 
 # Build data
@@ -93,7 +93,7 @@ data_long_act_reduced <- data_long_act %>%
   # Reduce to MPAs of interest
   filter(type %in% types_use) %>% 
   # Order MPA types
-  mutate(type=recode(type, "SMRMA"="SMCA"),
+  mutate(type=recode(type, "SMP"="SMCA"),
          type=factor(type, levels=types_use))
   
 
@@ -126,7 +126,7 @@ stats <- stats_full %>%
   # Reduce to MPAs of interest
   filter(type %in% types_use) %>% 
   # Order MPA types
-  mutate(type=recode(type, "SMRMA"="SMCA"),
+  mutate(type=recode(type, "SMP"="SMCA"),
          type=factor(type, levels=types_use))
 
 # Build network wide stats
@@ -140,7 +140,7 @@ stats_network <- data_long_act %>%
   # Reduce to MPAs of interest
   filter(type %in% types_use) %>% 
   # Order MPA types
-  mutate(type=recode(type, "SMRMA"="SMCA"),
+  mutate(type=recode(type, "SMP"="SMCA"),
          type=factor(type, levels=types_use)) %>% 
   # Summarize
   group_by(type, activity_type2, activity_type3) %>% 

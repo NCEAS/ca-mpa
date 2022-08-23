@@ -25,7 +25,7 @@ foreign <- rnaturalearth::ne_countries(country=c("Canada", "Mexico"), returnclas
 
 # Reduce to MPAs of interest
 sort(unique(mpas_orig$type))
-types_use <- c("SMR", "SMRMA", "SMCA", "SMCA (No-Take)")
+types_use <- c("SMR", "SMCA", "SMCA (No-Take)", "SMP")
 
 
 # Build data
@@ -54,7 +54,7 @@ saveRDS(stats_full, file=file.path(outputdir, "inaturalist_indicators.Rds"))
 
 # Reduce and spatialize
 stats <- stats_full %>% 
-  left_join(mpas %>% select(mpa, type, lat_dd, long_dd)) %>% 
+  left_join(mpas_orig %>% select(mpa, type, lat_dd, long_dd)) %>% 
   filter(type %in% types_use)
   
 # Number of MPAs with observations
@@ -119,8 +119,8 @@ observer_ts1 <- data_orig %>%
 inat_coverage <- data_orig %>% 
   # Add MPA metadata
   left_join(mpas_orig %>% select(region, type, mpa)) %>% 
-  # Correct region
-  mutate(region=recode(region, "San Francisco Bay"="North Central Coast")) %>% 
+  # Shorten region
+  mutate(region=recode(region, "San Francisco Bay"="SF Bay")) %>%
   # Reduce to MPAs of interest
   filter(type %in% types_use) %>% 
   # Add year, month, dummy date

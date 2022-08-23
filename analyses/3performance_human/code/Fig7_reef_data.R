@@ -24,7 +24,7 @@ mpas <- readRDS(file.path(traitdir, "CA_MPA_metadata.Rds"))
 data <- readRDS(file=file.path(reefdir, "REEF_1994_2022_survey_metadata.Rds"))
 
 # Types use
-types_use <- c("SMR", "SMRMA", "SMCA", "SMCA (No-Take)")
+types_use <- c("SMR", "SMCA", "SMCA (No-Take)", "SMP")
 
 
 # Survey coverage
@@ -53,6 +53,7 @@ reef_coverage <- data %>%
   mutate(region=recode_factor(region,
                        "North Coast"="North\nCoast",
                        "North Central Coast"="North\nCentral\nCoast",
+                       "San Francisco Bay"="North\nCentral\nCoast",
                        "Central Coast"="Central\nCoast",
                        "South Coast"="South\nCoast"))
 
