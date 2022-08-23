@@ -1,0 +1,100 @@
+---
+title: "Data transformations specific to community analyses"
+author: "Joshua G. Smith"
+date: "2022-08-23"
+output: html_document
+---
+
+
+**Part 1 - central coast analyses**
+#step 0: load data
+#step 1: filter by region4=='central'
+#step 2: drop species that were never observed (or only found in other regions)
+#step 3: apply group-specific data transformations.
+
+
+
+#============================ Step 0 =========================================#
+
+```{r}
+dat_dir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/ecological_community_data/year_level_with_envr_vars/"
+
+CCFRP <- read.csv(file.path(dat_dir, "CCFRP_mpa_year.csv"))
+kelp_swath <- read.csv(file.path(dat_dir, "kelp_swath_mpa_year.csv"))
+kelp_upc <- read.csv(file.path(dat_dir, "kelp_upc_mpa_year.csv"))
+kelp_fish <- read.csv(file.path(dat_dir, "kelp_fish_mpa_year.csv"))
+deep_reef <- read.csv(file.path(dat_dir, "deep_reef_mpa_year.csv"))
+rocky <- read.csv(file.path(dat_dir, "rocky_mpa_year.csv"))
+
+```
+
+
+#========================== Step 1 & 2 ========================================#
+
+```{r}
+CCFRP_cen <- CCFRP %>% filter(region4=='central') %>%
+  select(where(~ any(. != 0)))
+kelp_swath_cen <- kelp_swath %>% filter(region4=='central') %>%
+  select(where(~ any(. != 0)))
+kelp_upc_cen <- kelp_upc %>% filter(region4=='central') %>%
+  select(where(~ any(. != 0)))
+kelp_fish_cen <- kelp_fish %>% filter(region4=='central') %>%
+  select(where(~ any(. != 0)))
+deep_reef_cen <- deep_reef %>% filter(region4=='central') %>%
+  select(where(~ any(. != 0)))
+rocky_cen <- rocky %>% filter(region4=='central') %>%
+  select(where(~ any(. != 0)))
+
+```
+
+#============================= Step 3 ========================================#
+
+#Standardize and merge kelp swath and UPC data
+```{r}
+
+#standardize swath to max
+kelp_swath_stan <- decostand(kelp_swath_cen[25:102], method="max",
+                             margin=2, na.rm=TRUE)
+
+nrow(kelp_swath_cen) #check length
+nrow(kelp_swath_stan) #check length
+
+kelp_swath_stan1 <- cbind(kelp_swath_cen[1:24],kelp_swath_stan)
+
+
+
+
+#standardize upc to max
+kelp_upc_stan <- decostand(kelp_upc_cen[25:79], method="max",
+                             margin=2, na.rm=TRUE)
+
+nrow(kelp_upc_cen) #check length
+nrow(kelp_upc_stan) #check length
+
+kelp_upc_stan1 <- cbind(kelp_upc_cen[1:24],kelp_upc_stan)
+
+
+
+
+#Join stan dat
+
+kelp_upc_stan2 <- kelp_upc_stan1 %>%
+                  select(!(9:24))
+
+kelp_stan <- left_join(kelp_swath_stan1, kelp_upc_stan2, by=c("year",
+                                                              "region3", "region4",
+                                                              "affiliated_mpa",
+                                                              "mpa_defacto_class",
+                                                              "MHW",
+                                                              "mpa_defacto_designation"))
+
+#check for any unmatched data
+kelp_check <-  anti_join(kelp_swath_stan1, kelp_upc_stan2, by=c("year",
+                                                              "region3", "region4",
+                                                              "affiliated_mpa",
+                                                              "mpa_defacto_class",
+                                                              "MHW",
+                                                              "mpa_defacto_designation"))
+
+
+```
