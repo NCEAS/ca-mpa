@@ -293,7 +293,7 @@ diversity_all <- ggplot(means_final %>%
 
 
 #ggsave(here::here("analyses","CDFW_modules", "figures","module_1_eco_perform",
-#                 "diversity_trajectory_all.png"), diversity_all, height=6, 
+#                 "diversity_trajectory_all.png"), diversity_all, height=8, 
 #       width = 8, units = "in", 
 #     dpi = 600, bg="white")
 
