@@ -78,22 +78,26 @@ diversity_plot_combined <- ggplot(means_final %>%
     size = 1,
     shape = 19,
     aes(color=target_status))+
-  geom_smooth(method='lm', level=0.95, formula=y~x, linetype='solid', size=0.5
+  geom_smooth(method='lm', alpha=0.2, level=0.95, formula=y~x, linetype='solid', size=0.5
   ) +
-  #stat_poly_eq(formula = y ~ x, 
-  #            aes(label = paste(..rr.label.., ..p.value.label.., sep = "*`,`~")), 
-  #           parse = TRUE,
-  #          label.x.npc = "right",
-  #          vstep = 0.1) + # sets vertical spacing
+stat_poly_eq(formula = y ~ x, 
+             aes(label = paste(..rr.label.., ..p.value.label.., sep = "*`,`~")), 
+           parse = TRUE,
+         label.x.npc = "right",
+          vstep = 0.1,
+         size=3) + # sets vertical spacing
   scale_color_manual(values=c("#6187eb", "#ec7560"), drop = FALSE) +
   scale_linetype_manual(values=c("solid","twodash"), drop = FALSE) +
   labs(y=expression(bold(Log(Diversity[MPA]/Diversity[REF]))),
        x = expression(bold(year))) +
   labs(colour = 'Difference', linetype = 'Slope') +
-  facet_wrap(region4~group, scales="free", nrow=4)+
+  facet_wrap(region4~group, scales="free_x", nrow=4)+
   scale_x_continuous()+
   labs(colour = "fished status") +
-  theme_classic(base_size = 8) #+ theme(aspect.ratio = 1/1.5)
+  theme_classic(base_size = 8)+ #+ theme(aspect.ratio = 1/1.5)
+  coord_cartesian(
+    ylim = c(-1,1)
+  )
 
 
 
@@ -112,22 +116,26 @@ diversity_targeted <- ggplot(means_final %>%
     size = 1,
     shape = 19
     )+
-  geom_smooth(method='lm', level=0.95, formula=y~x, color="black", linetype='solid', size=0.5
+  geom_smooth(method='lm', alpha=0.2, level=0.95, formula=y~x, color="black", linetype='solid', size=0.5
   ) +
-  #stat_poly_eq(formula = y ~ x, 
-  #            aes(label = paste(..rr.label.., ..p.value.label.., sep = "*`,`~")), 
-  #            parse = TRUE,
-  #           label.x.npc = "right",
-  #           vstep = 0.1) + # sets vertical spacing
+  stat_poly_eq(formula = y ~ x, 
+              aes(label = paste(..rr.label.., ..p.value.label.., sep = "*`,`~")), 
+             parse = TRUE,
+             label.x.npc = "right",
+             vstep = 0.1,
+             size=3) + # sets vertical spacing
   #scale_color_manual(values=c("#6187eb", "#ec7560"), drop = FALSE) +
   scale_linetype_manual(values=c("solid","twodash"), drop = FALSE) +
   labs(y=expression(bold(Log(Diversity[MPA]/Diversity[REF]))),
        x = expression(bold(year))) +
   labs(colour = 'Difference', linetype = 'Slope') +
-  facet_wrap(region4~group, scales="free", nrow=4)+
+  facet_wrap(region4~group, scales="free_x", nrow=4)+
   scale_x_continuous()+
   labs(colour = "fished status") +
-  theme_classic(base_size = 8) #+ theme(aspect.ratio = 1/1.5)
+  theme_classic(base_size = 8)+ #+ theme(aspect.ratio = 1/1.5)
+  coord_cartesian(
+    ylim = c(-0.75,1)
+  )
 
 
 
@@ -148,44 +156,48 @@ diversity_nontargeted <- ggplot(means_final %>%
     size = 1,
     shape = 19
   )+
-  geom_smooth(method='lm', level=0.95, formula=y~x, color="black", linetype='solid', size=0.5
+  geom_smooth(method='lm',alpha=0.2, level=0.95, formula=y~x, color="black", linetype='solid', size=0.5
   ) +
-  #stat_poly_eq(formula = y ~ x, 
-  #           aes(label = paste(..rr.label.., ..p.value.label.., sep = "*`,`~")), 
-  #           parse = TRUE,
-  #         label.x.npc = "right",
-  #          vstep = 0.1) + # sets vertical spacing
+  stat_poly_eq(formula = y ~ x, 
+             aes(label = paste(..rr.label.., ..p.value.label.., sep = "*`,`~")), 
+             parse = TRUE,
+           label.x.npc = "right",
+          vstep = 0.1,
+          size=3) + # sets vertical spacing
   #scale_color_manual(values=c("#6187eb", "#ec7560"), drop = FALSE) +
   scale_linetype_manual(values=c("solid","twodash"), drop = FALSE) +
   labs(y=expression(bold(Log(Diversity[MPA]/Diversity[REF]))),
        x = expression(bold(year))) +
   labs(colour = 'Difference', linetype = 'Slope') +
-  facet_wrap(region4~group, scales="free", nrow=4)+
+  facet_wrap(region4~group, scales="free_x", nrow=4)+
   scale_x_continuous()+
   labs(colour = "fished status") +
-  theme_classic(base_size = 8)
+  theme_classic(base_size = 8)+
+  coord_cartesian(
+    ylim = c(-0.75,0.5)
+  )
 
 
 
 
 #setwd("/home/joshsmith/CA_MPA_Project/ca-mpa/")
 
-ggsave(here::here("analyses","CDFW_modules", "figures","module_1_eco_perform",
-                  "diversity_trajectory_targeted_nontargeted.png"), diversity_plot_combined, height=6, 
-       width = 8, units = "in", 
-   dpi = 600, bg="white")
+#ggsave(here::here("analyses","CDFW_modules", "figures","module_1_eco_perform",
+#                  "diversity_trajectory_targeted_nontargeted.png"), diversity_plot_combined, height=8, 
+#       width = 8, units = "in", 
+#   dpi = 600, bg="white")
 
 
-ggsave(here::here("analyses","CDFW_modules", "figures","module_1_eco_perform",
-                  "diversity_trajectory_targeted.png"), diversity_targeted, height=6, 
-       width = 8, units = "in", 
-       dpi = 600, bg="white")
+#ggsave(here::here("analyses","CDFW_modules", "figures","module_1_eco_perform",
+#                  "diversity_trajectory_targeted.png"), diversity_targeted, height=8, 
+#       width = 8, units = "in", 
+#       dpi = 600, bg="white")
 
 
-ggsave(here::here("analyses","CDFW_modules", "figures","module_1_eco_perform",
-                  "diversity_trajectory_nontargeted.png"), diversity_nontargeted, height=6, 
-       width = 8, units = "in", 
-       dpi = 600, bg="white")
+#ggsave(here::here("analyses","CDFW_modules", "figures","module_1_eco_perform",
+#                  "diversity_trajectory_nontargeted.png"), diversity_nontargeted, height=8, 
+#       width = 8, units = "in", 
+#       dpi = 600, bg="white")
 
 
 
@@ -257,29 +269,33 @@ diversity_all <- ggplot(means_final %>%
     size = 1,
     shape = 19
   )+
-  geom_smooth(method='lm', level=0.95, formula=y~x, color="black", linetype='solid', size=0.5
+  geom_smooth(method='lm', alpha=0.2, level=0.95, formula=y~x, color="black", linetype='solid', size=0.5
   ) +
-  #stat_poly_eq(formula = y ~ x, 
-  #            aes(label = paste(..rr.label.., ..p.value.label.., sep = "*`,`~")), 
-  #           parse = TRUE,
-  #          label.x.npc = "right",
-  #           vstep = 0.1) + # sets vertical spacing
+  stat_poly_eq(formula = y ~ x, 
+              aes(label = paste(..rr.label.., ..p.value.label.., sep = "*`,`~")), 
+             parse = TRUE,
+            label.x.npc = "right",
+             vstep = 0.1,
+            size=3) + # sets vertical spacing
   #scale_color_manual(values=c("#6187eb", "#ec7560"), drop = FALSE) +
   scale_linetype_manual(values=c("solid","twodash"), drop = FALSE) +
   labs(y=expression(bold(Log(Diversity[MPA]/Diversity[REF]))),
        x = expression(bold(year))) +
   labs(colour = 'Difference', linetype = 'Slope') +
-  facet_wrap(region4~group, scales="free", nrow=4)+
+  facet_wrap(region4~group, scales="free_x", nrow=4)+
   scale_x_continuous()+
   labs(colour = "fished status") +
-  theme_classic(base_size = 8)
+  theme_classic(base_size = 8)+
+  coord_cartesian(
+    ylim = c(-0.3,0.4)
+  )
 
 
 
-ggsave(here::here("analyses","CDFW_modules", "figures","module_1_eco_perform",
-                 "diversity_trajectory_all.png"), diversity_all, height=6, 
-       width = 8, units = "in", 
-     dpi = 600, bg="white")
+#ggsave(here::here("analyses","CDFW_modules", "figures","module_1_eco_perform",
+#                 "diversity_trajectory_all.png"), diversity_all, height=6, 
+#       width = 8, units = "in", 
+#     dpi = 600, bg="white")
 
 
 
