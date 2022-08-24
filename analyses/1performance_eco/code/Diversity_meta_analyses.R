@@ -435,7 +435,7 @@ text(-3, 11, pos=4, cex=0.7, mlabfun("RE Model", y=res.i))
 
 
 
-addpoly(res.i, row= 1,cex=0.75, mlab=mlabfun("RE Model", y=res.i)) #col='blue'
+addpoly(res.s, row= 1,cex=0.75, mlab=mlabfun("RE Model", y=res.i)) #col='blue'
 text(-3, 1, pos=4, cex=0.7, mlabfun("RE Model", y=res.i))
 
 
