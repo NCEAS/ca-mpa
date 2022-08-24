@@ -27,38 +27,14 @@ library(here)
 #load data
 ```{r}
 
-data_path <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/ecological_community_data/year_level_with_envr_vars" 
+data_path <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/ecological_community_data/year_level_with_envr_vars"
 
-
-#load CCFRP
-input_file <- "CCFRP_mpa_year.csv" 
-CCFRP_counts <- read.csv(file.path(data_path, input_file))%>%
-                filter(region4=='central')
-              
-#load kelp upc
-input_file <- "kelp_upc_mpa_year.csv" 
-kelp_upc_counts <- read.csv(file.path(data_path, input_file))%>%
-                    filter(region4=='central',
-                           mpa_defacto_designation=='smr'|mpa_defacto_designation=='ref')
-
-#load kelp swath
-input_file <- "kelp_swath_mpa_year.csv" 
-kelp_swath_counts <- read.csv(file.path(data_path, input_file))%>%
-                    filter(region4=='central')
-#load kelp_fish
-input_file <- "kelp_fish_mpa_year.csv" 
-kelp_fish_counts <- read.csv(file.path(data_path, input_file))%>%
-                    filter(region4=='central')
-
-#load deep reef
-input_file <- "deep_reef_mpa_year.csv" 
-deep_reef_counts <- read.csv(file.path(data_path, input_file))%>%
-                    filter(region4=='central')
-
-#load rocky intertidal
-input_file <- "rocky_mpa_year.csv" 
-rocky_counts <- read.csv(file.path(data_path, input_file))%>%
-                    filter(region4=='central')
+comm_data <- load(file.path(data_path, "comm_data.rda"))
+nmds_scores <- load(file.path(data_path, "bray_nmds_scores.rda"))
+env_fit_scores <- load(file.path(data_path, "env_fit_scores.rda"))
+group_vars <- load(file.path(data_path, "group_vars.rda"))
+envr_vars <- load(file.path(data_path, "envr_vars.rda"))
+eco_dist <- load(file.path(data_path, "distance_matrices_BC.rda"))
 
 ```
 
@@ -158,25 +134,25 @@ print(CCFRP)
 
 ```
 
-#Kelp swath scores and plot
+#Kelp invert and algae scores and plot
 ```{r}
 
 #get NMDS scores
-scrs <- as.data.frame(scores(kelp_swath_ord, display="site"))
-en_coord_cont = as.data.frame(scores(kelp_swath_en, "vectors")) * ordiArrowMul(kelp_swath_en, fill=0.3)
+scrs <- as.data.frame(scores(kelp_invalg_ord, display="site"))
+en_coord_cont = as.data.frame(scores(kelp_invalg_en, "vectors")) * ordiArrowMul(kelp_invalg_en, fill=0.3)
 
-scrs <- cbind(as.data.frame(scrs), desig_state=kelp_swath_group_vars$desig_state, year=kelp_swath_group_vars$year, region4=kelp_swath_group_vars$region4, mpa_designation=kelp_swath_group_vars$mpa_defacto_designation, MHW=kelp_swath_group_vars$MHW) #to facilitate computing centroids, add group var
+scrs <- cbind(as.data.frame(scrs), desig_state=kelp_invalg_group_vars$desig_state, year=kelp_invalg_group_vars$year, region4=kelp_invalg_group_vars$region4, mpa_designation=kelp_invalg_group_vars$mpa_defacto_designation, MHW=kelp_invalg_group_vars$MHW) #to facilitate computing centroids, add group var
 
 cent <- aggregate(cbind(NMDS1, NMDS2) ~ MHW+region4+mpa_designation, data = scrs, FUN = mean) #computes centroids by MHW and region
 
 
 
 
-NMDS = data.frame(MDS1 = kelp_swath_ord$points[,1], MDS2 = kelp_swath_ord$points[,2],group=kelp_swath_group_vars$desig_state, mpa_desig=kelp_swath_group_vars$mpa_defacto_designation)
+NMDS = data.frame(MDS1 = kelp_invalg_ord$points[,1], MDS2 = kelp_invalg_ord$points[,2],group=kelp_invalg_group_vars$desig_state, mpa_desig=kelp_invalg_group_vars$mpa_defacto_designation)
 
 
-plot(kelp_swath_ord)
-ord<- ordiellipse(kelp_swath_ord, kelp_swath_group_vars$desig_state, kind = "se",conf=0.95, label=T)
+plot(kelp_invalg_ord)
+ord<- ordiellipse(kelp_invalg_ord, kelp_invalg_group_vars$desig_state, kind = "se",conf=0.95, label=T)
 
 NMDS$group <- as.factor(NMDS$group)
 
@@ -200,7 +176,7 @@ cent$MHW <- factor(cent$MHW, level=c("before","during","after"))
 
 
 
-kelp_swath<- ggplot(data=cent, aes(NMDS1, NMDS2)) +
+kelp_invalg<- ggplot(data=cent, aes(NMDS1, NMDS2)) +
   geom_point(aes(shape=mpa_designation, color=MHW), size=4) +                           #centroids
   geom_path(data = df_ell, aes(NMDS1, NMDS2, colour=MHW, 
                                group=group), size = 0.5, linetype=2, 
@@ -210,7 +186,7 @@ kelp_swath<- ggplot(data=cent, aes(NMDS1, NMDS2)) +
        arrow = arrow(length = unit(0.25, "cm")), colour = "grey50", lwd=0.5)+
      geom_text(data = en_coord_cont, aes(x = (NMDS1), y = (NMDS2)), colour = "black", 
        fontface = "bold", label = row.names(en_coord_cont), position=position_jitter(width=0.02,height=0.02), size=4) + 
-  ggtitle("kelp swath")+
+  ggtitle("kelp invalg")+
   scale_color_manual(values=c('#44b89d','#f56969','#4c78b5'))+
   theme(strip.text = element_text(size=12, face="bold"))+
   theme(plot.title = element_text(size=14, face="bold"))+
@@ -218,67 +194,11 @@ kelp_swath<- ggplot(data=cent, aes(NMDS1, NMDS2)) +
   theme(text = element_text(18))+
   theme_classic()
 
-print(kelp_swath)
+print(kelp_invalg)
 
 ```
 
 
-#Kelp upc scores and plot
-```{r}
-
-scrs<- scores(kelp_upc_ord, display="sites")
-scrs <- cbind(as.data.frame(scrs), desig_state=kelp_upc_group_vars$desig_state, year=kelp_upc_group_vars$year, MHW=kelp_upc_group_vars$MHW, region4=kelp_upc_group_vars$region4, mpa_designation=kelp_upc_group_vars$mpa_defacto_designation) #to facilitate computing centroids, add group var
-
-cent <- aggregate(cbind(NMDS1, NMDS2) ~ MHW+region4+mpa_designation, data = scrs, FUN = mean) #computes centroids by MHW and region
-
-en_coord_cont = as.data.frame(scores(kelp_upc_en, "vectors")) * ordiArrowMul(kelp_upc_en, fill=0.2)
-
-
-
-NMDS = data.frame(MDS1 = kelp_upc_ord$points[,1], MDS2 = kelp_upc_ord$points[,2],group=kelp_upc_group_vars$desig_state, mpa_desig=kelp_upc_group_vars$mpa_defacto_designation)
-
-
-plot(kelp_upc_ord)
-ord<- ordiellipse(kelp_upc_ord, kelp_upc_group_vars$desig_state, kind = "se",conf=0.95, label=T)
-
-NMDS$group <- as.factor(NMDS$group)
-
-df_ell <- data.frame()
-for(g in levels(NMDS$group)){
-  df_ell <- rbind(df_ell, cbind(as.data.frame(with(NMDS[NMDS$group==g,],
-                  vegan:::veganCovEllipse(ord[[g]]$cov,ord[[g]]$center,ord[[g]]$scale)))
-                                ,group=g))
-}
-
-df_ell$mpa_type <- word(df_ell$group, 1)
-df_ell <- df_ell %>%
-          mutate(MHW = word(group, start = -1))
-
-#reorder for plotting
-cent$mpa_designation <- factor(cent$mpa_designation, level=c("smr","ref"))
-cent$MHW <- factor(cent$MHW, level=c("before","during","after"))
-
-kelp_upc<- ggplot(data=cent, aes(NMDS1, NMDS2)) +
-  geom_point(aes(shape=mpa_designation, color=MHW), size=2) +                           #centroids
-  geom_path(data = df_ell, aes(NMDS1, NMDS2, colour=MHW, 
-                               group=group), size = 0.5, linetype=2, 
-            )+           #line connecting groups (years)
-   geom_segment(aes(x = 0, y = 0, xend = (NMDS1), yend = (NMDS2)), 
-       data = en_coord_cont, size =0.5, alpha = 0.5,
-       arrow = arrow(length = unit(0.25, "cm")), colour = "grey50", lwd=0.5)+
-     geom_text(data = en_coord_cont, aes(x = (NMDS1), y = (NMDS2)), colour = "black", 
-       fontface = "bold", label = row.names(en_coord_cont), position=position_jitter(width=0.02,height=0.01), size=4) + 
-  ggtitle("kelp upc")+
-  scale_color_manual(values=c('#44b89d','#f56969','#4c78b5'))+
-  theme(strip.text = element_text(size=12, face="bold"))+
-  theme(plot.title = element_text(size=14, face="bold"))+
-  labs(shape="site type",color='heatwave period') +
-  theme(text = element_text(18))+
-  theme_classic()
-
-
-print(kelp_upc)
-```
 
 
 #Kelp fish scores and plot
