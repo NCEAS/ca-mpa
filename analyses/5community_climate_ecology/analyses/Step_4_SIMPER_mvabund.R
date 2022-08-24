@@ -129,11 +129,121 @@ sim_rocky_MPA <- with(rocky_group_vars, simper(rocky_ord_data, desig_state))
 
 # mvabund -----------------------------------------------------------------
 
+#tutorial https://environmentalcomputing.net/statistics/mvabund/
 
 
 
+#prep data by remove 'during' period 
 
 
+CCFRP_join <- cbind(CCFRP_group_vars, CCFRP_ord_data)%>%
+              filter(MHW == 'before' | MHW == 'after')
+
+kelp_swath_join <- cbind(kelp_swath_group_vars, kelp_swath_ord_data)%>%
+              filter(MHW == 'before' | MHW == 'after')
+
+kelp_upc_join <- cbind(kelp_upc_group_vars, kelp_upc_ord_data)%>%
+  filter(MHW == 'before' | MHW == 'after')
+
+kelp_fish_join <- cbind(kelp_fish_group_vars, kelp_fish_ord_data)%>%
+  filter(MHW == 'before' | MHW == 'after')
+
+deep_reef_join <- cbind(deep_reef_group_vars, deep_reef_ord_data)%>%
+  filter(MHW == 'before' | MHW == 'after')
+
+rocky_join <- cbind(rocky_group_vars, rocky_ord_data)%>%
+  filter(MHW == 'before' | MHW == 'after')
+
+
+#format as mvabund objects
+CCFRP_spp <- mvabund(CCFRP_join[,10:102])
+kelp_swath_spp <- mvabund(kelp_swath_join[,10:177])
+kelp_upc_spp <- mvabund(kelp_upc_join[,10:81])
+kelp_fish_spp <- mvabund(kelp_fish_join[,10:108])
+deep_reef_spp <- mvabund(deep_reef_join[,11:112])
+rocky_spp <- mvabund(rocky_join[,10:58])
+
+
+
+#check mean to variance relationships
+mvabund::meanvar.plot(CCFRP_spp)
+mvabund::meanvar.plot(kelp_swath_spp)
+mvabund::meanvar.plot(kelp_upc_spp)
+mvabund::meanvar.plot(kelp_fish_spp)
+mvabund::meanvar.plot(deep_reef_spp)
+mvabund::meanvar.plot(rocky_spp)
+
+
+
+#fit glms for mean-var relationships
+
+CCFRP_glm <- manyglm(CCFRP_spp ~ CCFRP_join$MHW)
+kelp_swath_glm <- manyglm(kelp_swath_spp ~ kelp_swath_join$MHW)
+kelp_upc_glm <- manyglm(kelp_upc_spp ~ kelp_swath_join$MHW)
+kelp_fish_glm <- manyglm(kelp_fish_spp ~ kelp_fish_join$MHW)
+deep_reef_glm <- manyglm(deep_reef_spp ~ deep_reef_join$MHW)
+rocky_glm <- manyglm(rocky_spp ~ rocky_join$MHW)
+
+
+#test for species composition across heatwave periods
+CCFRP_aov <- anova(CCFRP_glm, p.uni="adjusted")
+CCFRP_out <- as.data.frame(CCFRP_aov[["uni.p"]])
+
+kelp_swath_aov <- anova(kelp_swath_glm, p.uni="adjusted")
+kelp_swath_out <- as.data.frame(kelp_swath_aov[["uni.p"]])
+
+kelp_upc_aov <- anova(kelp_upc_glm, p.uni = "adjusted")
+kelp_upc_out <- as.data.frame(kelp_upc_aov[["uni.p"]])
+
+kelp_fish_aov <- anova(kelp_fish_glm, p.uni="adjusted")
+kelp_fisf_out <- as.data.frame(kelp_fish_aov[["uni.p"]])
+
+deep_reef_aov <- anova(deep_reef_glm, p.uni="adjusted")
+deep_reef_out <- as.data.frame(deep_reef_aov[["uni.p"]])
+
+rocky_aov <- anova(rocky_glm, p.uni='adjusted')
+rocky_out <- as.data.frame(rocky_aov[["uni.p"]])
+
+#examine output
+CCFRP_sig <- CCFRP_out %>%
+  pivot_longer(cols=1:ncol(.), names_to="species")%>%
+  drop_na()%>%
+  filter(value <= 0.05) %>%
+  mutate(group="CCFRP")
+
+kelp_swath_sig <- kelp_swath_out %>%
+  pivot_longer(cols=1:ncol(.), names_to="species")%>%
+  drop_na()%>%
+  filter(value <= 0.05) %>%
+  mutate(group="kelp_swath")
+
+kelp_upc_sig <- kelp_upc_out %>%
+  pivot_longer(cols=1:ncol(.), names_to="species")%>%
+  drop_na()%>%
+  filter(value <= 0.05) %>%
+  mutate(group="kelp_upc")
+
+kelp_fish_sig <- kelp_fish_out %>%
+  pivot_longer(cols=1:ncol(.), names_to="species")%>%
+  drop_na()%>%
+  filter(value <= 0.05) %>%
+  mutate(group=="kelp_fish")
+ 
+deep_reef_sig <- deep_reef_out %>%
+  pivot_longer(cols=1:ncol(.), names_to="species")%>%
+  drop_na()%>%
+  filter(value <= 0.05) %>%
+  mutate(group=="deep_reef")
+
+rocky_sig <- rocky_out %>%
+  pivot_longer(cols=1:ncol(.), names_to="species")%>%
+  drop_na()%>%
+  filter(value <= 0.05) %>%
+  mutate(group=="rocky")
+
+aov_out <- rbind(CCFRP_sig, kelp_swath_sig, kelp_upc_sig, kelp_fish_sig,
+                 deep_reef_sig, rocky_sig
+                 )
 
 
 
