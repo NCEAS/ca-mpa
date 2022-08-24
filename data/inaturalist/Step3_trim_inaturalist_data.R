@@ -23,7 +23,7 @@ mpas_simple <- mpas %>% select(name)
 mpas_simple_sp <- mpas_simple %>% as(., "Spatial")
 
 # Read iNaturalist data
-data_orig <- readRDS(file=file.path(outdir, "2000_2020_inaturalist_data.Rds"))
+data_orig <- readRDS(file=file.path(outdir, "2000_2021_inaturalist_data.Rds"))
 
 
 # Read data
@@ -48,7 +48,7 @@ data_sf_df <- data_sf %>%
   filter(!is.na(mpa))
 
 # Export data
-saveRDS(data_sf_df, file.path(outdir, "2000_2020_inaturalist_data_inside_mpas_100m_buffer.Rds"))
+saveRDS(data_sf_df, file.path(outdir, "2000_2021_inaturalist_data_inside_mpas_100m_buffer.Rds"))
 
 
 # Summarize data

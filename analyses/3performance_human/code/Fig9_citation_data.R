@@ -215,6 +215,9 @@ g2 <- ggplot(data, aes(x=npeople_50km/1e6, y=ncitations, fill=region, size=area_
         legend.key.size = unit(0.3, "cm"))
 g2
 
+# Fit regression
+summary(glm(ncitations ~ npeople_50km, data, family="poisson"))
+
 # Plot correlation with engagement
 g3 <- ggplot(data, aes(x=inat_observers_tot, y=ncitations, fill=region)) +
   # Plot regression
@@ -233,6 +236,9 @@ g3 <- ggplot(data, aes(x=inat_observers_tot, y=ncitations, fill=region)) +
   theme(legend.position = c(0.7, 0.75),
         legend.key.size = unit(0.3, "cm"))
 g3
+
+# Fit regression
+summary(glm(ncitations ~ inat_observers_tot, data, family="poisson"))
 
 # Plot correlation with consumptive activitiees
 g4 <- ggplot(data, aes(x=psurveys, y=ncitations, fill=region, size=activity_hr)) +
