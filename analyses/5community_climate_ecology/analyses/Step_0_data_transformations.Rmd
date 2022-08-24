@@ -137,7 +137,7 @@ CCFRP_ord_data <- CCFRP_process %>%
   dplyr::select(26:ncol(.))
 
 #standardize to max
-CCFRP_rel <- decostand(CCFRP_ord_data, method = "max")
+CCFRP_rel <- decostand(CCFRP_ord_data, method = "hellinger")
 
 #generate a BC dissim matrix
 CCFRP_distmat <- vegdist(CCFRP_rel, method = "bray", na.rm=T) 
@@ -203,7 +203,7 @@ kelp_fish_ord_data <- kelp_fish %>%
               dplyr::select(26:ncol(.))
 
 #calculate relative abundance
-kelp_fish_rel <- decostand(kelp_fish_ord_data, method = "max")
+kelp_fish_rel <- decostand(kelp_fish_ord_data, method = "hellinger")
 
 #kelp_fish_rel <- kelp_fish_rel %>% slice_sample(n=2000) # testing if work on smaller
 
@@ -241,7 +241,7 @@ deep_reef_ord_data <- deep_reef%>%
               dplyr::select(27:ncol(.))
 
 #calculate relative abundance
-deep_reef_rel <- decostand(deep_reef_ord_data, method="max")
+deep_reef_rel <- decostand(deep_reef_ord_data, method="hellinger")
 
 #generate a BC dissim mat
 deep_reef_distmat <- 
@@ -267,7 +267,7 @@ rocky_ord_data <- rocky_counts %>%
               dplyr::select(10:ncol(.))
 
 #calculate relative abundance
-rocky_rel <- decostand(rocky_ord_data, method = "max")
+rocky_rel <- decostand(rocky_ord_data, method = "hellinger")
 
 #generate a BC dissim matrix
 rocky_distmat <- 
@@ -297,7 +297,7 @@ rocky_distmat <-
 #data_path <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/ecological_community_data/year_level_with_envr_vars"
 #save(CCFRP_distmat,kelp_invalg_distmat,kelp_fish_distmat,
 #     deep_reef_distmat,rocky_distmat,
-#     file = file.path(data_path, "distance_matrices_BC.rda"))
+#    file = file.path(data_path, "distance_matrices_BC.rda"))
 ```
 
 
@@ -321,7 +321,7 @@ message("Done processing kelp_invalg_ord")
 
 message("Processing kelp_fish_ord")
 kelp_fish_ord <- metaMDS(kelp_fish_distmat, distance="bray", k=3,trymax = 300, parallel = num_cores)
-kelp_fish_ord <- metaMDS(kelp_fish_distmat, previous.best = kelp_fish_ord, noshare=0.2, trymax=300, parallel = num_cores)
+#kelp_fish_ord <- metaMDS(kelp_fish_distmat, previous.best = kelp_fish_ord, noshare=0.2, trymax=300, parallel = num_cores)
 kelp_fish_en <- envfit(kelp_fish_ord, kelp_fish_envr_vars, permutations=999, na.rm=TRUE) 
 message("Done processing kelp_fish_ord")
 
