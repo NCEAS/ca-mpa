@@ -395,12 +395,11 @@ print(rocky)
 
 #cowplot test
 ```{r}
-prow <- plot_grid(
+prow <- cowplot::plot_grid(
   CCFRP + theme(legend.position="none"),
   kelp_fish + theme(legend.position="none"),
   deep_reef + theme(legend.position="none"),
-  kelp_swath + theme(legend.position="none"),
-  kelp_upc + theme(legend.position="none"),
+  kelp_invalg + theme(legend.position="none"),
   rocky + theme(legend.position="none"))
 prow
 
@@ -412,11 +411,11 @@ legend <- get_legend(
 
 # add the legend to the row we made earlier. Give it one-third of 
 # the width of one plot (via rel_widths).
-figure_test <- plot_grid(prow, legend, rel_widths = c(3,1))
+figure_test <- cowplot::plot_grid(prow, legend, rel_widths = c(3,1))
 print(figure_test)
 
 
-cowplot::save_plot(here::here("analyses", "5community_climate_ecology", "figures", "community_structure_central.png"), figure_test, bg="white",dpi = 600, units = "in")
+#cowplot::save_plot(here::here("analyses", "5community_climate_ecology", "figures", "community_structure_central.png"), figure_test, bg="white",dpi = 600, units = "in")
 
 
 #ggsave(here::here("analyses", "5community_climate_ecology", "figures", "community_structure_central.png"), figure_test, width=10, bg="white",dpi = 600, units = "in")
