@@ -123,6 +123,34 @@ data_ts <- data_orig %>%
   summarize(npermits=sum(npermits)) %>% 
   ungroup()
 
+# Proportion by MPA type
+prop_ts <- data_orig %>% 
+  # MPAs of interesrt
+  left_join(mpas %>% select(mpa, type), by="mpa") %>% 
+  filter(type %in% types_use) %>% 
+  # Summarize
+  group_by(year, type) %>% 
+  summarize(npermits=sum(npermits)) %>% 
+  ungroup() %>% 
+  # Proportion
+  group_by(year) %>% 
+  mutate(permits_prop=npermits/sum(npermits)) %>% 
+  # Order
+  mutate(type=factor(type, levels=c("SMR", "SMCA", "SMCA (No-Take)") %>% rev()))
+
+# Proportion of network by type
+network_prop <- mpas %>% 
+  filter(type %in% types_use & type!="SMP") %>%
+  # Summarize
+  group_by(type) %>% 
+  summarize(n=n()) %>% 
+  ungroup() %>% 
+  mutate(prop=n/sum(n)) %>% 
+  # Order
+  mutate(type=factor(type, levels=c("SMR", "SMCA", "SMCA (No-Take)") %>% rev())) %>% 
+  arrange(desc(type)) %>% 
+  mutate(prop_cum=cumsum(prop))
+
 
 # Plot data
 ################################################################################
@@ -193,10 +221,27 @@ g2 <- ggplot(data_ts, aes(x=year, y=npermits, fill=region)) +
         legend.key.size = unit(0.3, "cm"))
 g2
 
+# Plot proportion by type
+g3 <- ggplot(prop_ts, aes(x=year, y=permits_prop, fill=type)) +
+  geom_bar(stat="identity", color="grey30", lwd=0.1, alpha=0.5) + 
+  # Reference props
+  geom_hline(data=network_prop, mapping=aes(yintercept=prop_cum, color=type), linetype="dashed") +
+  # Labels
+  labs(x="Year", y="Proportion of permits", tag="C") +
+  scale_x_continuous(breaks=2012:2021) +
+  # Legend
+  scale_fill_discrete(name="Type", guide = guide_legend(reverse = TRUE)) +
+  scale_color_discrete(name="Type", guide = guide_legend(reverse = TRUE)) +
+  # Theme
+  theme_bw() + theme1 +
+  theme(legend.position = "top",
+        legend.key.size = unit(0.3, "cm"))
+g3
+
 # Merge data
 layout_matrix <- matrix(c(1,2, 
                           1,3), ncol=2, byrow=T)
-g <- gridExtra::grid.arrange(g1, g2, layout_matrix=layout_matrix, widths=c(0.52, 0.48))
+g <- gridExtra::grid.arrange(g1, g2, g3, layout_matrix=layout_matrix, widths=c(0.52, 0.48))
 
 # Export
 ggsave(g, filename=file.path(plotdir, "Fig8_scientific_permit_data.png"), 
