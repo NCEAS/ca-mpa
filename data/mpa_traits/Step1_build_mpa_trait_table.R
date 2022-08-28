@@ -22,6 +22,9 @@ mpas_orig <- readRDS(file.path(gisdir, "CA_MPA_polygons.Rds"))
 # Format data
 ################################################################################
 
+# MLPA MPA types
+mlpa_types <- c("SMR", "SMCA", "SMCA (No-Take)", "SMRMA", "SMP")
+
 # Format data
 mpas <- mpas_orig %>% 
   # Drop geometry
@@ -40,8 +43,10 @@ mpas <- mpas_orig %>%
                               "SCSR"="South Coast")) %>% 
   # Add authority
   mutate(authority=ifelse(type %in% c("FMCA", "FMR", "Special Closure"), "Federal", "State")) %>% 
+  # Mark whether part of the MLPA network
+  mutate(mlpa=ifelse(region!="San Francisco Bay" & type %in% mlpa_types, "MLPA", "Non-MLPA")) %>% 
   # Arrange
-  select(mpa, mpa_full, mpa_short, 
+  select(mpa, mpa_full, mpa_short, mlpa,
          authority, type, ccr, ccr_int, region_code, region, 
          area_sqkm, long_dd, lat_dd)
 
@@ -51,6 +56,7 @@ freeR::complete(mpas)
 table(mpas$region_code)
 table(mpas$region)
 table(mpas$type)
+table(mpas$mlpa)
 
 # Export data
 ################################################################################
