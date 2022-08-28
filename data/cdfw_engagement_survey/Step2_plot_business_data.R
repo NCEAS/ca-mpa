@@ -70,7 +70,7 @@ g <- ggplot(data_q1, aes(y=question, x=n)) +
 g
 
 # Export
-ggsave(g, filename=file.path(plotdir, "FigQ1_type_of_servive_provided.png"), 
+ggsave(g, filename=file.path(plotdir, "BusinessQ1_type_of_servive_provided.png"), 
        width=6.5, height=3.5, units="in", dpi=600)
 
 
@@ -105,7 +105,7 @@ g <- ggplot(data_q2, aes(x=n, y="" , fill=answer_short)) +
 g
 
 # Export
-ggsave(g, filename=file.path(plotdir, "FigQ2_mpa_familiarity.png"), 
+ggsave(g, filename=file.path(plotdir, "BusinessQ2_mpa_familiarity.png"), 
        width=4.5, height=1.5, units="in", dpi=600)
 
 
@@ -135,7 +135,7 @@ g <- ggplot(data_q3, aes(x=n, y="" , fill=answer)) +
 g
 
 # Export
-ggsave(g, filename=file.path(plotdir, "FigQ3_display_mpa_info_yn.png"), 
+ggsave(g, filename=file.path(plotdir, "BusinessQ3_display_mpa_info_yn.png"), 
        width=4.5, height=1.5, units="in", dpi=600)
 
 # Question 4a
@@ -166,7 +166,7 @@ g <- ggplot(data_q4a, aes(y=question, x=n)) +
 g
 
 # Export
-ggsave(g, filename=file.path(plotdir, "FigQ4a_display_info_type.png"), 
+ggsave(g, filename=file.path(plotdir, "BusinessQ4a_display_info_type.png"), 
        width=6.5, height=3.5, units="in", dpi=600)
 
 
@@ -198,7 +198,7 @@ g <- ggplot(data_q5a, aes(y=question, x=n)) +
 g
 
 # Export
-ggsave(g, filename=file.path(plotdir, "FigQ5a_display_info_source.png"), 
+ggsave(g, filename=file.path(plotdir, "BusinessQ5a_display_info_source.png"), 
        width=6.5, height=3.5, units="in", dpi=600)
 
 
@@ -234,7 +234,7 @@ g <- ggplot(data_q5b, aes(x=n, y="" , fill=answer_short)) +
 g
 
 # Export
-ggsave(g, filename=file.path(plotdir, "FigQ5b_mpa_impact.png"), 
+ggsave(g, filename=file.path(plotdir, "BusinessQ5b_mpa_impact.png"), 
        width=4.5, height=1.5, units="in", dpi=600)
 
 
@@ -266,7 +266,7 @@ g <- ggplot(data_q6, aes(x=n, y=question, fill=answer)) +
 g
 
 # Export
-ggsave(g, filename=file.path(plotdir, "FigQ6_mpa_customer_interest.png"), 
+ggsave(g, filename=file.path(plotdir, "BusinessQ6_mpa_customer_interest.png"), 
        width=6.5, height=2.5, units="in", dpi=600)
 
 
@@ -299,7 +299,7 @@ g <- ggplot(data_q7, aes(x=n, y=question, fill=answer)) +
 g
 
 # Export
-ggsave(g, filename=file.path(plotdir, "FigQ7_mpa_beliefs.png"), 
+ggsave(g, filename=file.path(plotdir, "BusinessQ7_mpa_beliefs.png"), 
        width=8.5, height=2.5, units="in", dpi=600)
 
 # Question 8
@@ -331,7 +331,7 @@ g <- ggplot(data_q8, aes(x=n, y=question, fill=answer)) +
 g
 
 # Export
-ggsave(g, filename=file.path(plotdir, "FigQ8_mpa_info_need.png"), 
+ggsave(g, filename=file.path(plotdir, "BusinessQ8_mpa_info_need.png"), 
        width=7.5, height=2.5, units="in", dpi=600)
 
 
@@ -362,7 +362,7 @@ g <- ggplot(data_q9, aes(y=answer, x=n)) +
 g
 
 # Export
-ggsave(g, filename=file.path(plotdir, "FigQ9_covid_impact.png"), 
+ggsave(g, filename=file.path(plotdir, "BusinessQ9_covid_impact.png"), 
        width=10.5, height=3.5, units="in", dpi=600)
 
 
@@ -397,7 +397,7 @@ g <- ggplot(data_q10, aes(x=n, y="", fill=answer)) +
 g
 
 # Export
-ggsave(g, filename=file.path(plotdir, "FigQ10_covid_impact.png"), 
+ggsave(g, filename=file.path(plotdir, "BusinessQ10_covid_impact.png"), 
        width=4.5, height=1.5, units="in", dpi=600)
 
 
@@ -423,7 +423,7 @@ g <- ggplot(data_q11, aes(x="", y=answer)) +
 g
 
 # Export
-ggsave(g, filename=file.path(plotdir, "FigQ11_yrs_in_business.png"), 
+ggsave(g, filename=file.path(plotdir, "BusinessQ11_yrs_in_business.png"), 
        width=2.5, height=2.5, units="in", dpi=600)
 
 
@@ -454,7 +454,7 @@ g <- ggplot(data_q12, aes(y=answer, x=n)) +
 g
 
 # Export
-ggsave(g, filename=file.path(plotdir, "FigQ12_mlpa_participate.png"), 
+ggsave(g, filename=file.path(plotdir, "BusinessQ12_mlpa_participate.png"), 
        width=8.5, height=3.5, units="in", dpi=600)
 
 
@@ -491,7 +491,7 @@ g <- ggplot(data_q13, aes(x=n, y="", fill=answer)) +
 g
 
 # Export
-ggsave(g, filename=file.path(plotdir, "FigQ13_mpa_support_change.png"), 
+ggsave(g, filename=file.path(plotdir, "BusinessQ13_mpa_support_change.png"), 
        width=4.5, height=1.5, units="in", dpi=600)                        
 
 
