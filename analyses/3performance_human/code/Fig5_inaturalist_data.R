@@ -32,7 +32,7 @@ types_use <- c("SMR", "SMCA", "SMCA (No-Take)", "SMP")
 ################################################################################
 
 # Build data
-data_orig <- readRDS(file.path(datadir, "2000_2020_inaturalist_data_inside_mpas_100m_buffer.Rds"))
+data_orig <- readRDS(file.path(datadir, "2000_2021_inaturalist_data_inside_mpas_100m_buffer.Rds"))
 
 # Stats
 nrow(data_orig)
@@ -41,7 +41,7 @@ n_distinct(data_orig$user_id)
 # Summarize
 stats_full <- data_orig %>% 
   # Before 2018
-  filter(year_obs<=2018) %>% 
+  # filter(year_obs<=2018) %>% 
   # Summarize
   group_by(mpa) %>% 
   summarize(nobservers=n_distinct(user_id),
@@ -63,7 +63,7 @@ stats %>% filter(!is.na(nobservers)) %>% pull(mpa) %>% n_distinct(.)
 # Time series stats
 observations_ts <- data_orig %>% 
   # Before 2018
-  filter(year_obs<=2018) %>% 
+  # filter(year_obs<=2018) %>% 
   # Summarize
   mutate(taxa_catg=ifelse(is.na(taxa_catg), "Animalia", taxa_catg)) %>% 
   group_by(year_obs, taxa_catg) %>% 
@@ -88,7 +88,7 @@ observations_ts <- data_orig %>%
 # Observer time series
 observer_ts <- data_orig %>% 
   # Before 2018
-  filter(year_obs<=2018) %>% 
+  # filter(year_obs<=2018) %>% 
   # Summarize
   group_by(year_obs) %>% 
   summarize(nobservers=n_distinct(user_id)) %>% 
@@ -97,7 +97,7 @@ observer_ts <- data_orig %>%
 # Observer time series
 observer_ts1 <- data_orig %>% 
   # Before 2018
-  filter(year_obs<=2018) %>% 
+  # filter(year_obs<=2018) %>% 
   # Summarize
   group_by(year_obs, user_id) %>%
   summarize(nmpas=n_distinct(mpa),
@@ -128,7 +128,7 @@ inat_coverage <- data_orig %>%
          month=lubridate::month(date_obs),
          date_dummy=lubridate::ymd(paste(year, month, 1, sep="-"))) %>% 
   # Reduce to data before 2018
-  filter(year<=2018) %>% 
+  # filter(year<=2018) %>% 
   # Summarize
   group_by(region, mpa, date_dummy) %>% 
   summarize(nobservers=n_distinct(user_id),
@@ -244,7 +244,7 @@ g2 <- ggplot(observations_ts, aes(x=year_obs, y=nobservations/1e3, fill=taxa_cat
   # Labels
   labs(x="Year", y="Thousands of observations", tag="B") +
   # Axes
-  scale_x_continuous(lim=c(2000,2021), breaks=seq(2000, 2020, 5)) +
+  scale_x_continuous(breaks=seq(2000, 2020, 5)) +
   # Legend
   scale_fill_manual(name="Taxa", values=taxa_colors) +
   # Theme
@@ -259,7 +259,7 @@ g3 <- ggplot(observer_ts1, aes(x=year_obs, y=nobservers, fill=nmpas_catg)) +
   # Labels
   labs(x="Year", y="Number of observers", tag="C") +
   # Axes
-  scale_x_continuous(lim=c(2000,2021), breaks=seq(2000, 2020, 5)) +
+  scale_x_continuous(breaks=seq(2000, 2020, 5)) +
   # Legend
   scale_fill_ordinal(name="# of MPAs visited", direction=-1, na.value="grey90", guide = guide_legend(reverse = TRUE)) +
   # Theme

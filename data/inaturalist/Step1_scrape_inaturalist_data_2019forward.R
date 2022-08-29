@@ -61,9 +61,9 @@ key <- expand.grid(year=2019:2021,
   arrange(year, month, lat_lo)
 
 
-# Loop through and scrape: 1342 never worked, start at 1374
-i <- 1 
-for(i in 1374:nrow(key)){
+# Loop through and scrape: 1668 did not work
+i <- 1690
+for(i in 1690:nrow(key)){
 
   # Grab data
   print(i)
@@ -81,5 +81,31 @@ for(i in 1374:nrow(key)){
   write.csv(data, file=file.path(indir, filename), row.names=F)
 
 }
+
+
+# Confirm done?
+################################################################################
+
+# Files to do
+files2do <- key %>% 
+  mutate(filename=paste0(year, "_", month, "_", round(lat_lo,1), ".csv")) %>% 
+  pull(filename)
+
+# Files done
+files_done <- list.files(indir)
+freeR::which_duplicated(files_done) # confusing that some are duplicated
+
+# Are all the files done?
+files2do[!files2do %in% files_done]
+
+which(files2do=="2021_11_38.3.csv")
+
+# Which files are wrong?
+files_done[!files_done %in% files2do]
+
+
+
+
+
 
 
