@@ -17,13 +17,12 @@ plotdir <- "data/ecotrust/figures"
 
 # Read data
 data_orig <- readxl::read_excel(file.path(indir, "MPAHumanUses_FocusGroup_QuantitativeData_raw_090921.xlsx"),
-                                sheet="Responses_WB+MPA_Commercial", col_types="text", na=c("-", "998.0", "999.0"))
+                                sheet="Responses_WB+MPA_CPFV", col_types="text", na=c("-", "998.0", "999.0"))
+
 
 # Read key
-q_key <- readxl::read_excel(file.path(outdir, "question_key.xlsx"))
-r_key <- readxl::read_excel(file.path(outdir, "response_key.xlsx"))
-p_key <- readxl::read_excel(file.path(outdir, "port_key.xlsx"))
-
+q_key <- readxl::read_excel(file.path(outdir, "question_key_cpfv.xlsx"))
+r_key <- readxl::read_excel(file.path(outdir, "response_key_cpfv.xlsx"))
 
 # Format data
 ################################################################################
@@ -31,30 +30,33 @@ p_key <- readxl::read_excel(file.path(outdir, "port_key.xlsx"))
 # Format data
 data <- data_orig %>%
   # Slice
-  slice(1:85) %>%
+  slice(1:22) %>%
   # Rename
-  rename(port_complex_id=port_portgroup) %>%
+  rename(port_complex_id=regionalportgroup) %>%
   # Add respondent id
   mutate(respondent_id=1:n()) %>% 
   select(respondent_id, port_complex_id, everything()) %>% 
   # Gather
   gather(key="question", value="response_id", 3:ncol(.)) %>%
   # Add port info
-  mutate(port_complex_id=as.numeric(port_complex_id)) %>% 
-  left_join(p_key, by="port_complex_id") %>%
-  mutate(port_complex=factor(port_complex,
-                             levels=p_key$port_complex),
-         region=factor(region, levels=c("North", "North Central", "Central", "South"))) %>%
+  mutate(port_complex_id=as.integer(port_complex_id) %>% as.character(),
+         port_complex=recode(port_complex_id,
+                             "1" = "North Coast Area Ports",
+                             "2" = "Bodega Bay",
+                             "3" = "San Francisco Area Ports",
+                             "4" = "Monterey Bay",
+                             "5" = "Santa Barbara and Ventura/Channel Islands Area Ports",
+                             "6" = "Los Angeles/Long Beach Area Ports",
+                             "7" = "Orange County/San Diego Area Ports")) %>% 
   # Format question
   mutate(question=recode(question,
-                         "access_econ"="Access to harvestable resources",
+                         "allocation_econ"="Allocation of resources",
                          "covid19"="Covid-19 impacts",
                          "ecological_mpa"="Ecological",
                          "enforcement_mpa"="Enforcement",
                          "income_econ"="Income from fishing",
                          "infrastructure_econ"="Infrastructure",
                          "jobsatisfaction_soc"="Job satisfaction",
-                         "labor_soc"="Labor/new participants",
                          "livelihood_mpa"="Livelihoods",
                          "management_mpa"="Management",
                          "marineresourcefuture_env"="Marine resource health-future",
@@ -64,17 +66,17 @@ data <- data_orig %>%
                          "relationshipsexternal_soc"="Social relationships (external)",
                          "relationshipsinternal_soc"="Social relationships (internal)")) %>%
   # Add question
-  left_join(q_key, by="question") %>%
+  left_join(q_key %>% select(-question_id, question_long), by="question") %>%
   # Add response
   mutate(response_id=as.numeric(response_id)) %>% 
   left_join(r_key, by=c("question", "response_id")) %>%
   # Arrange
-  select(respondent_id, region, port_complex_id, port_complex, category, question, response_id, response, everything())
+  select(respondent_id, port_complex_id, port_complex, question, response_id, response, everything())
 
 # Inspect
 sort(unique(data$question))
 freeR::complete(data)
 
 # Export
-saveRDS(data, file=file.path(outdir, "ecotrust_survey_data_comm.Rds"))
+saveRDS(data, file=file.path(outdir, "ecotrust_survey_data_cpfv.Rds"))
 
