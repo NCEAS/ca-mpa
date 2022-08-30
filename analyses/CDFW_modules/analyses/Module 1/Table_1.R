@@ -1,9 +1,10 @@
+# Create table for Module 1
 
-
-require(dplyr)
+require(tidyverse)
 require(gt)
 
-
+trait_path <- "/home/shares/ca-mpa/data/sync-data/mpa_traits"
+input_file <- "mpa-attributes.xlsx" 
 
 # Load data ---------------------------------------------------------------
 
@@ -15,18 +16,22 @@ rocky_sites <- read.csv("/home/shares/ca-mpa/data/sync-data/monitoring/monitorin
                 mutate(group="rocky")%>%
                 select(group, mpa_name) %>%
                 unique()
+
 rocky_sites$mpa_name <- tolower(rocky_sites$mpa_name)
 
+# Append rocky to the other sites
 monitoring_dat <- rbind(monitoring_dat, rocky_sites)
+
+# Rename some groups
 monitoring_dat$group <- recode_factor(monitoring_dat$group, "surf_zone"="surf")
 monitoring_dat$mpa_name <- recode_factor(monitoring_dat$mpa_name, "swamis smca"="swami's smca")
 
-trait_path <- "/home/shares/ca-mpa/data/sync-data/mpa_traits"
-input_file <- "mpa-attributes.xlsx" 
-defacto_smr <- readxl::read_excel(file.path(data_path, input_file), sheet=5, skip = 0, na="NA")%>%
+
+# Read tables 
+defacto_smr <- readxl::read_excel(file.path(trait_path, input_file), sheet=5, skip = 0, na="NA")%>%
   dplyr::select(group, affiliated_mpa, mpa_class)
 
-trait_table <-  readxl::read_excel(file.path(data_path, input_file), sheet=1, skip = 0, na="NA")%>%
+trait_table <-  readxl::read_excel(file.path(trait_path, input_file), sheet=1, skip = 0, na="NA")%>%
   dplyr::select(name, mpa_class, bioregion, four_region_north_ci)
 
 
@@ -34,14 +39,14 @@ trait_table <-  readxl::read_excel(file.path(data_path, input_file), sheet=1, sk
 
 
 mpa_defacto_table <- left_join(monitoring_dat, defacto_smr, by=c("mpa_name"="affiliated_mpa",
-                                                                 "group"))%>%
-                      rename("mpa_defacto_class"="mpa_class")%>%
+                                                                 "group")) %>%
+                      rename("mpa_defacto_class"="mpa_class") %>%
                       pivot_wider(names_from="group",values_from="mpa_defacto_class")
+
+
            
-mpa_defacto_table2 <- left_join(trait_table,mpa_defacto_table, by=c("name"="mpa_name"
-                                                                     ))%>%
-                      rename(
-                             "mpa type" = mpa_class) %>%
+mpa_defacto_table2 <- left_join(trait_table,mpa_defacto_table, by=c("name"="mpa_name")) %>%
+                      rename("mpa type" = mpa_class) %>%
                       ungroup()%>%
   #dplyr::mutate(four_region_north_ci = forcats::fct_relevel(four_region_north_ci,"north","central","north islands","south"))%>%
                       mutate(four_region_north_ci = factor(four_region_north_ci, levels=c("north","central","north islands","south")))%>%
@@ -58,7 +63,7 @@ mpa_defacto_table2 <- left_join(trait_table,mpa_defacto_table, by=c("name"="mpa_
                       
 mpa_defacto_table2$"mpa type" <- toupper(mpa_defacto_table2$"mpa type")
 
-mpa_defacto_table2 <- sapply(mpa_defacto_table2, as.character) # since your values are `factor`
+# mpa_defacto_table2 <- sapply(mpa_defacto_table2, as.character) # since your values are `factor`
 mpa_defacto_table2[is.na(mpa_defacto_table2)] <- " "
 
 
@@ -83,7 +88,7 @@ mpa_defacto_table2 %>%
     rowname_col = "MPA name"
   )  %>%
   cols_align(
-    align = "right",
+    align = "center",
     columns = c("kelp forest","rocky intertidal","surf zone","deep reef","CCFRP")
   ) %>% 
   cols_align(
