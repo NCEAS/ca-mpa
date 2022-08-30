@@ -24,9 +24,6 @@ data_orig <- readRDS(file=file.path(datadir, "CA_2012_2021_mpa_scientific_permit
 usa <- rnaturalearth::ne_states(country="United States of America", returnclass = "sf")
 foreign <- rnaturalearth::ne_countries(country=c("Canada", "Mexico"), returnclass = "sf")
 
-# MPA types
-types_use <- c("SMR", "SMCA", "SMCA (No-Take)", "SMP")
-
 
 # Survey coverage
 ################################################################################
@@ -37,9 +34,9 @@ types_use <- c("SMR", "SMCA", "SMCA (No-Take)", "SMP")
 # Build data
 coverage <- data_orig %>% 
   # Add MPA meta data
-  left_join(mpas %>% select(mpa, type)) %>% 
+  left_join(mpas %>% select(mpa, type, mlpa)) %>% 
   # MPAs of interest
-  filter(type %in% types_use)
+  filter(mlpa=="MLPA")
 
 # MPA order
 mpa_order <- coverage %>% 
@@ -93,18 +90,19 @@ ggsave(g, filename=file.path(plotdir, "FigS5_sci_permit_coverage.png"),
 
 # Build data
 data_full <- data_orig %>% 
+  filter(year %in% 2012:2021) %>% 
   # Summ
   group_by(mpa) %>% 
   summarize(npermits=sum(npermits),
             nyears=n_distinct(year)) %>% 
   ungroup() %>% 
   # Add lat/long and type
-  left_join(mpas %>% select(mpa, type, lat_dd, long_dd), by="mpa")
+  left_join(mpas %>% select(mpa, type, mlpa, lat_dd, long_dd,), by="mpa")
   
 # Reduce
 data <- data_full %>% 
   # Types of interest
-  filter(type %in% types_use)
+  filter(mlpa=="MLPA")
 
 # Export
 saveRDS(data_full, file=file.path(outputdir, "scientific_permits_indicators.Rds"))
@@ -116,8 +114,8 @@ sum(data$npermits)
 # Data time series
 data_ts <- data_orig %>% 
   # MPAs of interesrt
-  left_join(mpas %>% select(mpa, type), by="mpa") %>% 
-  filter(type %in% types_use) %>% 
+  left_join(mpas %>% select(mpa, type, mlpa), by="mpa") %>% 
+  filter(mlpa=="MLPA") %>% 
   # Summarize
   group_by(year, region) %>% 
   summarize(npermits=sum(npermits)) %>% 
@@ -126,8 +124,8 @@ data_ts <- data_orig %>%
 # Proportion by MPA type
 prop_ts <- data_orig %>% 
   # MPAs of interesrt
-  left_join(mpas %>% select(mpa, type), by="mpa") %>% 
-  filter(type %in% types_use) %>% 
+  left_join(mpas %>% select(mpa, type, mlpa), by="mpa") %>% 
+  filter(mlpa=="MLPA") %>% 
   # Summarize
   group_by(year, type) %>% 
   summarize(npermits=sum(npermits)) %>% 
@@ -136,18 +134,18 @@ prop_ts <- data_orig %>%
   group_by(year) %>% 
   mutate(permits_prop=npermits/sum(npermits)) %>% 
   # Order
-  mutate(type=factor(type, levels=c("SMR", "SMCA", "SMCA (No-Take)") %>% rev()))
+  mutate(type=factor(type, levels=c("SMR", "SMCA", "SMCA (No-Take)", "SMRMA") %>% rev()))
 
 # Proportion of network by type
 network_prop <- mpas %>% 
-  filter(type %in% types_use & type!="SMP") %>%
+  filter(mlpa=="MLPA") %>%
   # Summarize
   group_by(type) %>% 
   summarize(n=n()) %>% 
   ungroup() %>% 
   mutate(prop=n/sum(n)) %>% 
   # Order
-  mutate(type=factor(type, levels=c("SMR", "SMCA", "SMCA (No-Take)") %>% rev())) %>% 
+  mutate(type=factor(type, levels=c("SMR", "SMCA", "SMCA (No-Take)", "SMRMA") %>% rev())) %>% 
   arrange(desc(type)) %>% 
   mutate(prop_cum=cumsum(prop))
 
@@ -227,8 +225,9 @@ g3 <- ggplot(prop_ts, aes(x=year, y=permits_prop, fill=type)) +
   # Reference props
   geom_hline(data=network_prop, mapping=aes(yintercept=prop_cum, color=type), linetype="dashed") +
   # Labels
-  labs(x="Year", y="Proportion of permits", tag="C") +
+  labs(x="Year", y="Percent of permits", tag="C") +
   scale_x_continuous(breaks=2012:2021) +
+  scale_y_continuous(labels=scales::percent) +
   # Legend
   scale_fill_discrete(name="Type", guide = guide_legend(reverse = TRUE)) +
   scale_color_discrete(name="Type", guide = guide_legend(reverse = TRUE)) +
