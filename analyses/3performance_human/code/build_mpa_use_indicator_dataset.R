@@ -93,7 +93,7 @@ citations <- citations_orig %>%
 # Build data
 data <- mpas_orig %>% 
   # Simplify
-  select(mpa, mpa_short, authority, type, region, area_sqkm, long_dd, lat_dd) %>% 
+  select(mpa, mpa_short, authority, type, mlpa, region, area_sqkm, long_dd, lat_dd) %>% 
   # Add population
   left_join(pop, by="mpa") %>%
   # Add MPA watch non-consumptive
