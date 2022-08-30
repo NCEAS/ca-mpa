@@ -21,9 +21,6 @@ data_orig <- readRDS(file=file.path(datadir, "CA_MPA_human_use_indicators.Rds"))
 # Build data
 ################################################################################
 
-# MPAs of interest
-types_use <- c("SMR", "SMCA", "SMCA (No-Take)", "SMP")
-
 # Indicators of interest
 head(data_orig)
 indicators_use <- c("npeople_50km", 
@@ -34,7 +31,7 @@ indicators_use <- c("npeople_50km",
 # Build data
 data <- data_orig %>% 
   # Reduce to MPAs of interest
-  filter(type %in% types_use) %>% 
+  filter(mlpa=="MLPA") %>% 
   # Recode region
   # mutate(region=plyr::revalue(region, c("San Francisco Bay"="North Central Coast"))) %>% 
   # Gather indicators
@@ -115,7 +112,7 @@ g <- ggplot(data_ind, aes(x=rank, y=value_cum_prop, color=indicator)) +
   # Labels
   labs(x="MPA engagement rank\n(largest to smallest contributer to network-wide engagement)", 
        y="Percent of\nnetwork-wide engagement") +
-  scale_x_continuous(breaks=c(1, seq(20,120,20), max(data_ind$rank))) +
+  scale_x_continuous(breaks=c(1, seq(20,100,20), max(data_ind$rank))) +
   scale_y_continuous(labels=scales::percent) +
   # Legend
   scale_color_discrete(name="Human use indictor") +
