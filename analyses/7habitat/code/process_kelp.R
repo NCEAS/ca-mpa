@@ -20,32 +20,37 @@ kf_taxa  <- read_csv(file.path(basedir, "MLPA_kelpforest_taxon_table.4.csv")) %>
 ## Each Transect  ----------
 # The fish data from kelp forest surveys are reported for each size class, 
 # with each level (bottom, middle, canopy) of each transect reported separately. 
+# We are interested in total counts across all size classes, and want to quantify
+# effort at the transect level rather than # transect levels.
 
 # Total count for all size classes, across all levels (count per sp per transect)
 fish_transect <- kf_fish %>% 
   select(survey_year:fish_tl) %>% 
   group_by(survey_year, year, month, day, site, zone, transect, classcode) %>% 
-  dplyr::summarize(total_count = sum(count, na.rm = TRUE))
+  dplyr::summarize(total_count = sum(count))
 
-# Reclassify NO_ORG to mean completely empty transect (instead of empty zone)
+# Reclassify NO_ORG to mean completely empty transect instead of empty zone
+# (Zeroes matter but only if the count was zero for the entire transect)
 fish_transect_wide <- fish_transect %>% 
   pivot_wider(names_from = classcode,
               values_from = total_count) %>% 
   select(survey_year:transect, NO_ORG, BFRE:DMAC) %>% 
-  mutate(total = rowSums(across(BFRE:DMAC), na.rm = TRUE)) %>% 
-  select(survey_year:transect, total, NO_ORG, BFRE:DMAC)
+  # new column sums the total organisms for each transect
+  mutate(total = rowSums(across(BFRE:DMAC), na.rm = TRUE)) %>% # total org per transect
+  select(survey_year:transect, total, NO_ORG, BFRE:DMAC) 
 
-fish_transect_wide$NO_ORG[fish_transect_wide$total != 0] <- NA 
+fish_transect_wide$NO_ORG[fish_transect_wide$total > 0] <- NA 
+    # if the total org per transect > 0, replace NO_ORG with NA
 
 fish_transect_corrected <- fish_transect_wide %>%
   pivot_longer(NO_ORG:DMAC, names_to = "classcode", values_to = "total_count",
-               values_drop_na = T)
+               values_drop_na = T) 
 
 ## Quantify Sampling Effort  --------
 
 # Get associated MPA information
 kf_site_clean <- kf_site %>% 
-  select(site, ca_mpa_name_short, site_designation, site_status) %>% 
+  select(site, survey_year, ca_mpa_name_short, site_designation, site_status, long_term_region) %>% 
   distinct()
 
 # Calculate sampling effort per site (# of transects at each site each year)
@@ -58,7 +63,7 @@ fish_effort <- fish_transect_corrected %>%
 
 # Calculate sampling effort per MPA/ref (# transects for each associated MPA/ref each year)
 fish_effort_mpa <- fish_effort %>% 
-  group_by(ca_mpa_name_short, site_designation, site_status, survey_year) %>% 
+  group_by(ca_mpa_name_short, site_designation, site_status, survey_year, long_term_region) %>% 
   dplyr::summarize(n_transects = sum(n_transects),
                    n_sites = n())
 
@@ -158,13 +163,15 @@ swath_mpa_1620 <- swath_mpa %>%
 
 ## Species-Community Matrix -----------------
 
-mpa_only <- swath_mpa_1620 %>% 
+swath_mpa_only <- swath_mpa_1620 %>% 
   filter(site_status == "mpa")
 
-spmatrix <- mpa_only %>%
+swath_spmatrix <- swath_mpa_only %>%
   pivot_wider(id_cols = c("name"), names_from = classcode, values_from = count_per_m2)
 
-spmatrix[is.na(spmatrix)] <- 0
+swath_spmatrix[is.na(swath_spmatrix)] <- 0
 
-saveRDS(spmatrix, file = file.path("analyses", "7habitat", "intermediate_data",
+saveRDS(swath_spmatrix, file = file.path("analyses", "7habitat", "intermediate_data",
                                    "species_matrix_kelp_swath_1620.Rds"))
+
+

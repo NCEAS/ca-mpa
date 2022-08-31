@@ -1,0 +1,384 @@
+---
+title: "NMDS"
+format: html
+editor: visual
+---
+
+## Setup
+
+```{r}
+# Packages
+library(tidyverse)
+library(vegan)
+```
+
+
+```{r}
+# Clear workspace
+rm(list = ls())
+
+# Directories
+data.dir <- file.path(getwd(), "analyses", "7habitat", "intermediate_data")
+plot.dir <- file.path(getwd(), "analyses", "7habitat", "figures")
+
+# Read Attribute (Habitat) Data
+att_raw <- readRDS(file.path(data.dir, "mpa_attributes_processed.Rds"))
+att_labels <- readRDS(file.path(data.dir, "mpa_attributes_labels.Rds"))
+```
+
+## Specify Habitat Lists
+
+```{r}
+linear_habitats <- c("sandy_beach_km",
+                     "rocky_inter_km",
+                     "coastal_marsh_km",
+                     "tidal_flats_km")
+#,"hardened_armored_shore_km"
+
+area_habitats <- c("hard_substrate_0_30m_km2_comb", 
+                   "hard_substrate_30_100m_km2", 
+                   "hard_substrate_100_200m_km2",
+                   "hard_substrate_200_3000m_km2",
+                   "soft_substrate_0_30m_km2_comb", 
+                   "soft_substrate_30_100m_km2", 
+                   "soft_substrate_100_200m_km2", 
+                   "soft_substrate_200_3000m_km2",
+                   "max_kelp_canopy_cdfw_km2")
+```
+
+## Drop Incomplete Data
+
+```{r}
+att_raw <- att_raw %>% 
+  filter(!(name %in% c("Reading Rock SMR", "Reading Rock SMCA",
+                       "Piedras Blancas SMR", 
+                       "Piedras Blancas SMCA")))
+
+```
+
+
+
+## Create habitat and metadata dataframes
+
+```{r}
+nmds_meta <- att_raw %>%
+  select(name, bioregion, four_region_north_ci, mpa_habitat_type) 
+
+nmds_data <- att_raw %>% 
+  filter(!(mpa_habitat_type == "Estuary")) %>% 
+  select(name, 
+         #size_km2, 
+         all_of(area_habitats), all_of(linear_habitats)) %>% 
+  column_to_rownames("name") %>% 
+  drop_na()
+```
+
+### Different scaling options
+
+```{r}
+# Standardize to zero mean and unit variance
+#nmds_data <- decostand(nmds_data, method = "standardize", margin = 2)
+
+# Standardize to max value for each attribute
+nmds_data <- decostand(nmds_data, method = "max", margin = 2)
+
+# Log
+#nmds_data <- decostand(nmds_data, method = "log", margin = 2)
+```
+
+## Run metaMDS
+
+```{r}
+mds <- metaMDS(nmds_data, distance = "euclidean", 
+               trymax = 1500, maxit = 1500, 
+               autotransform = F, trace = F)
+mds
+stressplot(mds)
+```
+
+## Generate vectors
+
+```{r}
+# Output of metaMDS and the original matrix
+fit <- envfit(mds, nmds_data, perm = 999)
+
+# Extract pvalues for each attribute
+fit_pval <- fit$vectors$pvals %>% 
+  as.data.frame() %>% 
+  rownames_to_column("attribute") %>% 
+  dplyr::rename("pvals" = ".")
+
+# Get coordinates for each attribute vector
+fit_att <- fit %>% 
+  scores(., display = "vectors") %>% 
+  as.data.frame() %>% 
+  rownames_to_column("attribute") %>% 
+  full_join(., fit_pval, by = "attribute") %>% 
+  mutate(sig = if_else(pvals == 0.001, "yes", "no")) %>% 
+  left_join(., att_labels, by = "attribute")
+
+
+# Get coordinates for each MPA (NMDS dimension)
+nmds_df <- scores(mds, display = "sites") %>% 
+  as.data.frame() %>% 
+  rownames_to_column("name") %>% 
+  left_join(nmds_meta, by = "name") 
+```
+
+## Generate Ellipses
+
+### Option 1: MPA Habitat Type
+```{r}
+plot.new()
+ell <- ordiellipse(mds, nmds_df$mpa_habitat_type, kind = "se", conf = 0.95, label = T)
+
+ell_df <- data.frame()
+for(i in levels(nmds_df$mpa_habitat_type)){
+  ell_df <- rbind(ell_df, 
+                  cbind(as.data.frame(with(nmds_df[nmds_df$mpa_habitat_type==i,],
+                                           vegan:::veganCovEllipse(ell[[i]]$cov, 
+                                                                   ell[[i]]$center, 
+                                                                   ell[[i]]$scale))), 
+                        mpa_habitat_type = i))}
+```
+
+### Option 2: Planning Region
+```{r}
+plot.new()
+ell_bioregion <- ordiellipse(mds, nmds_df$bioregion, 
+                             kind = "se", conf = 0.95, label = T)
+
+ell_df_bioregion <- data.frame()
+for(i in levels(nmds_df$bioregion)){
+  ell_df_bioregion <- 
+    rbind(ell_df_bioregion,
+          cbind(as.data.frame(with(nmds_df[nmds_df$bioregion==i,],
+                                   vegan:::veganCovEllipse(ell_bioregion[[i]]$cov, 
+                                                   ell_bioregion[[i]]$center,
+                                                   ell_bioregion[[i]]$scale))), 
+                bioregion = i))}
+```
+
+### Option 3: 4 Region
+```{r}
+plot.new()
+ell_4region <- ordiellipse(mds, nmds_df$four_region_north_ci, 
+                             kind = "se", conf = 0.95, label = T)
+
+ell_df_4region <- data.frame()
+for(i in levels(nmds_df$four_region_north_ci)){
+  ell_df_4region <- 
+    rbind(ell_df_4region,
+          cbind(as.data.frame(with(nmds_df[nmds_df$four_region_north_ci==i,],
+                                   vegan:::veganCovEllipse(ell_4region[[i]]$cov, 
+                                                   ell_4region[[i]]$center,
+                                                   ell_4region[[i]]$scale))), 
+                four_region_north_ci = i))}
+```
+
+
+## Plot
+
+### 1. Different Habitat Types
+
+```{r}
+ggplot(nmds_df, aes(x = NMDS1, y = NMDS2)) +
+  # Points
+  geom_point(aes(color = mpa_habitat_type, shape = mpa_habitat_type), 
+             size = 3, alpha = 0.5) +
+  # Ellipses with ordiellipse
+  geom_path(data = ell_df, 
+            aes(x = NMDS1, y = NMDS2, color = mpa_habitat_type), 
+            linetype = 5) + 
+  # Vectors
+  geom_segment(data = fit_att, 
+               aes(x = 0, xend = NMDS1, y = 0, yend = NMDS2),
+               arrow = arrow(length = unit(0.25, "cm")), col = "black") +
+  #  Vector Labels
+  geom_text(data = fit_att, 
+            aes(x = NMDS1, y = NMDS2, label = att_label), size = 3) +
+  # Formatting
+  coord_fixed() +
+  labs(color = "",
+       shape = "") + 
+  theme_classic() 
+```
+
+### 2. Planning Region
+
+```{r}
+ggplot(nmds_df, aes(x = NMDS1, y = NMDS2)) +
+  # Points
+  geom_point(aes(color = bioregion, shape = bioregion), 
+             size = 3, alpha = 0.5) +
+  # Ellipses with ordiellipse
+  geom_path(data = ell_df_bioregion, 
+            aes(x = NMDS1, y = NMDS2, color = bioregion), 
+            linetype = 5) + 
+  # Vectors
+  geom_segment(data = fit_att, 
+               aes(x = 0, xend = NMDS1, y = 0, yend = NMDS2),
+               arrow = arrow(length = unit(0.25, "cm")), col = "black") +
+  #  Vector Labels
+  geom_text(data = fit_att, 
+            aes(x = NMDS1, y = NMDS2, label = att_label), size = 3) +
+  scale_color_manual(values = c("purple", "orange", "green4")) +
+  # Formatting
+  coord_fixed() +
+  labs(color = "",
+       shape = "") + 
+  theme_classic()
+```
+### 3. Four Region
+
+```{r}
+ggplot(nmds_df, aes(x = NMDS1, y = NMDS2)) +
+  # Points
+  geom_point(aes(color = four_region_north_ci, shape = four_region_north_ci), 
+             size = 3, alpha = 0.5) +
+  # Ellipses with ordiellipse
+  geom_path(data = ell_df_4region, 
+            aes(x = NMDS1, y = NMDS2, color = four_region_north_ci), 
+            linetype = 5) + 
+  # Vectors
+  geom_segment(data = fit_att, 
+               aes(x = 0, xend = NMDS1, y = 0, yend = NMDS2),
+               arrow = arrow(length = unit(0.25, "cm")), col = "black") +
+  #  Vector Labels
+  geom_text(data = fit_att, 
+            aes(x = NMDS1, y = NMDS2, label = att_label), size = 3) +
+  scale_color_manual(values = c("purple", "orange", "green4", "blue")) +
+  # Formatting
+  coord_fixed() +
+  labs(color = "",
+       shape = "") + 
+  theme_classic()
+```
+### 4. Four Region, Centroid
+
+```{r}
+# Get cooordinates for centroids
+centroids <- nmds_df %>% 
+  group_by(four_region_north_ci) %>% 
+  summarize(NMDS1 = mean(NMDS1),
+            NMDS2 = mean(NMDS2))
+
+
+
+ggplot(nmds_df, aes(x = NMDS1, y = NMDS2)) +
+  # Points
+  geom_point(data = centroids, aes(color = four_region_north_ci)) +
+  # Ellipses with ordiellipse
+  geom_path(data = ell_df_4region, 
+            aes(x = NMDS1, y = NMDS2, color = four_region_north_ci), 
+            linetype = 5) + 
+  # Vectors
+  geom_segment(data = fit_att, 
+               aes(x = 0, xend = NMDS1*0.55, y = 0, yend = NMDS2*0.55),
+               arrow = arrow(length = unit(0.25, "cm")), col = "black") +
+  #  Vector Labels
+  geom_text(data = fit_att, 
+            aes(x = NMDS1*0.6, y = NMDS2*0.6, label = att_label), size = 3) +
+  scale_color_manual(values = c("purple", "orange", "green4", "blue")) +
+  scale_x_continuous(limits = c(-0.5, 0.6), expand = c(0,0)) +
+  # Formatting
+  coord_fixed() +
+  labs(color = "",
+       shape = "") + 
+  theme_classic()
+```
+```{r}
+ggsave(file.path(plot.dir, "nmds-4reg-max.png"),
+       width=7, height=4, units="in", dpi=600)
+```
+
+
+
+## Test for Differences
+
+```{r}
+dismat <- vegdist(nmds_data, method = "euclidean")
+```
+
+
+### Among Habitat Types
+
+```{r}
+# Disper
+disper <- betadisper(dismat, type = "centroid", 
+                     group = nmds_meta$mpa_habitat_type[nmds_meta$name %in% rownames(nmds_data)])
+plot(disper)
+
+# Test for differences in dispersion for the regions
+test <- permutest(disper)
+test
+
+hsd <- TukeyHSD(disper)
+hsd
+
+# Difference among groups
+pmnova <- adonis2(formula = dismat ~ mpa_habitat_type, 
+                     method = "euclidean",
+                     data = nmds_meta[nmds_meta$name %in% rownames(nmds_data),],
+                     by = "terms")
+
+
+
+
+pmnova <- pairwise.adonis(formula = dismat ~ mpa_habitat_type, 
+                     method = "euclidean",
+                     data = nmds_meta[nmds_meta$name %in% rownames(nmds_data),],
+                     by = "terms")
+```
+
+### Among Regions
+
+```{r}
+# Disper
+disper_bio <- betadisper(dismat, type = "centroid", 
+                         group = nmds_meta$bioregion[nmds_meta$name %in% rownames(nmds_data)])
+plot(disper_bio)
+
+# Test for differences in dispersion for the regions
+test_bio <- permutest(disper_bio)
+test_bio
+
+# Difference among groups (regions)
+permanova_bio <- adonis2(formula = dismat ~ bioregion, 
+                     mwrhos = "euclidean",
+                     data = nmds_meta[nmds_meta$name %in% rownames(nmds_data),])
+
+permanova_bio
+
+
+hsd_bio <- TukeyHSD(disper_bio)
+hsd_bio
+```
+
+### Among Four Regions
+
+```{r}
+# Dispersion
+disper_4bio <- betadisper(dismat, type = "centroid", 
+                         group = nmds_meta$four_region_north_ci[nmds_meta$name %in% rownames(nmds_data)])
+plot(disper_4bio)
+disper_4bio
+
+
+hsd_4bio <- TukeyHSD(disper_4bio)
+hsd_4bio
+
+# Test for differences in dispersion for the regions
+test_4bio <- permutest(disper_4bio)
+test_4bio
+
+# Difference among groups (regions)
+permanova_4bio <- adonis2(formula = dismat ~ four_region_north_ci, 
+                     mwrhos = "euclidean",
+                     data = nmds_meta[nmds_meta$name %in% rownames(nmds_data),])
+
+pairwise <- pairwise.adonis(x = dismat,
+                            factors = nmds_meta$four_region_north_ci[nmds_meta$name %in% rownames(nmds_data)])
+
+pairwise
+```
