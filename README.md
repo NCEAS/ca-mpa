@@ -24,6 +24,7 @@ We ask that contributors adhere to the following best practices when working in 
 
 The Working Group is led by Jenn Caselle and Kerry Nickols and is a collaboration among the following members and institutions:
 
+* Joshua Smith, Nat'l. Center for Ecol. Anal. & Synth. (NCEAS)
 * Chris Free, UC Santa Barbara
 * Clarissa Anderson, UC San Diego
 * Cori Lopazanski, UC Santa Barbara

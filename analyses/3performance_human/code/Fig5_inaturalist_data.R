@@ -23,16 +23,12 @@ mpas_orig <- readRDS(file.path(mpadir, "CA_mpa_metadata.Rds"))
 usa <- rnaturalearth::ne_states(country="United States of America", returnclass = "sf")
 foreign <- rnaturalearth::ne_countries(country=c("Canada", "Mexico"), returnclass = "sf")
 
-# Reduce to MPAs of interest
-sort(unique(mpas_orig$type))
-types_use <- c("SMR", "SMRMA", "SMCA", "SMCA (No-Take)")
-
 
 # Build data
 ################################################################################
 
 # Build data
-data_orig <- readRDS(file.path(datadir, "2000_2020_inaturalist_data_inside_mpas_100m_buffer.Rds"))
+data_orig <- readRDS(file.path(datadir, "2000_2021_inaturalist_data_inside_mpas_100m_buffer.Rds"))
 
 # Stats
 nrow(data_orig)
@@ -40,8 +36,8 @@ n_distinct(data_orig$user_id)
 
 # Summarize
 stats_full <- data_orig %>% 
-  # Before 2018
-  filter(year_obs<=2018) %>% 
+  # 2012-2021
+  filter(date_obs>=lubridate::ymd("2012-01-01") & date_obs<=lubridate::ymd("2021-12-31")) %>% 
   # Summarize
   group_by(mpa) %>% 
   summarize(nobservers=n_distinct(user_id),
@@ -54,16 +50,18 @@ saveRDS(stats_full, file=file.path(outputdir, "inaturalist_indicators.Rds"))
 
 # Reduce and spatialize
 stats <- stats_full %>% 
-  left_join(mpas %>% select(mpa, type, lat_dd, long_dd)) %>% 
-  filter(type %in% types_use)
+  # Reduce to MPAs of interest
+  left_join(mpas_orig %>% select(mpa, type, mlpa, lat_dd, long_dd)) %>% 
+  filter(mlpa=="MLPA")
   
 # Number of MPAs with observations
 stats %>% filter(!is.na(nobservers)) %>% pull(mpa) %>% n_distinct(.)
 
 # Time series stats
-observations_ts <- data_orig %>% 
-  # Before 2018
-  filter(year_obs<=2018) %>% 
+observations_ts <- data_orig %>%
+  # Reduce to MPAs of interest
+  left_join(mpas_orig %>% select(mpa, type, mlpa, lat_dd, long_dd)) %>% 
+  filter(mlpa=="MLPA") %>% 
   # Summarize
   mutate(taxa_catg=ifelse(is.na(taxa_catg), "Animalia", taxa_catg)) %>% 
   group_by(year_obs, taxa_catg) %>% 
@@ -87,8 +85,9 @@ observations_ts <- data_orig %>%
 
 # Observer time series
 observer_ts <- data_orig %>% 
-  # Before 2018
-  filter(year_obs<=2018) %>% 
+  # Reduce to MPAs of interest
+  left_join(mpas_orig %>% select(mpa, type, mlpa, lat_dd, long_dd)) %>% 
+  filter(mlpa=="MLPA") %>% 
   # Summarize
   group_by(year_obs) %>% 
   summarize(nobservers=n_distinct(user_id)) %>% 
@@ -96,12 +95,13 @@ observer_ts <- data_orig %>%
 
 # Observer time series
 observer_ts1 <- data_orig %>% 
-  # Before 2018
-  filter(year_obs<=2018) %>% 
+  # Reduce to MPAs of interest
+  left_join(mpas_orig %>% select(mpa, type, mlpa, lat_dd, long_dd)) %>% 
+  filter(mlpa=="MLPA") %>% 
   # Summarize
   group_by(year_obs, user_id) %>%
   summarize(nmpas=n_distinct(mpa),
-            nmpas_catg=cut(nmpas, breaks=c(0,1,3,5,10,16), labels=c("1", "2-3", "4-5", "6-10", "11-16"))) %>% 
+            nmpas_catg=cut(nmpas, breaks=c(0,1,3,5,10,21), labels=c("1", "2-3", "4-5", "6-10", "11-21"))) %>% 
   ungroup() %>% 
   # Summarize again
   group_by(year_obs, nmpas_catg) %>% 
@@ -118,17 +118,15 @@ observer_ts1 <- data_orig %>%
 # iNat coverage by month
 inat_coverage <- data_orig %>% 
   # Add MPA metadata
-  left_join(mpas_orig %>% select(region, type, mpa)) %>% 
-  # Correct region
-  mutate(region=recode(region, "San Francisco Bay"="North Central Coast")) %>% 
+  left_join(mpas_orig %>% select(region, type, mlpa, mpa)) %>% 
   # Reduce to MPAs of interest
-  filter(type %in% types_use) %>% 
+  filter(mlpa == "MLPA") %>% 
   # Add year, month, dummy date
   mutate(year=lubridate::year(date_obs),
          month=lubridate::month(date_obs),
          date_dummy=lubridate::ymd(paste(year, month, 1, sep="-"))) %>% 
   # Reduce to data before 2018
-  filter(year<=2018) %>% 
+  # filter(year<=2018) %>% 
   # Summarize
   group_by(region, mpa, date_dummy) %>% 
   summarize(nobservers=n_distinct(user_id),
@@ -142,6 +140,13 @@ mpa_order <- inat_coverage %>%
   summarize(nobservations_tot=sum(nobservations)) %>% 
   ungroup() %>% 
   arrange(region, desc(nobservations_tot))
+
+# Identify MPAs with zero engagement
+mpas_zero <- mpas_orig %>% 
+  # MLPA MPAs
+  filter(mlpa=="MLPA") %>% 
+  # MPAs without engagement
+  filter(!mpa %in% stats$mpa)
 
 # Plot data
 #####################################
@@ -219,6 +224,8 @@ g1 <- ggplot() +
   geom_sf(data=usa, fill="grey80", color="white", lwd=0.3) +
   # Plot MPAs
   geom_point(data=stats, mapping=aes(x=long_dd, y=lat_dd, size=nobservers, fill=nobservations), pch=21, inherit.aes = F) +
+  # Plot zero MPAs
+  geom_point(data=mpas_zero, mapping=aes(x=long_dd, y=lat_dd), pch="x", size=2.3) +
   # Labels
   labs(x="", y="", tag="A") +
   # Axes
@@ -241,10 +248,12 @@ taxa_colors <- c("green4", "saddlebrown", "thistle", "lightsteelblue2", "wheat2"
                  "olivedrab3", "green3", "gold1", "grey60", "firebrick2", "darkorange", "lavenderblush", "grey90")
 g2 <- ggplot(observations_ts, aes(x=year_obs, y=nobservations/1e3, fill=taxa_catg)) +
   geom_bar(stat="identity", lwd=0.1, color="grey30") +
+  # Reference line
+  geom_vline(xintercept = 2011.5, linetype="dotted", color="grey30") +
   # Labels
   labs(x="Year", y="Thousands of observations", tag="B") +
   # Axes
-  scale_x_continuous(lim=c(2000,2021), breaks=seq(2000, 2020, 5)) +
+  scale_x_continuous(breaks=seq(2000, 2020, 5)) +
   # Legend
   scale_fill_manual(name="Taxa", values=taxa_colors) +
   # Theme
@@ -256,10 +265,12 @@ g2
 # Plot number of observers
 g3 <- ggplot(observer_ts1, aes(x=year_obs, y=nobservers, fill=nmpas_catg)) +
   geom_bar(stat="identity", lwd=0.1, color="grey30", position = position_stack(reverse = TRUE)) +
+  # Reference line
+  geom_vline(xintercept = 2011.5, linetype="dotted", color="grey30") +
   # Labels
   labs(x="Year", y="Number of observers", tag="C") +
   # Axes
-  scale_x_continuous(lim=c(2000,2021), breaks=seq(2000, 2020, 5)) +
+  scale_x_continuous(breaks=seq(2000, 2020, 5)) +
   # Legend
   scale_fill_ordinal(name="# of MPAs visited", direction=-1, na.value="grey90", guide = guide_legend(reverse = TRUE)) +
   # Theme

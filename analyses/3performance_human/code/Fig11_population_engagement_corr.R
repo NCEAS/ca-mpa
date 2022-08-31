@@ -22,7 +22,7 @@ data_orig <- readRDS(file=file.path(datadir, "CA_MPA_human_use_indicators.Rds"))
 ################################################################################
 
 # MPAs of interest
-types_use <- c("SMR", "SMRMA", "SMCA", "SMCA (No-Take)")
+types_use <- c("SMR", "SMCA", "SMCA (No-Take)", "SMP")
 
 # Build data
 data <- data_orig %>% 

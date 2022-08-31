@@ -31,11 +31,10 @@ usa <- rnaturalearth::ne_states(country="United States of America", returnclass 
 foreign <- rnaturalearth::ne_countries(country=c("Canada", "Mexico"), returnclass = "sf")
 
 # Reduce MPA data
-types_use <- c("SMR", "SMRMA", "SMCA", "SMCA (No-Take)")
 pop <- pop_orig %>% 
   rename(mpa=name) %>% 
-  left_join(mpas_orig %>% select(mpa, type), by="mpa") %>% 
-  filter(type %in% types_use)
+  left_join(mpas_orig %>% select(mpa, mlpa), by="mpa") %>% 
+  filter(mlpa=="MLPA")
 
 # Read city key
 cities <- readxl::read_excel(file.path(tabledir, "city_key.xlsx"))
@@ -79,7 +78,8 @@ g <- ggplot() +
   # Plot raster
   geom_tile(data=pop_ras, mapping=aes(x=long_dd, y=lat_dd, fill=people_sqkm)) +
   # Plot MPAs
-  geom_point(data=pop, mapping=aes(x=long_dd, y=lat_dd, size=npeople_50km/1e6)) +
+  geom_point(data=pop, mapping=aes(x=long_dd, y=lat_dd, size=npeople_50km/1e6), 
+             pch=21, fill="grey50", color="black", alpha=0.4) +
   # Plot city labels
   geom_text(data=cities, aes(x=long, y=lat, label=city, hjust=hjust), size=2.5) +
   # Labels

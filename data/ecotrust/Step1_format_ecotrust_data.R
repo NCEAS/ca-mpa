@@ -21,6 +21,8 @@ data_orig <- readxl::read_excel(file.path(indir, "MPAHumanUses_FocusGroup_Quanti
 
 # Read key
 q_key <- readxl::read_excel(file.path(outdir, "question_key.xlsx"))
+r_key <- readxl::read_excel(file.path(outdir, "response_key.xlsx"))
+p_key <- readxl::read_excel(file.path(outdir, "port_key.xlsx"))
 
 
 # Format data
@@ -31,35 +33,21 @@ data <- data_orig %>%
   # Slice
   slice(1:85) %>%
   # Rename
-  rename(port_complex=port_portgroup) %>%
+  rename(port_complex_id=port_portgroup) %>%
+  # Add respondent id
+  mutate(respondent_id=1:n()) %>% 
+  select(respondent_id, port_complex_id, everything()) %>% 
   # Gather
-  gather(key="question", value="response", 2:ncol(.)) %>%
-  # Count
-  count(port_complex, question, response) %>%
-  # Format port complex
-  mutate(port_complex=recode_factor(port_complex,
-                                    "19"="San Diego",
-                                    "18"="Oceanside",
-                                    "17"="Orange County",
-                                    "16"="Los Angeles/Long Beach",
-                                    "15"="Ventura/Channel Islands",
-                                    "14"="Santa Barbara",
-                                    "13"="Morro Bay/Port San Luis",
-                                    "12"="Monterey",
-                                    "11"="Moss Landing",
-                                    "10"="Santa Cruz",
-                                    "9"="Princeton/Half Moon Bay",
-                                    "8"="San Francisco",
-                                    "7"="Bodega Bay",
-                                    "6"="Point Arena",
-                                    "5"="Fort Bragg/Albion",
-                                    "4"="Shelter Cove",
-                                    "3"="Eureka",
-                                    "2"="Trinidad",
-                                    "1"="Crescent City")) %>%
+  gather(key="question", value="response_id", 3:ncol(.)) %>%
+  # Add port info
+  mutate(port_complex_id=as.numeric(port_complex_id)) %>% 
+  left_join(p_key, by="port_complex_id") %>%
+  mutate(port_complex=factor(port_complex,
+                             levels=p_key$port_complex),
+         region=factor(region, levels=c("North", "North Central", "Central", "South"))) %>%
   # Format question
   mutate(question=recode(question,
-                         "access_econ"="Access to\nharvestable resources",
+                         "access_econ"="Access to harvestable resources",
                          "covid19"="Covid-19 impacts",
                          "ecological_mpa"="Ecological",
                          "enforcement_mpa"="Enforcement",
@@ -73,25 +61,20 @@ data <- data_orig %>%
                          "marineresourcepresent_env"="Marine resource health-present",
                          "markets_econ"="Markets",
                          "monitoring_mpa"="Monitoring",
-                         "relationshipsexternal_soc"="Social relationships\n(external)",
-                         "relationshipsinternal_soc"="Social relationships\n(internal)")) %>%
-  # Arrange
-  arrange(port_complex, question) %>%
-  # Add prop
-  group_by(port_complex, question) %>%
-  mutate(prop=n/sum(n)) %>%
-  ungroup() %>%
+                         "relationshipsexternal_soc"="Social relationships (external)",
+                         "relationshipsinternal_soc"="Social relationships (internal)")) %>%
   # Add question
   left_join(q_key, by="question") %>%
-  # Convert response
-  mutate(response=as.numeric(response)) %>% 
+  # Add response
+  mutate(response_id=as.numeric(response_id)) %>% 
+  left_join(r_key, by=c("question", "response_id")) %>%
   # Arrange
-  select(port_complex, category, question, everything())
+  select(respondent_id, region, port_complex_id, port_complex, category, question, response_id, response, everything())
 
 # Inspect
-unique(data$response)
 sort(unique(data$question))
+freeR::complete(data)
 
 # Export
-saveRDS(data, file=file.path(outdir, "ecotrust_survey_data.Rds"))
+saveRDS(data, file=file.path(outdir, "ecotrust_survey_data_comm.Rds"))
 

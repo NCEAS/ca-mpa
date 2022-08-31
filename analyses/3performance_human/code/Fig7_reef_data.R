@@ -23,8 +23,6 @@ mpas <- readRDS(file.path(traitdir, "CA_MPA_metadata.Rds"))
 # Read data
 data <- readRDS(file=file.path(reefdir, "REEF_1994_2022_survey_metadata.Rds"))
 
-# Types use
-types_use <- c("SMR", "SMRMA", "SMCA", "SMCA (No-Take)")
 
 
 # Survey coverage
@@ -38,9 +36,9 @@ reef_coverage <- data %>%
   # Reduce to MPAs
   filter(!is.na(mpa)) %>% 
   # Add MPA meta data
-  left_join(mpas %>% select(mpa, region, type)) %>% 
+  left_join(mpas %>% select(mpa, region, type, mlpa)) %>% 
   # MPAs of interest
-  filter(type %in% types_use) %>% 
+  filter(mlpa == "MLPA") %>% 
   # Add year, month, dummy date
   mutate(year=lubridate::year(date),
          month=lubridate::month(date),
@@ -53,6 +51,7 @@ reef_coverage <- data %>%
   mutate(region=recode_factor(region,
                        "North Coast"="North\nCoast",
                        "North Central Coast"="North\nCentral\nCoast",
+                       "San Francisco Bay"="North\nCentral\nCoast",
                        "Central Coast"="Central\nCoast",
                        "South Coast"="South\nCoast"))
 
@@ -112,6 +111,8 @@ range(data$date)
 stats_full <- data %>% 
   # MPA site only
   filter(!is.na(mpa)) %>% 
+  # Filter to date range
+  filter(date>=ymd("2012-01-01") & date<=ymd("2021-12-31")) %>% 
   # Add year
   mutate(year=lubridate::year(date)) %>% 
   # Number of surveys within site
@@ -128,12 +129,16 @@ saveRDS(stats_full, file=file.path(outputdir, "reef_indicators.Rds"))
 # Reduce to MPAs of interest
 stats <- stats_full %>% 
   # Reduce to types of interest
-  filter(type %in% types_use)
+  filter(mlpa=="MLPA")
 
 # Time series by habitat type
 habitat_ts <- data %>% 
   # MPA site only
   filter(!is.na(mpa)) %>% 
+  # Add MPA meta data
+  left_join(mpas %>% select(mpa, region, type, mlpa)) %>% 
+  # MPAs of interest
+  filter(mlpa == "MLPA") %>% 
   # Add year
   mutate(year=lubridate::year(date)) %>% 
   # Summarize
@@ -159,7 +164,11 @@ hab_colors <- c("steelblue", "wheat1", "saddlebrown",
 # Time series by surveyor type
 surveyor_ts <- data %>% 
   # MPA site only
-  filter(!is.na(mpa)) %>% 
+  filter(!is.na(mpa)) %>%
+  # Add MPA meta data
+  left_join(mpas %>% select(mpa, region, type, mlpa)) %>% 
+  # MPAs of interest
+  filter(mlpa == "MLPA") %>% 
   # Add year
   mutate(year=lubridate::year(date)) %>% 
   # Summarize
@@ -171,6 +180,10 @@ surveyor_ts <- data %>%
 depth_ts <- data %>% 
   # MPA site only
   filter(!is.na(mpa)) %>% 
+  # Add MPA meta data
+  left_join(mpas %>% select(mpa, region, type, mlpa)) %>% 
+  # MPAs of interest
+  filter(mlpa == "MLPA") %>% 
   # Add year
   mutate(year=lubridate::year(date)) %>% 
   # Summarize
@@ -182,6 +195,13 @@ depth_ts <- data %>%
 nrow(data) # number of surveys
 sum(stats$nsurveys) # number in protected areas
 sum(stats$nsurveys) / nrow(data) *100
+
+# Identify MPAs with zero engagement
+mpas_zero <- mpas %>% 
+  # MLPA MPAs
+  filter(mlpa=="MLPA") %>% 
+  # MPAs without engagement
+  filter(!mpa %in% stats$mpa)
 
 # Plot data
 ################################################################################
@@ -220,6 +240,8 @@ g1 <- ggplot() +
   geom_sf(data=usa, fill="grey80", color="white", lwd=0.3) +
   # Plot REEF sites
   geom_point(data=stats, mapping=aes(x=long_dd, y=lat_dd, size=nsurveys, fill=nyrs), pch=21) +
+  # Plot zero MPAs
+  geom_point(data=mpas_zero, mapping=aes(x=long_dd, y=lat_dd), pch="x", size=2.3) +
   # Labels
   labs(x="", y="", tag="A") +
   # Axes
@@ -227,7 +249,7 @@ g1 <- ggplot() +
   # Legend
   scale_size_continuous(name="# of surveys", trans="log10") +
   # scale_fill_discrete(name="Site type") +
-  scale_fill_gradientn(name="# of years", colors=RColorBrewer::brewer.pal(9, "Blues")) +
+  scale_fill_gradientn(name="# of years", colors=RColorBrewer::brewer.pal(9, "Blues"), breaks=seq(0,10,2)) +
   guides(fill = guide_colorbar(ticks.colour = "black", frame.colour = "black")) +
   # Crop
   coord_sf(xlim = c(-124.5, -117), ylim = c(32.5, 42)) +
@@ -241,6 +263,8 @@ g1
 # Plot data
 g2 <- ggplot(habitat_ts, mapping=aes(x=year, y=nsurveys, fill=habitat)) +
   geom_bar(stat="identity", color="grey30", lwd=0.1) +
+  # Reference line
+  geom_vline(xintercept = 2011.5, linetype="dotted", color="grey30") +
   # Labels
   labs(x="Year", y="# of surveys", tag="B") +
   scale_x_continuous(breaks=seq(1995, 2020, 5)) +
@@ -255,6 +279,8 @@ g2
 # Plot data
 g3 <- ggplot(depth_ts, mapping=aes(x=year, y=nsurveys, fill=max_depth)) +
   geom_bar(stat="identity", color="grey30", lwd=0.1) +
+  # Reference line
+  geom_vline(xintercept = 2011.5, linetype="dotted", color="grey30") +
   # Labels
   labs(x="Year", y="# of surveys", tag="C") +
   scale_x_continuous(breaks=seq(1995, 2020, 5)) +

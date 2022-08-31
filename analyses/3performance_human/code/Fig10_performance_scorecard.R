@@ -21,19 +21,16 @@ data_orig <- readRDS(file=file.path(datadir, "CA_MPA_human_use_indicators.Rds"))
 # Build data
 ################################################################################
 
-# MPAs of interest
-types_use <- c("SMR", "SMRMA", "SMCA", "SMCA (No-Take)")
-
 # Indicators of interest
 indicators_use <- c("npeople_50km", 
-                    "nonconsump_psurveys", "consump_psurveys", 
+                    "nonconsump_hr", "consump_hr", 
                     "inat_observers_n", "ebird_observers_n", "reef_n",
                     "permits_n", "citations_n")
 
 # Build data
 data <- data_orig %>% 
   # Reduce to MPAs of interest
-  filter(type %in% types_use) %>% 
+  filter(mlpa=="MLPA") %>% 
   # Recode region
   mutate(region=plyr::revalue(region, c("San Francisco Bay"="North Central Coast"))) %>%
   # Gather indicators
@@ -46,10 +43,12 @@ data <- data_orig %>%
                                  "inat_observers_n"="iNaturalist observers",
                                  "ebird_observers_n"='eBird observers',
                                  "reef_n"="REEF surveys",
-                                 "nonconsump_psurveys"="MPA Watch (non-consumptive)", 
-                                 "consump_psurveys"="MPA Watch (consumptive)",
                                  "permits_n"="Scientific permits",
-                                 "citations_n"="Citations")) %>% 
+                                 "citations_n"="Citations",
+                                 "consump_hr"="MPA Watch (consumptive)",
+                                 "nonconsump_hr"="MPA Watch (non-consumptive)")) %>% 
+  # Add zeros for all but MPA Watch
+  mutate(value=ifelse(is.na(value) & !grepl("MPA Watch", indicator), 0, value)) %>% 
   # Scale metrics
   group_by(indicator) %>% 
   mutate(value_scaled=scale(value, center=T, scale=T)) %>% 
@@ -63,6 +62,10 @@ mpa_order <- data %>%
 # Order data
 data_ordered <- data %>%
   mutate(mpa=factor(mpa, levels=mpa_order$mpa))
+
+# Extract zeros
+data_zeroes <- data_ordered %>% 
+  filter(value==0)
 
 
 # Plot data - long
@@ -91,6 +94,8 @@ g <- ggplot(data_ordered, aes(x=indicator, y=mpa, fill=value_scaled)) +
   facet_grid(region~., scales="free_y", space="free_y") +
   # Raster
   geom_tile(lwd=0.1, color="grey60") +
+  # Mark zeroes
+  geom_point(data=data_zeroes, mapping=aes(x=indicator, y=mpa), pch="x", inherit.aes = F) +
   # Labels
   labs(x="", y="") +
   # Legend
@@ -113,6 +118,10 @@ ggsave(g, filename=file.path(plotdir, "Fig10_performance_scorecard_long.png"),
 data1 <- data_ordered %>% 
   filter(region!="South Coast")
 data2 <- data_ordered %>% 
+  filter(region=="South Coast")
+data_zeroes1 <- data_zeroes %>% 
+  filter(region!="South Coast")
+data_zeroes2 <- data_zeroes %>% 
   filter(region=="South Coast")
 
 # Theme
@@ -139,10 +148,12 @@ g1 <- ggplot(data1, aes(x=indicator, y=mpa, fill=value_scaled)) +
   facet_grid(region~., scales="free_y", space="free_y") +
   # Raster
   geom_tile(lwd=0.1, color="grey60") +
+  # Mark zeroes
+  geom_point(data=data_zeroes1, mapping=aes(x=indicator, y=mpa), pch="x", inherit.aes = F) +
   # Labels
   labs(x="", y="") +
   # Legend
-  scale_fill_gradient2("Performance\n(scaled and centered)", 
+  scale_fill_gradient2("Engagement\n(scaled and centered)", 
                        midpoint = 0, low="darkred", high="navy", mid="white", na.value="grey50") +  
   guides(fill = guide_colorbar(ticks.colour = "black", frame.colour = "black")) +
   # Theme
@@ -156,6 +167,8 @@ g2 <- ggplot(data2, aes(x=indicator, y=mpa, fill=value_scaled)) +
   facet_grid(region~., scales="free_y", space="free_y") +
   # Raster
   geom_tile(lwd=0.1, color="grey60") +
+  # Mark zeroes
+  geom_point(data=data_zeroes2, mapping=aes(x=indicator, y=mpa), pch="x", inherit.aes = F) +
   # Labels
   labs(x="", y="") +
   # Legend
