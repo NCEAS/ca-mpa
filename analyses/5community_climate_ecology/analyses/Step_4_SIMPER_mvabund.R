@@ -115,6 +115,11 @@ simper_a_b_table$species <- gsub('[[:digit:]]+', '', simper_a_b_table$species)
 #load KF taxon table
 taxon_tab <- readxl::read_excel(
   file.path("/home/shares/ca-mpa/data/sync-data/monitoring/taxonomy_tables","Kelp-Taxonomy.xlsx"), sheet=1, skip = 0, na="NA")
+rocky_taxon <- readxl::read_excel(
+  file.path("/home/shares/ca-mpa/data/sync-data/monitoring/taxonomy_tables","RockyIntertidal-LongTerm-Taxonomy.xlsx"), sheet=1, skip = 0, na="NA")%>%
+  select(marine_species_code, marine_species_name)
+
+rocky_taxon$marine_species_code <- tolower(rocky_taxon$marine_species_code)
 
 taxon_short <- taxon_tab %>%
   select(common_name, ScientificName_accepted) %>%
@@ -131,9 +136,15 @@ simper_table <- left_join(simper_a_b_table, taxon_short, by=c("species"="join_ID
   filter(!(species_ID == 'chain-bladder kelp'))%>%
   distinct()
 
+simper_table <- left_join(simper_table, rocky_taxon, by=c("species_ID"="marine_species_code"))
+
+
 simper_table$species_ID <- recode_factor(simper_table$species_ID,
                                          "sebastes_mystinus_or_diaconus"=
-                                           "blue rockfish")
+                                           "blue rockfish") 
+
+simper_table <- simper_table%>% mutate(species_ID = ifelse(group=='rocky',marine_species_name,as.character(species_ID)))  
+
 
 simper_table$species_ID <- gsub("_"," ",simper_table$species_ID)
 simper_table$species_ID <- gsub("Adult"," ",simper_table$species_ID)
