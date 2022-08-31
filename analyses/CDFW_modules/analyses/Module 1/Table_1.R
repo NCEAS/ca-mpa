@@ -64,6 +64,12 @@ mpa_defacto_table2 <- left_join(trait_table,mpa_defacto_table, by=c("name"="mpa_
 mpa_defacto_table2$"mpa type" <- toupper(mpa_defacto_table2$"mpa type")
 
 # mpa_defacto_table2 <- sapply(mpa_defacto_table2, as.character) # since your values are `factor`
+
+# Remove rows with NAs for all 5 monitoring
+mpa_defacto_table2 <- mpa_defacto_table2 %>% 
+  filter(rowSums(is.na(.)) < 5)
+
+# Replace NAs by empty cells
 mpa_defacto_table2[is.na(mpa_defacto_table2)] <- " "
 
 
@@ -81,7 +87,7 @@ c_save = TRUE
 c_format = "html"
 
 
-mpa_defacto_table2 %>% 
+gtt <- mpa_defacto_table2 %>% 
   head(c_rn)%>%
   gt(
     groupname_col = "CA four regions",
@@ -112,11 +118,48 @@ mpa_defacto_table2 %>%
     locations = cells_body(
       col = "mpa type"
       #rows=1:124
+    )) %>%
+      tab_style(
+        style = list(
+          cell_text(color = "red")
+        ),
+        locations = cells_body(
+          columns = "kelp forest",
+          rows = `kelp forest` == "SMR" & `mpa type` == "SMCA"
+        )
+      ) %>%
+  tab_style(
+    style = list(
+      cell_text(color = "red")
+    ),
+    locations = cells_body(
+      columns = "rocky intertidal",
+      rows = `rocky intertidal` == "SMR" & `mpa type` == "SMCA"
+      )
+    ) %>%
+  tab_style(
+    style = list(
+      cell_text(color = "red")
+    ),
+    locations = cells_body(
+      columns = "surf zone",
+      rows = `surf zone` == "SMR" & `mpa type` == "SMCA"
+      )
+    ) %>%
+  tab_style(
+    style = list(
+      cell_text(color = "red")
+    ),
+    locations = cells_body(
+      columns = "CCFRP",
+      rows = CCFRP == "SMR" & `mpa type` == "SMCA"
     )
-  ) 
+  )
+
+gtt
 
 
-
+gtsave(gtt, "analyses/CDFW_modules/analyses/Module 1/module1_table1_defacto_smr.docx")
 
 
 
