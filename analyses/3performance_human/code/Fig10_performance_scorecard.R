@@ -17,6 +17,9 @@ plotdir <- "analyses/3performance_human/figures"
 # Read data
 data_orig <- readRDS(file=file.path(datadir, "CA_MPA_human_use_indicators.Rds"))
 
+# Read charisma key
+char_key_orig <- read.csv(file=file.path(datadir, "CA_MPA_charisma_key.csv"), as.is=T)
+
 
 # Build data
 ################################################################################
@@ -66,6 +69,12 @@ data_ordered <- data %>%
 # Extract zeros
 data_zeroes <- data_ordered %>% 
   filter(value==0)
+
+# Format char key for plotting
+char_key <- char_key_orig %>% 
+  filter(category!="Typical") %>% 
+  mutate(indicator=factor("Population size", levels=levels(data$indicator))) %>% 
+  left_join(mpa_order %>% select(mpa, region), by=c("mpa"))
 
 
 # Plot data - long
@@ -123,6 +132,10 @@ data_zeroes1 <- data_zeroes %>%
   filter(region!="South Coast")
 data_zeroes2 <- data_zeroes %>% 
   filter(region=="South Coast")
+char_key1 <- char_key %>% 
+  filter(region!="South Coast")
+char_key2 <- char_key %>% 
+  filter(region=="South Coast")
 
 # Theme
 theme1 <- theme(axis.text=element_text(size=6),
@@ -148,11 +161,14 @@ g1 <- ggplot(data1, aes(x=indicator, y=mpa, fill=value_scaled)) +
   facet_grid(region~., scales="free_y", space="free_y") +
   # Raster
   geom_tile(lwd=0.1, color="grey60") +
+  # Mark charisma
+  geom_point(char_key1, mapping=aes(x=indicator, y=mpa, color=category), size=0.9, inherit.aes=F) +
   # Mark zeroes
   geom_point(data=data_zeroes1, mapping=aes(x=indicator, y=mpa), pch="x", inherit.aes = F) +
   # Labels
   labs(x="", y="") +
   # Legend
+  scale_color_manual(name="MPA type", values=c("navy", "darkred")) +
   scale_fill_gradient2("Engagement\n(scaled and centered)", 
                        midpoint = 0, low="darkred", high="navy", mid="white", na.value="grey50") +  
   guides(fill = guide_colorbar(ticks.colour = "black", frame.colour = "black")) +
@@ -167,14 +183,19 @@ g2 <- ggplot(data2, aes(x=indicator, y=mpa, fill=value_scaled)) +
   facet_grid(region~., scales="free_y", space="free_y") +
   # Raster
   geom_tile(lwd=0.1, color="grey60") +
+  # Mark charisma
+  geom_point(char_key2, mapping=aes(x=indicator, y=mpa, color=category), size=0.9, inherit.aes=F) +
   # Mark zeroes
   geom_point(data=data_zeroes2, mapping=aes(x=indicator, y=mpa), pch="x", inherit.aes = F) +
   # Labels
   labs(x="", y="") +
   # Legend
-  scale_fill_gradient2("Engagement\n(scaled and centered)", 
+  scale_color_manual(name="MPA type", values=c("navy", "darkred")) +
+  scale_fill_gradient2(name="Engagement\n(scaled and centered)", 
                        midpoint = 0, low="darkred", high="navy", mid="white", na.value="grey50") +
-  guides(fill = guide_colorbar(ticks.colour = "black", frame.colour = "black")) +
+  guides(fill = guide_colorbar(ticks.colour = "black", frame.colour = "black",
+                               title.position="top", title.hjust = 0),
+         color = guide_legend(title.position="top", title.hjust = 0, ncol=1)) +
   # Theme
   theme_bw() + theme1 +
   theme(legend.position = "top")
