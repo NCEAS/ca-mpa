@@ -62,7 +62,7 @@ eco_dist <- load(file.path(data_path, "distance_matrices_BC.rda"))
 
 
 scrs <- as.data.frame(scores(CCFRP_ord, display="site"))
-en_coord_cont = as.data.frame(scores(CCFRP_en, "vectors")) * ordiArrowMul(CCFRP_en, fill=0.3)
+en_coord_cont = as.data.frame(scores(CCFRP_en, "vectors")) * ordiArrowMul(CCFRP_en, fill=0.15)
 
 scrs <- cbind(as.data.frame(scrs), desig_state=CCFRP_group_vars$desig_state, year=CCFRP_group_vars$year, MHW=CCFRP_group_vars$MHW, region4=CCFRP_group_vars$region4, mpa_designation=CCFRP_group_vars$mpa_designation) #to facilitate computing centroids, add group var
 
@@ -186,7 +186,7 @@ kelp_invalg<- ggplot(data=cent, aes(NMDS1, NMDS2)) +
        arrow = arrow(length = unit(0.25, "cm")), colour = "grey50", lwd=0.5)+
      geom_text(data = en_coord_cont, aes(x = (NMDS1), y = (NMDS2)), colour = "black", 
        fontface = "bold", label = row.names(en_coord_cont), position=position_jitter(width=0.02,height=0.02), size=4) + 
-  ggtitle("kelp invalg")+
+  ggtitle("kelp invertebrates and algae")+
   scale_color_manual(values=c('#44b89d','#f56969','#4c78b5'))+
   theme(strip.text = element_text(size=12, face="bold"))+
   theme(plot.title = element_text(size=14, face="bold"))+
@@ -333,15 +333,18 @@ print(deep_reef)
 #rocky scores and plot
 ```{r}
 
-scrs<- scores(rocky_ord, display="site")
-scrs <- cbind(as.data.frame(scrs), desig_state=rocky_group_vars$desig_state, year=rocky_group_vars$year, MHW=rocky_group_vars$MHW, region4=rocky_group_vars$region4, mpa_designation=rocky_group_vars$mpa_designation) #to facilitate computing centroids, add group var
+#get NMDS scores
+scrs <- as.data.frame(scores(rocky_ord, display="site"))
+en_coord_cont = as.data.frame(scores(rocky_en, "vectors")) * ordiArrowMul(rocky_en, fill=0.1)
+
+scrs <- cbind(as.data.frame(scrs), desig_state=rocky_group_vars$desig_state, year=rocky_group_vars$year, region4=rocky_group_vars$region4, mpa_designation=rocky_group_vars$mpa_designation, MHW=rocky_group_vars$MHW) #to facilitate computing centroids, add group var
 
 cent <- aggregate(cbind(NMDS1, NMDS2) ~ MHW+region4+mpa_designation, data = scrs, FUN = mean) #computes centroids by MHW and region
 
 
 
 
-NMDS = data.frame(MDS1 = rocky_ord$points[,1], MDS2 = rocky_ord$points[,2], group=rocky_group_vars$desig_state, mpa_desig=rocky_group_vars$mpa_designation)
+NMDS = data.frame(MDS1 = rocky_ord$points[,1], MDS2 = rocky_ord$points[,2],group=rocky_group_vars$desig_state, mpa_desig=rocky_group_vars$mpa_designation)
 
 
 plot(rocky_ord)
@@ -360,24 +363,23 @@ df_ell$mpa_type <- word(df_ell$group, 1)
 df_ell <- df_ell %>%
           mutate(MHW = word(group, start = -1))
 
-#ggplot(data = NMDS, aes(MDS1, MDS2)) + geom_point(aes(color = group)) +
-#  geom_path(data=df_ell, aes(x=NMDS1, y=NMDS2,colour=group), size=1, linetype=2)
-
 
 #reorder for plotting
 cent$mpa_designation <- factor(cent$mpa_designation, level=c("smr","ref"))
 cent$MHW <- factor(cent$MHW, level=c("before","during","after"))
+
+
 
 rocky<- ggplot(data=cent, aes(NMDS1, NMDS2)) +
   geom_point(aes(shape=mpa_designation, color=MHW), size=4) +                           #centroids
   geom_path(data = df_ell, aes(NMDS1, NMDS2, colour=MHW, 
                                group=group), size = 0.5, linetype=2, 
             )+           #line connecting groups (years)
-   #geom_segment(aes(x = 0, y = 0, xend = (NMDS1), yend = (NMDS2)), 
-  #     data = en_coord_cont, size =0.5, alpha = 0.5,
-  #     arrow = arrow(length = unit(0.25, "cm")), colour = "grey50", lwd=0.5)+
-  #   geom_text(data = en_coord_cont, aes(x = (NMDS1), y = (NMDS2)), colour = "black", 
-  #     fontface = "bold", label = row.names(en_coord_cont), position=position_jitter(width=0.01,height=0.01)) + 
+   geom_segment(aes(x = 0, y = 0, xend = (NMDS1), yend = (NMDS2)), 
+       data = en_coord_cont, size =0.5, alpha = 0.5,
+       arrow = arrow(length = unit(0.25, "cm")), colour = "grey50", lwd=0.5)+
+     geom_text(data = en_coord_cont, aes(x = (NMDS1), y = (NMDS2)), colour = "black", 
+       fontface = "bold", label = row.names(en_coord_cont), position=position_jitter(width=0.01,height=0.01), size=4) + 
   ggtitle("rocky intertidal")+
   scale_color_manual(values=c('#44b89d','#f56969','#4c78b5'))+
   theme(strip.text = element_text(size=12, face="bold"))+
@@ -411,11 +413,11 @@ legend <- get_legend(
 
 # add the legend to the row we made earlier. Give it one-third of 
 # the width of one plot (via rel_widths).
-figure_test <- cowplot::plot_grid(prow, legend, rel_widths = c(3,1))
-print(figure_test)
+figure <- cowplot::plot_grid(prow, legend, rel_widths = c(3,1))
+print(figure)
 
 
-#cowplot::save_plot(here::here("analyses", "5community_climate_ecology", "figures", "community_structure_central.png"), figure_test, bg="white",dpi = 600, units = "in")
+#cowplot::save_plot(here::here("analyses", "5community_climate_ecology", "figures", "community_structure_central2.png"), figure, bg="white",dpi = 600, units = "in")
 
 
 #ggsave(here::here("analyses", "5community_climate_ecology", "figures", "community_structure_central.png"), figure_test, width=10, bg="white",dpi = 600, units = "in")
