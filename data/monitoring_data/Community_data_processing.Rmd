@@ -32,6 +32,8 @@ envr_dat <- readRDS("/home/shares/ca-mpa/data/sync-data/environmental/processed/
             "beuti_annual_baseline", "beuti_monthly_baseline", "beuti_annual_obs", "beuti_monthly_obs", "beuti_monthly_anom",     
               "annual_MOCI"), ~ mean(.x, na.rm = TRUE)))
 
+rocky_envr_vars <- readRDS("/home/shares/ca-mpa/data/sync-data/environmental/processed/envr_anomalies_at_intertidal_mpas.Rds")
+
 ```
 
 **Step 1 - process ecological data in species counts / year format**
@@ -717,14 +719,14 @@ rocky_counts_raw <- rocky_counts_raw %>%
 
 rocky_counts_raw$site <- tolower(rocky_counts_raw$site) 
 
-rocky_count_envr <- left_join(rocky_counts_raw, rocky_envr_vars_cen, by=c("year","site"))%>%
+rocky_count_envr <- left_join(rocky_counts_raw, rocky_envr_vars, by=c("year","site"))%>%
   mutate(group="rocky")%>%
   select(year, group, region3, region4,site, mpa_designation, affiliated_mpa, 
-         mpa_designation,58:73, 8:56)
+         mpa_designation,59:74, 8:56)
 
 
 #export
-#path_aurora <- "/home/shares/ca-mpa/data/sync-data/processed_data/ecological_community_data/year_level" 
+#path_aurora <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/ecological_community_data/year_level_with_envr_vars" 
 #write.csv(rocky_count_envr, file.path(path_aurora, "rocky_mpa_year.csv"), row.names = FALSE)
 
 ```
