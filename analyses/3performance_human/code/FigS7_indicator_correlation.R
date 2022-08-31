@@ -21,9 +21,6 @@ data_orig <- readRDS(file=file.path(datadir, "CA_MPA_human_use_indicators.Rds"))
 # Build data
 ################################################################################
 
-# MPAs of interest
-types_use <- c("SMR", "SMRMA", "SMCA", "SMCA (No-Take)")
-
 # Indicators of interest
 indicators_use <- c(#"npeople_50km", 
                     "nonconsump_hr", "consump_hr", 
@@ -33,7 +30,7 @@ indicators_use <- c(#"npeople_50km",
 # Build data
 data <- data_orig %>% 
   # Reduce to MPAs of interest
-  filter(type %in% types_use) %>% 
+  filter(mlpa=="MLPA") %>% 
   # Reduce to indicators of interest
   select(indicators_use ) %>% 
   # Rename
@@ -61,7 +58,7 @@ theme1 <-  theme(axis.text=element_text(size=6),
                  axis.line = element_line(colour = "black"))
 
 # Plot data
-g <- GGally::ggpairs(data) +
+g <- GGally::ggpairs(data, upper = list(continuous = GGally::wrap("cor", size=2.3))) +
   # Theme
   theme_bw() + theme1
 g

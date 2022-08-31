@@ -201,7 +201,7 @@ g1 <- ggplot() +
 g1
 
 # Plot correlation with population size
-g2 <- ggplot(data, aes(x=npeople_50km/1e6, y=ncitations, fill=region, size=area_sqkm)) +
+g2 <- ggplot(data, aes(x=npeople_50km/1e6, y=ncitations, fill=type, size=area_sqkm)) +
   # Plot regression
   geom_smooth(formula='y ~ x',
               # aes(x=npeople_50km/1e6, y=inat_observers_tot),
@@ -212,7 +212,7 @@ g2 <- ggplot(data, aes(x=npeople_50km/1e6, y=ncitations, fill=region, size=area_
   # Labels
   labs(x="Human population size\n(millions of people within 50 km)", y="Number of citations", tag="B") +
   # Legend
-  scale_fill_ordinal(name="Region", guide="none") +
+  scale_fill_discrete(name="Region", guide="none") +
   scale_size_continuous(name="Area (sqkm)", breaks=c(20,40,80), range=c(0.1,5)) +
   # Theme
   theme_bw() + theme1 +
@@ -224,7 +224,7 @@ g2
 summary(glm(ncitations ~ npeople_50km, data, family="poisson"))
 
 # Plot correlation with engagement
-g3 <- ggplot(data, aes(x=inat_observers_tot, y=ncitations, fill=region)) +
+g3 <- ggplot(data, aes(x=inat_observers_tot, y=ncitations, fill=type)) +
   # Plot regression
   geom_smooth(formula='y ~ x',
               # aes(x=npeople_50km/1e6, y=inat_observers_tot),
@@ -235,7 +235,7 @@ g3 <- ggplot(data, aes(x=inat_observers_tot, y=ncitations, fill=region)) +
   # Labels
   labs(x="Human engagement\n(# of iNaturalist obervers, 2000-2018)", y="Number of citations", tag="C") +
   # Legend
-  scale_fill_ordinal(name="Region") +
+  scale_fill_discrete(name="Designation") +
   # Theme
   theme_bw() + theme1 +
   theme(legend.position = c(0.7, 0.75),
@@ -246,7 +246,7 @@ g3
 summary(glm(ncitations ~ inat_observers_tot, data, family="poisson"))
 
 # Plot correlation with consumptive activitiees
-g4 <- ggplot(data, aes(x=psurveys, y=ncitations, fill=region, size=activity_hr)) +
+g4 <- ggplot(data, aes(x=psurveys, y=ncitations, fill=type, size=activity_hr)) +
   # Plot regression
   geom_smooth(formula='y ~ x',
               # aes(x=npeople_50km/1e6, y=inat_observers_tot),
@@ -255,10 +255,11 @@ g4 <- ggplot(data, aes(x=psurveys, y=ncitations, fill=region, size=activity_hr))
   # Plot points
   geom_point(pch=21) +
   # Labels
-  labs(x="Consumptive activity\n(% of MPA Watch surveys))", y="Number of citations", tag="D") +
-  scale_x_continuous(labels=scales::percent) +
+  labs(x="Consumptive activities per hour\n(based on MPA Watch surveys))", y="Number of citations", tag="D") +
+  # labs(x="Consumptive activity\n(% of MPA Watch surveys))", y="Number of citations", tag="D") +
+  # scale_x_continuous(labels=scales::percent) +
   # Legend
-  scale_fill_ordinal(name="Region", guide="none") +
+  scale_fill_discrete(name="Designation", guide="none") +
   scale_size_continuous(name="Activities per hour", range=c(0.1, 5)) +
   # Theme
   theme_bw() + theme1 +
