@@ -13,6 +13,7 @@ require(ggplot2)
 require(reshape2)
 require(ggfittext)
 require(mvabund)
+require(stringr)
 
 
 
@@ -197,19 +198,26 @@ simper_table$monitoring <- factor(simper_table$monitoring,
                                         'Rocky Intertidal'))
 
 
+
+
 #plot
-ggplot(simper_table, aes(x = group, y = contrib, label = species_ID, fill=sign)) +
+st <- ggplot(simper_table, aes(x = group, y = contrib, label = stringr::str_wrap(species_ID, 20), fill=sign)) +
   geom_bar(stat = "identity", color="black") +
   geom_text(size = 3, position = position_stack(vjust = 0.5), color="black", 
-            fontface="bold")+
-  theme_minimal(base_size = 21)+
-  scale_fill_discrete(name = "direction of change")+
-  scale_x_discrete(labels = function(x) str_wrap(x, width = 10))+
+            fontface="bold", lineheight = 0.75) +
+  theme_minimal(base_size = 21) +
+  scale_fill_discrete(name = "direction of change") +
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 10)) +
   facet_grid(.~monitoring, scales = "free", switch = "x", space = "free_x") + 
-  theme(strip.placement = "outside")+
-  xlab("Monitoring Group")+
+  theme_classic() +
+  theme(strip.placement = "outside", panel.grid.major = element_blank()) +
+  xlab("Monitoring Group") +
   ylab("Cumulative Contribution (top 80%)")
 
+st
+
+# Saving the plot with dimensions that facilitate the text wrapping
+ggsave("analyses/5community_climate_ecology/figures/simper_table_plot.png", width = 15, height = 12, dpi = 300)
 
 
 
