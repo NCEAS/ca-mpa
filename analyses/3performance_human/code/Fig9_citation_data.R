@@ -28,9 +28,6 @@ mpa_watch <- readRDS("analyses/3performance_human/output/mpa_watch_consumptive_i
 usa <- rnaturalearth::ne_states(country="United States of America", returnclass = "sf")
 foreign <- rnaturalearth::ne_countries(country=c("Canada", "Mexico"), returnclass = "sf")
 
-# MPA types
-types_use <- c("SMR", "SMCA", "SMCA (No-Take)", "SMP")
-
 
 # Survey coverage
 ################################################################################
@@ -41,9 +38,9 @@ types_use <- c("SMR", "SMCA", "SMCA (No-Take)", "SMP")
 # Build data
 coverage <- data_orig %>% 
   # Add MPA meta data
-  left_join(mpas %>% select(mpa, type)) %>% 
+  left_join(mpas %>% select(mpa, type, mlpa)) %>% 
   # MPAs of interest
-  filter(type %in% types_use)
+  filter(mlpa=="MLPA")
 
 # MPA order
 mpa_order <- coverage %>% 
@@ -116,7 +113,7 @@ data_full <- data_orig %>%
             nyears=n_distinct(year)) %>% 
   ungroup() %>% 
   # Add lat/long and type
-  left_join(mpas %>% select(mpa, type, lat_dd, long_dd, area_sqkm), by="mpa") %>% 
+  left_join(mpas %>% select(mpa, type, mlpa, lat_dd, long_dd, area_sqkm), by="mpa") %>% 
   mutate(region=factor(region, 
                        levels=c("South Coast", "Central Coast", "North Central Coast", "North Coast") %>% rev())) 
 
@@ -132,12 +129,18 @@ data <- data_full %>%
   # Add MPA watch data
   left_join(mpa_watch %>% select(mpa, psurveys, activity_hr), by="mpa") %>% 
   # Types of interest
-  filter(type %in% types_use)
+  filter(mlpa=="MLPA")
 
 # Stats for manuscript
 n_distinct(data$mpa)
 sum(data$ncitations)
 
+# Identify MPAs with zero engagement
+mpas_zero <- mpas %>% 
+  # MLPA MPAs
+  filter(mlpa=="MLPA") %>% 
+  # MPAs without engagement
+  filter(!mpa %in% data$mpa)
 
 
 # Plot data
@@ -178,6 +181,8 @@ g1 <- ggplot() +
   geom_sf(data=usa, fill="grey80", color="white", lwd=0.3) +
   # Plot MPAs
   geom_point(data=data, mapping=aes(x=long_dd, y=lat_dd, size=ncitations, fill=nyears), pch=21) +
+  # Plot zero MPAs
+  geom_point(data=mpas_zero, mapping=aes(x=long_dd, y=lat_dd), pch="x", size=2.3) +
   # Labels
   labs(x="", y="", tag="A") +
   # Axes

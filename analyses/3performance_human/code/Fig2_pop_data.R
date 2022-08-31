@@ -31,11 +31,10 @@ usa <- rnaturalearth::ne_states(country="United States of America", returnclass 
 foreign <- rnaturalearth::ne_countries(country=c("Canada", "Mexico"), returnclass = "sf")
 
 # Reduce MPA data
-types_use <- c("SMR", "SMCA", "SMCA (No-Take)", "SMP")
 pop <- pop_orig %>% 
   rename(mpa=name) %>% 
-  left_join(mpas_orig %>% select(mpa, type), by="mpa") %>% 
-  filter(type %in% types_use)
+  left_join(mpas_orig %>% select(mpa, mlpa), by="mpa") %>% 
+  filter(mlpa=="MLPA")
 
 # Read city key
 cities <- readxl::read_excel(file.path(tabledir, "city_key.xlsx"))

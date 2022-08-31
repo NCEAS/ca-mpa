@@ -23,9 +23,6 @@ data_orig <- readRDS(file.path(datadir, "CA_ebird_data_inside_mpas_100m_buffer.R
 # Read MPA data
 mpas_orig <- readRDS(file.path(mpadir, "CA_mpa_metadata.Rds"))
 
-# MPA types
-types_use <- c("SMR", "SMCA", "SMCA (No-Take)", "SMP")
-
 # Get land
 usa <- rnaturalearth::ne_states(country="United States of America", returnclass = "sf")
 foreign <- rnaturalearth::ne_countries(country=c("Canada", "Mexico"), returnclass = "sf")
@@ -37,11 +34,11 @@ foreign <- rnaturalearth::ne_countries(country=c("Canada", "Mexico"), returnclas
 # Coverage
 coverage <- data_orig %>% 
   # Add MPA metadata
-  left_join(mpas_orig %>% select(region, type, mpa)) %>% 
-  # Correct region
-  mutate(region=recode(region, "San Francisco Bay"="SF Bay")) %>% 
+  left_join(mpas_orig %>% select(region, type, mpa, mlpa)) %>% 
   # Reduce to MPAs of interest
-  filter(type %in% types_use) %>% 
+  filter(mlpa == "MLPA") %>% 
+  # Correct region
+  # mutate(region=recode(region, "San Francisco Bay"="SF Bay")) %>% 
   # Add year, month, dummy date
   mutate(year=lubridate::year(survey_date),
          month=lubridate::month(survey_date),
@@ -119,7 +116,7 @@ estuary_mpas[!estuary_mpas %in% mpas_orig$mpa]
 # Estuary states for manuscript
 mpas_orig %>% 
   # MPAs of interest
-  filter(type %in% types_use) %>% 
+  filter(mlpa=="MLPA") %>% 
   # Mark estuary
   mutate(estuary=ifelse(mpa %in% estuary_mpas, "estuary", "non-estuary")) %>% 
   # Summarize
@@ -134,9 +131,9 @@ mpas_orig %>%
 # Stats for manuscript
 data_orig %>% 
   # Add MPA meta-data
-  left_join(mpas_orig %>% select(mpa, type, region), by="mpa") %>% 
+  left_join(mpas_orig %>% select(mpa, type, region, mlpa), by="mpa") %>% 
   # Reduce to MPAs of interest
-  filter(type %in% types_use) %>% 
+  filter(mlpa == "MLPA") %>% 
   # Group by
   group_by() %>% 
   summarize(n=n(),
@@ -146,6 +143,8 @@ data_orig %>%
 
 # MPA stats
 stats_full <- data_orig %>%
+  # Filter 2012-2021
+  filter(survey_date>=ymd("2012-01-01") & survey_date<=ymd("2021-12-31")) %>% 
   # Summarize
   group_by(mpa) %>%
   summarize(n_observers=n_distinct(observer_id),
@@ -154,7 +153,7 @@ stats_full <- data_orig %>%
             n_species=n_distinct(taxon_concept_id)) %>%
   ungroup() %>% 
   # Add MPA meta-data
-  left_join(mpas_orig %>% select(mpa, type, region, lat_dd, long_dd), by="mpa")
+  left_join(mpas_orig %>% select(mpa, type, region, mlpa, lat_dd, long_dd), by="mpa")
 
 # Export
 saveRDS(stats_full, file=file.path(outputdir, "ebird_indicators.Rds"))
@@ -162,15 +161,15 @@ saveRDS(stats_full, file=file.path(outputdir, "ebird_indicators.Rds"))
 # Reduce
 stats <- stats_full %>% 
   # Reduce to MPAs of interest
-  filter(type %in% types_use) %>% 
+  filter(mlpa == "MLPA") %>% 
   arrange(desc(n_observers))
 
 # Observer time series (by region)
 observer_ts1 <- data_orig %>% 
   # Add MPA meta-data
-  left_join(mpas_orig %>% select(mpa, type, region), by="mpa") %>% 
+  left_join(mpas_orig %>% select(mpa, type, region, mlpa), by="mpa") %>% 
   # Reduce to MPAs of interest
-  filter(type %in% types_use) %>% 
+  filter(mlpa=="MLPA") %>% 
   # Add year
   mutate(year=lubridate::year(survey_date)) %>% 
   # Update region
@@ -184,9 +183,9 @@ observer_ts1 <- data_orig %>%
 # Observer time series (by region)
 observer_ts2 <- data_orig %>% 
   # Add MPA meta-data
-  left_join(mpas_orig %>% select(mpa, type, region), by="mpa") %>% 
+  left_join(mpas_orig %>% select(mpa, type, region, mlpa), by="mpa") %>% 
   # Reduce to MPAs of interest
-  filter(type %in% types_use) %>% 
+  filter(mlpa == "MLPA") %>% 
   # Mark estuaries
   mutate(estuary=ifelse(mpa %in% estuary_mpas, "Estuarine", "Non-estuarine"),
          estuary=factor(estuary, levels=c("Non-estuarine", "Estuarine"))) %>% 
@@ -207,9 +206,9 @@ observer_ts2 <- data_orig %>%
 # MPA time series
 mpa_ts <- data_orig %>% 
   # Add MPA meta-data
-  left_join(mpas_orig %>% select(mpa, type, region), by="mpa") %>% 
+  left_join(mpas_orig %>% select(mpa, type, region, mlpa), by="mpa") %>% 
   # Reduce to MPAs of interest
-  filter(type %in% types_use) %>% 
+  filter(mlpa=="MLPA") %>% 
   # Add year
   mutate(year=lubridate::year(survey_date)) %>% 
   # Update region
@@ -219,6 +218,13 @@ mpa_ts <- data_orig %>%
   group_by(region, year) %>% 
   summarize(n_mpas=n_distinct(mpa)) %>% 
   ungroup()
+
+# Identify MPAs with zero engagement
+mpas_zero <- mpas_orig %>% 
+  # MLPA MPAs
+  filter(mlpa=="MLPA") %>% 
+  # MPAs without engagement
+  filter(!mpa %in% stats$mpa)
 
 
 
@@ -257,6 +263,8 @@ g1 <- ggplot() +
   geom_point(data=stats, 
              mapping=aes(x=long_dd, y=lat_dd, size=n_observers, fill=n_surveys), 
              pch=21, inherit.aes = F) +
+  # Plot zero MPAs
+  geom_point(data=mpas_zero, mapping=aes(x=long_dd, y=lat_dd), pch="x", size=2.3) +
   # Labels
   labs(x="", y="", tag="A") +
   # Axes
@@ -277,10 +285,12 @@ g1
 # Plot number of observers by region
 g2 <- ggplot(observer_ts1, aes(x=year, y=n_observers, fill=region)) +
   geom_bar(stat="identity", lwd=0.1, color="grey30") +
+  # Reference line
+  geom_vline(xintercept = 2011.5, linetype="dotted", color="grey30") +
   # Labels
   labs(x="Year", y=" \n# of eBirders", tag="B") +
   # Axes
-  scale_x_continuous(breaks=seq(1960, 2020, 10), limits = c(1960, 2021)) +
+  scale_x_continuous(breaks=seq(1960, 2020, 10), limits = c(1960, 2022)) +
   # Legend
   scale_fill_ordinal(name="Region") +
   # Theme
@@ -297,7 +307,7 @@ g3 <- ggplot(observer_ts2, aes(x=year, y=prop_visits, fill=estuary)) +
   # Labels
   labs(x="Year", y="Percent of visits\nlogged by eBirders", tag="B") +
   # Axes
-  scale_x_continuous(breaks=seq(1960, 2020, 10), limits = c(1960, 2021)) +
+  scale_x_continuous(breaks=seq(1960, 2020, 10), limits = c(1960, 2022)) +
   scale_y_continuous(labels=scales::percent) +
   # Legend
   scale_fill_manual(name="MPA type", values=c("lightblue1", "greenyellow"), guide = guide_legend(reverse = TRUE)) +

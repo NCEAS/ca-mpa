@@ -29,9 +29,6 @@ mpas_orig <- readRDS(file.path(basedir, "mpa_traits/processed", "CA_mpa_metadata
 data_orig <- readRDS(file.path(datadir, "MPA_Watch_2011_2022_surveys_ca_programs_wide.Rds"))
 col_key <- readxl::read_excel(file.path(datadir, "column_key_ca_programs.xlsx"))
 
-# MPA types
-types_use <- c("SMR", "SMCA", "SMCA (No-Take)", "SMP")
-
 
 # Build data
 ################################################################################

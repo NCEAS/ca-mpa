@@ -31,7 +31,7 @@ mpas_m <- mpas %>%
 ################################################################################
 
 # Buffer distances
-buffers_km <- c(0.1, 0.5, 1, 3, 5, 10, 20, 50)
+buffers_km <- c(30, 40, 60, 70, 80, 90, 100) #c(0.1, 0.5, 1, 3, 5, 10, 20, 50)
 
 # Loop through buffer distances
 for(i in 1:length(buffers_km)){

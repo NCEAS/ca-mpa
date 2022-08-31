@@ -21,9 +21,6 @@ data_orig <- readRDS(file=file.path(datadir, "CA_MPA_human_use_indicators.Rds"))
 # Build data
 ################################################################################
 
-# MPAs of interest
-types_use <- c("SMR", "SMCA", "SMCA (No-Take)", "SMP")
-
 # Indicators of interest
 indicators_use <- c("npeople_50km", 
                     "nonconsump_hr", "consump_hr", 
@@ -33,7 +30,7 @@ indicators_use <- c("npeople_50km",
 # Build data
 data <- data_orig %>% 
   # Reduce to MPAs of interest
-  filter(type %in% types_use) %>% 
+  filter(mlpa=="MLPA") %>% 
   # Recode region
   mutate(region=plyr::revalue(region, c("San Francisco Bay"="North Central Coast"))) %>%
   # Gather indicators
@@ -156,7 +153,7 @@ g1 <- ggplot(data1, aes(x=indicator, y=mpa, fill=value_scaled)) +
   # Labels
   labs(x="", y="") +
   # Legend
-  scale_fill_gradient2("Performance\n(scaled and centered)", 
+  scale_fill_gradient2("Engagement\n(scaled and centered)", 
                        midpoint = 0, low="darkred", high="navy", mid="white", na.value="grey50") +  
   guides(fill = guide_colorbar(ticks.colour = "black", frame.colour = "black")) +
   # Theme
