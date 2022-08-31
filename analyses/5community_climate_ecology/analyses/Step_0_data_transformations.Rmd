@@ -251,27 +251,37 @@ deep_reef_distmat <-
 
 #Intertidal processing---------------------------------------------------------
 
-rocky_counts <- rocky_cen %>%
+rocky_count_envr$year <- as.numeric(as.character(rocky_count_envr$year))
+
+rocky_counts <- #rocky_count_enr %>%
+                rocky_count_envr %>%
                   mutate(MHW = ifelse(year>=2014 & year<=2016, "during",ifelse(year<2014, "before","after")))%>%
                   mutate(desig_state = paste(mpa_designation,MHW))%>%
                   dplyr::select(desig_state, MHW, everything())%>%
-                  filter(mpa_designation=="smr" | mpa_designation=="ref")
+                  dplyr::filter(region4=='central')
+                
+
+rocky_counts <- rocky_counts %>% filter(mpa_designation == "smr" | mpa_designation == 'ref') %>% droplevels()
 
 #define grouping vars
 rocky_group_vars <- rocky_counts%>%
                     dplyr::select(1:9)
 
+#define envr vars
+rocky_envr_vars <-  rocky_counts %>%
+  dplyr::select(c(SST="sst_monthly_anom",CUTI="cuti_monthly_anom",BEUTI="beuti_monthly_anom",MOCI="annual_MOCI"))
+
 #define data for ordination
 rocky_ord_data <- rocky_counts %>%
               ungroup() %>%
-              dplyr::select(10:ncol(.))
+              dplyr::select(26:ncol(.))
 
 #calculate relative abundance
-rocky_rel <- decostand(rocky_ord_data, method = "hellinger")
+rocky_rel <- vegan::decostand(rocky_ord_data, method = "hellinger")
 
 #generate a BC dissim matrix
 rocky_distmat <- 
-    vegdist(rocky_rel, method = "bray", na.rm=T) #generates a BC dissim matrix
+    vegan::vegdist(rocky_rel, method = "bray", na.rm=T) #generates a BC dissim matrix
 
 
 #save group vars
@@ -331,7 +341,8 @@ deep_reef_en <- envfit(deep_reef_ord, deep_reef_envr_vars, permutations=999, na.
 message("Done processing deep_reef_ord")
 
 message("Processing rocky_ord")
-rocky_ord <- metaMDS(rocky_distmat, distance="bray",k=2, trymax = 300, parallel = num_cores)
+rocky_ord <- vegan::metaMDS(rocky_distmat, distance="bray",k=3, trymax = 300, parallel = 20)
+rocky_en <- vegan::envfit(rocky_ord, rocky_envr_vars, permutations=999, na.rm=TRUE) 
 message("Done processing rocky_ord")
 
 

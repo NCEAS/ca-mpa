@@ -24,7 +24,8 @@ library(vegan)
 int.dir <- file.path(getwd(), "analyses", "7habitat", "intermediate_data")
 
 # Read MPA attribute subsets
-att_data   <- readRDS(file.path(int.dir, "mpa_attributes_nmds_subset.Rds"))
+#att_data   <- readRDS(file.path(int.dir, "mpa_attributes_nmds_subset.Rds"))
+att_data   <- readRDS(file.path(int.dir, "mpa_attributes_nmds_subset_v2.Rds"))
 att_noest  <- readRDS(file.path(int.dir, "mpa_attributes_nmds_subset_no_estuaries.Rds"))
 att_meta   <- readRDS(file.path(int.dir, "mpa_attributes_nmds_metadata.Rds"))
 att_labels <- readRDS(file.path(int.dir, "mpa_attributes_labels.Rds"))
@@ -37,6 +38,10 @@ att_labels <- readRDS(file.path(int.dir, "mpa_attributes_labels.Rds"))
 ```{r}
 # Extract rows with any NA values
 att_na <- att_data[rowSums(is.na(att_data)) > 0, ]
+
+# Make rownames 
+att_na <- att_na %>% 
+  column_to_rownames("name")
 
 # List of excluded MPAs (contain NA)
 rownames(att_na)
@@ -55,7 +60,13 @@ att_noest <- att_noest %>%
 ### metaMDS
 
 ```{r}
-mds <- metaMDS(att_data, distance = "euclidean", 
+# mds <- metaMDS(att_data, distance = "euclidean", 
+#                trymax = 2500, maxit = 2500, 
+#                autotransform = F, trace = F,
+#                previous.best = T)
+
+# With new data: 
+mds <- metaMDS(att_data[], distance = "euclidean", 
                trymax = 2500, maxit = 2500, 
                autotransform = F, trace = F,
                previous.best = T)

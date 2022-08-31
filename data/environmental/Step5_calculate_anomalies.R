@@ -174,6 +174,10 @@ sst_build_step5 <- sst_build_step4 %>%
 
 #make everything lower
 sst_df <- as.data.frame(sapply(sst_build_step5, tolower))
+            
+   
+#sst_df_rocky <- as.data.frame(sapply(sst_build_step5, tolower))%>%         
+#   filter(habitat=='rocky intertidal') #process rocky intertidal
 
 #step 1: aggregate at MPA - site_type - year level
 #drop day 
@@ -204,7 +208,8 @@ envr_data_step2 <- left_join(sst_drop, envr_drop,
 envr_data <- envr_data_step2 %>%
               mutate(mpa_class = str_extract(mpa, "smca|smr|special closure"),
                      mpa_designation = ifelse(site_type == "reference","ref",mpa_class),
-                     mpa_name = gsub("\\s*\\([^\\)]+\\)","",mpa))%>%
+                     mpa_name = gsub("\\s*\\([^\\)]+\\)","",mpa),
+                     mpa_name = ifelse(is.na(mpa_name),site.x,mpa_name))%>% #replace rocky intertidal mpa 'name' with site name
               select(group=habitat,
                      mpa_name,
                      mpa_class,
@@ -246,6 +251,8 @@ envr_data <- envr_data %>%
 envr_data_join <- envr_data %>%
                   filter(!(group=="rocky intertidal")) # drop intertidal because these envr vars are not applicable
                   
+envr_rocky <- envr_data %>%
+  filter(group=="rocky intertidal") #process rocky intertidal separate
 
 #add 4 regions
 data_path <- "/home/shares/ca-mpa/data/sync-data/mpa_traits"
@@ -280,6 +287,7 @@ defacto_smr <- readxl::read_excel(file.path(data_path, input_file), sheet=5, ski
 
 envr_join_step3 <- left_join(envr_join_step2, defacto_smr, by="mpa_name") 
 
+#envr_rocky_join <- left_join(envr_rocky, defacto_smr, by="mpa_name") #for rocky intertidal
 
 
 #clean up
@@ -304,6 +312,8 @@ envr_join_step5 <- envr_join_step4 %>%
                            sst_monthly_anom = as.numeric(as.character(
                              sst_monthly_anom
                            )))
+
+
 
 
 # add MOCI ----------------------------------------------------------------
@@ -335,6 +345,118 @@ envr_vars_all <- left_join(envr_join_step5, MOCI_step2, by=c("year","region3"))
 
 
 
+
+
+
+
+
+# Process rocky intertidal ------------------------------------------------
+
+
+
+#step 1: aggregate at site - site_type - year level
+#drop day 
+envr_drop <- envr_build_step5 %>% filter(habitat=='rocky intertidal')%>%
+  dplyr::select(!(c("day", "date", "lat_dd_bin", "cuti", "beuti")))%>%
+  distinct(across(everything()))%>%
+  mutate(year=as.factor(year),
+         month=as.factor(month),
+         habitat=as.factor(habitat),
+         site=as.factor(site),
+         site_type = as.factor(site_type),
+         )%>%
+  group_by(habitat, site, site_type, mpa, year)%>%
+  dplyr::summarise(across(everything(), mean, na.rm = TRUE))
+
+sst_drop <- sst_df %>% filter(habitat=='rocky intertidal')%>%
+  select(!(c("day", "date")))%>%
+  distinct(across(everything()))%>%
+  mutate(year=as.factor(year),
+         month=as.factor(month),
+         habitat=as.factor(habitat),
+         site=as.factor(site),
+         site_type = as.factor(site_type))%>%
+  group_by(habitat, site, site_type, year)%>%
+  dplyr::summarize(sst_c = mean(as.numeric(sst_c)),
+                   sst_baseline = mean(as.numeric(sst_baseline)),
+                   sst_monthly_baseline = mean(as.numeric(sst_monthly_baseline)),
+                   obs_annual_SST = mean(as.numeric(obs_annual_SST)),
+                   obs_monthly_SST = mean(as.numeric(obs_monthly_SST)),
+                   monthly_anomaly_sst = mean(as.numeric(monthly_anomaly_sst)),
+                   )
+
+#step 2 - join
+envr_data_step2 <- left_join(sst_drop, envr_drop,
+                             by=c("habitat","site","site_type","year"
+                                  
+                             ))
+#step 3 - rename and clean
+envr_data <- envr_data_step2 %>%
+  #mutate(mpa_class = str_extract(mpa, "smca|smr|special closure"),
+  #       mpa_designation = ifelse(site_type == "reference","ref",mpa_class))%>%
+  select(group=habitat,
+         site,
+         year,
+         sst_annual_baseline=sst_baseline, 
+         sst_monthly_baseline,
+         sst_annual_obs= obs_annual_SST,
+         sst_monthly_obs = obs_monthly_SST,
+         sst_monthly_anom = monthly_anomaly_sst,
+         cuti_annual_baseline = lt_cuti, 
+         cuti_monthly_baseline = lt_monthly_cuti,
+         cuti_annual_obs = obs_annual_cuti,
+         cuti_monthly_obs=obs_monthly_cuti,
+         cuti_monthly_anom = monthly_anomaly_cuti,
+         beuti_annual_baseline = lt_beuti,
+         beuti_monthly_baseline = lt_monthly_beuti,
+         beuti_annual_obs = obs_annual_beuti,
+         beuti_monthly_obs = obs_monthly_beuti,
+         beuti_monthly_anom = monthly_anomaly_beuti
+  )
+
+
+envr_data <- envr_data %>%
+  mutate(group= as.factor(group),
+         site = as.factor(site))%>%
+  mutate_if(is.character,as.numeric)
+
+
+#add regions 
+data_path <- "/home/shares/ca-mpa/data/sync-data/monitoring/monitoring_rocky-intertidal/Community analysis"
+input_file <- "intertidal_site_counts.csv"
+
+rocky_sites <- read.csv(file.path(data_path, input_file)) %>%
+  janitor::clean_names() %>% select(site, region3, region4)
+
+rocky_sites$site <- tolower(rocky_sites$site)
+
+rocky_envr_data <- left_join(envr_data, rocky_sites, by="site")%>%
+                    mutate(year=as.factor(year))
+
+
+MOCI_annual <- MOCI_step1 %>%
+  group_by(year)%>%
+  summarize(annual_MOCI=mean(quarterly_MOCI))
+
+MOCI_step2 <- left_join(MOCI_step1, MOCI_annual, by="year") %>%
+  select(year, region3, annual_MOCI) %>%
+  mutate(year= as.factor(year))
+
+
+rocky_envr_vars_all <- left_join(rocky_envr_data, MOCI_step2, by=c("year","region3"))
+  
+
+rocky_envr_vars_cen <- left_join(rocky_envr_data, MOCI_step2, by=c("year","region3"))%>%
+                        filter(region4=='central')%>%
+                        group_by(group, site, year)%>%
+                        dplyr::summarise(across(everything(), list(mean)))
+                        
+names(rocky_envr_vars_cen) <-  gsub("_1", "", names(rocky_envr_vars_cen))
+
+rocky_envr_vars_cen <- rocky_envr_vars_cen %>% select(!(c(region3, region4)))
+
+                       
+                        
 
 
 
