@@ -104,7 +104,7 @@ g <- ggplot() +
                            inherit.aes = F, size=2, max.overlaps = 1000, color="grey60") +
   # Labels
   labs(x="Human population size\n(millions of people within 50 km)", 
-       y="Human engagement\n(# of iNaturalist observers, 2000-2018)") +
+       y="Human engagement\n(# of iNaturalist observers, 2012-2021)") +
   scale_fill_discrete(name="MPA type",
                     # values=c("orange", "grey70", "purple"),
                     guide = guide_legend(reverse = TRUE)) +
