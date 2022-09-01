@@ -19,6 +19,7 @@ output: html_document
 #============================ Step 0 =========================================#
 
 ```{r}
+rm(list=ls())
 dat_dir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/ecological_community_data/year_level_with_envr_vars/"
 
 CCFRP <- read.csv(file.path(dat_dir, "CCFRP_mpa_year.csv"))
@@ -143,7 +144,7 @@ CCFRP_rel <- decostand(CCFRP_ord_data, method = "hellinger")
 CCFRP_distmat <- vegdist(CCFRP_rel, method = "bray", na.rm=T) 
 
 
-#kelp swath and upc processing--------------------------------------------------
+#kelp invalg processing--------------------------------------------------
 
 kelp_invalg <- kelp_combined %>%
                   dplyr::select(-bare_rock,
@@ -213,6 +214,80 @@ kelp_fish_distmat <-
 
 
 
+
+
+
+#kelp swath processing---------------------------------------------------------
+
+kelp_swath <- kelp_swath_cen %>%
+                  rowwise() %>%
+                  dplyr::mutate(sum = sum(across(25:ncol(.), na.rm = T))) %>%
+                  filter(!(sum==0))%>% #remove rows containing only zeros
+                  dplyr::select(-sum) %>%
+                  mutate(desig_state = paste(mpa_defacto_designation,MHW))%>%
+                  dplyr::select(desig_state, everything())%>%
+                  filter(mpa_defacto_designation=="smr" | mpa_defacto_designation=="ref")#drop sum columns and non-species categories  #drop sum columns and non-species categories
+             
+
+#define grouping vars
+kelp_swath_group_vars <- kelp_swath %>%
+                    dplyr::select(1:9)
+
+#define envr vars
+kelp_swath_envr_vars <-  kelp_swath %>%
+  dplyr::select(c(SST="sst_monthly_anom",CUTI="cuti_monthly_anom",BEUTI="beuti_monthly_anom",MOCI="annual_MOCI"))
+
+#define data for ordination
+kelp_swath_ord_data <- kelp_swath %>%
+              ungroup() %>%
+              dplyr::select(26:ncol(.))
+
+#calculate relative abundance
+kelp_swath_rel <- decostand(kelp_swath_ord_data, method = "hellinger")
+
+
+#generate a BC dissim matrix
+kelp_swath_distmat <- 
+    vegdist(kelp_swath_rel, method = "bray", na.rm=T) #generates a BC dissim matrix
+
+
+
+
+#kelp upc processing---------------------------------------------------------
+
+kelp_upc <- kelp_upc_cen %>%
+                  rowwise() %>%
+                  dplyr::mutate(sum = sum(across(25:ncol(.), na.rm = T))) %>%
+                  filter(!(sum==0))%>% #remove rows containing only zeros
+                  dplyr::select(-sum) %>%
+                  mutate(desig_state = paste(mpa_defacto_designation,MHW))%>%
+                  dplyr::select(desig_state, everything())%>%
+                  filter(mpa_defacto_designation=="smr" | mpa_defacto_designation=="ref")#drop sum columns and non-species categories  #drop sum columns and non-species categories
+             
+
+#define grouping vars
+kelp_upc_group_vars <- kelp_upc %>%
+                    dplyr::select(1:9)
+
+#define envr vars
+kelp_upc_envr_vars <-  kelp_upc %>%
+  dplyr::select(c(SST="sst_monthly_anom",CUTI="cuti_monthly_anom",BEUTI="beuti_monthly_anom",MOCI="annual_MOCI"))
+
+#define data for ordination
+kelp_upc_ord_data <- kelp_upc %>%
+              ungroup() %>%
+              dplyr::select(26:ncol(.))
+
+#calculate relative abundance
+kelp_upc_rel <- decostand(kelp_upc_ord_data, method = "hellinger")
+
+
+#generate a BC dissim matrix
+kelp_upc_distmat <- 
+    vegdist(kelp_upc_rel, method = "bray", na.rm=T) #generates a BC dissim matrix
+ 
+
+
 #deep reef processing---------------------------------------------------------
 
 deep_reef <- deep_reef_cen %>%
@@ -251,10 +326,10 @@ deep_reef_distmat <-
 
 #Intertidal processing---------------------------------------------------------
 
-rocky_count_envr$year <- as.numeric(as.character(rocky_count_envr$year))
+rocky_cen$year <- as.numeric(as.character(rocky_cen$year))
 
 rocky_counts <- #rocky_count_enr %>%
-                rocky_count_envr %>%
+                rocky_cen %>%
                   mutate(MHW = ifelse(year>=2014 & year<=2016, "during",ifelse(year<2014, "before","after")))%>%
                   mutate(desig_state = paste(mpa_designation,MHW))%>%
                   dplyr::select(desig_state, MHW, everything())%>%
@@ -287,12 +362,14 @@ rocky_distmat <-
 #save group vars
 #data_path <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/ecological_community_data/year_level_with_envr_vars"
 #save(CCFRP_group_vars,kelp_invalg_group_vars,kelp_fish_group_vars,
+#     kelp_swath_group_vars, kelp_upc_group_vars,
 #   deep_reef_group_vars,rocky_group_vars,
 #    file = file.path(data_path, "group_vars.rda"))
 
 #save community matrices
 #data_path <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/ecological_community_data/year_level_with_envr_vars"
 #save(CCFRP_ord_data,kelp_invalg_ord_data,kelp_fish_ord_data,
+#     kelp_swath_ord_data, kelp_upc_ord_data,
 #   deep_reef_ord_data,rocky_ord_data,
 #    file = file.path(data_path, "comm_data.rda"))
 
@@ -300,12 +377,14 @@ rocky_distmat <-
 #save envr vars 
 #data_path <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/ecological_community_data/year_level_with_envr_vars"
 #save(CCFRP_envr_vars,kelp_invalg_envr_vars,kelp_fish_envr_vars,
+#     kelp_swath_envr_vars, kelp_upc_envr_vars,
 #  deep_reef_envr_vars,
 #    file = file.path(data_path, "envr_vars.rda"))
 
 #save distance matrices
 #data_path <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/ecological_community_data/year_level_with_envr_vars"
 #save(CCFRP_distmat,kelp_invalg_distmat,kelp_fish_distmat,
+#     kelp_swath_distmat, kelp_upc_distmat,
 #     deep_reef_distmat,rocky_distmat,
 #    file = file.path(data_path, "distance_matrices_BC.rda"))
 ```
@@ -334,6 +413,18 @@ kelp_fish_ord <- metaMDS(kelp_fish_distmat, distance="bray", k=3,trymax = 300, p
 #kelp_fish_ord <- metaMDS(kelp_fish_distmat, previous.best = kelp_fish_ord, noshare=0.2, trymax=300, parallel = num_cores)
 kelp_fish_en <- envfit(kelp_fish_ord, kelp_fish_envr_vars, permutations=999, na.rm=TRUE) 
 message("Done processing kelp_fish_ord")
+
+message("Processing kelp_swath_ord")
+kelp_swath_ord <- metaMDS(kelp_swath_distmat, distance="bray", k=3,trymax = 300, parallel = num_cores)
+#kelp_fish_ord <- metaMDS(kelp_fish_distmat, previous.best = kelp_fish_ord, noshare=0.2, trymax=300, parallel = num_cores)
+kelp_swath_en <- envfit(kelp_swath_ord, kelp_swath_envr_vars, permutations=999, na.rm=TRUE) 
+message("Done processing kelp_swath_ord")
+
+message("Processing kelp_upc_ord")
+kelp_upc_ord <- metaMDS(kelp_upc_distmat, distance="bray", k=3,trymax = 300, parallel = num_cores)
+#kelp_fish_ord <- metaMDS(kelp_fish_distmat, previous.best = kelp_fish_ord, noshare=0.2, trymax=300, parallel = num_cores)
+kelp_upc_en <- envfit(kelp_upc_ord, kelp_upc_envr_vars, permutations=999, na.rm=TRUE) 
+message("Done processing kelp_upc_ord")
 
 message("Processing deep_reef_ord")
 deep_reef_ord <- metaMDS(deep_reef_distmat, distance="bray", trymax = 100, parallel = num_cores)

@@ -455,6 +455,10 @@ names(rocky_envr_vars_cen) <-  gsub("_1", "", names(rocky_envr_vars_cen))
 
 rocky_envr_vars_cen <- rocky_envr_vars_cen %>% select(!(c(region3, region4)))
 
+
+#path_aurora <- "/home/shares/ca-mpa/data/sync-data/environmental/processed"
+#saveRDS(rocky_envr_vars_cen, file.path(path_aurora, "envr_anomalies_at_intertidal_mpas.Rds"))
+
                        
                         
 
