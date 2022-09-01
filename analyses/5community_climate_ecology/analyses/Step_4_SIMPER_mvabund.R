@@ -217,7 +217,7 @@ st <- ggplot(simper_table, aes(x = group, y = contrib, label = stringr::str_wrap
 st
 
 # Saving the plot with dimensions that facilitate the text wrapping
-ggsave("analyses/5community_climate_ecology/figures/simper_table_plot.png", width = 15, height = 12, dpi = 300)
+#ggsave("analyses/5community_climate_ecology/figures/simper_table_plot.png", width = 15, height = 12, dpi = 300)
 
 
 
