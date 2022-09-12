@@ -662,18 +662,19 @@ CCFRP <- ggplot() +
   theme(axis.line.y = element_line(),
         axis.ticks.y = element_line(),
         axis.text.y = element_text(size=12)) +
-  scale_y_continuous(limits = c(0.19, 0.4),
+  scale_y_continuous(limits = c(0.18, 0.4),
                      breaks = seq(0.2, 0.6, by = 0.05)) +
   geom_text(aes(x = x,
                 y = y,
                 label = label,
                 color = MHW),
-            angle = 45, hjust = 1.1, vjust = 1,
+            angle = 60, hjust = 1.1, vjust = 1,
             data = ccfrp_text,
             size=5,
             key_glyph = "point")+
-  scale_color_manual(values=c('#C0C0C0', '#899499','#4c78b5','#44b89d','#f56969'))+
+  scale_color_manual(values=c('#C0C0C0', '#444444','#4c78b5','#44b89d','#f56969'))+
   labs(color='heatwave period')+
+  guides(color="none")+
   ggtitle("CCFRP")
 
 
@@ -700,17 +701,17 @@ invalg <- ggplot() +
   theme(axis.line.y = element_line(),
         axis.ticks.y = element_line(),
         axis.text.y = element_text(size=12)) +
-  scale_y_continuous(limits = c(0.39, 0.55),
+  scale_y_continuous(limits = c(0.38, 0.55),
                      breaks = seq(0.4, 0.6, by = 0.05)) +
   geom_text(aes(x = x,
                 y = y,
                 label = label,
                 color = MHW),
-            angle = 45, hjust = 1.1, vjust = 1,
+            angle = 60, hjust = 1.1, vjust = 1,
             data = invalg_text,
             size=5,
             key_glyph = "point")+
-  scale_color_manual(values=c('#C0C0C0', '#899499','#4c78b5','#44b89d','#f56969'))+
+  scale_color_manual(values=c('#C0C0C0', '#444444','#4c78b5','#44b89d','#f56969'))+
   labs(color='heatwave period')+
   guides(color="none")+
   ggtitle("kelp inverts and algae")
@@ -741,17 +742,17 @@ kelp_fish <- ggplot() +
   theme(axis.line.y = element_line(),
         axis.ticks.y = element_line(),
         axis.text.y = element_text(size=12)) +
-  scale_y_continuous(limits = c(0.19, 0.45),
+  scale_y_continuous(limits = c(0.17, 0.45),
                      breaks = seq(0.2, 0.45, by = 0.05)) +
   geom_text(aes(x = x,
                 y = y,
                 label = label,
                 color = MHW),
-            angle = 45, hjust = 1.1, vjust = 1,
+            angle = 60, hjust = 1.1, vjust = 1,
             data = fish_text,
             size=5,
             key_glyph = "point")+
-  scale_color_manual(values=c('#C0C0C0', '#899499','#4c78b5','#44b89d','#f56969'))+
+  scale_color_manual(values=c('#C0C0C0', '#444444','#4c78b5','#44b89d','#f56969'))+
   labs(color='heatwave period')+
   guides(color="none") +
   ggtitle("kelp forest fish")
@@ -783,16 +784,16 @@ deep_reef <- ggplot() +
         axis.ticks.y = element_line(),
         axis.text.y = element_text(size=12)) +
   scale_y_continuous(limits = c(0.39, 0.55),
-                     breaks = seq(0.4, 0.55, by = 0.05)) +
+                     breaks = seq(0.2, 0.55, by = 0.05)) +
   geom_text(aes(x = x,
                 y = y,
                 label = label,
                 color = MHW),
-            angle = 45, hjust = 1.1, vjust = 1,
+            angle = 60, hjust = 1.1, vjust = 1,
             data = deep_text,
             size=5,
             key_glyph = "point")+
-  scale_color_manual(values=c('#C0C0C0', '#899499','#4c78b5','#44b89d','#f56969'))+
+  scale_color_manual(values=c('#C0C0C0', '#444444','#4c78b5','#44b89d','#f56969'))+
   labs(color='heatwave period')+
   guides(color="none")+
   ggtitle("deep reef")
@@ -829,11 +830,11 @@ rocky <- ggplot() +
                 y = y,
                 label = label,
                 color = MHW),
-            angle = 45, hjust = 1.1, vjust = 1,
+            angle = 60, hjust = 1.1, vjust = 1,
             data = rocky_text,
             size=5,
             key_glyph = "point")+
-  scale_color_manual(values=c('#C0C0C0', '#899499','#4c78b5','#44b89d','#f56969'))+
+  scale_color_manual(values=c('#C0C0C0', '#444444','#4c78b5','#44b89d','#f56969'))+
   labs(color='heatwave period')+
   guides(color="none")+
   ggtitle("rocky intertidal")
@@ -842,35 +843,43 @@ rocky <- ggplot() +
 
 library(ggpubr)
 
-ggarrange(CCFRP, kelp_fish, deep_reef, invalg, rocky,
-          align='h', #labels=c('A', 'B','C','D', 'E'),
-          common.legend = T)
+#create dummy legend as last panel
+
+year <- c(2013, 2016, 2020)
+height <- c(1,2,3)
+heatwave_period <- c('before','during','after')
+legend <- data.frame(year, height, heatwave_period)
+legend$heatwave_period <- factor(legend$heatwave_period, levels=c('before', 'during', 'after')) 
+
+
+p3 <- ggplot(legend, aes(x = year, y = height, color = heatwave_period))+
+  geom_point()+
+  lims(x = c(0,0), y = c(0,0))+
+  theme_void()+
+  theme(legend.position = c(0.5,0.5),
+        legend.key.size = unit(1, "cm"),
+        legend.text = element_text(size =  12),
+        legend.title = element_text(size = 15, face = "bold"))+
+  guides(colour = guide_legend(override.aes = list(size=8)))+
+  scale_color_manual(values=c('#44b89d','#f56969','#4c78b5'))
+
+p3$labels$colour <- "heatwave period"  
+
+dendro_fig <- ggarrange(CCFRP, kelp_fish, deep_reef, invalg, rocky,
+          p3,
+          align='h',
+          widths = c(1, 1, 1)) #labels=c('A', 'B','C','D', 'E'),
+          #common.legend = T)
+
+ggsave(here::here("analyses", "5community_climate_ecology", "figures", "dendro_cluster.png"), dendro_fig, bg="white", dpi = 600, units = "in")
 
 
 
-prow <- cowplot::plot_grid(
-  CCFRP + theme(legend.position="none"),
-  kelp_fish + theme(legend.position="none"),
-  deep_reef + theme(legend.position="none"),
-  invalg + theme(legend.position="none"),
-  rocky + theme(legend.position="none"))
-prow
 
 
 
 
 
-# extract the legend from one of the plots
-legend <- get_legend(
-  # create some space to the left of the legend
-  CCFRP + theme(legend.box.margin = margin(0, 0, 0, 12)
-                )
-)
-
-# add the legend to the row we made earlier. Give it one-third of 
-# the width of one plot (via rel_widths).
-figure <- cowplot::plot_grid(prow, legend, rel_widths = c(2,1))
-print(figure)
 
 
 
