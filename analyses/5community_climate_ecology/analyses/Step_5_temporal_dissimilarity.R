@@ -30,8 +30,8 @@ set.seed(1985)
 
 #CCFRP
 CCFRP_mean_dist <- meandist(CCFRP_distmat, grouping = CCFRP_group_vars$year) #calculate mean dissim
-CCFRP_diag <- diag(CCFRP_mean_dist[,2:11]) #extract mat diagonal
-CCFRP_df <- data.frame(Year = row.names(CCFRP_mean_dist[2:11,]), CCFRP_diag) #convert to df
+CCFRP_diag <- diag(CCFRP_mean_dist[,2:14]) #extract mat diagonal
+CCFRP_df <- data.frame(Year = row.names(CCFRP_mean_dist[2:14,]), CCFRP_diag) #convert to df
 CCFRP_df$group <- c("CCFRP")
 colnames(CCFRP_df) <- c('year','dissim','group')
 
@@ -48,6 +48,13 @@ kelp_upc_diag <- diag(kelp_upc_dist[,2:22])
 kelp_upc_df <- data.frame(Year = row.names(kelp_upc_dist[2:22,]), kelp_upc_diag)
 kelp_upc_df$group <- c("kelp_upc")
 colnames(kelp_upc_df) <- c('year','dissim','group')
+
+#kelp_invalg
+kelp_invalg_dist <- meandist(kelp_invalg_distmat, grouping = kelp_invalg_group_vars$year)
+kelp_invalg_diag <- diag(kelp_invalg_dist[,2:22])
+kelp_invalg_df <- data.frame(Year = row.names(kelp_invalg_dist[2:22,]), kelp_invalg_diag)
+kelp_invalg_df$group <- c("kelp_invalg")
+colnames(kelp_invalg_df) <- c('year','dissim','group')
 
 #kelp_fish
 kelp_fish_dist <- meandist(kelp_fish_distmat, grouping = kelp_fish_group_vars$year)
@@ -73,7 +80,7 @@ colnames(rocky_df) <- c('year','dissim','group')
 
 #Join
 
-full_df <- rbind(CCFRP_df, kelp_swath_df, kelp_upc_df, kelp_fish_df, deep_reef_df, rocky_df)
+full_df <- rbind(CCFRP_df,kelp_invalg_df, kelp_fish_df, deep_reef_df, rocky_df)
 
 full_df_2010 <- full_df %>% filter(as.numeric(year)>=2010)
 
@@ -82,8 +89,15 @@ full_df_2010 %>%
   geom_point(alpha=0.4)+
   geom_line(alpha=0.4)+
   stat_summary(fun=mean, geom="line",colour="black", size=1)+
-  annotate("rect", xmin = 2014, xmax = 2016, ymin = 0.2, ymax = 0.55,
+  annotate("rect", xmin = 2014, xmax = 2016, ymin = -Inf, ymax = Inf,
            alpha = .15, fill='red')+
+  scale_x_continuous(breaks=2010:2020)+
+  theme_bw() +
+  theme(axis.line = element_line(color='black'),
+        plot.background = element_blank(),
+        #panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.border = element_blank())+
   xlab("year")+
   ylab("dissimilarity")
 
