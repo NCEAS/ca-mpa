@@ -50,9 +50,6 @@ deep_reef_cen <- deep_reef %>% filter(region4=='central') %>%
 rocky_cen <- rocky %>% filter(region4=='central') %>%
   select(where(~ any(. != 0)))
 
-
-
-
 ```
 
 #============================= Step 3 ========================================#
@@ -67,7 +64,8 @@ kelp_swath_stan <- decostand(kelp_swath_cen[25:102], method="max",
 nrow(kelp_swath_cen) #check length
 nrow(kelp_swath_stan) #check length
 
-kelp_swath_stan1 <- cbind(kelp_swath_cen[1:24],kelp_swath_stan)
+kelp_swath_stan1 <- cbind(kelp_swath_cen[1:24],kelp_swath_stan)%>%
+                    select(!c('dictyoneurum_californicum_reticulatum'))
 
 
 
@@ -79,7 +77,11 @@ kelp_upc_stan <- decostand(kelp_upc_cen[25:79], method="max",
 nrow(kelp_upc_cen) #check length
 nrow(kelp_upc_stan) #check length
 
-kelp_upc_stan1 <- cbind(kelp_upc_cen[1:24],kelp_upc_stan)
+kelp_upc_stan1 <- cbind(kelp_upc_cen[1:24],kelp_upc_stan) %>%
+                  select(!c('macrocystis_pyrifera',
+                       'stylaster_californicus',
+                      'macrocystis_pyrifera',
+                       'stephanocystis_osmundacea')) #remove UPC species that are recorded by swath
 
 
 
@@ -148,7 +150,7 @@ CCFRP_distmat <- vegdist(CCFRP_rel, method = "bray", na.rm=T)
 
 kelp_invalg <- kelp_combined %>%
                   dplyr::select(-bare_rock,
-                                -bare_sand, -shell_debris, -group.y, group=group.x)%>%
+                                -bare_sand, -shell_debris, -group.y, group=group.x)%>% #drop species recorded on both surveys
                   mutate(desig_state = paste(mpa_defacto_designation,MHW))%>%
                   dplyr::select(desig_state, everything())%>%
                   filter(mpa_defacto_designation=="smr" | mpa_defacto_designation=="ref")#drop sum columns and non-species categories
