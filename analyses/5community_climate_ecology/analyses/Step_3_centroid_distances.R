@@ -250,8 +250,7 @@ deep_reef_params <- as.data.frame(cbind(mean=tapply(deep_reef_disper$distances,
   mutate(group="deep reef") %>%
   dplyr::select(group, distance=mean, sd, n) 
 
-deep_reef_params <- cbind(period = rownames(deep_reef_params), deep_reef_params)
-%>%
+deep_reef_params <- cbind(period = rownames(deep_reef_params), deep_reef_params)%>%
   pivot_wider(names_from=c('period'), values_from = c('distance','sd','n')) 
 
 
