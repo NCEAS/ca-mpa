@@ -163,9 +163,12 @@ for(i in 1:focal_dia) {
 ### there is no meaningful difference when rescaling anyway)
 focal_pop_r <- focal(tract_data_ras, w = focal_mtx, fun = sum, na.rm = TRUE, 
                      progress = 'text',
-                     filename = file.path(data_path, popdir, "population_density_50km.tif"),
+                     filename = file.path(popdir, "counterfactuals_population_density_50km.tif"),
                      overwrite = TRUE)
 
-
+# Mask
+mask(focal_pop_r, vect(ca_state_epsg3309), inverse = TRUE, touches = FALSE, 
+     filename = file.path(popdir, "counterfactuals_population_density_50km.tif"),
+     overwrite = TRUE)
 
 
