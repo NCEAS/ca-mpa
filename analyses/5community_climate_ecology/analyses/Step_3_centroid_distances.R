@@ -51,6 +51,10 @@ kelp_fish_disper <- betadisper(kelp_fish_distmat, type="centroid",
                                group=kelp_fish_group_vars$desig_state)
 D<- plot(kelp_fish_disper, main="kelp fish", col=c('red','blue'))
 
+kelp_invalg_disper <- betadisper(kelp_invalg_distmat, type="centroid", 
+                               group=kelp_invalg_group_vars$desig_state)
+G<- plot(kelp_invalg_disper, main="kelp inverts and algae", col=c('red','blue'))
+
 
 deep_reef_disper <- betadisper(deep_reef_distmat, type="centroid", 
                                group=deep_reef_group_vars$desig_state)
@@ -105,6 +109,11 @@ kelp_fish_cen <-cenfun(group=kelp_fish_group_vars, x=kelp_fish_distmat) %>%
  centroid_1 == 'ref after')%>%
   mutate(group='kelp fish')
 
+kelp_invalg_cen <-cenfun(group=kelp_invalg_group_vars, x=kelp_invalg_distmat) %>% 
+  filter(centroid_1 == 'smr after' |
+           centroid_1 == 'ref after')%>%
+  mutate(group='kelp inverts and algae')
+
 deep_reef_cen <-cenfun(group=deep_reef_group_vars, x=deep_reef_distmat) %>% 
   filter(centroid_1 == 'smr after' |
   centroid_1 == 'ref after')%>%
@@ -117,7 +126,7 @@ rocky_cen <-cenfun(group=rocky_group_vars, x=rocky_distmat) %>%
 
 
 cen_distances <- rbind(ccfrp_cen, kelp_swath_cen, kelp_upc_cen,
-                       kelp_fish_cen, deep_reef_cen, rocky_cen)
+                       kelp_fish_cen, kelp_invalg_cen, deep_reef_cen, rocky_cen)
 
 cen_distances2 <- cen_distances %>%
                   mutate(mpa_type = word(centroid_1, start = 1))%>%
@@ -135,6 +144,7 @@ vegan::permutest(CCFRP_disper)
 vegan::permutest(kelp_swath_disper)
 vegan::permutest(kelp_fish_disper)
 vegan::permutest(kelp_upc_disper)
+vegan::permutest(kelp_invalg_disper)
 vegan::permutest(deep_reef_disper)
 vegan::permutest(rocky_disper)
 
@@ -144,6 +154,7 @@ rocky_perm <- adonis2(formula = rocky_distmat ~ MHW +  mpa_designation, data = r
 deep_reef_perm <- adonis2(formula = deep_reef_distmat ~ MHW+desig_state, data = deep_reef_group_vars, permutations = 99) 
 kelp_swath_perm <- adonis2(formula = kelp_swath_distmat ~ MHW+desig_state, data = kelp_swath_group_vars, permutations = 99) 
 kelp_fish_perm <- adonis2(formula = kelp_fish_distmat ~ MHW+desig_state, data = kelp_fish_group_vars, permutations = 99) 
+kelp_invalg_perm <- adonis2(formula = kelp_invalg_distmat ~ MHW+desig_state, data = kelp_invalg_group_vars, permutations = 99) 
 kelp_upc_perm <- adonis2(formula = kelp_upc_distmat ~ MHW+desig_state, data = kelp_upc_group_vars, permutations = 99) 
 CCFRP_perm <- adonis2(formula = CCFRP_distmat ~ MHW+desig_state, data = CCFRP_group_vars, permutations = 99) 
 
@@ -156,13 +167,15 @@ kelp_swath_output <-as.data.frame(kelp_swath_perm$aov.tab)[1,]%>%
   mutate(group='kelp swath')
 kelp_upc_output <-as.data.frame(kelp_upc_perm$aov.tab)[1,]%>%
   mutate(group='kelp upc')
+kelp_invalg_output <-as.data.frame(kelp_invalg_perm$aov.tab)[1,]%>%
+  mutate(group='kelp inverts and algae')
 kelp_fish_output <-as.data.frame(kelp_fish_perm$aov.tab)[1,]%>%
   mutate(group='kelp fish')
 deep_reef_output <-as.data.frame(deep_reef_perm$aov.tab)[1,]%>%
   mutate(group='deep reef')
 
 aov_output <- rbind(rocky_output, CCFRP_output, kelp_swath_output, 
-                    kelp_upc_output, kelp_fish_output,deep_reef_output)%>%
+                    kelp_upc_output, kelp_invalg_output, kelp_fish_output,deep_reef_output)%>%
   dplyr::select(group, everything())
   #arrange(desc(F.Model))
 
@@ -222,6 +235,19 @@ kelp_upc_params <- cbind(period = rownames(kelp_upc_params),
 
 
 
+#Kelp invalg
+kelp_invalg_params <- as.data.frame(cbind(mean=tapply(kelp_invalg_disper$distances, 
+                                                   kelp_invalg_disper$group, mean), 
+                                       sd=tapply(kelp_invalg_disper$distances,
+                                                 kelp_invalg_disper$group, sd), 
+                                       n=table(kelp_invalg_disper$group)))%>%
+  mutate(group="kelp inverts and algae") %>%
+  dplyr::select(group, distance=mean, sd, n) 
+
+kelp_invalg_params <- cbind(period = rownames(kelp_invalg_params), 
+                         kelp_invalg_params) %>%
+  pivot_wider(names_from=c('period'), values_from = c('distance','sd','n')) 
+
 
 
 #Kelp fish
@@ -273,7 +299,7 @@ rocky_params <- cbind(period = rownames(rocky_params), rocky_params) %>%
 #combine
 
 meta_params <- rbind(CCFRP_params, 
-                     kelp_swath_params, kelp_upc_params, kelp_fish_params,
+                     kelp_swath_params, kelp_upc_params, kelp_invalg_params, kelp_fish_params,
                      deep_reef_params,
                      rocky_params)
 
@@ -325,14 +351,18 @@ test_ref<- REF_es %>% arrange(desc(-yi))
 test_smr <- SMR_es %>% arrange(desc(-yi))
 
 #add labels
-test_ref$community <- c("inverts and algae","fish","inverts and algae","fish","fish","inverts and algae")
-test_smr$community <- c("inverts and algae","fish","inverts and algae","fish","fish","inverts and algae")
-
 test_ref$group <- as.character(test_ref$group)
 test_smr$group <- as.character(test_smr$group)
 #Then turn it back into a factor with the levels in the correct order
 test_smr$group <- factor(test_smr$group, levels=unique(test_smr$group))
 test_ref$group <- factor(test_ref$group, levels=unique(test_ref$group))
+
+test_ref <- test_ref %>% filter(!(group=='kelp upc' | group=='kelp swath'))
+test_smr <- test_smr %>% filter(!(group=='kelp upc' | group=='kelp swath'))
+
+test_ref$group <- recode_factor(test_ref$group, 'rocky'='rocky intertidal')
+test_smr$group <- recode_factor(test_smr$group, 'rocky'='rocky intertidal')
+
 
 #plot
 (figure<-ggplot(test_smr, aes(x=group,yi),y=yi)+
@@ -346,8 +376,8 @@ test_ref$group <- factor(test_ref$group, levels=unique(test_ref$group))
     geom_errorbar(aes(x=0.5, ymin=yi-se, ymax=yi+se), data=pooled_ref, colour='#13A0DD', width=.2) +
     geom_point(aes(x=0.18, y=yi), data=pooled_smr, shape=18, size = 3, colour='#EB6977')+
     geom_errorbar(aes(x=0.18, ymin=yi-se, ymax=yi+se), data=pooled_smr, colour='#EB6977', width=.2) +
-    ylab("standardized distance")+
-    xlab("")+
+    ylab("Distance (community change)")+
+    xlab("Monitoring group")+
     coord_flip()+
     theme_minimal(base_size=14) + theme(aspect.ratio = 1/1.5)
 )
@@ -357,7 +387,7 @@ test_ref$group <- factor(test_ref$group, levels=unique(test_ref$group))
 #export distance plot
 
 #ggsave(here("analyses", "5community_climate_ecology", "figures", "distance_MPA.png"), figure, height=4, width = 5, units = "in", 
- #      dpi = 600, bg="white")
+#       dpi = 600, bg="white")
 
 
 

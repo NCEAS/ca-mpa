@@ -608,12 +608,24 @@ rocky_trajectory
 #combine plots 
 ```{r}
 require('ggpubr')
-figure<-ggarrange(CCFRP_trajectory, kelp_fish_trajectory, deep_reef_trajectory,
-          kelp_invalg_trajectory, rocky_trajectory, common.legend = TRUE, legend="right",
-          font.label=list(size=40)) + bgcolor('white')
-annotate_figure(figure,
-                top = text_grob("central CA community structure", color = "black", face = "bold", size = 20)
+
+legend <- get_legend(
+  # create some space to the left of the legend
+  CCFRP_trajectory + theme(legend.box.margin = margin(0, 0, 0, 12))
 )
+
+cplot <- cowplot::plot_grid(
+  CCFRP_trajectory + theme(legend.position="none"),
+  kelp_fish_trajectory + theme(legend.position="none"),
+  deep_reef_trajectory + theme(legend.position="none"),
+  kelp_invalg_trajectory + theme(legend.position="none"),
+  rocky_trajectory + theme(legend.position="none"),
+  legend
+  )
+print(cplot)
+
+
+
 
 #Export figure
 #ggsave(here("analyses", "5community_climate_ecology", "figures", "community_trajectory.png"), figure, height=8, width = 12, units = "in", dpi = 300)
