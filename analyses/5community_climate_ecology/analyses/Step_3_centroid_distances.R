@@ -365,23 +365,28 @@ test_smr$group <- recode_factor(test_smr$group, 'rocky'='rocky intertidal')
 
 
 #plot
+
 (figure<-ggplot(test_smr, aes(x=group,yi),y=yi)+
-    geom_point(size=2, color='#EB6977', position = position_jitter(seed = 123, width =0.2))+
-    geom_errorbar(aes(ymin=yi-vi, ymax=yi+vi), color='#EB6977',width=.3, size=0.7, data=test_smr, position = position_jitter(seed = 123, width =0.2)) +
-    geom_point(data=test_ref, color='#13A0DD')+
-    geom_errorbar(aes(ymin=yi-vi, ymax=yi+vi), width=.3, size=0.7, data=test_ref, color='#13A0DD')+
+    geom_point(aes(color='SMR'), size=3, position = position_jitter(seed = 123, width =0.2))+
+    geom_errorbar(aes(ymin=yi-vi, ymax=yi+vi, color='SMR'),width=.3, size=0.7, data=test_smr, position = position_jitter(seed = 123, width =0.2)) +
+    geom_point(data=test_ref, size=3, aes(color='REF'))+
+    geom_errorbar(aes(ymin=yi-vi, ymax=yi+vi, color="REF"), width=.3, size=0.7, data=test_ref)+
     geom_vline(xintercept = 0.7, color = "black", size = 0.4, linetype = "dashed") +
     scale_x_discrete(expand = c(0.2, 0.1) )+
-    geom_point(aes(x=0.5, y=yi), data=pooled_ref, shape=18, size = 3, colour='#13A0DD')+
-    geom_errorbar(aes(x=0.5, ymin=yi-se, ymax=yi+se), data=pooled_ref, colour='#13A0DD', width=.2) +
-    geom_point(aes(x=0.18, y=yi), data=pooled_smr, shape=18, size = 3, colour='#EB6977')+
-    geom_errorbar(aes(x=0.18, ymin=yi-se, ymax=yi+se), data=pooled_smr, colour='#EB6977', width=.2) +
-    ylab("Distance (community change)")+
-    xlab("Monitoring group")+
+    geom_point(aes(x=0.5, y=yi, color='REF'), data=pooled_ref, shape=18, size = 4)+
+    geom_errorbar(aes(x=0.5, ymin=yi-se, ymax=yi+se, color='REF'), data=pooled_ref, width=.2) +
+    geom_point(aes(x=0.18, y=yi, color="SMR"), data=pooled_smr, shape=18, size = 4)+
+    geom_errorbar(aes(x=0.18, ymin=yi-se, ymax=yi+se, color="SMR"), data=pooled_smr, width=.2) +
+    ylab("Euclidean distance (community change)")+
+    xlab("Community")+
     coord_flip()+
-    theme_minimal(base_size=14) + theme(aspect.ratio = 1/1.5)
+    theme_minimal(base_size=14) + theme(aspect.ratio = 1/1.5)+
+    scale_color_manual(name='MPA type',
+                       breaks=c('SMR', 'REF'),
+                       values=c('SMR'='#EB6977', 'REF'='#13A0DD'))
 )
 
+#13A0DD
 
 
 #export distance plot
