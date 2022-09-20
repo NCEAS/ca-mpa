@@ -22,11 +22,12 @@ envr_plot <- envr_vars_all %>%
   dplyr::summarise(beuti_anom = mean(beuti_monthly_anom),
                    cuti_anom = mean(cuti_monthly_anom),
                    sst_anom = mean(as.numeric(as.character(sst_monthly_anom)),na.rm=T),
-                   MOCI = mean(as.numeric(annual_MOCI), na.rm=T),
+                   annual_MOCI = mean(as.numeric(annual_MOCI), na.rm=T),
+                   quarterly_MOCI = mean(as.numeric(quarterly_MOCI), na.rm=T),
   ) %>%
-  pivot_longer(names_to = "index", cols=c("beuti_anom","cuti_anom","sst_anom","MOCI"))
+  pivot_longer(names_to = "index", cols=c("beuti_anom","cuti_anom","sst_anom","annual_MOCI", "quarterly_MOCI"))
 
-envr_plot$index <- factor(envr_plot$index, levels = c("sst_anom", "MOCI","beuti_anom", "cuti_anom"))
+envr_plot$index <- factor(envr_plot$index, levels = c("sst_anom", "annual_MOCI","quarterly_MOCI","beuti_anom", "cuti_anom"))
 
 
 
@@ -35,10 +36,11 @@ envr_plot$index <- factor(envr_plot$index, levels = c("sst_anom", "MOCI","beuti_
 
 envr_ts <- envr_plot%>%
   filter(year>=2000)%>%
+  filter(!(index=='annual_MOCI'))%>%
   ggplot(aes(x=as.numeric(year),y=value,color=index, fill=index, group=index))+
   #geom_point()+
   stat_summary(fun=mean, geom="line", aes(color = index), size=1)+
-  stat_summary(fun.data = mean_se, geom = "ribbon", aes(color=index), colour=NA, alpha=0.3)+
+  stat_summary(fun.data = mean_cl_normal, geom = "ribbon", aes(color=index), colour=NA, alpha=0.3)+
   geom_rect(data = data.frame(year = 2015), aes(xmin = 2014, xmax = 2016, ymin = -Inf, ymax = Inf), 
             alpha = 0.3, fill="#8a0606", inherit.aes = FALSE)+
   geom_hline(yintercept=0, linetype="dashed", color = "black")+
@@ -49,7 +51,8 @@ envr_ts <- envr_plot%>%
              labeller = as_labeller(c(sst_anom = "SST anomaly (°C)",
                                       beuti_anom="BEUTI anomaly", 
                                       cuti_anom = "CUTI anomaly",
-                                      MOCI = "MOCI")))+
+                                      #annual_MOCI = "annual MOCI",
+                                      quarterly_MOCI = "MOCI")))+
   xlab("Year")+
   ylab(NULL)+
   #scale_y_continuous(
