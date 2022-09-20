@@ -108,7 +108,7 @@ envr_ts2 <- envr_plot2 %>%
                                       #annual_MOCI = "annual MOCI",
                                       quarterly_MOCI = "MOCI"))
              )+
-  xlab("Year")+
+  xlab("Month")+
   ylab(NULL)+
   #scale_y_continuous(
   #  "beuti_anom", 
