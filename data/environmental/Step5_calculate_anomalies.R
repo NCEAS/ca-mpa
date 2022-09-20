@@ -311,7 +311,10 @@ envr_join_step5 <- envr_join_step4 %>%
                     mutate(year = as.numeric(as.character(year)),
                            sst_monthly_anom = as.numeric(as.character(
                              sst_monthly_anom
-                           )))
+                           )),
+                           qter = ifelse(month == "1"|month=="2"|month=="3","1",
+                                         ifelse(month=="4"|month=="5"|month=="6","2",
+                                                ifelse(month=="7"|month=="8"|month=="9","3","4"))))
 
 
 
@@ -319,24 +322,31 @@ envr_join_step5 <- envr_join_step4 %>%
 # add MOCI ----------------------------------------------------------------
 
 MOCI_step1 <- MOCI_dat %>%
-              rename(year = Year,
+              dplyr::rename(year = Year,
                      north = North.California..38.42N.,
                      central = Central.California..34.5.38N.,
                      south = Southern.California..32.34.5N.)%>%
               select(!(time))%>%
               pivot_longer(cols = c("north","central","south"),
                          values_to = "quarterly_MOCI",
-                         names_to = "region3")
+                         names_to = "region3") %>%
+              mutate(qter = ifelse(Season == "JFM","1",
+                                   ifelse(Season == "AMJ","2",
+                                          ifelse(Season == "JAS","3","4"))))
 
 MOCI_annual <- MOCI_step1 %>%
-                group_by(year)%>%
+                group_by(year, region3)%>%
                 summarize(annual_MOCI=mean(quarterly_MOCI))
 
-MOCI_step2 <- left_join(MOCI_step1, MOCI_annual, by="year") %>%
-               select(year, region3, annual_MOCI)
+MOCI_step2 <- left_join(MOCI_step1, MOCI_annual, by=c("year","region3")) %>%
+               select(year, qter, region3, annual_MOCI, quarterly_MOCI)
 
 
-envr_vars_all <- left_join(envr_join_step5, MOCI_step2, by=c("year","region3"))
+
+envr_vars_all <- left_join(envr_join_step5, MOCI_step2, by=c("year","region3", "qter"))%>%
+                  select(group, mpa_name, mpa_class, mpa_designation,
+                         mpa_defacto_class, mpa_defacto_designation, region3,
+                         region4, year, qter, month, everything())
 
 #path_aurora <- "/home/shares/ca-mpa/data/sync-data/environmental/processed"
 #saveRDS(envr_vars_all, file.path(path_aurora, "envr_anomalies_at_mpas.Rds"))
