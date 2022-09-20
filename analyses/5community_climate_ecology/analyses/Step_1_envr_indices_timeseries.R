@@ -84,46 +84,72 @@ envr_plot2 <- envr_vars_all %>%
   group_by(year, month)%>%
   pivot_longer(names_to = "index", cols=c("beuti_monthly_anom","cuti_monthly_anom","sst_monthly_anom","annual_MOCI", "quarterly_MOCI"))
 
-envr_plot2$index <- factor(envr_plot2$index, levels = c("beuti_monthly_anom","cuti_monthly_anom","sst_monthly_anom","annual_MOCI", "quarterly_MOCI"))
+envr_plot2$index <- factor(envr_plot2$index, levels = c("sst_monthly_anom","quarterly_MOCI","beuti_monthly_anom","cuti_monthly_anom","annual_MOCI"))
 
-MOCI_plot <- envr_plot2 %>% filter(index=='quarterly_MOCI')
+MOCI <- envr_plot2 %>% filter(index=='quarterly_MOCI',
+                                    year>=2000)
+SST <- envr_plot2 %>% filter(index=='sst_monthly_anom',
+                             year>=2000)
+BEUTI <- envr_plot2 %>% filter(index=='beuti_monthly_anom',
+                             year>=2000)
+CUTI <- envr_plot2 %>% filter(index=='cuti_monthly_anom',
+                               year>=2000)
 
-envr_ts2 <- envr_plot2 %>%
-  filter(year>=2000)%>%
-  filter(!(index=='quarterly_MOCI'|index=='annual_MOCI'))%>%
-  ggplot(aes(x=as.numeric(month),y=value,color=index, fill=index, group=index))+
-  #geom_point()+
-  stat_summary(fun=mean, geom="line", aes(color = index), size=1)+
-  stat_summary(fun.data = mean_sdl, geom = "ribbon", aes(color=index), colour=NA, alpha=0.3)+
-  #geom_rect(data = data.frame(year = 2015), aes(xmin = 2014, xmax = 2016, ymin = -Inf, ymax = Inf), 
-  #          alpha = 0.3, fill="#8a0606", inherit.aes = FALSE)+
+
+MOCI_plot<- ggplot(aes(x=as.numeric(qter),y=value),data=MOCI)+
+  stat_summary(fun=mean, geom="line", color = "#93AA00", size=1)+
+  stat_summary(fun.data = mean_sdl, geom = "ribbon", fill='#93AA00', color=NA, alpha=0.3)+
   geom_hline(yintercept=0, linetype="dashed", color = "black")+
-  #annotate("rect", xmin = 2014.5, xmax = 2016.5, ymin = -12, ymax = 12,
-  #      alpha = .2, fill="pink")+
-  facet_wrap(~index, ncol=2, nrow=2, scale="free_y",
-             strip.position = "left",
-             labeller = as_labeller(c(sst_monthly_anom = "SST anomaly (°C)",
-                                      beuti_monthly_anom="BEUTI anomaly", 
-                                      cuti_monthly_anom = "CUTI anomaly",
-                                      #annual_MOCI = "annual MOCI",
-                                      quarterly_MOCI = "MOCI"))
-             )+
-  xlab("Month")+
-  ylab(NULL)+
-  #scale_y_continuous(
-  #  "beuti_anom", 
-  #  sec.axis = sec_axis(trans=~ . * .0001, name = "cuti_anom")
-  #)+
-  theme_minimal(base_size = 14, bgcolor("white"))+
-  theme(legend.position="none",
-        plot.title=element_text(hjust=0.5),
-        strip.background = element_blank(),
-        strip.placement = "outside")+
-  scale_x_continuous(breaks= scales::pretty_breaks())
-#labs(title="Central CA oceanographic anomalies")
-# theme(aspect.ratio=0.5/1.5)
+  xlab("Quarter")+
+  ylab("MOCI")+
+  theme_minimal(base_size = 10, bgcolor("white"))+
+  scale_x_continuous(breaks= c(1:4))+
+  theme(legend.position="none")
 
-print(envr_ts2)
+SST_plot <- ggplot(aes(x=as.numeric(month),y=value), data=SST)+
+  stat_summary(fun=mean, geom="line", color = "#F8766D", size=1)+
+  stat_summary(fun.data = mean_sdl, geom = "ribbon", fill="#F8766D", colour=NA, alpha=0.3)+
+  geom_hline(yintercept=0, linetype="dashed", color = "black")+
+  xlab("Month")+
+  ylab("SST anomaly (°C)")+
+  theme_minimal(base_size = 10, bgcolor("white"))+
+  scale_x_continuous(breaks= scales::pretty_breaks())+
+  theme(legend.position="none")
+
+BEUTI_plot<- ggplot(aes(x=as.numeric(month),y=value),data=BEUTI)+
+  stat_summary(fun=mean, geom="line", color = "#00B9E3", size=1)+
+  stat_summary(fun.data = mean_sdl, geom = "ribbon", fill='#00B9E3', color=NA, alpha=0.3)+
+  geom_hline(yintercept=0, linetype="dashed", color = "black")+
+  xlab("Month")+
+  ylab("BEUTI anomaly")+
+  theme_minimal(base_size = 10, bgcolor("white"))+
+  scale_x_continuous(breaks= scales::pretty_breaks())+
+  theme(legend.position="none")
+
+CUTI_plot<- ggplot(aes(x=as.numeric(month),y=value),data=CUTI)+
+  stat_summary(fun=mean, geom="line", color = "#DB72FB", size=1)+
+  stat_summary(fun.data = mean_sdl, geom = "ribbon", fill='#DB72FB', color=NA, alpha=0.3)+
+  geom_hline(yintercept=0, linetype="dashed", color = "black")+
+  xlab("Month")+
+  ylab("CUTI anomaly")+
+  theme_minimal(base_size = 10, bgcolor("white"))+
+  scale_x_continuous(breaks= scales::pretty_breaks())+
+  theme(legend.position="none")
+
+plots <- ggarrange(SST_plot, MOCI_plot,
+          BEUTI_plot, CUTI_plot, ncol=2, nrow=2)
+
+
+#ggsave(here::here("analyses", "5community_climate_ecology", "figures", "oceanographic_indices_range.png"), 
+#       bg="white",plots,height=5, width = 8, units = "in", dpi = 600)
+
+
+
+
+
+
+
+
 
 
 
