@@ -445,10 +445,10 @@ rocky_envr_data <- left_join(envr_data, rocky_sites, by="site")%>%
 
 
 MOCI_annual <- MOCI_step1 %>%
-  group_by(year)%>%
+  group_by(year, region3)%>%
   summarize(annual_MOCI=mean(quarterly_MOCI))
 
-MOCI_step2 <- left_join(MOCI_step1, MOCI_annual, by="year") %>%
+MOCI_step2 <- left_join(MOCI_step1, MOCI_annual, by=c("year", "region3")) %>%
   select(year, region3, annual_MOCI) %>%
   mutate(year= as.factor(year))
 
