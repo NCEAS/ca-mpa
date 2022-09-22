@@ -420,98 +420,82 @@ stability_fig2<- annotate_figure(stability_fig,
 )
 
 
-ggsave(here::here("analyses", "5community_climate_ecology", "figures", "stability_relative_to_2010.png"),
-       stability_fig2, height=6, width = 8, units = "in", 
-      dpi = 600, bg="white")
+#ggsave(here::here("analyses", "5community_climate_ecology", "figures", "stability_relative_to_2010.png"),
+#       stability_fig2, height=6, width = 8, units = "in", 
+#      dpi = 600, bg="white")
 
 
 
 
 
 
-# Annual dissimilarity by MPA type ---------------------------------------------
+# Annual dissimilarity between REF and SMR  ------------------------------------
 
 #CCFRP
 CCFRP_mean_dist2 <- meandist(CCFRP_distmat, grouping = CCFRP_group_vars2$desig_state_year) #calculate mean dissim
 
 CCFRP_mean_dist3 <- melt(CCFRP_mean_dist2) %>% #melt to three column columns
-                    mutate(year_1 = gsub( " .*$", "", Var1), #create selection vars
-                            year_2 = gsub( " .*$", "", Var2),
-                            MPA_1 = str_sub(Var1, -3),
-                            MPA_2 = str_sub(Var2, -3),
+                    mutate(MPA_1 = gsub( " .*$", "", X1), #create selection vars
+                            MPA_2 = gsub( " .*$", "", X2),
+                            year_1 = str_sub(X1, -4),
+                            year_2 = str_sub(X2, -4),
                             group="CCFRP") %>%
                     filter(year_1 == year_2 & MPA_1 !=MPA_2) %>% #drop matches
                     distinct(year_2, .keep_all=TRUE)%>% #grab distinct disimilarities
                     select(group, year = year_1, dissim = value)
 
+#kelp invalg
+kelp_invalg_mean_dist2 <- meandist(kelp_invalg_distmat, grouping = kelp_invalg_group_vars2$desig_state_year) #calculate mean dissim
 
-sim <- anosim(CCFRP_distmat, grouping=CCFRP_group_vars2$desig_state)
-
-#kelp_swath 
-kelp_swath_dist2 <- meandist(kelp_swath_distmat, grouping = kelp_swath_group_vars2$desig_state_year)
-
-kelp_swath_dist3 <- melt(kelp_swath_dist2) %>% #melt to three column columns
-  mutate(year_1 = gsub( " .*$", "", Var1), #create selection vars
-         year_2 = gsub( " .*$", "", Var2),
-         MPA_1 = str_sub(Var1, -3),
-         MPA_2 = str_sub(Var2, -3),
-         group="kelp_swath") %>%
+kelp_invalg_mean_dist3 <- melt(kelp_invalg_mean_dist2) %>% #melt to three column columns
+  mutate(MPA_1 = gsub( " .*$", "", X1), #create selection vars
+         MPA_2 = gsub( " .*$", "", X2),
+         year_1 = str_sub(X1, -4),
+         year_2 = str_sub(X2, -4),
+         group="kelp inverts and algae") %>%
   filter(year_1 == year_2 & MPA_1 !=MPA_2) %>% #drop matches
   distinct(year_2, .keep_all=TRUE)%>% #grab distinct disimilarities
   select(group, year = year_1, dissim = value)
 
-
-#kelp_upc
-kelp_upc_dist2 <- meandist(kelp_upc_distmat, grouping = kelp_upc_group_vars2$desig_state_year)
-
-kelp_upc_dist3 <- melt(kelp_upc_dist2) %>% #melt to three column columns
-  mutate(year_1 = gsub( " .*$", "", Var1), #create selection vars
-         year_2 = gsub( " .*$", "", Var2),
-         MPA_1 = str_sub(Var1, -3),
-         MPA_2 = str_sub(Var2, -3),
-         group="kelp_upc") %>%
-  filter(year_1 == year_2 & MPA_1 !=MPA_2) %>% #drop matches
-  distinct(year_2, .keep_all=TRUE)%>% #grab distinct disimilarities
-  select(group, year = year_1, dissim = value)
 
 
 #kelp_fish
-kelp_fish_dist2 <- meandist(kelp_fish_distmat, grouping = kelp_fish_group_vars2$desig_state_year)
+kelp_fish_mean_dist2 <- meandist(kelp_fish_distmat, grouping = kelp_fish_group_vars2$desig_state_year) #calculate mean dissim
 
-kelp_fish_dist3 <- melt(kelp_fish_dist2) %>% #melt to three column columns
-  mutate(year_1 = gsub( " .*$", "", Var1), #create selection vars
-         year_2 = gsub( " .*$", "", Var2),
-         MPA_1 = str_sub(Var1, -3),
-         MPA_2 = str_sub(Var2, -3),
-         group="kelp_fish") %>%
+kelp_fish_mean_dist3 <- melt(kelp_fish_mean_dist2) %>% #melt to three column columns
+  mutate(MPA_1 = gsub( " .*$", "", X1), #create selection vars
+         MPA_2 = gsub( " .*$", "", X2),
+         year_1 = str_sub(X1, -4),
+         year_2 = str_sub(X2, -4),
+         group="kelp forest fish") %>%
   filter(year_1 == year_2 & MPA_1 !=MPA_2) %>% #drop matches
   distinct(year_2, .keep_all=TRUE)%>% #grab distinct disimilarities
   select(group, year = year_1, dissim = value)
 
 
 #deep reef
-deep_reef_dist2 <- meandist(deep_reef_distmat, grouping = deep_reef_group_vars2$desig_state_year)
+deep_reef_mean_dist2 <- meandist(deep_reef_distmat, grouping = deep_reef_group_vars2$desig_state_year) #calculate mean dissim
 
-deep_reef_dist3 <- melt(deep_reef_dist2) %>% #melt to three column columns
-  mutate(year_1 = gsub( " .*$", "", Var1), #create selection vars
-         year_2 = gsub( " .*$", "", Var2),
-         MPA_1 = str_sub(Var1, -3),
-         MPA_2 = str_sub(Var2, -3),
-         group="deep_reef") %>%
+deep_reef_dist3 <- melt(deep_reef_mean_dist2) %>% #melt to three column columns
+  mutate(MPA_1 = gsub( " .*$", "", X1), #create selection vars
+         MPA_2 = gsub( " .*$", "", X2),
+         year_1 = str_sub(X1, -4),
+         year_2 = str_sub(X2, -4),
+         group="deep reef") %>%
   filter(year_1 == year_2 & MPA_1 !=MPA_2) %>% #drop matches
   distinct(year_2, .keep_all=TRUE)%>% #grab distinct disimilarities
   select(group, year = year_1, dissim = value)
 
 
 #rocky
-rocky_dist2 <- meandist(rocky_distmat, grouping = rocky_group_vars2$desig_state_year)
+rocky_mean_dist2 <- meandist(rocky_distmat, grouping = rocky_group_vars2$desig_state_year) #calculate mean dissim
 
-rocky_dist3 <- melt(rocky_dist2) %>% #melt to three column columns
-  mutate(year_1 = gsub( " .*$", "", Var1), #create selection vars
-         year_2 = gsub( " .*$", "", Var2),
-         MPA_1 = str_sub(Var1, -3),
-         MPA_2 = str_sub(Var2, -3),
-         group="rocky") %>%
+rocky_mean_dist3 <- melt(rocky_mean_dist2) %>% #melt to three column columns
+  mutate(MPA_1 = gsub( " .*$", "", X1), #create selection vars
+         MPA_2 = gsub( " .*$", "", X2),
+         year_1 = str_sub(X1, -4),
+         year_2 = str_sub(X2, -4),
+         group="rocky intertidal") %>%
   filter(year_1 == year_2 & MPA_1 !=MPA_2) %>% #drop matches
   distinct(year_2, .keep_all=TRUE)%>% #grab distinct disimilarities
   select(group, year = year_1, dissim = value)
@@ -520,143 +504,131 @@ rocky_dist3 <- melt(rocky_dist2) %>% #melt to three column columns
 
 #Join
 
-full_df2 <- rbind(CCFRP_mean_dist3, kelp_swath_dist3, kelp_upc_dist3, kelp_fish_dist3, deep_reef_dist3, rocky_dist3)
 
-#full_df_2010 <- full_df %>% filter(as.numeric(year)>=2010)
-
-full_df2 <- full_df2 %>% filter(year>=2007)
-
-ref_smr_dissim<- full_df2 %>%
-  ggplot(aes(x=as.numeric(year), y=dissim, color=group))+
-  geom_point(alpha=0.4, aes(shape=group), size=4)+
-  geom_line(alpha=0.4)+
-  stat_summary(fun=mean, geom="line",colour="black", size=1)+
-  annotate("rect", xmin = 2014, xmax = 2016, ymin = 0.45, ymax = 0.85,
-           alpha = .15, fill='red')+
-  xlab("year")+
-  ylab("dissimilarity")+
-  ggtitle("SMR inside vs outside dissimilarity")+
-  theme_minimal()
+full_df <- rbind(CCFRP_mean_dist3, kelp_invalg_mean_dist3, 
+                 kelp_fish_mean_dist3, deep_reef_dist3, rocky_mean_dist3)
 
 
 
-#ggsave(here("analyses", "5community_climate_ecology", "figures", "ref_smr_annual_dissimilarity_all_years.png"), ref_smr_dissim, height=4, width = 8, units = "in", 
- #  dpi = 600, bg="white")
+CCFRP_stabil <- 
+  CCFRP_mean_dist3 %>%
+  filter(year>=2010)%>%
+  ggplot(aes(x = as.numeric(year), y = dissim))+
+  geom_point()+
+  geom_smooth(span=0.4, color='#5B5B5B')+
+  #scale_color_manual(values=c("#619CFF","#F8766D"))+
+  scale_x_continuous(breaks= scales::pretty_breaks())+
+  xlab("")+
+  ylab("")+
+  ggtitle("CCFRP")+
+  theme_bw(base_size=8)+
+  theme(legend.position="none",
+        axis.text.x = element_text(size=10),
+        axis.text.y = element_text(size=10))+
+  annotate("rect", xmin = 2014, xmax = 2016, ymin = -Inf, ymax = Inf,
+           alpha = .15, fill='red')
+#stat_poly_line(linetype="dashed") +
+#stat_poly_eq(aes(label = paste(after_stat(eq.label),
+# after_stat(rr.label), sep = "*\", \"*")))
+#stat_poly_line(linetype="dashed", data=sub, color="black")+
+#stat_poly_line(linetype="dashed", data=sub2, color="black")
+
+kelp_fish_stabil <- 
+  kelp_fish_mean_dist3 %>%
+  filter(year>=2010)%>%
+  ggplot(aes(x = as.numeric(year), y = dissim))+
+  geom_point()+
+  geom_smooth(span=0.4, color='#5B5B5B')+
+  #scale_color_manual(values=c("#619CFF","#F8766D"))+
+  theme_bw(base_size=8)+
+  scale_x_continuous(breaks= scales::pretty_breaks())+
+  theme(legend.position="none",
+        axis.text.x = element_text(size=10),
+        axis.text.y = element_text(size=10))+
+  xlab("")+
+  ylab("")+
+  ggtitle("kelp forest fish")+
+  annotate("rect", xmin = 2014, xmax = 2016, ymin = -Inf, ymax = Inf,
+           alpha = .15, fill='red')
+
+deep_reef_stabil <- 
+  deep_reef_dist3 %>%
+  filter(year>=2010)%>%
+  ggplot(aes(x = as.numeric(year), y = dissim))+
+  geom_point()+
+  geom_smooth(span=0.4, color='#5B5B5B')+
+  #scale_color_manual(values=c("#619CFF","#F8766D"))+
+  theme_bw(base_size=8)+
+  scale_x_continuous(breaks= scales::pretty_breaks())+
+  theme(legend.position="none",
+        axis.text.x = element_text(size=10),
+        axis.text.y = element_text(size=10))+
+  xlab("")+
+  ylab("")+
+  ggtitle("deep reef")+
+  annotate("rect", xmin = 2014, xmax = 2016, ymin = -Inf, ymax = Inf,
+           alpha = .15, fill='red')
+
+kelp_invalg_stabil <- 
+  kelp_invalg_mean_dist3 %>%
+  filter(year>=2010)%>%
+  ggplot(aes(x = as.numeric(year), y = dissim))+
+  geom_point()+
+  geom_smooth(span=0.4, color='#5B5B5B')+
+  #scale_color_manual(values=c("#619CFF","#F8766D"))+
+  theme_bw(base_size=8)+
+  scale_x_continuous(breaks= scales::pretty_breaks())+
+  theme(legend.position="none",
+        axis.text.x = element_text(size=10),
+        axis.text.y = element_text(size=10))+
+  xlab("")+
+  ylab("")+
+  ggtitle("kelp inverts and algae")+
+  annotate("rect", xmin = 2014, xmax = 2016, ymin = -Inf, ymax = Inf,
+           alpha = .15, fill='red')
+
+rocky_stabil <- 
+  rocky_mean_dist3 %>%
+  filter(year>=2010)%>%
+  ggplot(aes(x = as.numeric(year), y = dissim))+
+  geom_point()+
+  geom_smooth(span=0.4, color='#5B5B5B')+
+  #scale_color_manual(values=c("#619CFF","#F8766D"))+
+  theme_bw(base_size=8)+
+  scale_x_continuous(breaks= scales::pretty_breaks())+
+  theme(legend.position="none",
+        axis.text.x = element_text(size=10),
+        axis.text.y = element_text(size=10))+
+  xlab("")+
+  ylab("")+
+  ggtitle("rocky intertidal")+
+  annotate("rect", xmin = 2014, xmax = 2016, ymin = -Inf, ymax = Inf,
+           alpha = .15, fill='red')
+
+
+
+stability_fig <- ggarrange(CCFRP_stabil, kelp_fish_stabil, 
+                           deep_reef_stabil, kelp_invalg_stabil, rocky_stabil,
+                          align='h'
+) 
+
+stability_fig2<- annotate_figure(stability_fig,
+                                 bottom = text_grob("Year", color = "black",
+                                                    size = 12, vjust=-1),
+                                 left = text_grob("Annual MPA dissimilarity", rot=90, size=12, vjust=2)
+)
+
+
+#ggsave(here::here("analyses", "5community_climate_ecology", "figures", "stability_relative_to_2010.png"),
+#       stability_fig2, height=6, width = 8, units = "in", 
+#      dpi = 600, bg="white")
 
 
 
 
-# # MHW dissimilarity by MPA type -------------------------------- --------
-
-#CCFRP
-CCFRP_MHW_dist <- meandist(CCFRP_distmat, grouping = CCFRP_group_vars2$desig_state) #calculate mean dissim
-
-CCFRP_MHW_dist2 <- melt(CCFRP_MHW_dist) %>%#melt to three column columns
-  mutate(MPA_1 = gsub( " .*$", "", Var1), #create selection vars
-         MPA_2 = gsub( " .*$", "", Var2),
-         MHW_1 = sub("^\\S+\\s+", '', Var1),
-         MHW_2 = sub("^\\S+\\s+", '', Var2),
-         group="CCFRP") %>%
-  filter(MHW_1 == MHW_2 & MPA_1 !=MPA_2) %>% #drop matches
-  distinct(value, .keep_all=TRUE)%>% #grab distinct disimilarities
-  select(group, MHW = MHW_1, dissim = value)%>%
-  arrange(factor(MHW, levels = c('before','during','after')))
-
-#kelp_swath
-kelp_swath_MHW_dist <- meandist(kelp_swath_distmat, grouping = kelp_swath_group_vars2$desig_state) #calculate mean dissim
-
-kelp_swath_MHW_dist2 <- melt(kelp_swath_MHW_dist) %>%#melt to three column columns
-  mutate(MPA_1 = gsub( " .*$", "", Var1), #create selection vars
-         MPA_2 = gsub( " .*$", "", Var2),
-         MHW_1 = sub("^\\S+\\s+", '', Var1),
-         MHW_2 = sub("^\\S+\\s+", '', Var2),
-         group="kelp_swath") %>%
-  filter(MHW_1 == MHW_2 & MPA_1 !=MPA_2) %>% #drop matches
-  distinct(value, .keep_all=TRUE)%>% #grab distinct disimilarities
-  select(group, MHW = MHW_1, dissim = value)%>%
-  arrange(factor(MHW, levels = c('before','during','after')))
-
-
-#kelp_upc
-kelp_upc_MHW_dist <- meandist(kelp_upc_distmat, grouping = kelp_upc_group_vars2$desig_state) #calculate mean dissim
-
-kelp_upc_MHW_dist2 <- melt(kelp_upc_MHW_dist) %>%#melt to three column columns
-  mutate(MPA_1 = gsub( " .*$", "", Var1), #create selection vars
-         MPA_2 = gsub( " .*$", "", Var2),
-         MHW_1 = sub("^\\S+\\s+", '', Var1),
-         MHW_2 = sub("^\\S+\\s+", '', Var2),
-         group="kelp_upc") %>%
-  filter(MHW_1 == MHW_2 & MPA_1 !=MPA_2) %>% #drop matches
-  distinct(value, .keep_all=TRUE)%>% #grab distinct disimilarities
-  select(group, MHW = MHW_1, dissim = value)%>%
-  arrange(factor(MHW, levels = c('before','during','after')))
-
-#kelp_fish
-kelp_fish_MHW_dist <- meandist(kelp_fish_distmat, grouping = kelp_fish_group_vars2$desig_state) #calculate mean dissim
-
-kelp_fish_MHW_dist2 <- melt(kelp_fish_MHW_dist) %>%#melt to three column columns
-  mutate(MPA_1 = gsub( " .*$", "", Var1), #create selection vars
-         MPA_2 = gsub( " .*$", "", Var2),
-         MHW_1 = sub("^\\S+\\s+", '', Var1),
-         MHW_2 = sub("^\\S+\\s+", '', Var2),
-         group="kelp_fish") %>%
-  filter(MHW_1 == MHW_2 & MPA_1 !=MPA_2) %>% #drop matches
-  distinct(value, .keep_all=TRUE)%>% #grab distinct disimilarities
-  select(group, MHW = MHW_1, dissim = value)%>%
-  arrange(factor(MHW, levels = c('before','during','after')))
-
-#deep_reef
-deep_reef_MHW_dist <- meandist(deep_reef_distmat, grouping = deep_reef_group_vars2$desig_state) #calculate mean dissim
-
-deep_reef_MHW_dist2 <- melt(deep_reef_MHW_dist) %>%#melt to three column columns
-  mutate(MPA_1 = gsub( " .*$", "", Var1), #create selection vars
-         MPA_2 = gsub( " .*$", "", Var2),
-         MHW_1 = sub("^\\S+\\s+", '', Var1),
-         MHW_2 = sub("^\\S+\\s+", '', Var2),
-         group="deep_reef") %>%
-  filter(MHW_1 == MHW_2 & MPA_1 !=MPA_2) %>% #drop matches
-  distinct(value, .keep_all=TRUE)%>% #grab distinct disimilarities
-  select(group, MHW = MHW_1, dissim = value)%>%
-  arrange(factor(MHW, levels = c('before','during','after')))
-
-
-#rocky
-rocky_MHW_dist <- meandist(rocky_distmat, grouping = rocky_group_vars2$desig_state) #calculate mean dissim
-
-rocky_MHW_dist2 <- melt(rocky_MHW_dist) %>%#melt to three column columns
-  mutate(MPA_1 = gsub( " .*$", "", Var1), #create selection vars
-         MPA_2 = gsub( " .*$", "", Var2),
-         MHW_1 = sub("^\\S+\\s+", '', Var1),
-         MHW_2 = sub("^\\S+\\s+", '', Var2),
-         group="rocky") %>%
-  filter(MHW_1 == MHW_2 & MPA_1 !=MPA_2) %>% #drop matches
-  distinct(value, .keep_all=TRUE)%>% #grab distinct disimilarities
-  select(group, MHW = MHW_1, dissim = value)%>%
-  arrange(factor(MHW, levels = c('before','during','after')))
 
 
 
-
-#Join and plot
-
-MHW_df <- rbind(CCFRP_MHW_dist2, kelp_swath_MHW_dist2, kelp_upc_MHW_dist2, 
-                kelp_fish_MHW_dist2, deep_reef_MHW_dist2, rocky_MHW_dist2)
-
-MHW_df %>%
-  ggplot(aes(x=factor(MHW, level=c('before','during','after')), y=dissim, color=group, group=group))+
-  geom_point(aes(shape=group), size=4)+
-  geom_line( aes(color=group))+
-  #stat_summary(fun=mean, geom="line",colour="black")+
-  #annotate("rect", xmin = 2014, xmax = 2016, ymin = 0.35, ymax = 0.8,
-   #        alpha = .15, fill='red')+
-  xlab("year")+
-  ylab("dissimilarity")+
-  theme_minimal()
-
-
-
-#ggsave(here("analyses", "5community_climate_ecology", "figures", "ref_smr_annual_dissimilarity.png"), ref_smr_dissim, height=4, width = 8, units = "in", 
-#   dpi = 600, bg="white")
 
 
 
