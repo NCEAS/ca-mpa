@@ -641,7 +641,7 @@ stability_fig2<- annotate_figure(stability_fig,
 
 
 
-# calculate dist between centroids for each year ----------------------------------------
+# calculate vector dist between centroids for each year ------------------------
 
 # Question: how far did communities move regardless of MPA status?
 
@@ -683,28 +683,37 @@ kelp_swath$group <- c("kelp_swath")
 kelp_fish <- cenfun2(group=kelp_fish_group_vars, x=kelp_fish_distmat)
 kelp_fish$group <- c("kelp_fish")
 
+kelp_invalg <- cenfun2(group=kelp_invalg_group_vars, x=kelp_invalg_distmat)
+kelp_invalg$group <- c("kelp inverts and algae")
+
 deep_reef <- cenfun2(group=deep_reef_group_vars, x=deep_reef_distmat)
-deep_reef$group <- c("deep_reef")
+deep_reef$group <- c("deep reef")
 
 rocky <- cenfun2(group=rocky_group_vars, x=rocky_distmat)
-rocky$group <- c("rocky")
+rocky$group <- c("rocky intertidal")
 
-cen_distances <- rbind(ccfrp, kelp_upc, kelp_swath, kelp_fish, deep_reef, rocky)
+cen_distances <- rbind(ccfrp, kelp_invalg, kelp_fish, deep_reef, rocky)
 
+cen_distances <- cen_distances %>% 
+  group_by(centroid_2)%>%
+  dplyr::mutate(ymean = mean(distance))
 
 cen_annual_distance<- cen_distances %>%
   filter(centroid_2>=2010)%>%
   ggplot(aes(x=as.numeric(centroid_2), y=distance, color=group))+
   geom_point(alpha=0.4, aes(shape=group), size=3)+
   geom_line(alpha=0.4)+
-  stat_summary(fun=mean, geom="line",colour="black", size=1)+
-  annotate("rect", xmin = 2014, xmax = 2016, ymin = 0, ymax = 0.55,
+  geom_smooth(aes(y=ymean), span=0.4, color='black')+
+  #stat_summary(fun=mean, geom="line",colour="black", size=1)+
+  annotate("rect", xmin = 2014, xmax = 2016, ymin = 0, ymax = 0.35,
            alpha = .15, fill='red')+
-  xlab("year")+
-  ylab("distance")+
-  theme_minimal()+theme(aspect.ratio = 1/1.5)
+  xlab("Year")+
+  ylab("Distance")+
+  theme_minimal()+theme(aspect.ratio = 1/1.5
+                        )+
+  scale_x_continuous(breaks= scales::pretty_breaks())
 
-#ggsave(here("analyses", "5community_climate_ecology", "figures", "cen_annual_distances.png"), cen_annual_distance, height=4, width = 8, units = "in", 
+#ggsave(here::here("analyses", "5community_climate_ecology", "figures", "cen_annual_distances.png"), cen_annual_distance, height=4, width = 8, units = "in", 
 #   dpi = 600, bg="white")
 
 
@@ -756,6 +765,12 @@ kelp_upc_mpa <- cenfun3(kelp_upc_group_vars2, kelp_upc_distmat) %>%
          group="kelp_upc")%>%
   filter(year_1 == year_2)
 
+kelp_invalg_mpa <- cenfun3(kelp_invalg_group_vars2, kelp_invalg_distmat) %>%
+  mutate(year_1 = gsub( " .*$", "", centroid_1 ),
+         year_2 = gsub( " .*$", "", centroid_2),
+         group="kelp_upc")%>%
+  filter(year_1 == year_2)
+
 kelp_fish_mpa <- cenfun3(kelp_fish_group_vars2, kelp_fish_distmat) %>%
   mutate(year_1 = gsub( " .*$", "", centroid_1 ),
          year_2 = gsub( " .*$", "", centroid_2),
@@ -774,7 +789,7 @@ rocky_mpa <- cenfun3(rocky_group_vars2, rocky_distmat) %>%
          group="rocky_mpa")%>%
   filter(year_1 == year_2)
 
-all_mpa <- rbind(CCFRP_mpa, kelp_swath_mpa, kelp_upc_mpa,
+all_mpa <- rbind(CCFRP_mpa, kelp_invalg_mpa, 
                  kelp_fish_mpa, deep_reef_mpa, rocky_mpa)
 
 ref_smr_distance <- all_mpa %>%
