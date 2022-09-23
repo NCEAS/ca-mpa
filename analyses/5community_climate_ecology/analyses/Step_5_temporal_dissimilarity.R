@@ -83,13 +83,16 @@ colnames(rocky_df) <- c('year','dissim','group')
 
 full_df <- rbind(CCFRP_df,kelp_invalg_df, kelp_fish_df, deep_reef_df, rocky_df)
 
-full_df_2010 <- full_df %>% filter(as.numeric(year)>=2010)
+full_df_2010 <- full_df %>% filter(as.numeric(year)>=2010) %>%
+                group_by(year)%>%
+                dplyr::mutate(ymean=mean(dissim))
 
 dissim_plot <- full_df_2010 %>%
   ggplot(aes(x=as.numeric(year), y=dissim, color=group))+
   geom_point(alpha=0.4)+
   geom_line(alpha=0.4)+
-  stat_summary(fun=mean, geom="line",colour="black", size=1)+
+  geom_smooth(aes(y=ymean),span=0.4, color='black')+
+  #stat_summary(fun=mean, geom="line",colour="black", size=1)+
   annotate("rect", xmin = 2014, xmax = 2016, ymin = -Inf, ymax = Inf,
            alpha = .15, fill='red')+
   scale_x_continuous(breaks=2010:2020)+
@@ -103,7 +106,7 @@ dissim_plot <- full_df_2010 %>%
   xlab("Year")+
   ylab("Dissimilarity")
 
-#ggsave(here("analyses", "5community_climate_ecology", "figures", "annual_dissimilarity.png"), dissim_plot, height=4, width = 8, units = "in", 
+#ggsave(here::here("analyses", "5community_climate_ecology", "figures", "annual_dissimilarity.png"), dissim_plot, height=4, width = 8, units = "in", 
 #       dpi = 600, bg="white")
 
 
@@ -165,13 +168,16 @@ colnames(rocky_df) <- c('year','dissim','group')
 
 full_df <- rbind(CCFRP_df, kelp_invalg_df, kelp_fish_df, deep_reef_df, rocky_df)
 
-full_df_2010 <- full_df %>% filter(as.numeric(year)>=2010)
+full_df_2010 <- full_df %>% filter(as.numeric(year)>=2010) %>%
+  group_by(year)%>%
+  dplyr::mutate(ymean=mean(dissim))
 
 dissim_2010 <- full_df_2010 %>%
   ggplot(aes(x=as.numeric(year), y=dissim, color=group))+
   geom_point(alpha=0.4)+
   geom_line(alpha=0.4)+
-  stat_summary(fun=mean, geom="line",colour="black", size=1)+
+  geom_smooth(aes(y=ymean), span=0.4, color='black')+
+  #stat_summary(fun=mean, geom="line",colour="black", size=1)+
   annotate("rect", xmin = 2014, xmax = 2016, ymin = -Inf, ymax = Inf,
            alpha = .15, fill='red')+
   scale_x_continuous(breaks=2010:2020)+
@@ -185,7 +191,7 @@ dissim_2010 <- full_df_2010 %>%
         panel.border = element_blank(),
         text = element_text(size = 12))
 
-#ggsave(here("analyses", "5community_climate_ecology", "figures", "dissim_relative_to_2010.png"),
+#ggsave(here::here("analyses", "5community_climate_ecology", "figures", "dissim_relative_to_2010.png"),
 #       dissim_2010, height=4, width = 8, units = "in", 
 #       dpi = 600, bg="white")
 
