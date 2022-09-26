@@ -29,3 +29,6 @@ vignettes/*.pdf
 #MacOS
 .DS_Store
 pca-kf-new.R
+
+# Confidential data
+analyses/2performance_fisheries/analyses/lobster_logbooks/output
