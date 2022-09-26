@@ -50,9 +50,6 @@ deep_reef_cen <- deep_reef %>% filter(region4=='central') %>%
 rocky_cen <- rocky %>% filter(region4=='central') %>%
   select(where(~ any(. != 0)))
 
-
-
-
 ```
 
 #============================= Step 3 ========================================#
@@ -67,7 +64,8 @@ kelp_swath_stan <- decostand(kelp_swath_cen[25:102], method="max",
 nrow(kelp_swath_cen) #check length
 nrow(kelp_swath_stan) #check length
 
-kelp_swath_stan1 <- cbind(kelp_swath_cen[1:24],kelp_swath_stan)
+kelp_swath_stan1 <- cbind(kelp_swath_cen[1:24],kelp_swath_stan)%>%
+                    select(!c('dictyoneurum_californicum_reticulatum'))
 
 
 
@@ -79,7 +77,11 @@ kelp_upc_stan <- decostand(kelp_upc_cen[25:79], method="max",
 nrow(kelp_upc_cen) #check length
 nrow(kelp_upc_stan) #check length
 
-kelp_upc_stan1 <- cbind(kelp_upc_cen[1:24],kelp_upc_stan)
+kelp_upc_stan1 <- cbind(kelp_upc_cen[1:24],kelp_upc_stan) %>%
+                  select(!c('macrocystis_pyrifera',
+                       'stylaster_californicus',
+                      'macrocystis_pyrifera',
+                       'stephanocystis_osmundacea')) #remove UPC species that are recorded by swath
 
 
 
@@ -104,6 +106,26 @@ kelp_check <-  anti_join(kelp_swath_stan1, kelp_upc_stan2, by=c("year",
                                                               "MHW",
                                                               "mpa_defacto_designation"))
 
+#drop higher order taxa that might include duplicates
+kelp_stan <- kelp_stan %>% 
+             select(!(c('apostichopus',
+                        'anthopleura',
+                        'asteroidea',
+                        'haliotis',
+                        'laminaria',
+                        'laminariales',
+                       'pisaster',
+                       'pugettia_spp',
+                       'stylasterias_forreri',
+                       'urticina',
+                        'urticina_columbiana',
+                        'urticina_columbiana_mcpeaki',
+                       'red_alga_with_cylindrical_branches_definition_used_in_2000',
+                       'ucsc_2000_definition_of_other_red_included_all_red_algae_except_rhospp_bushy_leafy_crucor_and_erecor',
+                       'ucsb_2000_definition_of_other_red_included_all_red_algae_except_rhospp_bushy_leafy_crucor_and_erecor',
+                       'sargassum')))
+
+
 #path_aurora <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/ecological_community_data/year_level_with_envr_vars"  
 #write.csv(kelp_stan, file.path(path_aurora, "kelp_swath_upc_mpa_year.csv"), row.names = FALSE)
 ```
@@ -122,7 +144,11 @@ CCFRP_process <- CCFRP_cen %>%
   dplyr::select(-sum)%>%
   mutate(desig_state = paste(mpa_designation,MHW))%>%
   dplyr::select(desig_state, everything())%>%
-  arrange(year, desig_state) #remove rows containing only zeros
+  arrange(year, desig_state)%>% #remove rows containing only zeros
+  select(!(c('mackerel_family_scombridae',
+             'un_id_blue_rockfish',
+             'unknown',
+             'unknown_rockfish')))#drop species
 
 #define grouping vars
 CCFRP_group_vars <- CCFRP_process %>%
@@ -148,7 +174,7 @@ CCFRP_distmat <- vegdist(CCFRP_rel, method = "bray", na.rm=T)
 
 kelp_invalg <- kelp_combined %>%
                   dplyr::select(-bare_rock,
-                                -bare_sand, -shell_debris, -group.y, group=group.x)%>%
+                                -bare_sand, -shell_debris, -group.y, group=group.x)%>% #drop species recorded on both surveys
                   mutate(desig_state = paste(mpa_defacto_designation,MHW))%>%
                   dplyr::select(desig_state, everything())%>%
                   filter(mpa_defacto_designation=="smr" | mpa_defacto_designation=="ref")#drop sum columns and non-species categories
@@ -187,8 +213,11 @@ kelp_fish <- kelp_fish_cen %>%
                   dplyr::select(-sum) %>%
                   mutate(desig_state = paste(mpa_defacto_designation,MHW))%>%
                   dplyr::select(desig_state, everything())%>%
-                  filter(mpa_defacto_designation=="smr" | mpa_defacto_designation=="ref")#drop sum columns and non-species categories  #drop sum columns and non-species categories
-             
+                  filter(mpa_defacto_designation=="smr" | mpa_defacto_designation=="ref")%>%#drop sum columns and non-species categories  
+                  select(!c('anisotremus_davidsonii',
+                            'cheilotrema_saturnum',
+                            'citharichthys',
+                            'unidentified_fish'))
 
 #define grouping vars
 kelp_fish_group_vars <- kelp_fish %>%
@@ -300,8 +329,9 @@ deep_reef <- deep_reef_cen %>%
                                 ))%>%
                   mutate(desig_state = paste(mpa_defacto_designation,MHW))%>%
                   dplyr::select(desig_state, everything())%>%
-                  filter(mpa_defacto_designation=="smr" | mpa_defacto_designation=="ref") #drop sum columns and non-species categories
-
+                  filter(mpa_defacto_designation=="smr" | mpa_defacto_designation=="ref")%>% #drop sum columns and non-species categories
+                  select(!(c('sebastes_goodei',
+                             'zaniolepis_frenata_or_latipinnis')))
 #define grouping vars
 deep_reef_group_vars <- deep_reef%>%
                     dplyr::select(1:10)
@@ -378,13 +408,13 @@ rocky_distmat <-
 #data_path <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/ecological_community_data/year_level_with_envr_vars"
 #save(CCFRP_envr_vars,kelp_invalg_envr_vars,kelp_fish_envr_vars,
 #     kelp_swath_envr_vars, kelp_upc_envr_vars,
-#  deep_reef_envr_vars,
+#  deep_reef_envr_vars, rocky_envr_vars,
 #    file = file.path(data_path, "envr_vars.rda"))
 
 #save distance matrices
 #data_path <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/ecological_community_data/year_level_with_envr_vars"
 #save(CCFRP_distmat,kelp_invalg_distmat,kelp_fish_distmat,
-#     kelp_swath_distmat, kelp_upc_distmat,
+#    kelp_swath_distmat, kelp_upc_distmat,
 #     deep_reef_distmat,rocky_distmat,
 #    file = file.path(data_path, "distance_matrices_BC.rda"))
 ```
@@ -442,7 +472,7 @@ message("Done processing rocky_ord")
 #save(CCFRP_ord, kelp_invalg_ord, kelp_fish_ord, deep_reef_ord, rocky_ord, file = file.path(data_path, "bray_nmds_scores.rda"))
 
 #data_path <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/ecological_community_data/year_level_with_envr_vars"
-#save(CCFRP_en, kelp_invalg_en, kelp_fish_en, deep_reef_en, rocky_ord, file = file.path(data_path, "env_fit_scores.rda"))
+#save(CCFRP_en, kelp_invalg_en, kelp_fish_en, deep_reef_en, rocky_en, file = file.path(data_path, "env_fit_scores.rda"))
 
 ```
 
