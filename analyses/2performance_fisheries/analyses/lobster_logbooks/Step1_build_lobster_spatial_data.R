@@ -29,6 +29,9 @@ mpas <- wcfish::mpas_ca %>%
 utm11 <- "+proj=utm +zone=11 +datum=NAD83"
 
 
+# Things to do
+# 1) Mark points INSIDE MPAs
+
 # Learned from this
 # 1) Some logbooks have XY but no logbook id - should we assign block id to these?
 # 2) Some logbooks have INVALID block ids that might be able to be udpated based on location NAME
@@ -171,7 +174,7 @@ g <- ggplot() +
   # Plot MPAs
   geom_sf(data=mpas, fill="red", color=NA, alpha=0.6) +
   # Labels
-  labs(x="", y="", tag="C") +
+  labs(x="", y="") +
   # Axes
   # scale_y_continuous(breaks=32:42) +
   # Crop
@@ -231,4 +234,55 @@ data_xy2 <- data_xy1 %>%
 
 # Save data
 saveRDS(data_xy2, file=file.path(outdir, "CDFW_2017_2020_lobster_logbook_data_w_latlong.Rds"))
+
+
+
+
+# Plot nearest MPA
+################################################################################
+
+# Logbooks use
+data <- data_xy2 %>% 
+  filter(reliable_yn=="yes")
+
+# MPAs use
+close_mpas <- unique(data$mpa)
+mpas_use <- mpas %>% 
+  filter(name %in% close_mpas)
+
+
+
+# Plot data
+g <- ggplot() +
+  # Plot blocks
+  geom_sf(data=blocks, color="grey60", fill=NA, lwd=0.1) +
+  # Plot land
+  geom_sf(data=foreign, fill="grey80", color="white", lwd=0.3) +
+  geom_sf(data=usa, fill="grey80", color="white", lwd=0.3) +
+  # Plot points
+  geom_point(data=data , mapping=aes(x=long_dd, y=lat_dd, color=mpa), 
+             pch=21, size=0.8, alpha=0.3) +
+  # Plot MPAs
+  geom_sf(data=mpas_use, mapping=aes(fill=name), color="grey30", lwd=0.1) +
+  # Labels
+  labs(x="", y="") +
+  # Axes
+  # scale_y_continuous(breaks=32:42) +
+  # Crop
+  coord_sf(xlim = c(-120.5, -117), ylim = c(32.3, 34.5)) +
+  # Theme
+  theme_bw() + my_theme +
+  theme(legend.position = "none")
+g
+
+# Export plot
+ggsave(g, filename=file.path(plotdir, "FigX_reliable_lobster_xy_data_zoom_near_mpa.png"), 
+       width=6.5, height=5, units="in", dpi=600)
+
+
+
+
+
+
+
 
