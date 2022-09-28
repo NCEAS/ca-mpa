@@ -334,19 +334,18 @@ ggsave(s3, filename=file.path(plot.dir, "shoreline_amount.png"),
 
 # Generate Statewide/Regional Totals -------------------------------------------
 # Try again
-att_state <- att_raw %>% 
-  filter(mpa_habitat_type == "Coastal") %>% 
+att_state <- data3 %>% 
   select(all_of(area_habitats), all_of(linear_habitats)) %>% 
   pivot_longer(everything(), 
                names_to = "habitat",
                values_to = "habitat_amount") %>% 
   group_by(habitat) %>% 
-  summarize(att_coastal = sum(habitat_amount, na.rm = TRUE))
+  summarize(att_total = sum(habitat_amount, na.rm = TRUE))
 
 
 
-att_state <- data3 
-  group_by(habitat, habitat_type, mpa_habitat_type) %>% 
+att_state <- data3 %>% 
+  group_by(habitat) %>% 
   summarize(att_total = sum(habitat_amount, na.rm = T))
 
 att_region <- data3 %>% 

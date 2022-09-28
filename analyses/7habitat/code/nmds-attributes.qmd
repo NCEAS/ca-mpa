@@ -46,7 +46,7 @@ area_habitats <- c("hard_substrate_0_30m_km2_comb",
                    "max_kelp_canopy_cdfw_km2")
 ```
 
-## Drop Incomplete Data
+## Drop Wrong Data
 
 ```{r}
 att_raw <- att_raw %>% 
@@ -65,7 +65,7 @@ nmds_meta <- att_raw %>%
   select(name, bioregion, four_region_north_ci, mpa_habitat_type) 
 
 nmds_data <- att_raw %>% 
-  #filter(!(mpa_habitat_type == "Estuary")) %>% 
+  filter((mpa_habitat_type == "Coastal")) %>% 
   select(name, 
          #size_km2, 
          all_of(area_habitats), all_of(linear_habitats)) %>% 
@@ -218,11 +218,11 @@ ggplot(nmds_df, aes(x = NMDS1, y = NMDS2)) +
             linetype = 5) + 
   # Vectors
   geom_segment(data = fit_att, 
-               aes(x = 0, xend = NMDS1*0.75, y = 0, yend = NMDS2*0.75),
+               aes(x = 0, xend = NMDS1*0.8, y = 0, yend = NMDS2*0.8),
                arrow = arrow(length = unit(0.25, "cm")), col = "black") +
   #  Vector Labels
   geom_text(data = fit_att, 
-            aes(x = NMDS1*0.8, y = NMDS2*0.8, label = att_label), size = 3) +
+            aes(x = NMDS1*0.75, y = NMDS2*0.75, label = att_label), size = 3) +
   # Formatting
   coord_fixed() +
   scale_x_continuous(limits = c(-0.7, 0.75), expand = c(0,0)) +
@@ -305,13 +305,13 @@ ggplot(nmds_df, aes(x = NMDS1, y = NMDS2)) +
             linetype = 5) + 
   # Vectors
   geom_segment(data = fit_att, 
-               aes(x = 0, xend = NMDS1*10.55, y = 0, yend = NMDS2*10.55),
+               aes(x = 0, xend = NMDS1*0.6, y = 0, yend = NMDS2*0.6),
                arrow = arrow(length = unit(0.25, "cm")), col = "black") +
   #  Vector Labels
   geom_text(data = fit_att, 
-            aes(x = NMDS1*10.6, y = NMDS2*10.6, label = att_label), size = 3) +
+            aes(x = NMDS1*0.65, y = NMDS2*0.65, label = att_label), size = 3) +
   scale_color_manual(values = c("purple", "orange", "green4", "blue")) +
-  #scale_x_continuous(limits = c(-0.5, 0.6), expand = c(0,0)) +
+  scale_x_continuous(limits = c(-0.55, 0.55), expand = c(0,0)) +
   # Formatting
   coord_fixed() +
   labs(color = "",
@@ -339,6 +339,7 @@ dismat <- vegdist(nmds_data, method = "euclidean")
 disper <- betadisper(dismat, type = "centroid", 
                      group = nmds_meta$mpa_habitat_type[nmds_meta$name %in% rownames(nmds_data)])
 plot(disper)
+disper
 
 # Test for differences in dispersion for the regions
 test <- permutest(disper)
@@ -407,8 +408,10 @@ test_4bio <- permutest(disper_4bio)
 test_4bio
 
 # Difference among groups (regions)
+set.seed(3421)
 permanova_4bio <- adonis2(formula = dismat ~ four_region_north_ci, 
                      mwrhos = "euclidean",
+                     permutations = 2000,
                      data = nmds_meta[nmds_meta$name %in% rownames(nmds_data),])
 
 pairwise <- pairwise.adonis(x = dismat,
@@ -416,3 +419,6 @@ pairwise <- pairwise.adonis(x = dismat,
 
 pairwise
 ```
+
+
+
