@@ -21,17 +21,20 @@ data_orig <- readRDS(file=file.path(datadir, "CA_MPA_human_use_indicators.Rds"))
 # Build data
 ################################################################################
 
+# MPAs of interest
+types_use <- c("SMR", "SMCA", "SMCA (No-Take)", "SMP")
+
 # Indicators of interest
 head(data_orig)
 indicators_use <- c("npeople_50km", 
-                    #"nonconsump_hr", "consump_hr", 
+                    # "nonconsump_hr", "consump_hr", 
                     "inat_observers_n", "ebird_observers_n", "reef_n",
                     "permits_n", "citations_n")
 
 # Build data
 data <- data_orig %>% 
   # Reduce to MPAs of interest
-  filter(mlpa=="MLPA") %>% 
+  filter(type %in% types_use) %>% 
   # Recode region
   # mutate(region=plyr::revalue(region, c("San Francisco Bay"="North Central Coast"))) %>% 
   # Gather indicators
@@ -101,21 +104,21 @@ my_theme <-  theme(axis.text=element_text(size=7),
                    legend.background = element_rect(fill=alpha('blue', 0)))
 
 # Plot data
-g <- ggplot(data_ind, aes(x=rank, y=value_cum_prop, color=indicator)) +
+g <- ggplot(data_ind, aes(x=rank_perc, y=value_cum_prop, color=indicator)) +
   # Indicator lines
   geom_line() +
   # Reference lines
-  geom_line(data=data_ref, aes(x=rank, y=value_cum_prop, linetype=indicator, size=indicator), inherit.aes = F) +
+  geom_line(data=data_ref, aes(x=rank_perc, y=value_cum_prop, linetype=indicator, size=indicator), inherit.aes = F) +
   # Reference labels
-  annotate(geom="text", x=12, y=0.9, label="More selective\nusers", hjust=0.5, size=2.7, color="grey60") +
-  annotate(geom="text", x=58, y=0.6, label="Less selective\nusers", hjust=0.5, size=2.7, color="grey60") +
+  annotate(geom="text", x=0.1, y=0.9, label="More selective\nusers", hjust=0.5, size=2.7, color="grey60") +
+  annotate(geom="text", x=0.47, y=0.6, label="Less selective\nusers", hjust=0.5, size=2.7, color="grey60") +
   # Labels
-  labs(x="MPA engagement rank\n(largest to smallest contributer to network-wide engagement)", 
+  labs(x="Standardized rank order\nof an MPA's contribution to network-wide engagement", 
        y="Percent of\nnetwork-wide engagement") +
-  scale_x_continuous(breaks=c(1, seq(20,100,20), max(data_ind$rank))) +
+  # scale_x_continuous(labels=scales::percent) +
   scale_y_continuous(labels=scales::percent) +
   # Legend
-  scale_color_discrete(name="Human use indictor") +
+  scale_color_discrete(name="Human use indictor\n(decreasing selectivity)") +
   scale_linetype_manual(name="Reference indicator", values=c("dashed", "dotted")) +
   scale_size_manual(name="", guide="none", values=c(0.8, 1.0)) +
   # Theme
