@@ -30,7 +30,7 @@ data2 <- data %>% filter(reliable_yn == "yes")
 
 
 
-# -------------------------------------------------------------------------
+################################################################################
 # Examine percent fishing at MPAs BEFORE implementation -------------------
 
 
@@ -60,13 +60,13 @@ effort_data_pre1 <- left_join(effort_data_pre, perc_landings, by="inside_pre")%>
                   pivot_longer(names_to="measure", cols=c('time (hours)',
                                                           'fleet',
                                                           'catch'))%>%
-                  select('Location'='inside_pre','measure','percent'='value')%>%
-                  mutate(Location = fct_recode(Location, "inside"="yes"),
-                         Location = fct_recode(Location, "outside"="no"))
+                  select('MPA'='inside_pre','measure','percent'='value')%>%
+                  mutate(MPA = fct_recode(MPA, "inside"="yes"),
+                         MPA = fct_recode(MPA, "outside"="no"))
   
 #plot
 p <- effort_data_pre1%>%
-     ggplot(aes(x=measure, y=percent, fill=Location))+
+     ggplot(aes(x=measure, y=percent, fill=MPA))+
      geom_bar(stat="identity", width=0.5, position="dodge")+
      scale_fill_manual(values=c('#00BFC4','#F8766D'))+
      ylab("Percent of total")+
@@ -76,10 +76,12 @@ p <- effort_data_pre1%>%
 p
 
 
+#ggsave(p, filename=file.path(plotdir, "FigX_percent_effort.png"), 
+#       width=6.5, height=3.7, units="in", dpi=600)
 
 
 
-# -------------------------------------------------------------------------
+################################################################################
 # Examine CPUE at MPAs BEFORE implementation -------------------
 
 
@@ -114,6 +116,24 @@ p <- CPUE%>%
   coord_flip()+
   theme_bw()
 p
+
+
+#ggsave(p, filename=file.path(plotdir, "FigX_cpue_pre_MPA.png"), 
+#       width=6, height=4, units="in", dpi=600)
+
+################################################################################
+# Examine CPUE over time
+
+
+
+
+
+
+
+
+
+
+
 
 
 
