@@ -12,7 +12,7 @@ require(sf)
 require(ggplot2)
 
 # Directories
-plotdir <- "analyses/2performance_fisheries/analyses/dive_logbooks/figures" 
+plotdir <- "analyses/2performance_fisheries/analyses/dive_logbooks/output/figures" 
 outdir <- "analyses/2performance_fisheries/analyses/dive_logbooks/output"
 
 # Read logbook data
@@ -165,8 +165,8 @@ g3
 g <- gridExtra::grid.arrange(g1, g2, g3, nrow=1)
 g
 
-
-
+#ggsave(g, filename=file.path(plotdir, "FigX_reliable_data.png"), 
+#      width=6.5, height=3.7, units="in", dpi=600)
 
 
 # Plot data (zoom)
@@ -183,7 +183,7 @@ g <- ggplot() +
   geom_point(data=data_xy1 %>% filter(reliable_yn=="yes"), mapping=aes(x=long_dd, y=lat_dd), 
              pch=21, size=0.8, alpha=0.3, color="grey30") +
   # Plot MPAs
-  geom_sf(data=mpas, fill="red", color=NA, alpha=0.6) +
+  geom_sf(data=mpas, fill="red", color=NA, alpha=0.4) +
   # Labels
   labs(x="", y="") +
   # Axes
@@ -194,7 +194,8 @@ g <- ggplot() +
   theme_bw() + my_theme
 g
 
-
+#ggsave(g, filename=file.path(plotdir, "FigX_zoom_data_raw.png"), 
+#      width=6, height=4, units="in", dpi=600)
 
 
 
@@ -279,7 +280,8 @@ g <- ggplot() +
   theme(legend.position = "none")
 g
 
-
+#ggsave(g, filename=file.path(plotdir, "FigX_nearest_mpa.png"), 
+#      width=6, height=4, units="in", dpi=600)
 
 
 # Assign to pre-post implementation and location
