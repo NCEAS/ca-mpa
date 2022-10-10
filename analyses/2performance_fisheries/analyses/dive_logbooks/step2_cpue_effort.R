@@ -61,7 +61,7 @@ perc_fleet <- data2 %>%
              distinct(inside_pre, fisher_id)%>%
              group_by(inside_pre)%>%
              summarize(perc = n())%>%
-             mutate('fleet'= perc /sum(perc)*100)
+             mutate('fleet effort'= perc /sum(perc)*100)
 
 perc_landings <- data2 %>%
             filter(mpa_period == "pre")%>%
@@ -79,7 +79,7 @@ angler_hours <- data2 %>%
 effort_data_pre <- left_join(perc_time, perc_fleet, by="inside_pre")
 effort_data_pre1 <- left_join(effort_data_pre, perc_landings, by="inside_pre")%>%
                   pivot_longer(names_to="measure", cols=c('dive time (hours)',
-                                                          'fleet',
+                                                          'fleet effort',
                                                           'total landings (pounds)'))%>%
                   select('MPA'='inside_pre','measure','percent'='value')%>%
                   mutate(MPA = fct_recode(MPA, "inside pre-imp."="yes"),
@@ -88,7 +88,7 @@ effort_data_pre1 <- left_join(effort_data_pre, perc_landings, by="inside_pre")%>
 effort_data_pre1$measure <- factor(effort_data_pre1$measure,
                                    level=c('total landings (pounds)',
                                            'dive time (hours)',
-                                           'fleet'))
+                                           'fleet effort'))
 
 #plot
 p <- effort_data_pre1%>%
@@ -104,8 +104,8 @@ p <- effort_data_pre1%>%
 p
 
 
-ggsave(p, filename=file.path(plotdir, "FigX_percent_effort.png"), 
-       width=6.5, height=4, units="in", dpi=600)
+#ggsave(p, filename=file.path(plotdir, "FigX_percent_effort.png"), 
+#       width=6.5, height=4, units="in", dpi=600)
 
 
 
