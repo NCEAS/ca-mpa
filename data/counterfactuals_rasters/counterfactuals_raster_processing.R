@@ -46,11 +46,43 @@ beach_parking_epsg3309 <- st_transform(beach_parking, crs=st_crs(bathy))
 access_processed_dir <- file.path("access_points","processed")
 dir.create(file.path(data_path, access_processed_dir), showWarnings = FALSE)
 
-distance_public_access_points <- terra::distance(aoi, vect(beach_parking_epsg3309))
+distance_public_access_points <- terra::distance(aoi, vect(beach_parking_epsg3309),
+                                                 filename = file.path(data_path, access_processed_dir,"distance_public_access_points.tif"),
+                                                 overwrite = TRUE)
 
 # mask land
 mask(distance_public_access_points, vect(ca_state_epsg3309), inverse = TRUE, touches = FALSE, 
-     filename = file.path(data_path, access_processed_dir,"distance_public_access_points.tif"),
+     filename = file.path(data_path, access_processed_dir,"distance_public_access_points_masked.tif"),
+     overwrite = TRUE)
+
+
+#### Number of beach access within 500m ####
+
+# compute distance raster from public beach access point
+rast_beach <- terra::rasterize(vect(beach_parking_epsg3309), aoi, fun = length)
+
+### set up focal matrix - weight of 1 within 500m, 0 outside -- 200m raster resolution => 3 pixels
+focal_rad <- 3
+focal_dia <- focal_rad*2+1
+focal_mtx <- matrix(nrow = focal_dia, ncol = focal_dia)
+for(i in 1:focal_dia) {
+  for(j in 1:focal_dia) {
+    ### i <- 1; j <- 1
+    r_from_center <- sqrt((i - (focal_rad + 1))^2 + (j - (focal_rad + 1))^2)
+    focal_mtx[i, j] <- ifelse(r_from_center < focal_rad, 1, 0)
+  }
+}
+
+### Calculate focal sum of population (or pop density, for equal area
+### there is no meaningful difference when rescaling anyway)
+number_public_access_points <- focal(rast_beach, w = focal_mtx, fun = sum, na.rm = TRUE, 
+                     progress = 'text',
+                     filename = file.path(data_path, access_processed_dir, "number_public_access_points_500m.tif"),
+                     overwrite = TRUE)
+
+# mask land
+mask(number_public_access_points, vect(ca_state_epsg3309), inverse = TRUE, touches = FALSE, 
+     filename = file.path(data_path, access_processed_dir,"number_public_access_points_500m_masked.tif"),
      overwrite = TRUE)
 
 
@@ -70,11 +102,13 @@ entry_processed_dir <- file.path("ca_state_park","entry_points","processed")
 dir.create(file.path(data_path, entry_processed_dir), showWarnings = FALSE)
 
 # compute distance raster from public beach access point
-distance_park_entry_points <- terra::distance(aoi, vect(park_entry_epsg3309))
+distance_park_entry_points <- terra::distance(aoi, vect(park_entry_epsg3309),
+                                              filename = file.path(data_path, access_processed_dir,"distance_park_entry_points.tif"),
+                                              overwrite = TRUE)
 
 # mask land
 mask(distance_park_entry_points, vect(ca_state_epsg3309), inverse = TRUE, touches = FALSE, 
-     filename = file.path(data_path, access_processed_dir,"distance_park_entry_points.tif"),
+     filename = file.path(data_path, access_processed_dir,"distance_park_entry_points_masked.tif"),
      overwrite = TRUE)
 
 
@@ -99,11 +133,13 @@ dist_shore <- rast(file.path(data_path, dist_shore_geotiff))
 coastline_processed_dir <- file.path("gis_data","processed")
 dir.create(file.path(data_path, coastline_processed_dir), showWarnings = FALSE)
 
-dist_shore_ca <- project(dist_shore, aoi)
+dist_shore_ca <- project(dist_shore, aoi,
+                         filename = file.path(data_path, coastline_processed_dir,"distance_coastline.tif"),
+                         overwrite = TRUE)
 
 # Mask
 mask(dist_shore_ca, vect(ca_state_epsg3309), inverse = TRUE, touches = FALSE, 
-     filename = file.path(data_path, coastline_processed_dir,"distance_coastline.tif"),
+     filename = file.path(data_path, coastline_processed_dir,"distance_coastline_masked.tif"),
      overwrite = TRUE)
 
 
@@ -122,12 +158,14 @@ data_inat_sf_obs <- data_inat_sf %>%
   mutate(presence = 1) %>%
   select(presence)
 
-inat_count <- rasterize(vect(data_inat_sf_obs), aoi, fun=sum)
+inat_count <- rasterize(vect(data_inat_sf_obs), aoi, fun=sum,
+                        filename = file.path(data_path, inat_path, "inat_count_raster.tif"),
+                        overwrite = TRUE)
 
 
 # Mask
 mask(inat_count, vect(ca_state_epsg3309), inverse = TRUE, touches = FALSE, 
-     filename = file.path(data_path, inat_path, "inat_count_raster.tif"),
+     filename = file.path(data_path, inat_path, "inat_count_raster_masked.tif"),
      overwrite = TRUE)
 
 
@@ -141,8 +179,14 @@ tract_data <- readRDS(file.path(popdir, "CA_2010_census_tot_pop_by_tract.Rds")) 
   filter(!is.na(npeople)) %>%
   st_transform(crs=st_crs(aoi))
 
+# Compute the number of people per pixel (200m*200m)
+tract_data <- tract_data %>% 
+  mutate(people_pixel = people_sqkm*0.2*0.2)
+
 # rasterize the polygons to our bathy grid
-tract_data_ras <- terra::rasterize(vect(tract_data), aoi, field="people_sqkm", fun="first")
+tract_data_ras <- terra::rasterize(vect(tract_data), aoi, field="people_pixel", fun=mean,
+                                   filename = file.path(popdir, "counterfactuals_population_density_200m.tif"),
+                                   overwrite = TRUE)
 
 
 # Adapted from OHI: https://github.com/mapping-marine-spp-vuln/spp_vuln_mapping/blob/master/1_setup/stressors/7_process_other_stressors.Rmd#L231-L314
@@ -168,7 +212,7 @@ focal_pop_r <- focal(tract_data_ras, w = focal_mtx, fun = sum, na.rm = TRUE,
 
 # Mask
 mask(focal_pop_r, vect(ca_state_epsg3309), inverse = TRUE, touches = FALSE, 
-     filename = file.path(popdir, "counterfactuals_population_density_50km.tif"),
+     filename = file.path(popdir, "counterfactuals_population_density_50km_masked.tif"),
      overwrite = TRUE)
 
 
