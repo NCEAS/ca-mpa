@@ -14,10 +14,39 @@ require(ggplot2)
 # Directories
 plotdir <- "analyses/2performance_fisheries/analyses/dive_logbooks/output/figures" 
 outdir <- "analyses/2performance_fisheries/analyses/dive_logbooks/output"
+shp_dir <- "/Users/Joshua/Documents/Research/Postdoc/NCEAS/Project files/Data/spatial_dat/"
 
 # Read logbook data
 data_orig <- readRDS("/Users/Joshua/Documents/Research/Postdoc/NCEAS/Project files/GitHub/ca-mpa/analyses/2performance_fisheries/analyses/dive_logbooks/output/data/CDFW_2000_2020_dive_logbooks_processed.Rds")
 
+#read spatial dat
+#read spatial data
+island_buff <- st_read(file.path(shp_dir,"islands_1nm_poly/wk478kp5122.shp"))%>%
+  mutate(land_name = ifelse(id=="0","San Miguel",
+                            ifelse(id=="1","Santa Rosa",
+                                   ifelse(id=="2", "Santa Cruz",
+                                          ifelse(id=="3", "Anacapa",
+                                                 ifelse(id=="4", "San Nicolas",
+                                                        ifelse(id=="5", "Santa Barbara",
+                                                               ifelse(id=="6", "Santa Catalina",
+                                                                      ifelse(id=="7", "San Clemente","")))))))))
+
+CA_buff <- st_read(file.path(shp_dir,"CA_1nm_poly/jf154jt0733.shp"))%>%
+  mutate(land= "Mainland",
+         id="8")%>%
+  dplyr::select(id, bufferdist="dist1nmi_i",geometry,land_name='land')%>%
+  relocate(id, bufferdist,geometry,land_name)
+
+land_poly <- rbind(island_buff, CA_buff)
+
+
+# MPAs
+mpas <- wcfish::mpas_ca %>% 
+  sf::st_as_sf() %>% 
+  filter(type!="SMP")
+
+#buid data
+################################################################################
 
 #Step 1 - calculate CPUE as catch pound per hour
 
@@ -27,6 +56,11 @@ data <- data_orig %>%
 #Step 2 - filter only reliable data
 
 data2 <- data %>% filter(reliable_yn == "yes")
+
+data3 <- do.call(data.frame,                      # Replace Inf in data by NA
+                 lapply(data2,
+                        function(x) replace(x, is.infinite(x), NA))) %>%
+  sf::st_as_sf(coords=c("long_dd", "lat_dd"), crs=sf::st_crs(mpas), remove=F)
 
 my_theme <-  theme(axis.text=element_text(size=6),
                    axis.title=element_text(size=8),
@@ -43,7 +77,33 @@ my_theme <-  theme(axis.text=element_text(size=6),
                    # Legend
                    legend.background = element_rect(fill=alpha('blue', 0)))
 
+#Step 3 - determine no. of MPAs for each island
 
+mpa_assign <- st_join(land_poly, mpas)%>%
+              filter(region=='SCSR')%>%
+              select(land_name, mpa_name='name',type)
+
+sc <- land_poly %>% filter(land_name=='San Clemente' | land_name == "San Nicolas") %>% mutate(n_mpa = 0)%>%
+              select(land_name, n_mpa, geometry)
+n_mpas <- mpa_assign %>%
+          group_by(land_name, .drop=FALSE)%>%
+          summarise(n_mpa = n())%>%
+          rbind(sc)
+  
+fish_location1 <- st_join(data3, land_poly)
+    
+
+catch_summary <- fish_location1 %>%
+                  group_by(land_name)%>%
+                  summarize(n_dives = n(),
+                            avg_cpue = mean(cpue, na.rm=TRUE),
+                            sd_cpue = sd(cpue, na.rm=TRUE),
+                            se_cpue = sd_cpue/sqrt(n_dives))%>%
+                  mutate(total_dives = sum(n_dives),
+                         proportion_dives = n_dives/total_dives*100)
+
+catch_summary1 <- st_join(catch_summary, n_mpas) %>%
+                  select(!(land_name.y),land_name='land_name.x')
 
 ################################################################################
 # Examine percent fishing at MPAs BEFORE implementation -------------------
@@ -149,6 +209,8 @@ p
 #ggsave(p, filename=file.path(plotdir, "FigX_cpue_pre_MPA.png"), 
 #       width=6, height=4, units="in", dpi=600)
 
+
+
 ################################################################################
 # Examine CPUE over time
 
@@ -157,10 +219,36 @@ p
 
 
 
+# percent effort by location
+################################################################################
+
+plot_sum <- catch_summary1 %>%
+            filter(!(land_name=='NA'),)%>%
+            select(land_name, "mean cpue"=avg_cpue, se_cpue, "proportion dives"=proportion_dives, n_mpa)%>%
+            pivot_longer(cols=c('mean cpue','proportion dives'))%>%
+            mutate(se_cpue = ifelse(name =='proportion dives',NA,se_cpue ),
+                   n_mpa = ifelse(name =='proportion dives',NA,n_mpa ))
+            
+
+effort_island <- plot_sum%>%
+  ggplot(aes(x=forcats::fct_reorder2(land_name, name=='mean cpue', value, .desc = T),
+             y=value, fill=name))+
+  geom_bar(stat="identity", width=0.5, position=position_dodge(width=0.5))+
+  geom_errorbar(aes(ymin=value-se_cpue, ymax=value+se_cpue),
+                position=position_dodge(width = 0.5), width=0.2)+
+  geom_text(aes(label = ifelse(is.na(n_mpa), "", paste0("nMPAs =",n_mpa))),
+            hjust=-0.2, vjust=-2, position=position_dodge(width=0.5), size=2)+
+  scale_fill_manual(values=c('#00BFC4','#F8766D'))+
+  ylab("CPUE or proportion of dives")+
+  xlab("Location")+
+  guides(fill=guide_legend(title=""))+
+  #coord_flip()+
+  theme_bw()+
+  my_theme
 
 
-
-
+ggsave(effort_island, filename=file.path(plotdir, "FigX_cpue_effort_by_island_bar.png"), 
+       width=7.5, height=6, units="in", dpi=600)
 
 
 
