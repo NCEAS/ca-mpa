@@ -68,10 +68,13 @@ summary(pre_match)
 
 matched <- matchit(data = data,
                    block_treatment ~ block_area_km2 + block_mean_depth_fa + distance_to_shore_km + dist_to_port_km,
-                   method = "nearest",
-                   ratio = 1 # match each treatment block with one control block
+                   method = "nearest", #nearest neighbor matching
+                   ratio = 1, # match each treatment block with one control block
+                   distance = "glm", # logistic?
+                   caliper = 0.20, # sd
+                   replace = F
                    )
-
-
+matched
+summary(matched)
 
 
