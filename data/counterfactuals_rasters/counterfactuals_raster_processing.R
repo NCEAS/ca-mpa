@@ -112,8 +112,36 @@ mask(distance_park_entry_points, vect(ca_state_epsg3309), inverse = TRUE, touche
      overwrite = TRUE)
 
 
+#### Number of park access within 500m ####
 
-#### distance from coastline ####
+# compute distance raster from public beach access point
+rast_park <- terra::rasterize(vect(park_entry_epsg3309), aoi, fun = length)
+
+### set up focal matrix - weight of 1 within 500m, 0 outside -- 200m raster resolution => 3 pixels
+focal_rad <- 3
+focal_dia <- focal_rad*2+1
+focal_mtx <- matrix(nrow = focal_dia, ncol = focal_dia)
+for(i in 1:focal_dia) {
+  for(j in 1:focal_dia) {
+    ### i <- 1; j <- 1
+    r_from_center <- sqrt((i - (focal_rad + 1))^2 + (j - (focal_rad + 1))^2)
+    focal_mtx[i, j] <- ifelse(r_from_center < focal_rad, 1, 0)
+  }
+}
+
+### Calculate focal sum of population (or pop density, for equal area
+### there is no meaningful difference when rescaling anyway)
+number_park_access_points <- focal(rast_park, w = focal_mtx, fun = sum, na.rm = TRUE, 
+                                     progress = 'text',
+                                     filename = file.path(data_path, access_processed_dir, "number_park_access_points_500m.tif"),
+                                     overwrite = TRUE)
+
+# mask land
+mask(number_park_access_points, vect(ca_state_epsg3309), inverse = TRUE, touches = FALSE, 
+     filename = file.path(data_path, access_processed_dir,"number_park_access_points_500m_masked.tif"),
+     overwrite = TRUE)
+
+#### distance from coastline #### Better resolution that global watch
 # Read data in
 # coastline <- st_read(file.path(data_path,"gis_data/raw/Coastn83/coastn83.shp"))
 # 
