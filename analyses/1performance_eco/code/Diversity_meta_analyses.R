@@ -31,6 +31,9 @@ input_file <- "targeted_nontargeted_fish_diversity.csv"
 meta.data <- read.csv(file.path(data_path, input_file))
 
 
+meta.data$group <- recode_factor(meta.data$group, "deep_reef"='deep reef')  
+meta.data$group <- recode_factor(meta.data$group, "kelp-fish"='kelp')   
+
 # Load mpa attributes -----------------------------------------------------
 
 data_path <- "/home/shares/ca-mpa/data/sync-data/mpa_traits/processed"
