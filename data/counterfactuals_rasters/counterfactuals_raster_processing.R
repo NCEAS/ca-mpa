@@ -9,6 +9,7 @@ library(tidyverse)
 
 data_path <- "/home/shares/ca-mpa/data/sync-data"
 inat_path <- "inaturalist/processed"
+counterfact_path <- "counterfactuals"
 
 
 #### bathymetry ####
@@ -43,16 +44,13 @@ glimpse(beach_parking)
 beach_parking_epsg3309 <- st_transform(beach_parking, crs=st_crs(bathy))
 
 # compute distance raster from public beach access point
-access_processed_dir <- file.path("access_points","processed")
-dir.create(file.path(data_path, access_processed_dir), showWarnings = FALSE)
-
 distance_public_access_points <- terra::distance(aoi, vect(beach_parking_epsg3309),
-                                                 filename = file.path(data_path, access_processed_dir,"distance_public_access_points.tif"),
+                                                 filename = file.path(data_path, counterfact_path, "distance_public_access_points.tif"),
                                                  overwrite = TRUE)
 
 # mask land
 mask(distance_public_access_points, vect(ca_state_epsg3309), inverse = TRUE, touches = FALSE, 
-     filename = file.path(data_path, access_processed_dir,"distance_public_access_points_masked.tif"),
+     filename = file.path(data_path, counterfact_path, "distance_public_access_points_masked.tif"),
      overwrite = TRUE)
 
 
@@ -77,12 +75,12 @@ for(i in 1:focal_dia) {
 ### there is no meaningful difference when rescaling anyway)
 number_public_access_points <- focal(rast_beach, w = focal_mtx, fun = sum, na.rm = TRUE, 
                      progress = 'text',
-                     filename = file.path(data_path, access_processed_dir, "number_public_access_points_500m.tif"),
+                     filename = file.path(data_path, counterfact_path, "number_public_access_points_500m.tif"),
                      overwrite = TRUE)
 
 # mask land
 mask(number_public_access_points, vect(ca_state_epsg3309), inverse = TRUE, touches = FALSE, 
-     filename = file.path(data_path, access_processed_dir,"number_public_access_points_500m_masked.tif"),
+     filename = file.path(data_path, counterfact_path,"number_public_access_points_500m_masked.tif"),
      overwrite = TRUE)
 
 
@@ -97,18 +95,14 @@ glimpse(park_entry)
 # Reproject
 park_entry_epsg3309 <- st_transform(park_entry, crs=st_crs(bathy))
 
-# prepare output dir
-entry_processed_dir <- file.path("ca_state_park","entry_points","processed")
-dir.create(file.path(data_path, entry_processed_dir), showWarnings = FALSE)
-
 # compute distance raster from public beach access point
 distance_park_entry_points <- terra::distance(aoi, vect(park_entry_epsg3309),
-                                              filename = file.path(data_path, access_processed_dir,"distance_park_entry_points.tif"),
+                                              filename = file.path(data_path, counterfact_path,"distance_park_entry_points.tif"),
                                               overwrite = TRUE)
 
 # mask land
 mask(distance_park_entry_points, vect(ca_state_epsg3309), inverse = TRUE, touches = FALSE, 
-     filename = file.path(data_path, access_processed_dir,"distance_park_entry_points_masked.tif"),
+     filename = file.path(data_path, counterfact_path,"distance_park_entry_points_masked.tif"),
      overwrite = TRUE)
 
 
@@ -133,12 +127,12 @@ for(i in 1:focal_dia) {
 ### there is no meaningful difference when rescaling anyway)
 number_park_access_points <- focal(rast_park, w = focal_mtx, fun = sum, na.rm = TRUE, 
                                      progress = 'text',
-                                     filename = file.path(data_path, access_processed_dir, "number_park_access_points_500m.tif"),
+                                     filename = file.path(data_path, counterfact_path, "number_park_access_points_500m.tif"),
                                      overwrite = TRUE)
 
 # mask land
 mask(number_park_access_points, vect(ca_state_epsg3309), inverse = TRUE, touches = FALSE, 
-     filename = file.path(data_path, access_processed_dir,"number_park_access_points_500m_masked.tif"),
+     filename = file.path(data_path, counterfact_path,"number_park_access_points_500m_masked.tif"),
      overwrite = TRUE)
 
 #### distance from coastline #### Better resolution that global watch
@@ -157,17 +151,14 @@ mask(number_park_access_points, vect(ca_state_epsg3309), inverse = TRUE, touches
 dist_shore_geotiff <- "global_fishing_watch/distance-from-shore.tif"
 dist_shore <- rast(file.path(data_path, dist_shore_geotiff))
 
-# Prepare the output dir
-coastline_processed_dir <- file.path("gis_data","processed")
-dir.create(file.path(data_path, coastline_processed_dir), showWarnings = FALSE)
-
+# Reproject
 dist_shore_ca <- project(dist_shore, aoi,
-                         filename = file.path(data_path, coastline_processed_dir,"distance_coastline.tif"),
+                         filename = file.path(data_path, counterfact_path,"distance_coastline.tif"),
                          overwrite = TRUE)
 
 # Mask
 mask(dist_shore_ca, vect(ca_state_epsg3309), inverse = TRUE, touches = FALSE, 
-     filename = file.path(data_path, coastline_processed_dir,"distance_coastline_masked.tif"),
+     filename = file.path(data_path, counterfact_path,"distance_coastline_masked.tif"),
      overwrite = TRUE)
 
 
@@ -187,13 +178,13 @@ data_inat_sf_obs <- data_inat_sf %>%
   select(presence)
 
 inat_count <- rasterize(vect(data_inat_sf_obs), aoi, fun=sum,
-                        filename = file.path(data_path, inat_path, "inat_count_raster.tif"),
+                        filename = file.path(data_path, counterfact_path, "inat_count_raster.tif"),
                         overwrite = TRUE)
 
 
 # Mask
 mask(inat_count, vect(ca_state_epsg3309), inverse = TRUE, touches = FALSE, 
-     filename = file.path(data_path, inat_path, "inat_count_raster_masked.tif"),
+     filename = file.path(data_path, counterfact_path, "inat_count_raster_masked.tif"),
      overwrite = TRUE)
 
 
@@ -213,7 +204,7 @@ tract_data <- tract_data %>%
 
 # rasterize the polygons to our bathy grid
 tract_data_ras <- terra::rasterize(vect(tract_data), aoi, field="people_pixel", fun=mean,
-                                   filename = file.path(popdir, "counterfactuals_population_density_200m.tif"),
+                                   filename = file.path(data_path, counterfact_path, "counterfactuals_population_density_200m.tif"),
                                    overwrite = TRUE)
 
 
