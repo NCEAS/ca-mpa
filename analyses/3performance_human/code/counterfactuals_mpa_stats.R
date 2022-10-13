@@ -116,14 +116,20 @@ mpas_stat <- left_join(mpas_stat, inat_sum, by = "ID")
 
 counterfact_df <- terra::as.data.frame(raster_cube, xy=TRUE, cells=TRUE)
 
+# Remove pixel that are below the deeper pixel of MPA to create a smaller data set
+bathy_min <- min(mpas_stat$bathy_min)
+
+counterfact_df_shallow <- counterfact_df %>% 
+  filter(bathymetry > bathy_min)
+
 
 #### Export ----
 
 # Write MPA stats as geojson
-st_write(mpas_stat, file.path(counterfact_dir, "mpas_counterfactuals_stats_epsg3309.geojson"), driver = "GeoJSON")
+st_write(mpas_stat, file.path(counterfact_dir, "mpas_counterfactuals_stats_epsg3309.geojson"), driver = "GeoJSON", append=FALSE)
 
 # Write raster data frame
 saveRDS(counterfact_df, file=file.path(counterfact_dir, "counterfactual_layers_epsg3309.Rds"))
-
+saveRDS(counterfact_df_shallow, file=file.path(counterfact_dir, "counterfactual_layers_shallow_epsg3309.Rds"))
 
 
