@@ -31,23 +31,6 @@ data <- raw %>%
   # Clean variable names (mainly dashes in depth ranges)
   janitor::clean_names() %>% 
   
-  # Calculate total amount of hard substrate
-  mutate(total_hard_substrate = 
-           rowSums(select(., c(hard_substrate_predicted_0_30m_km2, 
-                               hard_substrate_30_100m_km2, 
-                               hard_substrate_100_200m_km2,
-                               hard_substrate_200_3000m_km2)))) %>% 
-  
-  # Calculate total amount of soft substrate
-  mutate(total_soft_substrate = 
-           rowSums(select(., c(soft_substrate_predicted_0_30m_km2, 
-                               soft_substrate_30_100m_km2, 
-                               soft_substrate_100_200m_km2, 
-                               soft_substratecal_200_3000m_km2)))) %>% 
-  
-  # Calculate depth range
-  mutate(depth_range = max_depth_m - min_depth_m) %>% 
-  
   # Rename the mis-labeled submarine canyon column
   rename(submarine_canyon_200_3000m_km2 = soft_substratecal_200_3000m_km2)
 

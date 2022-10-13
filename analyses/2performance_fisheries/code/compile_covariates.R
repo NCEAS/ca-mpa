@@ -18,6 +18,7 @@ rm(list = ls())
 
 ## Packages
 library(tidyverse)
+library(MatchIt)
 
 ## Directories
 base.dir <- "/Volumes/GoogleDrive-105151121202188525604/Shared drives/NCEAS MPA network assessment/MPA Network Assessment: Working Group Shared Folder/data/sync-data" # Cori Local
@@ -32,30 +33,48 @@ depth <- readRDS(file.path(gis.dir, "block_mean_depth.Rds"))
 shore <- readRDS(file.path(gis.dir, "block_distance_to_shore.Rds"))
 port <- readRDS(file.path(gis.dir, "block_distance_to_port.Rds"))
 
+# Add lat/lon for proximity
+block_latlon <- blocks_simple %>% 
+  select(block_id, block_long_dd, block_lat_dd)
+
 # Build Data -------------------------------------------------------------------
 
 # Join covariates
 data <- block_stats %>% 
   left_join(., depth) %>% 
   left_join(., shore) %>% 
-  left_join(., port)
-
-# Add treatment column
-data2 <- data %>% 
+  left_join(., port) %>% 
+  left_join(., block_latlon) %>% 
+  ## Add treatment column
   mutate(block_treatment = ifelse(is.na(mpa_n), 0, 1)) %>% 
-  select(block_id, block_treatment, block_area_km2, mpa_km2, block_mean_depth_fa, 
-         distance_to_shore_km, dist_to_port_km)
+  ## Remove midshore and offshore blocks
+  filter(!(block_id %in% blocks$block_id[blocks$block_type %in% c("Offshore", "Midshore")])) %>% 
+  select(block_id, block_area_km2, block_mean_depth_m:block_treatment)
 
-data2$mpa_km2[is.na(data2$mpa_km2)] <- 0
 
-# Remove midshore and offshore blocks
-data3 <- data2 %>% 
-  filter(!(block_id %in% blocks$block_id[blocks$block_type %in% c("Offshore", "Midshore")]))
 
-# Add lat/long for nearest proximity
-block_latlon <- blocks_simple %>% 
-  select(block_id, block_long_dd, block_lat_dd)
+# Matching -------------------------------------------------------------------
 
-data4 <- data3 %>% 
-  left_join(., block_latlon)
+## 1. Pre-matching covariate balance
+# Good balance = SMD and eCDF close to zero, variance ratios close to one
+pre_match <- matchit(data = data,
+                     block_treatment ~ block_area_km2 + block_mean_depth_fa + distance_to_shore_km + dist_to_port_km,
+                     method = NULL,
+                     distance = "glm")
+
+summary(pre_match)
+
+## 2. Matching
+
+matched <- matchit(data = data,
+                   block_treatment ~ block_area_km2 + block_mean_depth_fa + distance_to_shore_km + dist_to_port_km,
+                   method = "nearest", #nearest neighbor matching
+                   ratio = 1, # match each treatment block with one control block
+                   distance = "glm", # logistic?
+                   caliper = 0.20, # sd
+                   replace = F
+                   )
+matched
+summary(matched)
+
 
