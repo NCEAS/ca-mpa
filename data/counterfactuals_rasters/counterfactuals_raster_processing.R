@@ -59,7 +59,7 @@ mask(distance_public_access_points, vect(ca_state_epsg3309), inverse = TRUE, tou
 # compute distance raster from public beach access point
 rast_beach <- terra::rasterize(vect(beach_parking_epsg3309), aoi, fun = length)
 
-### set up focal matrix - weight of 1 within 500m, 0 outside -- 200m raster resolution => 3 pixels
+### set up focal matrix - weight of 1 within 500m, 0 outside -- 200m raster resolution => ~3 pixels
 focal_rad <- 3
 focal_dia <- focal_rad*2+1
 focal_mtx <- matrix(nrow = focal_dia, ncol = focal_dia)
