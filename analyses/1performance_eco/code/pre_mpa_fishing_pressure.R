@@ -23,6 +23,8 @@ mpas <- readRDS(file.path(traitdir, "CA_mpa_metadata.Rds"))
 # Read data
 landings_orig <- readRDS("/Users/cfree/Dropbox/Chris/UCSB/projects/california/cdfw_data/data/confidential/landings_receipts/processed/CDFW_2000_2020_landings_receipts.Rds")
 
+# Read blocks
+blocks <- wcfish::blocks
 
 # Summarize catch by block
 ################################################################################
@@ -32,9 +34,13 @@ landings <- landings_orig %>%
   # 2000-2007
   filter(year %in% 2000:2006) %>% 
   # Summarize
-  group_by(block_id) %>% 
+  group_by(block_id,) %>% 
   summarize(landings_lb=sum(landings_lb, na.rm=T)) %>% 
-  ungroup()
+  ungroup() %>% 
+  # Add area
+  left_join(blocks %>% select(block_id, block_sqkm), by="block_id") %>% 
+  # Calculate pressure desity
+  mutate(landings_lb_sqkm=landings_lb/block_sqkm)
 
 # Format data
 data <- mpas %>% 
@@ -42,11 +48,12 @@ data <- mpas %>%
   mutate(block_id=as.numeric(block_id)) %>% 
   # Add 2000-2007 sum landings
   left_join(landings, by="block_id") %>% 
-  rename(landings_lb_20002007=landings_lb) %>% 
+  rename(landings_lb_20002006=landings_lb,
+         landings_lb_sqkm_20002006=landings_lb_sqkm) %>% 
   # Simplify
-  select(mpa, landings_lb_20002007)
+  select(mpa, landings_lb_20002006, landings_lb_sqkm_20002006)
 
-# Export 
+# Export
 saveRDS(data, file=file.path(outputdir, "pre_mpa_fishing_pressure_by_mpa.Rds"))
 
 
