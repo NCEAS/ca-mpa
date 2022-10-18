@@ -44,10 +44,10 @@ mpas <- wcfish::mpas_ca %>%
   tibble::rowid_to_column("ID")
 
 mpas_raster_id <- terra::rasterize(vect(mpas), bathy, field="ID",
-                                   filename= file.path(data_path, counterfact_path, "mpa_200m_id.tif"),
+                                   filename= file.path(data_path, counterfact_path, "mpa_200m_id_epsg3309.tif"),
                                    overwrite = TRUE)
 mpas_raster <- terra::rasterize(vect(mpas), bathy,
-                                filename= file.path(data_path, counterfact_path, "mpa_200m.tif"),
+                                filename= file.path(data_path, counterfact_path, "mpa_200m_epsg3309.tif"),
                                 overwrite = TRUE)
 
 
