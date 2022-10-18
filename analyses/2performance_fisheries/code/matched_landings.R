@@ -1,6 +1,11 @@
-# Try some results and also try to not get frustrated
+# Try some proof-of-concept landing results with the matched data
 
+
+# Setup --------------------------------------------------------------------------
+## Packages ----
 library(tidyverse)
+
+## Directories ----
 basedir <- "/Volumes/GoogleDrive-105151121202188525604/Shared drives/NCEAS MPA network assessment/MPA Network Assessment: Working Group Shared Folder/data/sync-data"
 datadir <- "/Volumes/GoogleDrive-105151121202188525604/My Drive/Research/NCEAS - California MPA Working Group/fisheries-data/raw"
 plotdir <- "analyses/2performance_fisheries/figures"
@@ -8,11 +13,15 @@ outdir <- "/Volumes/GoogleDrive-105151121202188525604/My Drive/Research/NCEAS - 
 
 ## Read Data ----
 landings <- readRDS(file.path(datadir, "CDFW_2000_2020_landings_receipts.Rds"))
+matched.2c.all <- readRDS(file.path(getwd(), "analyses", "2performance_fisheries",
+                                    "analyses", "blocks", 
+                                    "block_counterfactual_key.Rds"))
+
 blocks <- wcfish::blocks
 blocks_simple <- blocks %>% sf::st_drop_geometry()
 
-## Build Data ----
 
+# Build --------------------------------------------------------------------------
 
 # Filter to just blocks in our matched dataset
 landings_matched <- landings %>% 
@@ -41,7 +50,7 @@ ggplot(data = region) +
   facet_wrap(~region, scales = "free")
 
 
-# Totals for lobster because I'm curious
+# Totals for lobster because why not
 lobster <- landings_matched %>% 
   filter(species_id == 820 & region == "South") %>% 
   group_by(region, year, block_treatment) %>% 

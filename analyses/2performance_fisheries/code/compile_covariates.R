@@ -215,3 +215,11 @@ ggplot(data = all_m2c_data) +
   geom_sf_text(aes(label = subclass), size = 3) +
   scale_fill_manual(values = p91, na.value = "grey50") 
 
+# Export this 2c version
+#saveRDS(matched.2c.all, file.path(getwd(), "analyses", "2performance_fisheries",
+#                                  "analyses", "blocks", 
+#                                  "block_counterfactual_key.Rds"))
+
+
+
+
