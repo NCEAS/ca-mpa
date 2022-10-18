@@ -2,9 +2,9 @@
 #
 # Julien Brun, NCEAS; brun@nceas.usb.edu
 
-library(sf)
-library(terra)
-library(tidyverse)
+# install.packages("librarian")
+librarian::shelf(sf, terra, tidyverse, cfree14/wcfish,
+                 quiet = TRUE)
 
 
 data_path <- "/home/shares/ca-mpa/data/sync-data"
@@ -31,6 +31,24 @@ ca_state_wgs84 <- st_read(file.path(data_path, "gis_data", "raw", "CA_State","ca
 
 ca_state_epsg3309 <- ca_state_wgs84%>%
   st_transform(crs=3309)
+
+
+#### Rasterizing the MPA to the grid ####
+
+# read data in
+# get the mpa shapefile from Chris' package
+mpas <- wcfish::mpas_ca %>% 
+  sf::st_as_sf() %>% 
+  filter(type!="SMP")  %>%
+  st_transform(crs = st_crs(bathy)) %>%
+  tibble::rowid_to_column("ID")
+
+mpas_raster_id <- terra::rasterize(vect(mpas), bathy, field="ID",
+                                   filename= file.path(data_path, counterfact_path, "mpa_200m_id_epsg3309.tif"),
+                                   overwrite = TRUE)
+mpas_raster <- terra::rasterize(vect(mpas), bathy,
+                                filename= file.path(data_path, counterfact_path, "mpa_200m_epsg3309.tif"),
+                                overwrite = TRUE)
 
 
 #### distance from beach access ####
