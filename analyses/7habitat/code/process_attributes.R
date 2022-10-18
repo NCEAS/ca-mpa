@@ -1,6 +1,6 @@
 # Process Attributes for Figures and Community Analyses
 # Cori Lopazanski
-
+# Updated Oct 2022 with New Habitat Attribute Data
 
 # Setup ------------------------------------------------------------------------
 # Packages
@@ -11,82 +11,92 @@ rm(list = ls())
 
 # Directories
 base.dir <- "/Volumes/GoogleDrive-105151121202188525604/Shared drives/NCEAS MPA network assessment/MPA Network Assessment: Working Group Shared Folder/data/sync-data" # Cori Local
-out.dir <- file.path(getwd(), "analyses", "7habitat", "intermediate_data")
+data.dir <- file.path(getwd(), "analyses", "7habitat", "intermediate_data")
 
 # Read Attribute (Habitat) Data
-att_raw <- read_csv(file.path(base.dir, "mpa_traits", 
-                              "processed", "mpa_attributes_clean.csv"))
+att_raw <- readxl::read_excel(file.path(data.dir, "mpa-attributes-2022Oct17-raw.xlsx"),
+                              sheet = 1, skip = 4, na = ".") %>% janitor::clean_names()
 
 
-# Process  ---------------------------------------------------------------------
-
-# Process
-att_data <- att_raw %>% 
-  # Combine predicted and mapped columns for 0-30m
+# Clean ------------------------------------------------------------------------
+att_clean <- att_raw %>% 
+  # Remove entries for "-old" calculations
+  filter(!(str_detect(mpa_name, "-old"))) %>% 
+  # Remove the remaining "-new" tag from the MPA names
+  mutate(mpa_name = str_remove(mpa_name, "-new")) %>% 
+  # Drop the special closures
+  filter(!(designation == "Special Closure")) %>% 
+  # Rename "rcky_inter_km" to "rocky_inter_km"
+  rename(rocky_inter_km = rcky_inter_km) %>% 
+  # Rename the "rocky_reef" columns to hard substrate
+  rename_with(~ gsub("rocky_reef", "hard_substrate", .x, fixed = TRUE)) %>% 
+  # Rename the "soft_bottom" columns to soft substrate
+  rename_with(~ gsub("soft_bottom", "soft_substrate", .x, fixed = TRUE)) %>% 
+  # Correct depths so that all say "m" 
+  rename_with(~ gsub("100_k", "100m_k", .x, fixed = TRUE)) %>% 
+  rename_with(~ gsub("200_k", "200m_k", .x, fixed = TRUE)) %>% 
+  rename_with(~ gsub("3000_k", "3000m_k", .x, fixed = TRUE)) %>% 
+  rename_with(~ gsub("200m_3", "200_3", .x, fixed = TRUE)) %>% 
+  # Create full name (name + designation) 
+  mutate(name = paste(mpa_name, designation, sep = " ")) %>% 
+  #Combine predicted and mapped columns for 0-30m
   mutate(hard_substrate_0_30m_km2_comb = 
            hard_substrate_predicted_0_30m_km2 + hard_substrate_mapped_0_30m_km2,
          soft_substrate_0_30m_km2_comb = 
            soft_substrate_0_30m_km2 + soft_substrate_predicted_0_30m_km2) %>% 
   # Drop the columns that are combined
   select(-hard_substrate_predicted_0_30m_km2, -hard_substrate_mapped_0_30m_km2,
-         -soft_substrate_0_30m_km2, -soft_substrate_predicted_0_30m_km2)
-
-## Change big river estuary smca to an estuary
-att_data$coastal_estuary[att_data$name == "big river estuary smca"] <- "estuary"
-
-## Change ten mile beach smca to a coastal
-att_data$coastal_estuary[att_data$name == "ten mile beach smca"] <- "coastal"
-
-
-## Classify offshore MPAs (no coastline) ----
-offshore_mpas <- c("blue cavern offshore smca", 
-                   "farnsworth offshore smca",
-                   "begg rock smr",
-                   "richardson rock smr",
-                   "footprint smr",
-                   "south la jolla smca",
-                   "soquel canyon smca",
-                   "portuguese ledge smca",
-                   "point lobos smca",
-                   "point sur smca",
-                   "big creek smca",
-                   "piedras blancas smca",
-                   "point buchon smca",
-                   "point st. george reef offshore smca",
-                   "reading rock smr",
-                   "point arena smca",
-                   "point reyes smca",
-                   "southeast farallon island smca",
-                   "mattole canyon smr",
-                   "carmel pinnacles smr")  
-
-att_data <- att_data %>% 
-  ## Create new "mpa habitat type" coastal, offshore, estuary ----
-  mutate(mpa_habitat_type = if_else(name %in% offshore_mpas, "offshore", coastal_estuary)) %>% 
-  mutate(mpa_habitat_type = recode_factor(mpa_habitat_type,
-                                          "estuary" = "Estuary",
-                                          "coastal" = "Coastal",
-                                          "offshore" = "Offshore")) %>% 
-  # Reorder the variables
-  select(name:coastal_estuary, mpa_habitat_type, everything()) %>% 
-  # Make region a factor
+         -soft_substrate_0_30m_km2, -soft_substrate_predicted_0_30m_km2) %>% 
+  # Make region a factor and correct the name
   mutate(bioregion = recode_factor(bioregion,
-                                   "north" = "North",
-                                   "central" = "Central",
-                                   "south" = "South")) %>% 
-  mutate(four_region_north_ci = recode_factor(four_region_north_ci,
-                                              "north" = "North",
-                                              "central" = "Central",
-                                              "north islands" = "N. Channel Islands",
-                                              "south" = "South")) %>% 
-  # Fix names
-  mutate(name = str_to_title(name)) %>% 
-  mutate(name = str_replace(name, "Smrma", "SMRMA")) %>% 
-  mutate(name = str_replace(name, "Smr", "SMR")) %>% 
-  mutate(name = str_replace(name, "Smca", "SMCA"))
+                                   "NorCal" = "North",
+                                   "CenCal" = "Central",
+                                   "SoCal" = "South"))
+
+# Build ---------------------------------------------------------------------
+## Specify habitat lists ----
+## These are the ones that were updated in the newer calculations by E. Saarman,
+## whereas the other variables were from the Paulo orginial planning era calcs
+linear_habitats <- c("sandy_beach_km",
+                     "rocky_inter_km",
+                     "coastal_marsh_km",
+                     "tidal_flats_km",
+                     "hardened_armored_shore_km")
+
+area_habitats <- c("hard_substrate_0_30m_km2_comb", 
+                   "hard_substrate_30_100m_km2", 
+                   "hard_substrate_100_200m_km2",
+                   "hard_substrate_200_3000m_km2",
+                   "soft_substrate_0_30m_km2_comb", 
+                   "soft_substrate_30_100m_km2", 
+                   "soft_substrate_100_200m_km2", 
+                   "soft_substrate_200_3000m_km2",
+                   "max_kelp_canopy_cdfw_km2")
+
+## Identify habitat types ----
+estuaries <- att_clean %>% 
+  filter_at(vars(linear_habitats), any_vars(. > 0)) %>% 
+  filter_at(vars(area_habitats), all_vars(. %in% c(0, NA)))
+
+offshore <- att_clean %>% 
+  filter_at(vars(area_habitats), any_vars(. > 0)) %>% 
+  filter_at(vars(linear_habitats), all_vars(. %in% c(0, NA)))
+
+coastal <- att_clean %>% 
+  filter(!(name %in% c(estuaries$name, offshore$name)))
+  
+## Create new habitat type column ----
+att_data <- att_clean %>% 
+  mutate(mpa_habitat_type = case_when(name %in% estuaries$name ~ "Estuary",
+                                      name %in% offshore$name ~ "Offshore",
+                                      name %in% coastal$name ~ "Coastal")) %>% 
+  # Reorder the variables
+  select(name, bioregion, size_km2, mpa_habitat_type,
+         all_of(linear_habitats), all_of(area_habitats))
+  
 
 # Export Main Processed Data ---------------------------------------------------
-#saveRDS(att_data, file.path(out.dir, "mpa_attributes_processed.Rds"))
+saveRDS(att_data, file.path(data.dir, "mpa_attributes_processed.Rds"))
 
 # Define Attribute Labels ------------------------------------------------------
 

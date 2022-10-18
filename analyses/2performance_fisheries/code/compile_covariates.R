@@ -198,6 +198,7 @@ plot(matched.2c, type = "histogram")
 print(matched.2c)
 
 matched.2c.data <- get_matches(matched.2c, data = data)
+matched.2c.all <- match.data(matched.2c)
 bal.plot(matched.2c, which = "both")
 love.plot(matched.2c, binary = "std", thresholds = c(m = .1))
 

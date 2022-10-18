@@ -37,7 +37,7 @@ port_comb <- ports %>%
 
 ## Reduce port shapefile to those in "major port" list
 port_major <- port_comb %>% 
-  filter(total < 99)
+  filter(total < 99) # currently it's the top 99%
 
 ## Get port centroids ----
 port_major_centroids <- st_centroid(port_major)

@@ -1,7 +1,7 @@
 # Habitat Coverage Figure
 # 25 Aug 2022
 
-# Adapted from C. Free
+# Figure Styling Adapted from C. Free
 
 # Setup ------------------------------------------------------------------------
 # Packages
@@ -15,7 +15,7 @@ data.dir <- file.path(getwd(), "analyses", "7habitat", "intermediate_data")
 plot.dir <- file.path(getwd(), "analyses", "7habitat", "figures")
 
 # Read Attribute (Habitat) Data
-att_raw <- readRDS(file.path(data.dir, "mpa_attributes_processed.Rds"))
+att <- readRDS(file.path(data.dir, "mpa_attributes_processed.Rds"))
 
 # Build ------------------------------------------------------------------------
 ## Specify habitat lists ----
@@ -36,21 +36,18 @@ area_habitats <- c("hard_substrate_0_30m_km2_comb",
                    "max_kelp_canopy_cdfw_km2")
 
 ## Select variables and lengthen ----
-data <- att_raw %>% 
-  select(name, bioregion, four_region, four_region_north_ci,
-         size_km2, shore_span_km, mpa_habitat_type,
-         all_of(area_habitats), all_of(linear_habitats)) %>% 
+data <- att %>% 
   pivot_longer(cols = hard_substrate_0_30m_km2_comb:hardened_armored_shore_km,
                names_to = "habitat",
                values_to = "habitat_amount") %>% 
   mutate(habitat_type = if_else(habitat %in% linear_habitats, 'linear', 'area')) 
 
-# ## Create list of MPAs with incomplete data
-# incomplete <- data %>%
-#   filter(is.na(habitat_amount)) %>%
-#   group_by(name, habitat_type) %>%
-#   summarize(n = n()) %>%
-#   pivot_wider(names_from = "habitat_type", values_from = "n")
+## Create list of MPAs with incomplete data
+incomplete <- data %>%
+  filter(is.na(habitat_amount)) %>%
+  group_by(name, habitat_type) %>%
+  summarize(n = n()) %>%
+  pivot_wider(names_from = "habitat_type", values_from = "n")
 
 # Remove MPAs with incomplete data? -----
 
@@ -67,8 +64,8 @@ data2 <- data %>%
 
 ## Calculate proportion and percentage from given and calculated values ----
 data3 <- data2 %>% 
-  mutate(habitat_prop_given = case_when(habitat_type == "linear" ~ habitat_amount/shore_span_km,
-                                        habitat_type == "area" ~   habitat_amount/size_km2),
+  mutate(#habitat_prop_given = case_when(habitat_type == "linear" ~ habitat_amount/shore_span_km,
+         #                               habitat_type == "area" ~   habitat_amount/size_km2),
          habitat_prop_calc =  case_when(habitat_type == "linear" ~ habitat_amount/total_linear_calc,
                                         habitat_type == "area" ~   habitat_amount/total_area_calc)) %>% 
   # Recode habitats as factors and give names for legend
