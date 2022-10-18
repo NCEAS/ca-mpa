@@ -18,9 +18,27 @@ plotdir <- "analyses/3performance_human/figures"
 # Read MPA file
 mpas_orig <- readRDS(file.path(gisdir, "CA_MPA_polygons.Rds"))
 
+# Blocks
+blocks <- wcfish::blocks
+
 
 # Format data
 ################################################################################
+
+# Find block MPA falls inside
+sp::over(mpas_orig %>% sf::as_Spatial(), blocks %>% sf::as_Spatial())
+dist_mat <- sf::st_distance(mpas_orig, blocks)
+rownames(dist_mat) <- mpas$mpa
+colnames(dist_mat) <- blocks$block_id
+dist_mat_df <- dist_mat %>% 
+  as.data.frame() %>% 
+  rownames_to_column(var="mpa") %>% 
+  gather(key="block_id", value="dist_m", 2:ncol(.)) %>% 
+  # Find closest MPA
+  group_by(mpa) %>% 
+  arrange(mpa, dist_m) %>% 
+  slice(1) %>% 
+  ungroup()
 
 # MLPA MPA types
 mlpa_types <- c("SMR", "SMCA", "SMCA (No-Take)", "SMRMA", "SMP")
@@ -45,9 +63,11 @@ mpas <- mpas_orig %>%
   mutate(authority=ifelse(type %in% c("FMCA", "FMR", "Special Closure"), "Federal", "State")) %>% 
   # Mark whether part of the MLPA network
   mutate(mlpa=ifelse(region!="San Francisco Bay" & type %in% mlpa_types, "MLPA", "Non-MLPA")) %>% 
+  # Add block id
+  left_join(dist_mat_df %>% select(mpa, block_id), by="mpa") %>% 
   # Arrange
   select(mpa, mpa_full, mpa_short, mlpa,
-         authority, type, ccr, ccr_int, region_code, region, 
+         authority, type, ccr, ccr_int, region_code, region, block_id, 
          area_sqkm, long_dd, lat_dd)
 
 # Inspect

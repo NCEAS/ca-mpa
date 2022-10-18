@@ -367,26 +367,26 @@ test_smr$group <- recode_factor(test_smr$group, 'rocky'='rocky intertidal')
 #plot
 
 (figure<-ggplot(test_smr, aes(x=group,yi),y=yi)+
-    geom_point(aes(color='SMR'), size=3, position = position_jitter(seed = 123, width =0.2))+
-    geom_errorbar(aes(ymin=yi-vi, ymax=yi+vi, color='SMR'),width=.3, size=0.7, data=test_smr, position = position_jitter(seed = 123, width =0.2)) +
-    geom_point(data=test_ref, size=3, aes(color='REF'))+
-    geom_errorbar(aes(ymin=yi-vi, ymax=yi+vi, color="REF"), width=.3, size=0.7, data=test_ref)+
+    geom_point(aes(color='SMR'), size=1, position = position_jitter(seed = 123, width =0.2))+
+    geom_errorbar(aes(ymin=yi-vi, ymax=yi+vi, color='SMR'),width=.2, size=0.3, data=test_smr, position = position_jitter(seed = 123, width =0.2)) +
+    geom_point(data=test_ref, size=1, aes(color='REF'))+
+    geom_errorbar(aes(ymin=yi-vi, ymax=yi+vi, color="REF"), width=.2, size=0.2, data=test_ref)+
     geom_vline(xintercept = 0.7, color = "black", size = 0.4, linetype = "dashed") +
     scale_x_discrete(expand = c(0.2, 0.1) )+
-    geom_point(aes(x=0.5, y=yi, color='REF'), data=pooled_ref, shape=18, size = 4)+
-    geom_errorbar(aes(x=0.5, ymin=yi-se, ymax=yi+se, color='REF'), data=pooled_ref, width=.2) +
-    geom_point(aes(x=0.18, y=yi, color="SMR"), data=pooled_smr, shape=18, size = 4)+
-    geom_errorbar(aes(x=0.18, ymin=yi-se, ymax=yi+se, color="SMR"), data=pooled_smr, width=.2) +
+    geom_point(aes(x=0.5, y=yi, color='REF'), data=pooled_ref, shape=18, size = 2)+
+    geom_errorbar(aes(x=0.5, ymin=yi-se, ymax=yi+se, color='REF'), data=pooled_ref, width=.2, size=0.3) +
+    geom_point(aes(x=0.18, y=yi, color="SMR"), data=pooled_smr, shape=18, size = 2)+
+    geom_errorbar(aes(x=0.18, ymin=yi-se, ymax=yi+se, color="SMR"), data=pooled_smr, width=.2, size=0.3) +
     ylab("Euclidean distance (community change)")+
     xlab("Community")+
     coord_flip()+
-    theme_minimal(base_size=14) + theme(aspect.ratio = 1/1.5)+
+    theme_minimal(base_size=8) + theme(aspect.ratio = 1/1)+
     scale_color_manual(name='MPA type',
                        breaks=c('SMR', 'REF'),
-                       values=c('SMR'='#EB6977', 'REF'='#13A0DD'))
+                       values=c('SMR'='#EB6977', 'REF'='#13A0DD')
+                       )
 )
 
-#13A0DD
 
 
 #export distance plot
@@ -446,17 +446,21 @@ kelp_fish_MHW <-cenfun(group=kelp_fish_group_vars, x=kelp_fish_distmat) %>%
   filter(centroid_1 == 'after' & centroid_2 =='before')%>%
   mutate(group='kelp fish')
 
+kelp_invalg_MHW <-cenfun(group=kelp_invalg_group_vars, x=kelp_invalg_distmat) %>% 
+  filter(centroid_1 == 'after' & centroid_2 =='before')%>%
+  mutate(group='kelp inverts and algae')
+
 deep_reef_MHW <-cenfun(group=deep_reef_group_vars, x=deep_reef_distmat) %>% 
   filter(centroid_1 == 'after' & centroid_2 =='before')%>%
   mutate(group='deep reef')
 
 rocky_MHW <-cenfun(group=rocky_group_vars, x=rocky_distmat) %>% 
   filter(centroid_1 == 'after' & centroid_2 =='before')%>%
-  mutate(group='rocky')
+  mutate(group='rocky intertidal')
 
 
 cen_distances_MHW <- rbind(ccfrp_MHW, kelp_swath_MHW, kelp_upc_MHW,
-                       kelp_fish_MHW, deep_reef_MHW, rocky_MHW) %>%
+                       kelp_fish_MHW, kelp_invalg_MHW, deep_reef_MHW, rocky_MHW) %>%
                     select(!(c(centroid_1, centroid_2)))
 
 
@@ -473,6 +477,9 @@ kelp_upc_disper_MHW <- betadisper(kelp_upc_distmat, type="centroid",
 
 kelp_fish_disper_MHW <- betadisper(kelp_fish_distmat, type="centroid", 
                                group=kelp_fish_group_vars$MHW)
+
+kelp_invalg_disper_MHW <- betadisper(kelp_invalg_distmat, type="centroid", 
+                                   group=kelp_invalg_group_vars$MHW)
 
 deep_reef_disper_MHW <- betadisper(deep_reef_distmat, type="centroid", 
                                group=deep_reef_group_vars$MHW)
@@ -520,6 +527,15 @@ kelp_upc_params_MHW <- cbind(period = rownames(kelp_upc_params_MHW), kelp_upc_pa
   pivot_wider(names_from=c('period'), values_from = c('distance','sd','n')) 
 
 
+#Kelp invalg
+kelp_invalg_params_MHW <- as.data.frame(cbind(mean=tapply(kelp_invalg_disper_MHW$distances, kelp_invalg_disper_MHW$group, mean), 
+                                           sd=tapply(kelp_invalg_disper_MHW$distances, kelp_invalg_disper_MHW$group, sd), 
+                                           n=table(kelp_invalg_disper_MHW$group)))%>%
+  mutate(group="kelp inverts and algae") %>%
+  dplyr::select(group, distance=mean, sd, n) 
+
+kelp_invalg_params_MHW <- cbind(period = rownames(kelp_invalg_params_MHW), kelp_invalg_params_MHW) %>%
+  pivot_wider(names_from=c('period'), values_from = c('distance','sd','n')) 
 
 
 
@@ -566,6 +582,7 @@ rocky_params_MHW <- cbind(period = rownames(rocky_params_MHW), rocky_params_MHW)
 
 meta_params_MHW <- rbind(CCFRP_params_MHW, 
                      kelp_swath_params_MHW, kelp_upc_params_MHW, kelp_fish_params_MHW,
+                     kelp_invalg_params_MHW,
                      deep_reef_params_MHW,
                      rocky_params_MHW)
 
@@ -597,7 +614,8 @@ pooled <- coef(summary(res)) %>%
          yi=estimate)
 
 #set order
-test<- test %>% arrange(desc(-yi))
+test<- test %>% arrange(desc(-yi)) %>% filter(group=='CCFRP'|
+                                                group=='k')
 
 #add labels
 test$community <- c("inverts and algae","fish","inverts and algae","fish","fish","inverts and algae")
@@ -620,6 +638,319 @@ test$group <- factor(test$group, levels=unique(test$group))
     coord_flip() +
     theme_minimal(base_size=14) + theme(aspect.ratio = 1/1.5)
 )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# calculate vector dist between centroids for each year ------------------------
+
+# Question: how far did communities move regardless of MPA status?
+
+#create helper function to calculate distance between centroids. Inputs are 
+#grouping vars (group), and distance matrix (x). Be sure that year is formatted
+#and arranged in the grouping vars. 
+
+cenfun2 <- function(group, x) {
+  
+  group$year <- as.factor(group$year)
+  levels(group$year)
+  n <- nlevels(group$year)
+  start <- levels(group$year)[1:(n - 1)]
+  end <- levels(group$year)[2:n]
+  map2_dfr(start, end, ~ {
+    idx1 <- which(group$year == .x)
+    idx2 <- which(group$year == .y)
+    tibble(
+      centroid_1 = .x,
+      centroid_2 = .y,
+      distance = dist_between_centroids(x, idx1, idx2)
+    )
+  })
+} #start and end are grouping vars, x is distmat
+
+
+
+#calculate distances
+
+ccfrp <- cenfun2(group=CCFRP_group_vars, x=CCFRP_distmat)
+ccfrp$group <- c("ccfrp")
+
+kelp_upc <- cenfun2(group=kelp_upc_group_vars, x=kelp_upc_distmat)
+kelp_upc$group <- c("kelp_upc")
+
+kelp_swath <- cenfun2(group=kelp_swath_group_vars, x=kelp_swath_distmat)
+kelp_swath$group <- c("kelp_swath")
+
+kelp_fish <- cenfun2(group=kelp_fish_group_vars, x=kelp_fish_distmat)
+kelp_fish$group <- c("kelp_fish")
+
+kelp_invalg <- cenfun2(group=kelp_invalg_group_vars, x=kelp_invalg_distmat)
+kelp_invalg$group <- c("kelp inverts and algae")
+
+deep_reef <- cenfun2(group=deep_reef_group_vars, x=deep_reef_distmat)
+deep_reef$group <- c("deep reef")
+
+rocky <- cenfun2(group=rocky_group_vars, x=rocky_distmat)
+rocky$group <- c("rocky intertidal")
+
+cen_distances <- rbind(ccfrp, kelp_invalg, kelp_fish, deep_reef, rocky)
+
+cen_distances <- cen_distances %>% 
+  group_by(centroid_2)%>%
+  dplyr::mutate(ymean = mean(distance))
+
+
+
+cen_annual_distance<- cen_distances %>%
+  filter(centroid_2>=2010)%>%
+  ggplot(aes(x=as.numeric(centroid_2), y=distance, color=group))+
+  geom_point(alpha=0.4, aes(shape=group), size=3)+
+  geom_line(alpha=0.4)+
+  geom_smooth(aes(y=ymean), span=0.4, color='black')+
+  #stat_summary(fun=mean, geom="line",colour="black", size=1)+
+  annotate("rect", xmin = 2014, xmax = 2016, ymin = 0, ymax = 0.35,
+           alpha = .15, fill='red')+
+  xlab("Year")+
+  ylab("Distance")+
+  theme_minimal()+theme(aspect.ratio = 1/1.5
+  )+
+  scale_x_continuous(breaks= scales::pretty_breaks())
+
+#ggsave(here::here("analyses", "5community_climate_ecology", "figures", "cen_annual_distances.png"), cen_annual_distance, height=4, width = 8, units = "in", 
+#   dpi = 600, bg="white")
+
+
+#barplot mean distances before, during, after MHW
+
+cen_distances2 <- cen_distances %>% 
+                  mutate(MHW = ifelse(centroid_2 < 2015, "before",
+                                      ifelse(centroid_2 > 2017, "after",
+                                             "during")))
+cen_distances2$MHW <- factor(cen_distances2$MHW, levels = c("before", "during","after"))
+
+cen_distances3 <- cen_distances2 %>% 
+                    filter(centroid_2>=2010)%>%
+                    group_by(group, MHW) %>% 
+                                       dplyr::summarise(
+                                         n = n(),
+                                         m = mean(distance),
+                                         stdv = sd(distance),
+                                         se=stdv/sqrt(n),
+                                         ci=se * qt((1-0.05)/2 + .5, n-1)
+                                       )
+                                         
+
+dist_by_period <- cen_distances3 %>%
+  ggplot(aes(x=group, y=m, fill=MHW))+
+  geom_bar(position = "dodge", stat = "identity") +
+  geom_errorbar(aes(ymin=m-se, ymax=m+se),
+                width=.2,                    # Width of the error bars
+                position=position_dodge(.9))+
+  xlab("Group")+
+  ylab("Distance")+
+  scale_fill_manual(values=c('#44b89d','#f56969','#4c78b5'))
+  #theme_minimal()+theme(aspect.ratio = 1/1.5
+
+
+
+
+
+# Explore distance between ref and smr by year ----------------------------
+#Question: did communities inside and outside of MPAs before more distant after 
+#the MHW/=?
+
+#create new grouping vars
+CCFRP_group_vars2 <- CCFRP_group_vars %>%
+  mutate(desig_state_year = paste(mpa_designation,
+                                  year))
+kelp_fish_group_vars2 <- kelp_fish_group_vars %>%
+  mutate(desig_state_year = paste(mpa_defacto_designation,
+                                  year))
+kelp_invalg_group_vars2 <- kelp_invalg_group_vars %>%
+  mutate(desig_state_year = paste(mpa_defacto_designation,
+                                  year))
+deep_reef_group_vars2 <- deep_reef_group_vars %>%
+  mutate(desig_state_year = paste(mpa_defacto_designation,
+                                  year))
+rocky_group_vars2 <- rocky_group_vars %>%
+  mutate(desig_state_year = paste(mpa_designation,
+                                  year))
+
+
+#modify helper function
+cenfun3 <- function(group, x) {
+  
+  group$desig_state_year <- as.factor(group$desig_state_year)
+  levels(group$desig_state_year)
+  n <- nlevels(group$desig_state_year)
+  start <- levels(group$desig_state_year)[1:(n - 1)]
+  end <- levels(group$desig_state_year)[2:n]
+  map2_dfr(start, end, ~ {
+    idx1 <- which(group$desig_state_year == .x)
+    idx2 <- which(group$desig_state_year == .y)
+    tibble(
+      centroid_1 = .x,
+      centroid_2 = .y,
+      distance = dist_between_centroids(x, idx1, idx2)
+    )
+  })
+} #start and end are grouping vars, x is distmat
+
+CCFRP_mpa <- cenfun3(CCFRP_group_vars2, CCFRP_distmat) %>%
+  mutate(MPA_type = gsub( " .*$", "", centroid_1),
+         year_1 = str_replace(centroid_1, "^\\S* ", ""),
+         year_2 = str_replace(centroid_2, "^\\S* ", ""),
+         group="CCFRP")
+
+kelp_invalg_mpa <- cenfun3(kelp_invalg_group_vars2, kelp_invalg_distmat) %>%
+  mutate(MPA_type = gsub( " .*$", "", centroid_1),
+         year_1 = str_replace(centroid_1, "^\\S* ", ""),
+         year_2 = str_replace(centroid_2, "^\\S* ", ""),
+         group="kelp inverts and algae")
+
+kelp_fish_mpa <- cenfun3(kelp_fish_group_vars2, kelp_fish_distmat) %>%
+  mutate(MPA_type = gsub( " .*$", "", centroid_1),
+         year_1 = str_replace(centroid_1, "^\\S* ", ""),
+         year_2 = str_replace(centroid_2, "^\\S* ", ""),
+         group="kelp fish")
+
+deep_reef_mpa <- cenfun3(deep_reef_group_vars2, deep_reef_distmat) %>%
+  mutate(MPA_type = gsub( " .*$", "", centroid_1),
+         year_1 = str_replace(centroid_1, "^\\S* ", ""),
+         year_2 = str_replace(centroid_2, "^\\S* ", ""),
+         group="deep reef")
+
+rocky_mpa <- cenfun3(rocky_group_vars2, rocky_distmat) %>%
+  mutate(MPA_type = gsub( " .*$", "", centroid_1),
+         year_1 = str_replace(centroid_1, "^\\S* ", ""),
+         year_2 = str_replace(centroid_2, "^\\S* ", ""),
+         group="rocky intertidal")
+
+all_mpa <- rbind(CCFRP_mpa, kelp_invalg_mpa, 
+                 kelp_fish_mpa, deep_reef_mpa, rocky_mpa)
+
+ref_smr_distance <- all_mpa %>%
+  #filter(centroid_2>=2010)%>%
+  ggplot(aes(x=as.numeric(year_1), y=distance, color=group))+
+  geom_point(alpha=0.4, aes(shape=group), size=3)+
+  geom_line(alpha=0.4)+
+  stat_summary(fun=mean, geom="line",colour="black", size=1)+
+  annotate("rect", xmin = 2014, xmax = 2016, ymin = 0, ymax = 0.6,
+           alpha = .15, fill='red')+
+  xlab("year")+
+  ylab("distance")+
+  ggtitle("SMR inside vs outside distance (Euclidean)")+
+  theme_minimal()+theme(aspect.ratio = 1/1.5)
+
+#ggsave(here("analyses", "5community_climate_ecology", "figures", "ref_smr_distance_all_years.png"), ref_smr_distance, height=4, width = 8, units = "in", 
+#   dpi = 600, bg="white")
+
+
+cen_distances <- all_mpa %>% 
+  mutate(MHW = ifelse(year_2 < 2014, "before",
+                      ifelse(year_2 > 2016, "after",
+                             "during")))
+cen_distances$MHW <- factor(cen_distances$MHW, levels = c("before", "during","after"))
+cen_distances$MPA_type <- recode_factor(cen_distances$MPA_type, "ref"='REF', 'smr'="SMR")
+
+cen_distances2 <- cen_distances %>% 
+  #filter(year_2>=2010)%>%
+  group_by(group, MHW, MPA_type) %>% 
+  dplyr::summarise(
+    n = n(),
+    m = mean(distance),
+    stdv = sd(distance),
+    se=stdv/sqrt(n),
+    ci=se * qt((1-0.05)/2 + .5, n-1)
+  )
+
+
+
+
+
+
+
+
+dist_by_mpa_period <- cen_distances2 %>%
+  ggplot(aes(x=factor(MPA_type), y=m, fill=MHW
+  ))+
+  geom_col(width=0.5, position=position_dodge(width=0.5)) +
+  geom_errorbar(aes(ymin=m-se, ymax=m+se),
+                # Width of the error bars
+                position=position_dodge(width=0.5),width = 0.3, size=.2)+
+  xlab("Group")+
+  ylab("Distance")+
+  scale_fill_manual(values=c('#44b89d','#f56969','#4c78b5'))
+
+
+
+
+
+
+
+
+
+
+dist_by_mpa_period <- cen_distances2 %>%
+  ggplot(aes(x=factor(MHW), y=m, fill=MPA_type
+             ))+
+  geom_col(width=0.5, position=position_dodge(width=0.5)) +
+  geom_errorbar(aes(ymin=m-1.96*se, ymax=m+1.96*se),
+                          # Width of the error bars
+                position=position_dodge(width=0.5),width = 0.3, size=.2)+
+  scale_y_continuous(expand = c(0,0),
+                     limits = c(0,0.41))+
+  facet_grid(~group) +
+  xlab("Group")+
+  ylab("Distance")+
+  theme_bw()+
+  scale_fill_manual(name = "MPA Type",
+                     values=c('#13A0DD','#EB6977')
+  )
+  #scale_fill_manual(values=c('#44b89d','#f56969','#4c78b5'))
+
+#ggsave(here::here("analyses", "5community_climate_ecology", "figures", "dist_by_mpa_period_barplot.png"), dist_by_mpa_period, height=6, width = 8, units = "in", 
+#   dpi = 600, bg="white")
+
+
+
+a1 <- aov(cen_distances$distance ~ cen_distances$MHW + cen_distances$group + cen_distances$MPA_type)
+posthoc <- TukeyHSD(x=a1, conf.level=0.95)
+
+
+
+
+
+
+
+
+
 
 
 
