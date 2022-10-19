@@ -133,7 +133,9 @@ st_write(mpas_stat, file.path(counterfact_dir, "mpas_counterfactuals_stats_epsg3
          append=FALSE) # overwrites
 
 # Write raster data frame
-saveRDS(counterfact_df, file=file.path(counterfact_dir, "counterfactual_layers_epsg3309.Rds"))
-saveRDS(counterfact_df_shallow, file=file.path(counterfact_dir, "counterfactual_layers_shallow_epsg3309.Rds"))
+saveRDS(counterfact_df, file=file.path(counterfact_dir, 
+                                       "counterfactual_layers_epsg3309.Rds"))
+saveRDS(counterfact_df_shallow, file=file.path(counterfact_dir, 
+                                               "counterfactual_layers_shallow_epsg3309.Rds"))
 
 

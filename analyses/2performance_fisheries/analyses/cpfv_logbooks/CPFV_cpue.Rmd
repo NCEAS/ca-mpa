@@ -16,164 +16,10 @@ rm(list = ls())
 
 # Packages
 library(tidyverse)
+library(gridExtra)
+library(plotrix)
 
-# Directories
-plotdir <- "analyses/2performance_fisheries/analyses/cpfv_logbooks/figures" 
-
-# Read logbook data
-data_orig <- readRDS("/Users/shelbyziegler/Desktop/CDFW_2000_2020_cpfv_logbook_data.Rds")
-
-#blocks
-blocks <- wcfish::blocks
-
-# MPAs
-mpas <- wcfish::mpas_ca %>% 
-  sf::st_as_sf() %>% 
-  filter(type!="SMP")
-
-# Projections
-utm11 <- "+proj=utm +zone=11 +datum=NAD83"
-```
-
-```{r}
-# # Helper function
-# ################################################################################
-# 
-# # Distance to nearest MPA
- lat <- 32; long <- -118
- calc_mpa_near <- function(lat, long){
-#   
-#   # Convert lat/long to pt
-   pt_df <- tibble(lat=lat, long=long)
-   pt_sf <- sf::st_as_sf(pt_df, coords=c("long", "lat"), crs=sf::st_crs(mpas))
-#   
-#   # Identify closest MPA
-   near_id <- sf::st_nearest_feature(pt_sf, mpas)
-   near_name <- mpas$name[near_id]
-   near_sf <- mpas %>% 
-     filter(name==near_name)
-#   
-#   # Identify distance to closest MPA
-   near_m <- sf::st_distance(pt_sf, near_sf) %>% as.numeric()
-   near_km <- near_m / 1000
-   
-#   # Merge
-   out <- tibble(nearest_mpa=near_name,
-                 nearest_mpa_km=near_km)
-   return(out)
- 
- }
-# 
-# 
-# # Format data
-# ################################################################################
-# 
- data_xy <- data_orig %>% 
-  filter(!is.na(block_id))
-
-block1<-blocks%>%
-  select(block_id, block_long_dd, block_lat_dd)
-
-data_xy<-left_join(data_xy, block1, by="block_id")
-  
- 
- 
-# # Format data
- data <- data_xy %>% 
-#   # Reduce to data with lat/longs
-   filter(!is.na(block_lat_dd) & !is.na(block_long_dd) & !is.na(n_kept) & !is.na(n_fishers) & !is.na(hrs_fished)) %>% 
-#   # Compute CPUE
-   mutate(angler_hrs=n_fishers * hrs_fished,
-                    cpue=n_kept/angler_hrs)
-# 
-# # Compute nearest MPA and distance
- 
- x <- 1
- near_key <- purrr::map_df(1:nrow(data), function(x){
-   lat <- data$block_lat_dd[x]
-   long <- data$block_long_dd[x]
-   out <- calc_mpa_near(lat, long)
- })
- 
- # Add MPA stats to data
- data2 <- cbind(data, near_key)
-# 
-# 
-# # Plot data
-# ################################################################################
-# 
-# # Plot data
- g <- ggplot(data2, aes(x=nearest_mpa_km, y=cpue)) +
-   geom_point() +
-#   # Labels
-   labs(x="Distance to nearest MPA (km)", y="Catch per angler hours") +
-#   # Theme
-   theme_bw() 
- g
-```
-
-# Build data
-################################################################################
-```{r}
-# Format data
-data <- data_orig %>% 
-  # Reduce to data with lat/longs
-  filter(!is.na(lat_dd) & !is.na(long_dd) & !is.na(n_kept) & !is.na(n_traps_pulled) & !is.na(n_nights)) %>% 
-  # Compute CPUE
-  mutate(trap_nights=n_traps_pulled * n_nights,
-         cpue=n_kept/trap_nights)
-
-# Convert to SP
-data_sp <- sf::st_as_sf(data, coords=c("long_dd", "lat_dd"), crs=sf::st_crs(mpas)) %>% 
-  sf::st_transform(crs=utm11) %>% 
-  # slice(1:10) %>% 
-  sf::as_Spatial()
-
-# Convert MPAs to SP
-mpas_sp <- mpas %>% 
-  sf::st_transform(crs=utm11) %>% 
-  sf::as_Spatial()
-
-# Calculate distance of each point to an MPA
-dist_mat <- rgeos::gDistance(data_sp, mpas_sp, byid=T)
-
-# Format distance matrix
-dist_df <- dist_mat %>% 
-  as.data.frame() %>% 
-  # Add MPA id
-  mutate(mpa=mpas$name) %>% 
-  select(mpa, everything()) %>% 
-  # Gather
-  gather(key="row_id", value="dist_m", 2:ncol(.)) %>% 
-  # Find closest MPA to each point
-  group_by(row_id) %>% 
-  arrange(dist_m) %>% 
-  slice(1) %>% 
-  ungroup() %>% 
-  # Convert row id to number and sort
-  mutate(row_id=as.numeric(row_id)) %>% 
-  arrange(row_id) %>% 
-  select(row_id, mpa, dist_m)
-
-# Add distance back onto data
-data1 <- data %>% 
-  cbind(dist_df %>% select(mpa, dist_m)) %>% 
-  # Add distance in kilometers
-  mutate(dist_km=dist_m/1000) %>% 
-  # Remove outliers
-  filter(dist_km <=5 & cpue<=5) %>% 
-  # Reduce to MPAs with more than 50 observations
-  group_by(mpa) %>% 
-  mutate(mpa_n_obs=n()) %>% 
-  ungroup() %>% 
-  filter(mpa_n_obs>=50)
-```
-
-
-# Plot data
-################################################################################
-```{r}
-# Theme
+# Setup theme
 my_theme <-  theme(axis.text=element_text(size=6),
                    axis.title=element_text(size=8),
                    legend.text=element_text(size=6),
@@ -186,20 +32,263 @@ my_theme <-  theme(axis.text=element_text(size=6),
                    panel.background = element_blank(), 
                    axis.line = element_line(colour = "black"),
                    # Legend
+                   legend.key.size = unit(0.3, "cm"),
                    legend.background = element_rect(fill=alpha('blue', 0)))
 
-# Plot data
-g <- ggplot(data1, aes(x=dist_m/1000, y=cpue)) +
-  facet_wrap(~mpa) +
-  geom_point(pch=21, color="grey50", alpha=0.5) +
-  geom_smooth(method = "loess", fill="grey40", color="black") +
-  # Labels
-  labs(x="Distance to nearest MPA (km)", y="Catch per trap-night") +
-  # Limits
-  scale_x_continuous(lim=c(0, 5)) +
-  scale_y_continuous(lim=c(0, 5)) +
-  # Theme
-  theme_bw() + my_theme
-g
+
+# Directories
+plotdir <- "analyses/2performance_fisheries/analyses/cpfv_logbooks/figures" 
+
+# Read logbook data
+data_orig <- readRDS("/Users/shelbyziegler/Desktop/CDFW_2000_2020_cpfv_logbook_data.Rds")
+
+#blocks
+blocks <- readRDS("analyses/2performance_fisheries/analyses/blocks/blocks_by_mlpa_region_w_mpa_stats.Rds")
+```
+
+Build data
+
+```{r}
+# Build data
+################################################################################
+
+# Logbooks use
+data <- data_orig %>% 
+  # Reliable points
+  # Compute CPUE
+  mutate(angler_hrs=n_fishers * hrs_fished,
+         cpue=n_kept/angler_hrs)%>%
+  # Add block info
+  left_join(blocks %>% select(block_id, mlpa_region, mpa_yn)) %>% 
+  group_by(year, mlpa_region, mpa_yn) %>% 
+  summarise(n_kept=sum(n_kept, na.rm = T)) %>% 
+  ungroup() %>% 
+  filter(mlpa_region=="South Coast" | mlpa_region=="Central Coast"|mlpa_region=="North Central Coast" | mlpa_region=="North Coast")%>%
+  group_by(mlpa_region, year)%>%
+  mutate(sum_kept=sum(n_kept))
+
+mpa_yr <- tibble(mlpa_region=c("South Coast", "Central Coast", "North Central Coast", "North Coast"),
+                 establish=c(2012, 2007, 2010, 2012)-0.5) %>% 
+  mutate(mlpa_region=factor(mlpa_region,
+                            levels=levels(data$mlpa_region)))
 
 ```
+
+Group data by MPA vs non-MPA block per region for plotting.
+
+```{r}
+p1<-ggplot(data, aes(x=year, y=(n_kept/1000), fill=mpa_yn),color="black")+ 
+  geom_bar(stat="identity", lwd=0.1, color="grey30")+
+  labs(x="Year", y="Thousands of fish kept")+
+  facet_wrap(~mlpa_region, ncol=4, scales="free_y")+
+   #Implementation year line 
+  geom_vline(data=mpa_yr, mapping=aes(xintercept=establish)) +
+  #Theme and legend
+  theme_bw() + my_theme +
+  theme(legend.position = "top")+
+  scale_fill_discrete("Block type")
+p1         
+
+p2<-ggplot(data, aes(x=year, y=(n_kept/sum_kept), fill=mpa_yn),color="black")+ 
+  geom_bar(stat="identity", lwd=0.1, color="grey30")+
+  labs(x="Year", y="Proportion of fish kept")+
+  facet_wrap(~mlpa_region, ncol=4, scales="free_y")+
+  #Implementation year line 
+  geom_vline(data=mpa_yr, mapping=aes(xintercept=establish)) +
+  theme_bw() + my_theme +
+  theme(legend.position = "none")+
+  scale_fill_discrete("Block type")
+p2
+
+grid.arrange(p1, p2)
+
+
+#Plot the total kept fish and CPUE before MPA and After MPA implementation
+data1<-data%>%
+  group_by(mlpa_region)%>%
+  left_join(mpa_yr, by="mlpa_region")%>%
+  mutate(implementation=ifelse(year>=establish, "After", "Before"))%>% 
+  group_by(mlpa_region, mpa_yn, implementation)%>%
+  summarize(sumkept=sum(n_kept), meankept=mean(n_kept), errorkept=std.error(n_kept))
+
+p3<-ggplot(data1, aes(x=implementation, y=sumkept/1000, fill=mpa_yn))+
+  geom_bar(stat="identity", position=position_dodge(), color="black")+
+  coord_flip()+
+  facet_wrap(~mlpa_region, ncol=4, scales="free")+
+  scale_fill_discrete("Block type")+
+  ylab("Total fishes kept (in thousands)")+
+  xlab("Implementation")+
+  theme_bw()+ my_theme+
+  theme(legend.position = "top")
+  
+p3
+
+p4<-ggplot(data1, aes(x=implementation, y=meankept/1000, fill=mpa_yn))+
+  geom_bar(stat="identity", position=position_dodge(), color="black")+
+  geom_errorbar(aes(ymax=(meankept/1000)+(errorkept/1000),ymin=(meankept/1000)-(errorkept/1000)),position=position_dodge(1), width=0.2)+
+  coord_flip()+
+  facet_wrap(~mlpa_region, ncol=4, scales="free")+
+  scale_fill_discrete("Block type")+
+  ylab("Average fishes kept (in thousands)")+
+  xlab("Implementation")+
+  theme_bw()+ my_theme+
+  theme(legend.position = "none")
+  
+p4
+
+grid.arrange(p3, p4)
+
+```
+ 
+ 
+Extract data and plot Warm Water targered species: Rockfish, Lingcod, Cabezon
+
+```{r}
+#Statewide species
+data2<-data_orig%>%
+  # Reliable points
+  # Compute CPUE
+  mutate(angler_hrs=n_fishers * hrs_fished,
+         cpue=n_kept/angler_hrs)%>%
+  # Add block info
+  left_join(blocks %>% select(block_id, mlpa_region, mpa_yn)) %>% 
+  group_by(year, mlpa_region, mpa_yn, comm_name) %>% 
+  summarise(n_kept=sum(n_kept, na.rm = T)) %>% 
+  ungroup() %>% 
+  filter(mlpa_region=="South Coast" | mlpa_region=="Central Coast"|mlpa_region=="North Central Coast" | mlpa_region=="North Coast")%>%
+  group_by(mlpa_region, year, comm_name)%>%
+  mutate(sum_kept=sum(n_kept))
+
+dataR<-data2%>%
+  filter(comm_name=="Unspecified rockfish")
+pR<-ggplot(dataR, aes(x=year, y=(n_kept/1000), fill=mpa_yn))+ 
+  geom_bar(stat="identity")+
+  xlab("Year")+
+  ylab("Thousands of fish kept")+
+  geom_vline(data=mpa_yr, mapping=aes(xintercept=establish)) +
+  facet_wrap(~mlpa_region, ncol=4, scales="free_y")+
+  scale_fill_discrete("Block type")+
+  ggtitle("Unspecified rockfishes")+ 
+  theme_bw()+ my_theme+
+  theme(plot.title = element_text(size = 16, face = "bold"))+
+  theme(legend.position = "none")
+pR 
+
+pR2<-ggplot(dataR, aes(x=year, y=(n_kept/sum_kept), fill=mpa_yn),color="black")+ 
+  geom_bar(stat="identity")+
+  xlab("Year")+
+  ylab("Proportion of fish kept")+
+  geom_vline(data=mpa_yr, mapping=aes(xintercept=establish)) +
+  facet_wrap(~mlpa_region, ncol=4)+
+  scale_fill_discrete(name="Block type")+
+   theme_bw()+ my_theme+
+  theme(legend.position = "top")
+pR2
+ 
+grid.arrange(pR, pR2)
+
+# Lingcod 
+dataL<-data2%>%
+  filter(comm_name=="Lingcod")
+pL<-ggplot(dataL, aes(x=year, y=(n_kept/1000), fill=mpa_yn))+ 
+  geom_bar(stat="identity")+
+  xlab("Year")+
+  ylab("Thousands of fish kept")+
+  geom_vline(data=mpa_yr, mapping=aes(xintercept=establish)) +
+  facet_wrap(~mlpa_region, ncol=4, scales="free_y")+
+  scale_fill_discrete("Block type")+
+  ggtitle("Lingcod")+ 
+  theme_bw()+ my_theme+
+  theme(plot.title = element_text(size = 16, face = "bold"))+
+  theme(legend.position = "none")
+pL 
+
+pL2<-ggplot(dataL, aes(x=year, y=(n_kept/sum_kept), fill=mpa_yn),color="black")+ 
+  geom_bar(stat="identity")+
+  xlab("Year")+
+  ylab("Proportion of fish kept")+
+  geom_vline(data=mpa_yr, mapping=aes(xintercept=establish)) +
+  facet_wrap(~mlpa_region, ncol=4)+
+  scale_fill_discrete(name="Block type")+
+   theme_bw()+ my_theme+
+  theme(legend.position = "top")
+pL2
+ 
+grid.arrange(pL, pL2)
+```
+
+Examine number of trips through time as a proxy for revenue
+
+```{r}
+trips<-data_orig%>% 
+  #join in block data
+  left_join(blocks %>% select(block_id, mlpa_region, mpa_yn)) %>%
+  #group data
+  group_by(mlpa_region, mpa_yn, year)%>%
+  distinct(logbook_id)%>%
+  filter(mlpa_region=="South Coast" | mlpa_region=="Central Coast"|
+           mlpa_region=="North Central Coast" | mlpa_region=="North Coast")%>%
+  summarize(totaltrips=n())
+
+t1<-ggplot(trips, aes(x=year, y=totaltrips/1000, color=mpa_yn))+
+  geom_line()+
+  facet_wrap(~mlpa_region, scales = "free", ncol=4)+
+  scale_color_discrete("Block type")+
+  labs(x="Year", y="CPFV Trips (in thousands)" )+
+  theme_bw()+ my_theme+
+  theme(plot.title = element_text(size = 14, face = "bold"))+
+  geom_vline(data=mpa_yr, mapping=aes(xintercept=establish))+
+  ggtitle("CPFV trips over time")+  
+  theme(legend.position = "bottom")
+
+
+
+t2<-ggplot(data, aes(x=year, y=(n_kept/1000), color=mpa_yn))+ 
+  geom_line()+
+  labs(x="Year", y="Thousands of fish kept")+
+  facet_wrap(~mlpa_region, ncol=4, scales="free_y")+
+   #Implementation year line 
+  geom_vline(data=mpa_yr, mapping=aes(xintercept=establish)) +
+  #Theme and legend
+  theme_bw() + my_theme +
+  ggtitle("Fish kept over time")+
+  theme(plot.title = element_text(size = 14, face = "bold"))+
+  theme(legend.position = "none")+
+  scale_fill_discrete("Block type")
+
+grid.arrange(t1,t2)
+
+
+##Calculate average fishes per trip 
+cpue<-data%>%
+  left_join(trips, by=c("mlpa_region", "mpa_yn", "year"))%>%
+  mutate(cpue=(n_kept/totaltrips))
+
+#Plot CPUE over time 
+
+c1<-ggplot(cpue, aes(x=year, y=cpue, color=mpa_yn))+ 
+  geom_line()+
+  labs(x="Year", y="Fishes kept per trip")+
+  facet_wrap(~mlpa_region, ncol=4, scales="free_y")+
+   #Implementation year line 
+  geom_vline(data=mpa_yr, mapping=aes(xintercept=establish)) +
+  #Theme and legend
+  theme_bw() + my_theme +
+  ggtitle("Fish kept per trip")+
+  theme(plot.title = element_text(size = 14, face = "bold"))+
+  theme(legend.position = "none")+
+  scale_fill_discrete("Block type")
+
+c1
+```
+
+
+
+Block counterfactuals
+
+```{r}
+blockcf<-readRDS("analyses/2performance_fisheries/analyses/blocks/block_counterfactual_key.Rds")
+
+```
+
+

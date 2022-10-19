@@ -137,6 +137,9 @@ char_key1 <- char_key %>%
 char_key2 <- char_key %>% 
   filter(region=="South Coast")
 
+# Range
+range(data$value_scaled, na.rm=T) # -1.2, 10.8
+
 # Theme
 theme1 <- theme(axis.text=element_text(size=6),
                 axis.text.y=element_text(size=6),
@@ -169,7 +172,7 @@ g1 <- ggplot(data1, aes(x=indicator, y=mpa, fill=value_scaled)) +
   labs(x="", y="") +
   # Legend
   scale_color_manual(name="MPA type", values=c("navy", "darkred")) +
-  scale_fill_gradient2("Engagement\n(scaled and centered)", 
+  scale_fill_gradient2("Engagement\n(scaled and centered)", lim=c(-1.2, 10.8),
                        midpoint = 0, low="darkred", high="navy", mid="white", na.value="grey50") +  
   guides(fill = guide_colorbar(ticks.colour = "black", frame.colour = "black")) +
   # Theme
@@ -191,7 +194,7 @@ g2 <- ggplot(data2, aes(x=indicator, y=mpa, fill=value_scaled)) +
   labs(x="", y="") +
   # Legend
   scale_color_manual(name="MPA type", values=c("navy", "darkred")) +
-  scale_fill_gradient2(name="Engagement\n(scaled and centered)", 
+  scale_fill_gradient2(name="Engagement\n(scaled and centered)", lim=c(-1.2, 10.8),
                        midpoint = 0, low="darkred", high="navy", mid="white", na.value="grey50") +
   guides(fill = guide_colorbar(ticks.colour = "black", frame.colour = "black",
                                title.position="top", title.hjust = 0),
