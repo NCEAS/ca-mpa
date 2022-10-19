@@ -1,0 +1,343 @@
+"comm_name","sci_name","temp_c_fl","temp_c_fb","temp_c_avg"
+"Pacific halibut","Hippoglossus stenolepis",4.60637181792406,3.5,4.05318590896203
+"Spotted cusk-eel","Chilara taylori",6.98173876612519,4,5.49086938306259
+"Dolly varden trout","Salvelinus malma",5.68504742864703,NA,5.68504742864703
+"Pacific cod","Gadus macrocephalus",6.28524627506971,5.4,5.84262313753486
+"Canary rockfish","Sebastes pinniger",6.40484415299336,5.4,5.90242207649668
+"Butter sole","Isopsetta isolepis",6.55371722093315,5.4,5.97685861046658
+"Yelloweye rockfish","Sebastes ruberrimus",6.58774684944622,5.4,5.99387342472311
+"Pacific ocean perch","Sebastes alutus",6.65752812142372,5.4,6.02876406071186
+"Darkblotched rockfish","Sebastes crameri",7.76333043134306,5.4,6.58166521567153
+"Petrale sole","Eopsetta jordani",8.9683806415988,5.4,7.1841903207994
+"Eulachon","Thaleichthys pacificus",7.70353767894602,NA,7.70353767894602
+"Lingcod","Ophiodon elongatus",7.88429434971748,7.7,7.79214717485874
+"Pacific cultus liver","Ophiodon elongatus",7.88429434971748,7.7,7.79214717485874
+"Chum salmon","Oncorhynchus keta",8.65777228527986,7.5,8.07888614263993
+"Night smelt","Spirinchus starksi",8.10105890934015,NA,8.10105890934015
+"Whitebait smelt","Allosmerus elongatus",8.1992766316019,NA,8.1992766316019
+"Shortbelly rockfish","Sebastes jordani",8.7525040945918,8,8.3762520472959
+"Eastern brook trout","Salvelinus fontinalis",8.55129798481775,NA,8.55129798481775
+"Sablefish","Anoplopoma fimbria",8.92054049822073,8.5,8.71027024911036
+"Sablefish liver","Anoplopoma fimbria",8.92054049822073,8.5,8.71027024911036
+"Fork tail catfish","Ictalurus punctatus",9.60962089232576,8,8.80481044616288
+"Yellowtail rockfish","Sebastes flavidus",9.21661026929934,8.5,8.85830513464967
+"Rougheye rockfish","Sebastes aleutianus",8.95839864720551,NA,8.95839864720551
+"Pacific tomcod","Microgadus proximus",8.96902860246544,NA,8.96902860246544
+"Softshell clam","Mya arenaria",NA,9,9
+"Shortraker rockfish","Sebastes borealis",9.08587320815563,NA,9.08587320815563
+"Rex sole","Glyptocephalus zachirus",9.10258483987262,NA,9.10258483987262
+"Arrowtooth flounder","Atheresthes stomias",9.15821153537775,NA,9.15821153537775
+"Weathervane scallop","Patinopecten caurinus",NA,9.2,9.2
+"Loch Leven brown trout","Salmo trutta",9.55686824225357,9.15,9.35343412112679
+"Spiny dogfish shark","Squalus acanthias",9.74374368057111,9,9.37187184028556
+"Staghorn sculpin","Leptocottus armatus",9.62983281314777,NA,9.62983281314777
+"Yellowchin sculpin","Icelinus quadriseriatus",9.62983281314777,NA,9.62983281314777
+"Small mouthed black bass","Micropterus dolomieu",10.1029898361194,9.3,9.70149491805972
+"Red abalone","Haliotis rufescens",NA,10,10
+"Shortspine thornyhead","Sebastolobus alascanus",10.0587978804863,NA,10.0587978804863
+"Pacific herring","Clupea pallasii pallasii",10.4410524177826,10,10.2205262088913
+"Pacific herring roe","Clupea pallasii pallasii",10.4410524177826,10,10.2205262088913
+"Sand sole","Psettichthys melanostictus",10.3877184464254,NA,10.3877184464254
+"Slender sole","Lyopsetta exilis",10.3877184464254,NA,10.3877184464254
+"Diamond turbot","Hypsopsetta guttulata",10.3877184464254,NA,10.3877184464254
+"Basking shark","Cetorhinus maximus",11.1359270523316,10,10.5679635261658
+"Copper rockfish","Sebastes caurinus",10.7551454997557,10.6,10.6775727498778
+"Vermilion rockfish","Sebastes miniatus",10.7559201741884,NA,10.7559201741884
+"Black-and-yellow rockfish","Sebastes chrysomelas",10.7559201741884,NA,10.7559201741884
+"Greenspotted rockfish","Sebastes chlorostictus",10.7559201741884,NA,10.7559201741884
+"China rockfish","Sebastes nebulosus",10.7559201741884,NA,10.7559201741884
+"Gopher rockfish","Sebastes carnatus",10.7559201741884,NA,10.7559201741884
+"Pinkrose rockfish","Sebastes simulator",10.7559201741884,NA,10.7559201741884
+"Brown rockfish","Sebastes auriculatus",10.7559201741884,NA,10.7559201741884
+"Rosy rockfish","Sebastes rosaceus",10.7559201741884,NA,10.7559201741884
+"Widow rockfish","Sebastes entomelas",10.7559201741884,NA,10.7559201741884
+"Splitnose rockfish","Sebastes diploproa",10.7559201741884,NA,10.7559201741884
+"Grass rockfish","Sebastes rastrelliger",10.7559201741884,NA,10.7559201741884
+"Pink rockfish","Sebastes eos",10.7559201741884,NA,10.7559201741884
+"Blackspotted rockfish","Sebastes melanostictus",10.7559201741884,NA,10.7559201741884
+"Flag rockfish","Sebastes rubrivinctus",10.7559201741884,NA,10.7559201741884
+"Treefish rockfish","Sebastes serriceps",10.7559201741884,NA,10.7559201741884
+"Kelp rockfish","Sebastes atrovirens",10.7559201741884,NA,10.7559201741884
+"Honeycomb rockfish","Sebastes umbrosus",10.7559201741884,NA,10.7559201741884
+"Bronzespotted rockfish","Sebastes gilli",10.7559201741884,NA,10.7559201741884
+"Bank rockfish","Sebastes rufus",10.7559201741884,NA,10.7559201741884
+"Rosethorn rockfish","Sebastes helvomaculatus",10.7559201741884,NA,10.7559201741884
+"Swordspine rockfish","Sebastes ensifer",10.7559201741884,NA,10.7559201741884
+"Calico rockfish","Sebastes dallii",10.7559201741884,NA,10.7559201741884
+"Chameleon rockfish","Sebastes phillipsi",10.7559201741884,NA,10.7559201741884
+"Aurora rockfish","Sebastes aurora",10.7559201741884,NA,10.7559201741884
+"Redbanded rockfish","Sebastes babcocki",10.7559201741884,NA,10.7559201741884
+"Mexican rockfish","Sebastes macdonaldi",10.7559201741884,NA,10.7559201741884
+"Quillback rockfish","Sebastes maliger",10.7559201741884,NA,10.7559201741884
+"Eastern oyster","Crassostrea virginica",NA,11,11
+"Longspine thornyhead","Sebastolobus altivelis",11.5996442259186,NA,11.5996442259186
+"Wolf eel","Anarrhichthys ocellatus",11.6200864661958,NA,11.6200864661958
+"Blenny eel","Lumpenus sagitta",11.7024901930494,NA,11.7024901930494
+"Golden trout","Oncorhynchus aguabonita",11.7271343294845,NA,11.7271343294845
+"Surf smelt","Hypomesus pretiosus",11.744272019282,NA,11.744272019282
+"Bay smelt","Hypomesus transpacificus",11.744272019282,NA,11.744272019282
+"Large mouthed black bass","Micropterus salmoides",12.3563741266928,11.25,11.8031870633464
+"English sole","Parophrys vetulus",11.633997175027,12,11.8169985875135
+"Threespine stickleback","Gasterosteus aculeatus",12.1731331267106,11.65,11.9115665633553
+"Pacific hagfish","Eptatretus stoutii",11.9989824266304,NA,11.9989824266304
+"Black hagfish","Eptatretus deani",11.9989824266304,NA,11.9989824266304
+"Blue shark","Prionace glauca",12.4428064611891,12,12.2214032305946
+"Chinook salmon","Oncorhynchus tshawytscha",12.3525982787678,NA,12.3525982787678
+"Pink salmon","Oncorhynchus gorbuscha",12.3525982787678,NA,12.3525982787678
+"Cutthroat trout","Oncorhynchus clarkii",12.3525982787678,NA,12.3525982787678
+"Big skate","Raja binoculata",12.4674106527798,NA,12.4674106527798
+"California skate","Raja inornata",12.4674106527798,NA,12.4674106527798
+"Black rockfish","Sebastes melanops",12.401216440553,13,12.7006082202765
+"Salmon shark","Lamna ditropis",12.8365319041415,NA,12.8365319041415
+"Pacific whiting","Merluccius productus",12.8653098634532,13,12.9326549317266
+"Hake liver","Merluccius productus",12.8653098634532,13,12.9326549317266
+"Curlfin sole","Pleuronichthys decurrens",12.9891166463689,NA,12.9891166463689
+"C-O sole","Pleuronichthys coenosus",12.9891166463689,NA,12.9891166463689
+"Hornyhead turbot","Pleuronichthys verticalis",12.9891166463689,NA,12.9891166463689
+"Spotted turbot","Pleuronichthys ritteri",12.9891166463689,NA,12.9891166463689
+"Curlfin turbot","Pleuronichthys decurrens",12.9891166463689,NA,12.9891166463689
+"C-O turbot","Pleuronichthys coenosus",12.9891166463689,NA,12.9891166463689
+"Horneyhead turbot","Pleuronichthys verticalis",12.9891166463689,NA,12.9891166463689
+"Dover sole","Microstomus pacificus",12.1088565327084,14,13.0544282663542
+"Brown bullhead","Ameiurus nebulosus",13.7325965183435,12.4,13.0662982591717
+"Coho salmon","Oncorhynchus kisutch",13.2947656828917,13,13.1473828414459
+"Longnose skate","Raja rhina",13.2279883320028,NA,13.2279883320028
+"Greenblotched rockfish","Sebastes rosenblatti",12.5558701787459,14,13.2779350893729
+"Speckled rockfish","Sebastes ovalis",12.5711492615039,14,13.2855746307519
+"Starry rockfish","Sebastes constellatus",12.7679231103579,14,13.383961555179
+"Greenstriped rockfish","Sebastes elongatus",12.8511333544274,14,13.4255666772137
+"Blackgill rockfish","Sebastes melanostomus",12.8534519396062,14,13.4267259698031
+"Stripetail rockfish","Sebastes saxicola",12.8609932555728,14,13.4304966277864
+"Chilipepper rockfish","Sebastes goodei",12.9413378930761,14,13.4706689465381
+"Monkeyface prickleback","Cebidichthys violaceus",13.6050098449515,NA,13.6050098449515
+"Olive rockfish","Sebastes serranoides",13.381958655321,14,13.6909793276605
+"Rock greenling","Hexagrammos lagocephalus",13.8867073038414,NA,13.8867073038414
+"Kelp greenling","Hexagrammos decagrammus",13.8867073038414,NA,13.8867073038414
+"Pacific electric ray","Torpedo californica",13.93000819345,NA,13.93000819345
+"Green sturgeon","Acipenser medirostris",13.8722289995696,14,13.9361144997848
+"Pacific saury","Cololabis saira",13.006520421308,15,14.003260210654
+"Spotted ratfish","Hydrolagus colliei",14.0450925654375,14,14.0225462827187
+"Freshwater rock bass","Ambloplites rupestris",14.0316857420621,NA,14.0316857420621
+"Sacramento perch","Archoplites interruptus",14.0316857420621,NA,14.0316857420621
+"Brown smoothhound shark","Mustelus henlei",14.5015068346044,14,14.2507534173022
+"Gray smoothhound shark","Mustelus californicus",14.782646600582,14,14.391323300291
+"Rainbow trout","Oncorhynchus mykiss",14.4654425888843,15,14.7327212944422
+"Pacific lamprey","Entosphenus tridentatus",14.7482588386615,NA,14.7482588386615
+"Jack mackerel","Trachurus symmetricus",15.562340622586,14,14.781170311293
+"Large jack mackerel","Trachurus symmetricus",15.562340622586,14,14.781170311293
+"Kahawai","Arripis trutta",14.6844627904784,15,14.8422313952392
+"Albacore tuna","Thunnus alalunga",15.803632121673,14,14.9018160608365
+"Albacore liver","Thunnus alalunga",15.803632121673,14,14.9018160608365
+"Pacific mackerel","Scomber japonicus",15.8266418093762,14,14.9133209046881
+"Pacific sanddab","Citharichthys sordidus",15.89180173588,14,14.94590086794
+"White sturgeon","Acipenser transmontanus",14.9585669558894,15,14.9792834779447
+"California grunion","Leuresthes tenuis",15.3186947405971,15,15.1593473702985
+"Spotfin croaker","Roncador stearnsii",16.3364956967195,14,15.1682478483597
+"Blue rockfish","Sebastes mystinus",14.3560674542214,16,15.1780337271107
+"Kelp bass","Paralabrax clathratus",16.463288332111,14,15.2316441660555
+"Calico bass","Paralabrax clathratus",16.463288332111,14,15.2316441660555
+"Swell shark","Cephaloscyllium ventriosum",15.2779938179554,NA,15.2779938179554
+"Starry flounder","Platichthys stellatus",12.7691844339387,18,15.3845922169693
+"Thresher shark","Alopias vulpinus",16.9292242161819,14,15.4646121080909
+"California moray eel","Gymnothorax mordax",15.5888030179074,NA,15.5888030179074
+"Atlantic bluefin tuna","Thunnus thynnus",15.7904386476691,15.5,15.6452193238346
+"Soupfin shark","Galeorhinus galeus",16.4679291490679,15,15.733964574534
+"Opah","Lampris guttatus",15.9070980125476,NA,15.9070980125476
+"Giant Pacific oyster","Crassostrea gigas",NA,16,16
+"Cowcod rockfish","Sebastes levis",14.0371875900089,18,16.0185937950044
+"Northern quahog clam","Mercenaria mercenaria",NA,16.1,16.1
+"Escolar","Lepidocybium flavobrunneum",16.3642722039888,NA,16.3642722039888
+"Oilfish","Ruvettus pretiosus",16.3642722039888,NA,16.3642722039888
+"Northern anchovy","Engraulis mordax",16.0736904405466,16.7,16.3868452202733
+"Horn shark","Heterodontus francisci",16.4057402406507,NA,16.4057402406507
+"Carp","Cyprinus carpio",16.4153021403731,16.5,16.4576510701866
+"Squarespot rockfish","Sebastes hopkinsi",15.5085479961968,18,16.7542739980984
+"Bocaccio rockfish","Sebastes paucispinis",15.6376934619488,18,16.8188467309744
+"Cabezon","Scorpaenichthys marmoratus",15.6747391556814,18,16.8373695778407
+"Pismo clam","Tivela stultorum",NA,17,17
+"Giant sea bass","Stereolepis gigas",17.0545708595158,NA,17.0545708595158
+"Pacific sardine","Sardinops sagax",16.8122847874767,17.6,17.2061423937384
+"Juvenile sardine","Sardinops sagax",16.8122847874767,17.6,17.2061423937384
+"New Zealand pilchard","Sardinops sagax",16.8122847874767,17.6,17.2061423937384
+"Jacksmelt","Atherinopsis californiensis",17.2356656183751,NA,17.2356656183751
+"Topsmelt","Atherinops affinis",17.2356656183751,NA,17.2356656183751
+"Yellowfin goby","Acanthogobius flavimanus",19.2855010473804,15.2,17.2427505236902
+"Striped bass","Morone saxatilis",16.7386829761708,18,17.3693414880854
+"White shark","Carcharodon carcharias",17.0684932127371,18,17.5342466063685
+"California scorpionfish","Scorpaena guttata",17.1258445559384,18,17.5629222779692
+"Sixgill shark","Hexanchus griseus",17.5710008426037,NA,17.5710008426037
+"Leopard shark","Triakis semifasciata",17.4092194124558,18,17.7046097062279
+"Bonito liver","Sarda lineolata",17.5620429705009,18,17.7810214852505
+"Thornback skate","Platyrhinoidis triseriata",17.8244726137096,NA,17.8244726137096
+"Pacific bonito","Sarda chiliensis",17.7862982898786,18,17.8931491449393
+"Pacific angel shark","Squatina californica",17.8299269946475,18,17.9149634973238
+"Barred surfperch","Amphistichus argenteus",17.8397834108643,18,17.9198917054321
+"Longfin sanddab","Citharichthys xanthostigma",17.9690091807027,NA,17.9690091807027
+"Speckled sanddab","Citharichthys stigmaeus",17.9690091807027,NA,17.9690091807027
+"Market squid","Doryteuthis opalescens",NA,18,18
+"Bat ray","Myliobatis californica",18.0212690905024,18,18.0106345452512
+"Plainfin midshipman","Porichthys notatus",18.0353333849797,NA,18.0353333849797
+"California halibut","Paralichthys californicus",18.108523078825,18,18.0542615394125
+"California killifish","Fundulus parvipinnis",18.1973711433656,18,18.0986855716828
+"Redtail surfperch","Amphistichus rhodoterus",18.1077748258463,NA,18.1077748258463
+"Calico surfperch","Amphistichus koelzi",18.1077748258463,NA,18.1077748258463
+"California corbina","Menticirrhus undulatus",18.247358307693,18,18.1236791538465
+"Opaleye","Girella nigricans",18.2784090068064,NA,18.2784090068064
+"Dwarf surfperch","Micrometrus minimus",18.2877171023783,NA,18.2877171023783
+"Shovelnose guitarfish","Rhinobatos productus",18.3203709778618,NA,18.3203709778618
+"Sevengill shark","Notorynchus cepedianus",18.3808083571991,NA,18.3808083571991
+"Walleye surfperch","Hyperprosopon argenteum",18.4102497081454,NA,18.4102497081454
+"Silver surfperch","Hyperprosopon ellipticum",18.4102497081454,NA,18.4102497081454
+"Black croaker","Cheilotrema saturnum",18.8627919870377,18,18.4313959935188
+"Dusky shark","Carcharhinus obscurus",18.8687311797116,18,18.4343655898558
+"Black surfperch","Embiotoca jacksoni",18.4792444413538,NA,18.4792444413538
+"Shiner surfperch","Cymatogaster aggregata",18.4792444413538,NA,18.4792444413538
+"Striped seaperch","Embiotoca lateralis",18.4792444413538,NA,18.4792444413538
+"White surfperch","Phanerodon furcatus",18.4792444413538,NA,18.4792444413538
+"Rubberlip surfperch","Rhacochilus toxotes",18.4792444413538,NA,18.4792444413538
+"Pile surfperch","Rhacochilus vacca",18.4792444413538,NA,18.4792444413538
+"Rainbow surfperch","Hypsurus caryi",18.4792444413538,NA,18.4792444413538
+"Pink surfperch","Zalembius rosaceus",18.4792444413538,NA,18.4792444413538
+"American shad","Alosa sapidissima",18.7280153484033,NA,18.7280153484033
+"Roe shad","Alosa sapidissima",18.7280153484033,NA,18.7280153484033
+"Buck shad","Alosa sapidissima",18.7280153484033,NA,18.7280153484033
+"Shad roe","Alosa sapidissima",18.7280153484033,NA,18.7280153484033
+"Rock sole","Paraplagusia bilineata",18.8970325214688,NA,18.8970325214688
+"Striped mullet","Mugil cephalus",19.397562903872,19,19.198781451936
+"Shortfin mako shark","Isurus oxyrinchus",17.9661037478131,20.5,19.2330518739066
+"California barracuda","Sphyraena argentea",20.4944294951954,18,19.2472147475977
+"Barracuda roe","Sphyraena argentea",20.4944294951954,18,19.2472147475977
+"Longjaw mudsucker","Gillichthys mirabilis",19.2855010473804,NA,19.2855010473804
+"Bluebanded goby","Lythrypnus dalli",19.2855010473804,NA,19.2855010473804
+"Zebra goby","Lythrypnus zebra",19.2855010473804,NA,19.2855010473804
+"Louvar","Luvarus imperialis",19.4104588377515,NA,19.4104588377515
+"Giant kelpfish","Heterostichus rostratus",19.4104588377515,NA,19.4104588377515
+"Yellowtail","Seriola lalandi",19.5241032584008,19.3,19.4120516292004
+"Bigmouth sole","Hippoglossina stomata",19.529195347938,NA,19.529195347938
+"Barred sand bass","Paralabrax nebulifer",19.5321534180508,NA,19.5321534180508
+"Bullet mackerel","Auxis rochei",20.4518082366195,19,19.7259041183098
+"Freshwater clam","Corbicula fluminea",NA,19.75,19.75
+"Swordfish","Xiphias gladius",20.6031305155407,19,19.8015652577704
+"Swordfish liver","Xiphias gladius",20.6031305155407,19,19.8015652577704
+"Bluefin tuna","Thunnus orientalis",19.8119986139199,NA,19.8119986139199
+"Oriental tuna","Thunnus orientalis",19.8119986139199,NA,19.8119986139199
+"Spotted sand bass","Paralabrax maculatofasciatus",19.8767383012085,NA,19.8767383012085
+"Senorita","Oxyjulis californica",19.8856222576771,NA,19.8856222576771
+"California sheephead","Semicossyphus pulcher",19.8856222576771,NA,19.8856222576771
+"Ocean sunfish","Mola mola",19.9049364570128,NA,19.9049364570128
+"White sea bass","Atractoscion nobilis",19.8895125850751,20,19.9447562925375
+"White sea bass roe","Atractoscion nobilis",19.8895125850751,20,19.9447562925375
+"White sea bass liver","Atractoscion nobilis",19.8895125850751,20,19.9447562925375
+"Squawfish","Ptychocheilus grandis",19.9814173281243,NA,19.9814173281243
+"Almaco jack","Seriola rivoliana",20.1086454355496,NA,20.1086454355496
+"Black skipjack tuna","Euthynnus lineatus",20.2318306616096,NA,20.2318306616096
+"Halfmoon","Medialuna californiensis",20.2539620941821,NA,20.2539620941821
+"Zebraperch","Hermosilla azurea",20.2539620941821,NA,20.2539620941821
+"Fantail sole","Xystreurys liolepis",20.689494624477,NA,20.689494624477
+"Hardhead","Mylopharodon conocephalus",20.7127551245809,NA,20.7127551245809
+"Splittail","Pogonichthys macrolepidotus",20.7127551245809,NA,20.7127551245809
+"Hitch","Lavinia exilicauda",20.7127551245809,NA,20.7127551245809
+"Sacramento blackfish","Orthodon microlepidotus",20.7127551245809,NA,20.7127551245809
+"Yellowfin croaker","Umbrina roncador",20.7586693773058,NA,20.7586693773058
+"Threadfin shad","Dorosoma petenense",21.0103652703224,NA,21.0103652703224
+"Ocean whitefish","Caulolatilus princeps",21.0841754988604,NA,21.0841754988604
+"Bigeye thresher shark","Alopias superciliosus",20.9643286417245,22,21.4821643208623
+"Pelagic thresher shark","Alopias pelagicus",20.9709839713309,22,21.4854919856655
+"Shortbill spearfish","Tetrapturus angustirostris",21.7622664014711,NA,21.7622664014711
+"Pacific pompano","Peprilus simillimus",21.7634499325367,NA,21.7634499325367
+"Shortfin sea bass","Cynoscion parvipinnis",21.7986881068128,NA,21.7986881068128
+"Shortfin corvina","Cynoscion parvipinnis",21.7986881068128,NA,21.7986881068128
+"Sailfish","Istiophorus platypterus",21.8525185902589,22,21.9262592951294
+"Bigeye tuna","Thunnus obesus",21.0742299455398,23,22.0371149727699
+"California needlefish","Strongylura exilis",22.062532701287,NA,22.062532701287
+"White croaker","Genyonemus lineatus",22.1172216687847,NA,22.1172216687847
+"Queenfish","Seriphus politus",22.1172216687847,NA,22.1172216687847
+"Smooth hammerhead shark","Sphyrna zygaena",22.5572105777323,NA,22.5572105777323
+"Striped marlin","Kajikia audax",22.89931655811,23,22.949658279055
+"Pacific sierra","Scomberomorus sierra",23.3893365714547,NA,23.3893365714547
+"Bonefish","Albula vulpes",23.7451481425231,24,23.8725740712615
+"Deepbody anchovy","Anchoa compressa",23.8997325471951,NA,23.8997325471951
+"Slough anchovy","Anchoa delicatissima",23.8997325471951,NA,23.8997325471951
+"Totuava seabass","Totoaba macdonaldi",24.0087353766477,24.5,24.2543676883239
+"Totuava liver","Totoaba macdonaldi",24.0087353766477,24.5,24.2543676883239
+"Yellowfin tuna","Thunnus albacares",23.6640160643556,25,24.3320080321778
+"Blackfin tuna","Thunnus atlanticus",23.839487262692,25.5,24.669743631346
+"Pacific crevalle jack","Caranx caninus",24.7478418435504,NA,24.7478418435504
+"Broomtail grouper","Mycteroperca xenarcha",24.7734500253353,NA,24.7734500253353
+"Skipjack tuna","Katsuwonus pelamis",24.6722407472794,25,24.8361203736397
+"Spotted cabrilla","Epinephelus analogus",24.8363574196933,NA,24.8363574196933
+"New Zealand mackerel","Scomber australasicus",22.1736305817909,27.5,24.8368152908954
+"Sargo","Anisotremus davidsonii",25.1908956219078,NA,25.1908956219078
+"Longtail tuna","Thunnus tonggol",23.5178139610797,27,25.2589069805399
+"Blacktip shark","Carcharhinus limbatus",25.0321951584418,26,25.5160975792209
+"Garibaldi","Hypsypops rubicundus",25.5615869347535,NA,25.5615869347535
+"Rock wrasse","Halichoeres semicinctus",25.6958521589842,NA,25.6958521589842
+"Dolphinfish","Coryphaena hippurus",24.9815172777051,26.5,25.7407586388526
+"California lizardfish","Synodus lucioceps",26.061275962968,NA,26.061275962968
+"Wahoo","Acanthocybium solandri",25.3127142228159,27,26.156357111408
+"Blacksmith","Chromis punctipinnis",26.4149705857837,NA,26.4149705857837
+"Round herring","Etrumeus teres",NA,NA,NA
+"Tongue sole","Symphurus atricauda",NA,NA,NA
+"Red rock crab","Cancer productus",NA,NA,NA
+"Yellow rock crab","Cancer anthonyi",NA,NA,NA
+"Brown rock crab","Cancer antennarius",NA,NA,NA
+"Salema","Brachygenys californiensis",NA,NA,NA
+"Sea pansy","Renilla koellikeri",NA,NA,NA
+"Keyhole limpet","Megathura crenulata",NA,NA,NA
+"Sand dollar","Dendraster excentricus",NA,NA,NA
+"Black abalone","Haliotis cracherodii",NA,NA,NA
+"Green abalone","Haliotis fulgens",NA,NA,NA
+"Pink abalone","Haliotis corrugata",NA,NA,NA
+"White abalone","Haliotis sorenseni",NA,NA,NA
+"Threaded abalone","Haliotis assimilis",NA,NA,NA
+"Pinto abalone","Haliotis kamtschatkana",NA,NA,NA
+"Flat abalone","Haliotis walallensis",NA,NA,NA
+"Jumbo squid","Dosidicus gigas",NA,NA,NA
+"Rock scallop","Crassadoma gigantea",NA,NA,NA
+"Common littleneck clam","Leukoma staminea",NA,NA,NA
+"Northern razor clam","Siliqua patula",NA,NA,NA
+"Gaper clam","Tresus nuttallii",NA,NA,NA
+"Common washington clam","Saxidomus nuttalli",NA,NA,NA
+"California jackknife clam","Tagelus californianus",NA,NA,NA
+"Kellet's whelk","Kelletia kelletii",NA,NA,NA
+"Purple clam","Nuttallia nuttallii",NA,NA,NA
+"Rosy razor clam","Solen sicarius",NA,NA,NA
+"California native oyster","Ostrea lurida",NA,NA,NA
+"Kumamoto oyster","Magallana sikamea",NA,NA,NA
+"European flat oyster","Ostrea edulis",NA,NA,NA
+"Bubble snail","Bulla gouldiana",NA,NA,NA
+"Top snail","Megastraea undosa",NA,NA,NA
+"Red sea urchin","Mesocentrotus franciscanus",NA,NA,NA
+"Purple sea urchin","Strongylocentrotus purpuratus",NA,NA,NA
+"Giant red sea cucumber","Apostichopus californicus",NA,NA,NA
+"White sea urchin","Lytechinus anamesus",NA,NA,NA
+"Warty sea cucumber","Parastichopus parvimensis",NA,NA,NA
+"Bat star","Patiria miniata",NA,NA,NA
+"Coronado sea urchin","Centrostephanus coronatus",NA,NA,NA
+"Purple coral","Stylaster californicus",NA,NA,NA
+"Dungeness crab","Metacarcinus magister",NA,NA,NA
+"Sand crab","Emerita analoga",NA,NA,NA
+"Shore crab","Pachygrapsus crassipes",NA,NA,NA
+"Pelagic red crab","Pleuroncodes planipes",NA,NA,NA
+"Tanner crab","Chionoecetes tanneri",NA,NA,NA
+"Box crab","Lopholithodes foraminatus",NA,NA,NA
+"Ghost shrimp","Neotrypaea californiensis",NA,NA,NA
+"Pacific pink shrimp","Pandalus jordani",NA,NA,NA
+"Ridgeback prawn","Sicyonia ingentis",NA,NA,NA
+"Spot prawn","Pandalus platyceros",NA,NA,NA
+"Golden prawn","Penaeus californiensis",NA,NA,NA
+"Coonstriped shrimp","Pandalus danae",NA,NA,NA
+"Red rock shrimp","Lysmata californica",NA,NA,NA
+"Brine shrimp","Artemia salina",NA,NA,NA
+"California spiny lobster","Panulirus interruptus",NA,NA,NA
+"Mantis shrimp","Hemisquilla californiensis",NA,NA,NA
+"Armed box crab","Platymera gaudichaudii",NA,NA,NA
+"Signal crayfish","Pacifastacus leniusculus",NA,NA,NA
+"Red swamp crayfish","Procambarus clarkii",NA,NA,NA
+"Southern kelp crab","Taliepus nuttallii",NA,NA,NA
+"Amphioxus lancelets","Branchiostoma californiense",NA,NA,NA
+"Bull frog","Rana catesbeiana",NA,NA,NA
+"Turtle","Chelonia mydas",NA,NA,NA
+"Giant kelp","Macrocystis pyrifera",NA,NA,NA
+"Sea lion","Zalophus californianus",NA,NA,NA
+"Sea elephant","Mirounga angustirostris",NA,NA,NA
