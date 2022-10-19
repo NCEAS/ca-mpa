@@ -217,6 +217,72 @@ pL2
 grid.arrange(pL, pL2)
 ```
 
+Examine number of trips through time as a proxy for revenue
+
+```{r}
+trips<-data_orig%>% 
+  #join in block data
+  left_join(blocks %>% select(block_id, mlpa_region, mpa_yn)) %>%
+  #group data
+  group_by(mlpa_region, mpa_yn, year)%>%
+  distinct(logbook_id)%>%
+  filter(mlpa_region=="South Coast" | mlpa_region=="Central Coast"|
+           mlpa_region=="North Central Coast" | mlpa_region=="North Coast")%>%
+  summarize(totaltrips=n())
+
+t1<-ggplot(trips, aes(x=year, y=totaltrips/1000, color=mpa_yn))+
+  geom_line()+
+  facet_wrap(~mlpa_region, scales = "free", ncol=4)+
+  scale_color_discrete("Block type")+
+  labs(x="Year", y="CPFV Trips (in thousands)" )+
+  theme_bw()+ my_theme+
+  theme(plot.title = element_text(size = 14, face = "bold"))+
+  geom_vline(data=mpa_yr, mapping=aes(xintercept=establish))+
+  ggtitle("CPFV trips over time")+  
+  theme(legend.position = "bottom")
+
+
+
+t2<-ggplot(data, aes(x=year, y=(n_kept/1000), color=mpa_yn))+ 
+  geom_line()+
+  labs(x="Year", y="Thousands of fish kept")+
+  facet_wrap(~mlpa_region, ncol=4, scales="free_y")+
+   #Implementation year line 
+  geom_vline(data=mpa_yr, mapping=aes(xintercept=establish)) +
+  #Theme and legend
+  theme_bw() + my_theme +
+  ggtitle("Fish kept over time")+
+  theme(plot.title = element_text(size = 14, face = "bold"))+
+  theme(legend.position = "none")+
+  scale_fill_discrete("Block type")
+
+grid.arrange(t1,t2)
+
+
+##Calculate average fishes per trip 
+cpue<-data%>%
+  left_join(trips, by=c("mlpa_region", "mpa_yn", "year"))%>%
+  mutate(cpue=(n_kept/totaltrips))
+
+#Plot CPUE over time 
+
+c1<-ggplot(cpue, aes(x=year, y=cpue, color=mpa_yn))+ 
+  geom_line()+
+  labs(x="Year", y="Fishes kept per trip")+
+  facet_wrap(~mlpa_region, ncol=4, scales="free_y")+
+   #Implementation year line 
+  geom_vline(data=mpa_yr, mapping=aes(xintercept=establish)) +
+  #Theme and legend
+  theme_bw() + my_theme +
+  ggtitle("Fish kept per trip")+
+  theme(plot.title = element_text(size = 14, face = "bold"))+
+  theme(legend.position = "none")+
+  scale_fill_discrete("Block type")
+
+c1
+```
+
+
 
 Block counterfactuals
 
