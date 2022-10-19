@@ -10,6 +10,7 @@ library(tidyverse)
 
 # Directories
 plotdir <- "analyses/1performance_eco/figures"
+outdir <- "analyses/1performance_eco/output"
 
 # Read species key
 spp_key_orig <- readRDS("/Users/cfree/Dropbox/Chris/UCSB/projects/california/cdfw_data/data/public/cdfw_keys/processed/CDFW_species_key_taxa.Rds")
@@ -56,6 +57,12 @@ data <- spp_key %>%
 freeR::which_duplicated(data$comm_name)
 
 
+# Export data
+################################################################################
+
+# Save data
+write.csv(data, file=file.path(outdir, "ca_fish_thermal_affinities.csv"), row.names=F)
+
 # Plot data
 ################################################################################
 
@@ -71,10 +78,14 @@ ggplot(data, aes(x=temp_c_fb, y=temp_c_fl)) +
 data_wide <- data %>% 
   select(comm_name, sci_name, temp_c_fb, temp_c_fl) %>% 
   gather(key="source", value="temp_c", 3:4) %>% 
-  mutate(comm_name=factor(comm_name, levels=data$comm_name))
+  mutate(comm_name=factor(comm_name, levels=data$comm_name)) %>% 
+  mutate(source=recode(source,
+                       "temp_c_fb"="FishBase",
+                       "temp_c_fl"="FishLife"))
 
 # Setup theme
-my_theme <-  theme(axis.text=element_text(size=6),
+my_theme <-  theme(axis.text.x=element_text(size=7),
+                   axis.text.y=element_text(size=5),
                    axis.title=element_text(size=8),
                    legend.text=element_text(size=6),
                    legend.title=element_text(size=8),
