@@ -74,6 +74,39 @@ CCFRP_CPUE$affiliated_mpa <- recode_factor(CCFRP_CPUE$affiliated_mpa, "southeast
 CCFRP_CPUE$affiliated_mpa <- recode_factor(CCFRP_CPUE$affiliated_mpa, "swamis smr" = "swami's smca") #clean up names 
 
 
+#drop species and combine to higher taxa
+#### see reference taxonomy table https://docs.google.com/spreadsheets/d/1vxy0XVOrlNhXD-i9tWL_F9G5h8S3S4OV/edit#gid=2031917236
+
+CCFRP_combined <- CCFRP_CPUE %>%
+                  #merge species
+                  mutate(blue_rockfish_merge = rowSums(select(.,'blue_rockfish','deacon_rockfish')),
+                         mackerel_family_merge = rowSums(select(., 'mackerel_family_scombridae','pacific_chub_mackerel','jack_mackerel')),
+                         sanddabs_merge = rowSums(select(., 'pacific_sanddab','sanddab_spp','speckled_sanddab')))%>%
+                  select(!(c('blue_rockfish','deacon_rockfish','mackerel_family_scombridae',,'pacific_chub_mackerel',
+                             'pacific_sanddab','sanddab_spp','speckled_sanddab','jack_mackerel'))) %>%
+                  #drop species
+                  select(!(c('northern_anchovy',
+                             'olive_or_yellowtail_rockfish',
+                             'pacific_sardine',
+                             'petrale_sole',
+                             'pile_perch',
+                             'rubberlip_seaperch',
+                             'sand_sole',
+                             'spiny_dogfish',
+                             'starry_skate',
+                             'tubesnout',
+                             'silversides_family_atherinopsidae',
+                             'un_id_blue_rockfish',
+                             'unknown',
+                             'unknown_rockfish',
+                             'wolf_eel',
+                             'yelloweye_rockfish',
+                             'total')))%>%
+                  #drop string
+                  rename(blue_rockfish = blue_rockfish_merge,
+                         mackerel_family = mackerel_family_merge,
+                         sanddabs = sanddabs_merge)
+
 #add regions
 data_path <- "/home/shares/ca-mpa/data/sync-data/mpa_traits"
 input_file <- "mpa-attributes.xlsx" 
@@ -82,7 +115,7 @@ four_region <- readxl::read_excel(file.path(data_path, input_file), sheet=1, ski
 regions <- four_region %>%
   dplyr::select(name, region3=bioregion, region4 = four_region_north_ci)
 
-CCFRP_CPUE <- left_join(CCFRP_CPUE, regions, by=c("affiliated_mpa"="name"))
+CCFRP_CPUE <- left_join(CCFRP_combined, regions, by=c("affiliated_mpa"="name"))
 
 #clean up a
 
@@ -95,7 +128,7 @@ CCFRP_CPUE <- CCFRP_CPUE %>%
 #write.csv(CCFRP_CPUE,file.path(path_aurora, "CCFRP_species_counts.csv"), row.names = FALSE)
 
 CCFRP_mpa_year_step1 <- CCFRP_CPUE %>%
-                  pivot_longer(cols=10:103, names_to="species",values_to="CPUE")%>%
+                  pivot_longer(cols=10:81, names_to="species",values_to="CPUE")%>%
                   group_by(year, group, region3, region4, MHW, affiliated_mpa, mpa_class, mpa_designation, species)%>%
                   dplyr::summarize(mean_CPUE = mean(CPUE))%>%
                   ungroup()%>%
@@ -107,8 +140,8 @@ CCFRP_mpa_year <- left_join(CCFRP_mpa_year_step1, envr_dat, by=c("year","group",
                                                        "mpa_designation"="mpa_defacto_designation",
                                                        "affiliated_mpa"="mpa_name"))%>%
                   filter(!(affiliated_mpa=="trinidad smr"))%>% #not a real MPA per PI
-                  dplyr::select(!(c("total", "mpa_class.y","mpa_designation.y")))%>%
-                  dplyr::select(1:8,102:117,9:101)
+                  dplyr::select(!(c("mpa_class.y","mpa_designation.y")))%>%
+                  dplyr::select(1:8,81:96,9:80)
 
 #Export
 #path_aurora <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/ecological_community_data/year_level_with_envr_vars" 
