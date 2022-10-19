@@ -43,6 +43,7 @@ region <- landings_matched %>%
 
 ggplot(data = region) +
   geom_path(aes(x = year, y = total_landings_usd, color = block_treatment)) +
+  labs(color = "MPA Block = 1\nControl Block = 0") +
   facet_wrap(~region, scales = "free")
 
 ggplot(data = region) +
@@ -58,9 +59,12 @@ lobster <- landings_matched %>%
             total_landings_lbs = sum(landings_lb, na.rm = T))
 
 ggplot(data = lobster) +
-  geom_path(aes(x = year, y = total_landings_usd, color = block_treatment)) 
+  geom_path(aes(x = year, y = total_landings_usd, color = block_treatment)) +
+  labs(color = "MPA Block = 1\nControl Block = 0")
+  
 
 ggplot(data = lobster) +
-  geom_path(aes(x = year, y = total_landings_lbs, color = block_treatment)) 
+  geom_path(aes(x = year, y = total_landings_lbs, color = block_treatment)) +
+  labs(color = "MPA Block = 1\nControl Block = 0") 
 
 

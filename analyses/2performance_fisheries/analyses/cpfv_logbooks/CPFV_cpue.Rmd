@@ -16,6 +16,7 @@ rm(list = ls())
 
 # Packages
 library(tidyverse)
+theme_set(theme_classic())
 
 # Directories
 plotdir <- "analyses/2performance_fisheries/analyses/cpfv_logbooks/figures" 
@@ -24,182 +25,400 @@ plotdir <- "analyses/2performance_fisheries/analyses/cpfv_logbooks/figures"
 data_orig <- readRDS("/Users/shelbyziegler/Desktop/CDFW_2000_2020_cpfv_logbook_data.Rds")
 
 #blocks
-blocks <- wcfish::blocks
-
-# MPAs
-mpas <- wcfish::mpas_ca %>% 
-  sf::st_as_sf() %>% 
-  filter(type!="SMP")
-
-# Projections
-utm11 <- "+proj=utm +zone=11 +datum=NAD83"
+blocks <- readRDS("analyses/2performance_fisheries/analyses/blocks/blocks_by_mlpa_region_w_mpa_stats.Rds")
 ```
+
+Build data
 
 ```{r}
-# # Helper function
-# ################################################################################
-# 
-# # Distance to nearest MPA
- lat <- 32; long <- -118
- calc_mpa_near <- function(lat, long){
-#   
-#   # Convert lat/long to pt
-   pt_df <- tibble(lat=lat, long=long)
-   pt_sf <- sf::st_as_sf(pt_df, coords=c("long", "lat"), crs=sf::st_crs(mpas))
-#   
-#   # Identify closest MPA
-   near_id <- sf::st_nearest_feature(pt_sf, mpas)
-   near_name <- mpas$name[near_id]
-   near_sf <- mpas %>% 
-     filter(name==near_name)
-#   
-#   # Identify distance to closest MPA
-   near_m <- sf::st_distance(pt_sf, near_sf) %>% as.numeric()
-   near_km <- near_m / 1000
-   
-#   # Merge
-   out <- tibble(nearest_mpa=near_name,
-                 nearest_mpa_km=near_km)
-   return(out)
- 
- }
-# 
-# 
-# # Format data
-# ################################################################################
-# 
- data_xy <- data_orig %>% 
-  filter(!is.na(block_id))
-
-block1<-blocks%>%
-  select(block_id, block_long_dd, block_lat_dd)
-
-data_xy<-left_join(data_xy, block1, by="block_id")
-  
- 
- 
-# # Format data
- data <- data_xy %>% 
-#   # Reduce to data with lat/longs
-   filter(!is.na(block_lat_dd) & !is.na(block_long_dd) & !is.na(n_kept) & !is.na(n_fishers) & !is.na(hrs_fished)) %>% 
-#   # Compute CPUE
-   mutate(angler_hrs=n_fishers * hrs_fished,
-                    cpue=n_kept/angler_hrs)
-# 
-# # Compute nearest MPA and distance
- 
- x <- 1
- near_key <- purrr::map_df(1:nrow(data), function(x){
-   lat <- data$block_lat_dd[x]
-   long <- data$block_long_dd[x]
-   out <- calc_mpa_near(lat, long)
- })
- 
- # Add MPA stats to data
- data2 <- cbind(data, near_key)
-# 
-# 
-# # Plot data
-# ################################################################################
-# 
-# # Plot data
- g <- ggplot(data2, aes(x=nearest_mpa_km, y=cpue)) +
-   geom_point() +
-#   # Labels
-   labs(x="Distance to nearest MPA (km)", y="Catch per angler hours") +
-#   # Theme
-   theme_bw() 
- g
-```
-
 # Build data
 ################################################################################
-```{r}
-# Format data
+
+# Logbooks use
 data <- data_orig %>% 
-  # Reduce to data with lat/longs
-  filter(!is.na(lat_dd) & !is.na(long_dd) & !is.na(n_kept) & !is.na(n_traps_pulled) & !is.na(n_nights)) %>% 
+  # Reliable points
   # Compute CPUE
-  mutate(trap_nights=n_traps_pulled * n_nights,
-         cpue=n_kept/trap_nights)
+  mutate(angler_hrs=n_fishers * hrs_fished,
+         cpue=n_kept/angler_hrs)
 
-# Convert to SP
-data_sp <- sf::st_as_sf(data, coords=c("long_dd", "lat_dd"), crs=sf::st_crs(mpas)) %>% 
-  sf::st_transform(crs=utm11) %>% 
-  # slice(1:10) %>% 
-  sf::as_Spatial()
 
-# Convert MPAs to SP
-mpas_sp <- mpas %>% 
-  sf::st_transform(crs=utm11) %>% 
-  sf::as_Spatial()
+data1<-left_join(data, blocks, by=c("block_id", "block_state", "block_type"))
 
-# Calculate distance of each point to an MPA
-dist_mat <- rgeos::gDistance(data_sp, mpas_sp, byid=T)
+data1<-data1%>%
+  filter(mlpa_region=="South Coast" | mlpa_region=="Central Coast"|mlpa_region=="North Central Coast" | mlpa_region=="North Coast")
 
-# Format distance matrix
-dist_df <- dist_mat %>% 
-  as.data.frame() %>% 
-  # Add MPA id
-  mutate(mpa=mpas$name) %>% 
-  select(mpa, everything()) %>% 
-  # Gather
-  gather(key="row_id", value="dist_m", 2:ncol(.)) %>% 
-  # Find closest MPA to each point
-  group_by(row_id) %>% 
-  arrange(dist_m) %>% 
-  slice(1) %>% 
-  ungroup() %>% 
-  # Convert row id to number and sort
-  mutate(row_id=as.numeric(row_id)) %>% 
-  arrange(row_id) %>% 
-  select(row_id, mpa, dist_m)
+#create-sum N kept
+data1<-data1%>%
+  group_by(mlpa_region, year)%>%
+  mutate(sum_kept=sum(n_kept))
 
-# Add distance back onto data
-data1 <- data %>% 
-  cbind(dist_df %>% select(mpa, dist_m)) %>% 
-  # Add distance in kilometers
-  mutate(dist_km=dist_m/1000) %>% 
-  # Remove outliers
-  filter(dist_km <=5 & cpue<=5) %>% 
-  # Reduce to MPAs with more than 50 observations
-  group_by(mpa) %>% 
-  mutate(mpa_n_obs=n()) %>% 
-  ungroup() %>% 
-  filter(mpa_n_obs>=50)
+
 ```
 
+Group data by MPA vs non-MPA blovk per region for plotting.
 
-# Plot data
-################################################################################
 ```{r}
-# Theme
-my_theme <-  theme(axis.text=element_text(size=6),
-                   axis.title=element_text(size=8),
-                   legend.text=element_text(size=6),
-                   legend.title=element_text(size=8),
-                   strip.text=element_text(size=8),
-                   plot.title=element_text(size=10),
-                   # Gridlines
-                   panel.grid.major = element_blank(), 
-                   panel.grid.minor = element_blank(),
-                   panel.background = element_blank(), 
-                   axis.line = element_line(colour = "black"),
-                   # Legend
-                   legend.background = element_rect(fill=alpha('blue', 0)))
+p1<-ggplot(data1, aes(x=year, y=(n_kept/1000), fill=mpa_yn),color="black")+ 
+  geom_bar(stat="identity")+
+  xlab("Year")+
+  ylab("Thousands of fish kept")+
+  facet_wrap(~mlpa_region, ncol=4, scales="free_y")+
+  theme(plot.title = element_text(size = 16, face = "bold"))+
+  theme(panel.border = element_rect(colour = "black", fill=NA, size=1))+
+  scale_fill_discrete("Block type")
+p1         
 
-# Plot data
-g <- ggplot(data1, aes(x=dist_m/1000, y=cpue)) +
-  facet_wrap(~mpa) +
-  geom_point(pch=21, color="grey50", alpha=0.5) +
-  geom_smooth(method = "loess", fill="grey40", color="black") +
-  # Labels
-  labs(x="Distance to nearest MPA (km)", y="Catch per trap-night") +
-  # Limits
-  scale_x_continuous(lim=c(0, 5)) +
-  scale_y_continuous(lim=c(0, 5)) +
-  # Theme
-  theme_bw() + my_theme
-g
+p2<-ggplot(data1, aes(x=year, y=(n_kept/sum_kept), fill=mpa_yn),color="black")+ 
+  geom_bar(stat="identity")+
+  xlab("Year")+
+  ylab("Proportion of fish kept")+
+  facet_wrap(~mlpa_region, ncol=4, scales="free_y")+
+  theme(plot.title = element_text(size = 16, face = "bold"))+
+  theme(panel.border = element_rect(colour = "black", fill=NA, size=1))+
+  scale_fill_discrete(name="Block type")
+
+p2
+
+grid.arrange(p1, p2)
+
+
+library(plotrix)
+#Plot the total kept fish and CPUE before MPA and After MPA implementation
+data2<-data1%>%
+  group_by(year, mlpa_region, mpa_yn)%>%
+  summarize(meankept=mean(n_kept), errorkept=std.error(n_kept), meancpue=mean(cpue), errorcpue=std.error(cpue))
+
+sc<-data1%>%
+  filter(mlpa_region=="South Coast")%>%
+  mutate(implementation=ifelse(year>=2012, "After", "Before"))%>%
+   group_by(mpa_yn, implementation)%>%
+  summarize(meankept=mean(n_kept), errorkept=std.error(n_kept), meancpue=mean(cpue), errorcpue=std.error(cpue))
+
+psc<-ggplot(sc, aes(x=implementation, y=meankept, fill=mpa_yn))+
+  geom_bar(stat="identity", position=position_dodge(), color="black")+
+  geom_errorbar(aes(ymax=meankept+errorkept, ymin=meankept-errorkept), position=position_dodge(1), width=0.2)+
+  coord_flip()+
+  scale_fill_discrete("Block type")+
+  ylab("Fishes kept")+
+  xlab("Implementation")+
+  ggtitle("South Coast")
+  
+#Central coast
+cc<-data1%>%
+  filter(mlpa_region=="Central Coast")%>%
+  mutate(implementation=ifelse(year>=2007, "After", "Before"))%>%
+   group_by(mpa_yn, implementation)%>%
+  summarize(meankept=mean(n_kept), errorkept=std.error(n_kept), meancpue=mean(cpue), errorcpue=std.error(cpue))
+
+pcc<-ggplot(cc, aes(x=implementation, y=meankept, fill=mpa_yn))+
+  geom_bar(stat="identity", position=position_dodge(), color="black")+
+  geom_errorbar(aes(ymax=meankept+errorkept, ymin=meankept-errorkept), position=position_dodge(1), width=0.2)+
+  coord_flip()+
+  scale_fill_discrete("Block type")+
+  ylab("Fishes kept")+
+  xlab("Implementation")+
+  ggtitle("Central Coast")
+
+ncc<-data1%>%
+  filter(mlpa_region=="North Central Coast")%>%
+  mutate(implementation=ifelse(year>=2010, "After", "Before"))%>%
+   group_by(mpa_yn, implementation)%>%
+  summarize(meankept=mean(n_kept), errorkept=std.error(n_kept), meancpue=mean(cpue), errorcpue=std.error(cpue))
+
+pncc<-ggplot(ncc, aes(x=implementation, y=meankept, fill=mpa_yn))+
+  geom_bar(stat="identity", position=position_dodge(), color="black")+
+  geom_errorbar(aes(ymax=meankept+errorkept, ymin=meankept-errorkept), position=position_dodge(1), width=0.2)+
+  coord_flip()+
+  scale_fill_discrete("Block type")+
+  ylab("Fishes kept")+
+  xlab("Implementation")+
+  ggtitle("North Central Coast")
+
+nc<-data1%>%
+  filter(mlpa_region=="North Coast")%>%
+  mutate(implementation=ifelse(year>=2012, "After", "Before"))%>%
+   group_by(mpa_yn, implementation)%>%
+  summarize(meankept=mean(n_kept), errorkept=std.error(n_kept), meancpue=mean(cpue), errorcpue=std.error(cpue))
+
+pnc<-ggplot(nc, aes(x=implementation, y=meankept, fill=mpa_yn))+
+  geom_bar(stat="identity", position=position_dodge(), color="black")+
+  geom_errorbar(aes(ymax=meankept+errorkept, ymin=meankept-errorkept), position=position_dodge(1), width=0.2)+
+  coord_flip()+
+  scale_fill_discrete("Block type")+
+  ylab("Fishes kept")+
+  xlab("Implementation")+
+  ggtitle("North Coast")
+
+
+grid.arrange(psc, pcc, pncc, pnc)
+```
+             
+Extract data and plot Warm Water targered species: Rockfish, Lingcod, Cabezon
+
+```{r}
+#Statewide species
+dataR<-data1%>%
+  filter(comm_name=="Unspecified rockfish")%>%
+  group_by(mlpa_region, year)%>%
+  mutate(sum_kept=sum(n_kept))
+  
+pR<-ggplot(dataR, aes(x=year, y=(n_kept/1000), fill=mpa_yn))+ 
+  geom_bar(stat="identity")+
+  xlab("Year")+
+  ylab("Thousands of fish kept")+
+  facet_wrap(~mlpa_region, ncol=4, scales="free_y")+
+  theme(plot.title = element_text(size = 16, face = "bold"))+
+  theme(panel.border = element_rect(colour = "black", fill=NA, size=1))+
+  scale_fill_discrete("Block type")+
+    ggtitle("Unspecified rockfishes")
+pR 
+
+pR2<-ggplot(dataR, aes(x=year, y=(n_kept/sum_kept), fill=mpa_yn),color="black")+ 
+  geom_bar(stat="identity")+
+  xlab("Year")+
+  ylab("Proportion of fish kept")+
+  facet_wrap(~mlpa_region, ncol=4)+
+  theme(plot.title = element_text(size = 16, face = "bold"))+
+  theme(panel.border = element_rect(colour = "black", fill=NA, size=1))+
+  scale_fill_discrete(name="Block type")+
+    ggtitle("Unspecified rockfishes")
+pR2
+
+
+dataL<-data1%>%
+  filter(comm_name=="Lingcod")%>%
+  group_by(mlpa_region, year)%>%
+  mutate(sum_kept=sum(n_kept))
+
+pL<-ggplot(dataL, aes(x=year, y=(n_kept/1000), fill=mpa_yn))+ 
+  geom_bar(stat="identity")+
+  xlab("Year")+
+  ylab("Thousands of fish kept")+
+  facet_wrap(~mlpa_region, ncol=4, scales="free_y")+
+  theme(plot.title = element_text(size = 16, face = "bold"))+
+  theme(panel.border = element_rect(colour = "black", fill=NA, size=1))+
+  scale_fill_discrete("Block type")+
+  ggtitle("Lingcod")
+pL 
+
+pL2<-ggplot(dataL, aes(x=year, y=(n_kept/sum_kept), fill=mpa_yn),color="black")+ 
+  geom_bar(stat="identity")+
+  xlab("Year")+
+  ylab("Proportion of fish kept")+
+  facet_wrap(~mlpa_region, ncol=4)+
+  theme(plot.title = element_text(size = 16, face = "bold"))+
+  theme(panel.border = element_rect(colour = "black", fill=NA, size=1))+
+  scale_fill_discrete(name="Block type")+
+    ggtitle("Lingcod")
+pL2
+
+
+dataC<-data1%>%
+   filter(comm_name=="Cabezon")%>%
+  group_by(mlpa_region, year)%>%
+  mutate(sum_kept=sum(n_kept))
+
+pC<-ggplot(dataC, aes(x=year, y=(n_kept/1000), fill=mpa_yn))+ 
+  geom_bar(stat="identity")+
+  xlab("Year")+
+  ylab("Thousands of fish kept")+
+  facet_wrap(~mlpa_region, ncol=4, scales="free_y")+
+  theme(plot.title = element_text(size = 16, face = "bold"))+
+  theme(panel.border = element_rect(colour = "black", fill=NA, size=1))+
+  scale_fill_discrete("Block type")+
+  ggtitle("Cabezon")
+pC
+
+pC2<-ggplot(dataC, aes(x=year, y=(n_kept/sum_kept), fill=mpa_yn),color="black")+ 
+  geom_bar(stat="identity")+
+  xlab("Year")+
+  ylab("Proportion of fish kept")+
+  facet_wrap(~mlpa_region, ncol=4)+
+  theme(plot.title = element_text(size = 16, face = "bold"))+
+  theme(panel.border = element_rect(colour = "black", fill=NA, size=1))+
+  scale_fill_discrete(name="Block type")+
+    ggtitle("Cabezon")
+pC2
+
+library(gridExtra)
+grid.arrange(pR, pL, pC)
+grid.arrange(pR2, pL2, pC2)
+
 
 ```
+
+Extract data and plot Warm Water targered species: Ocean whitefish, Sheephead, Kelp Bass
+
+```{r}
+### South Coast Species
+dataSC<-data1%>%
+  filter(mlpa_region=="South Coast" | mlpa_region=="Central Coast")
+
+#Ocean whitefish
+dataO<-dataSC%>%
+   filter(comm_name=="Ocean whitefish")%>%
+  group_by(mlpa_region, year)%>%
+  mutate(sum_kept=sum(n_kept))
+
+pO<-ggplot(dataO, aes(x=year, y=(n_kept/1000), fill=mpa_yn))+ 
+  geom_bar(stat="identity")+
+  xlab("Year")+
+  ylab("Thousands of fish kept")+
+  facet_wrap(~mlpa_region, ncol=4, scales="free_y")+
+  theme(plot.title = element_text(size = 16, face = "bold"))+
+  theme(panel.border = element_rect(colour = "black", fill=NA, size=1))+
+  scale_fill_discrete("Block type")+
+  ggtitle("Ocean whitefish")
+pO
+
+pO2<-ggplot(dataO, aes(x=year, y=(n_kept/sum_kept), fill=mpa_yn),color="black")+ 
+  geom_bar(stat="identity")+
+  xlab("Year")+
+  ylab("Proportion of fish kept")+
+  facet_wrap(~mlpa_region, ncol=4)+
+  theme(plot.title = element_text(size = 16, face = "bold"))+
+  theme(panel.border = element_rect(colour = "black", fill=NA, size=1))+
+  scale_fill_discrete(name="Block type")+
+    ggtitle("Ocean whitefish")
+pO2
+
+#California sheephead
+dataS<-dataSC%>%
+   filter(comm_name=="California sheephead")%>%
+  group_by(mlpa_region, year)%>%
+  mutate(sum_kept=sum(n_kept))
+
+pS<-ggplot(dataS, aes(x=year, y=(n_kept/1000), fill=mpa_yn))+ 
+  geom_bar(stat="identity")+
+  xlab("Year")+
+  ylab("Thousands of fish kept")+
+  facet_wrap(~mlpa_region, ncol=4, scales="free_y")+
+  theme(plot.title = element_text(size = 16, face = "bold"))+
+  theme(panel.border = element_rect(colour = "black", fill=NA, size=1))+
+  scale_fill_discrete("Block type")+
+  ggtitle("California sheephead")
+pS
+
+pS2<-ggplot(dataS, aes(x=year, y=(n_kept/sum_kept), fill=mpa_yn),color="black")+ 
+  geom_bar(stat="identity")+
+  xlab("Year")+
+  ylab("Proportion of fish kept")+
+  facet_wrap(~mlpa_region, ncol=4)+
+  theme(plot.title = element_text(size = 16, face = "bold"))+
+  theme(panel.border = element_rect(colour = "black", fill=NA, size=1))+
+  scale_fill_discrete(name="Block type")+
+    ggtitle("California sheephead")
+pS2
+
+
+
+#Kelp bass
+dataK<-dataSC%>%
+   filter(comm_name=="Kelp bass")%>%
+  group_by(mlpa_region, year)%>%
+  mutate(sum_kept=sum(n_kept))
+
+pK<-ggplot(dataK, aes(x=year, y=(n_kept/1000), fill=mpa_yn))+ 
+  geom_bar(stat="identity")+
+  xlab("Year")+
+  ylab("Thousands of fish kept")+
+  facet_wrap(~mlpa_region, ncol=4, scales="free_y")+
+  theme(plot.title = element_text(size = 16, face = "bold"))+
+  theme(panel.border = element_rect(colour = "black", fill=NA, size=1))+
+  scale_fill_discrete("Block type")+
+  ggtitle("Kelp bass")
+pK
+
+pK2<-ggplot(dataK, aes(x=year, y=(n_kept/sum_kept), fill=mpa_yn),color="black")+ 
+  geom_bar(stat="identity")+
+  xlab("Year")+
+  ylab("Proportion of fish kept")+
+  facet_wrap(~mlpa_region, ncol=4)+
+  theme(plot.title = element_text(size = 16, face = "bold"))+
+  theme(panel.border = element_rect(colour = "black", fill=NA, size=1))+
+  scale_fill_discrete(name="Block type")+
+    ggtitle("Kelp Bass")
+pK2
+
+
+grid.arrange(pO, pS, pK)
+grid.arrange(pO2, pS2, pK2)
+```
+
+Extract and plot tunas which are not expected to be influenced by MPAs.
+
+```{r}
+### Tunas
+
+#Yellowtail
+dataY<-data1%>%
+   filter(comm_name=="Yellowtail")%>%
+  group_by(mlpa_region, year)%>%
+  mutate(sum_kept=sum(n_kept))
+
+pY<-ggplot(dataY, aes(x=year, y=(n_kept/1000), fill=mpa_yn))+ 
+  geom_bar(stat="identity")+
+  xlab("Year")+
+  ylab("Thousands of fish kept")+
+  facet_wrap(~mlpa_region, ncol=4, scales="free_y")+
+  theme(plot.title = element_text(size = 16, face = "bold"))+
+  theme(panel.border = element_rect(colour = "black", fill=NA, size=1))+
+  scale_fill_discrete("Block type")+
+  ggtitle("Yellowtail")
+pY
+
+pY2<-ggplot(dataY, aes(x=year, y=(n_kept/sum_kept), fill=mpa_yn),color="black")+ 
+  geom_bar(stat="identity")+
+  xlab("Year")+
+  ylab("Proportion of fish kept")+
+  facet_wrap(~mlpa_region, ncol=4)+
+  theme(plot.title = element_text(size = 16, face = "bold"))+
+  theme(panel.border = element_rect(colour = "black", fill=NA, size=1))+
+  scale_fill_discrete(name="Block type")+
+    ggtitle("Yellowtail")
+pY2
+
+#Blue fin
+dataBF<-data1%>%
+   filter(comm_name=="Bluefin tuna")%>%
+  group_by(mlpa_region, year)%>%
+  mutate(sum_kept=sum(n_kept))
+
+pBF<-ggplot(dataBF, aes(x=year, y=(n_kept/1000), fill=mpa_yn))+ 
+  geom_bar(stat="identity")+
+  xlab("Year")+
+  ylab("Thousands of fish kept")+
+  facet_wrap(~mlpa_region, ncol=4, scales="free_y")+
+  theme(plot.title = element_text(size = 16, face = "bold"))+
+  theme(panel.border = element_rect(colour = "black", fill=NA, size=1))+
+  scale_fill_discrete("Block type")+
+  ggtitle("Bluefin")
+pBF
+
+pBF2<-ggplot(dataBF, aes(x=year, y=(n_kept/sum_kept), fill=mpa_yn),color="black")+ 
+  geom_bar(stat="identity")+
+  xlab("Year")+
+  ylab("Proportion of fish kept")+
+  facet_wrap(~mlpa_region, ncol=4)+
+  theme(plot.title = element_text(size = 16, face = "bold"))+
+  theme(panel.border = element_rect(colour = "black", fill=NA, size=1))+
+  scale_fill_discrete(name="Block type")+
+    ggtitle("Bluefin")
+pBF2
+
+
+
+grid.arrange(pY, pBF)
+grid.arrange(pY2, pBF2)
+
+```
+
+Block counterfactuals
+
+```{r}
+blockcf<-readRDS("analyses/2performance_fisheries/analyses/blocks/block_counterfactual_key.Rds")
+
+
+```
+
+
