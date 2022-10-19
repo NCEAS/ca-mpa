@@ -81,6 +81,8 @@ estuaries <- att_clean %>%
 offshore <- att_clean %>% 
   filter_at(vars(area_habitats), any_vars(. > 0)) %>% 
   filter_at(vars(linear_habitats), all_vars(. %in% c(0, NA)))
+# Casino Point = Shoreline all hardened/armored shore but values are zeroes
+# Moro Cojo Slough = "Shoreline mapping doesn't extend into embayment"
 
 coastal <- att_clean %>% 
   filter(!(name %in% c(estuaries$name, offshore$name)))
@@ -90,9 +92,11 @@ att_data <- att_clean %>%
   mutate(mpa_habitat_type = case_when(name %in% estuaries$name ~ "Estuary",
                                       name %in% offshore$name ~ "Offshore",
                                       name %in% coastal$name ~ "Coastal")) %>% 
-  # Reorder the variables
+  mutate(mpa_habitat_type = factor(mpa_habitat_type,
+                                   levels = c("Estuary", "Coastal", "Offshore"))) %>% 
+  ## Reorder the variables ----
   select(name, bioregion, size_km2, mpa_habitat_type,
-         all_of(linear_habitats), all_of(area_habitats))
+         all_of(area_habitats), all_of(linear_habitats))
   
 
 # Export Main Processed Data ---------------------------------------------------
