@@ -487,10 +487,9 @@ kelp_upc_counts <- read.csv(file.path(data_path, input_file)) %>%
 
 
 #select vars and clean
-kelp_upc_counts <- kelp_upc_counts %>%
-                    dplyr::select(year, site, zone, transect, classcode, pct_cov)%>%
-                    group_by(year, site, zone, transect, classcode)#%>%
-                     #counts in raw data are grouped by size class. Take summary across all sizes
+kelp_upc_counts1 <- kelp_upc_counts %>%
+                    dplyr::select(year, site, zone, transect, classcode, count, pct_cov)%>%
+                    group_by(year, site, zone, transect, classcode)
 
 
 #join species names by class code 
@@ -500,11 +499,37 @@ kelp_taxon <- read.csv(file.path(data_path, input_file)) %>%
                     dplyr::select(classcode, species_definition) %>%
                     distinct() #remove duplicates
 
-kelp_upc_counts<-  left_join(kelp_upc_counts, kelp_taxon, by="classcode")
+kelp_upc_counts2<-  left_join(kelp_upc_counts1, kelp_taxon, by="classcode")
 
-kelp_upc_counts <- kelp_upc_counts %>%
-                    dplyr::select(year, site, zone, transect, species=species_definition, pct_cov)
+kelp_upc_counts3 <- kelp_upc_counts2 %>%
+                    dplyr::select(year, site, zone, transect, species=species_definition, count, pct_cov)
 
+#drop data 
+kelp_upc_counts4 <- kelp_upc_counts3 %>%
+                    filter(!(species=="Haliotis"|
+                               species=="Laminaria"|
+                               species=="laminariales"|
+                               species=="UCSC 2000 Definition Of 'Other Red' Included All Red Algae Except Rhospp, Bushy, Leafy, Crucor And Erecor"|
+                               species=="UCSB 2000 Definition Of 'Other Red' Included All Red Algae Except Rhospp, Bushy, Leafy, Crucor And Erecor"|
+                               species=="Red Alga With Cylindrical Branches. Definition Used In 2000"|
+                              species=="UCSC and UCSB 1999 Definition Of 'Other Red' Included All Red Algae Except Rhospp, Crucor And Erecor"|
+                               species=="Laminariales Holdfast (Alive)"|
+                               species=="Sargassum"|
+                               species=="Aglaophenia struthionides"|
+                               species=="Macrosystis Holdfast (Dead)"|
+                               species=="Bare Rock"|
+                               species=="Bare Sand"))
+
+
+#recalculate percent cov
+kelp_upc_counts5 <- kelp_upc_counts4 %>%
+                    group_by(year, site, zone, transect, species)%>%
+                    dplyr::summarize(sum_count = sum(count))
+
+#check to make sure UPC counts add up to ~30 per transect               
+check_counts <- kelp_upc_counts4 %>%
+                    group_by(year, site, zone, transect)%>%
+                    dplyr::summarize(sum_count = sum(count))
 
 #add affiliated_mpa
 
