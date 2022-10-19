@@ -259,6 +259,43 @@ t2<-ggplot(data, aes(x=year, y=(n_kept/1000), color=mpa_yn))+
 grid.arrange(t1,t2)
 
 
+trips1<-trips%>%
+  group_by(mlpa_region)%>%
+  left_join(mpa_yr, by="mlpa_region")%>%
+  mutate(implementation=ifelse(year>=establish, "After", "Before"))%>% 
+  group_by(mlpa_region, mpa_yn, implementation)%>%
+  summarize(sumtrips=sum(totaltrips), meantrips=mean(totaltrips), errortrips=std.error(totaltrips))
+
+t3<-ggplot(trips1, aes(x=implementation, y=sumtrips/1000, fill=mpa_yn))+
+  geom_bar(stat="identity", position=position_dodge(), color="black")+
+  coord_flip()+
+  facet_wrap(~mlpa_region, ncol=4, scales="free")+
+  scale_fill_discrete("Block type")+
+  ylab("Total trips through time (in thousands)")+
+  xlab("Implementation")+
+  theme_bw()+ my_theme+
+  theme(legend.position = "top")
+  
+t3
+
+t4<-ggplot(trips1, aes(x=implementation, y=meantrips/1000, fill=mpa_yn))+
+  geom_bar(stat="identity", position=position_dodge(), color="black")+
+  geom_errorbar(aes(ymax=(meantrips/1000)+(errortrips/1000),ymin=(meantrips/1000)-(errortrips/1000)),position=position_dodge(1), width=0.2)+
+  coord_flip()+
+  facet_wrap(~mlpa_region, ncol=4, scales="free")+
+  scale_fill_discrete("Block type")+
+  ylab("Average trips through time (in thousands)")+
+  xlab("Implementation")+
+  theme_bw()+ my_theme+
+  theme(legend.position = "none")
+  
+t4
+
+grid.arrange(t3, t4)
+
+
+
+
 ##Calculate average fishes per trip 
 cpue<-data%>%
   left_join(trips, by=c("mlpa_region", "mpa_yn", "year"))%>%
@@ -281,7 +318,6 @@ c1<-ggplot(cpue, aes(x=year, y=cpue, color=mpa_yn))+
 
 c1
 ```
-
 
 
 Block counterfactuals
