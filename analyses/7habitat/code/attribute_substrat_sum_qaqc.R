@@ -44,5 +44,5 @@ roms_sum <- roms_raw %>%
   group_by(mpa) %>%
   summarise_all(.,sum) %>% # Merge multi cells MPA
   mutate(shallow_rock_total_roms = mapped_rock_0_30m_km2 + predicted_rock_0_30m_km2 + max_kelp_odfw_or_cdfw_km2) %>%  # compute sum
-  mutate(sum_data_computed = shallow_rock_total_mapped_predicted_0_30m_rock_max_kelp_no_doublecounting_km2 - shallow_rock_total_roms) # diff provided in the data  -  what we just computed
+  mutate(diffsum_data_computed = shallow_rock_total_mapped_predicted_0_30m_rock_max_kelp_no_doublecounting_km2 - shallow_rock_total_roms) # diff provided in the data  -  what we just computed
 
