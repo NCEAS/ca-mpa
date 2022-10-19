@@ -86,7 +86,10 @@ matched <- matchit(data = data,
 )
 matched
 summary(matched, un = FALSE)
+bal.plot(matched, which = "both")
+love.plot(matched, binary = "std", thresholds = c(m = .2))
 
+# Nearest Neighbor, Standard Propensity Score Matching
 matched.1 <- matchit(data = data,
                      block_treatment ~ block_area_km2 + block_mean_depth_fa + distance_to_shore_km + dist_to_port_km,
                      method = "nearest", #nearest neighbor matching
@@ -98,6 +101,7 @@ matched.1 <- matchit(data = data,
 matched.1
 summary(matched.1, un = F)
 
+# Mahalanobis Matching, no nearest neighbor specification?
 matched.3 <- matchit(data = data,
                      block_treatment ~ block_area_km2 + block_mean_depth_fa + distance_to_shore_km + dist_to_port_km,
                      ratio = 1, # match each treatment block with one control block
@@ -181,18 +185,26 @@ ggplot(data = all_m2b_data) +
 
 ###----------------------------------------
 # Adjust caliper for latitude because they still aint close
+# Traditional mahalanobis?
 matched.2c <- matchit(data = data,
                       block_treatment ~ block_area_km2 + block_mean_depth_fa + distance_to_shore_km + dist_to_port_km + block_lat_dd,
                       ratio = 1, # match each treatment block with one control block
-                      distance = "glm", # logistic?
-                      caliper = c(0.20, block_lat_dd = 1), # sd and then value
-                      std.caliper = c(TRUE, FALSE), # std then value
-                      mahvars = ~ block_area_km2 + block_mean_depth_fa + distance_to_shore_km + dist_to_port_km + block_lat_dd,
+                      distance = "mahalanobis",
+                      caliper = c(block_area_km2 = 0.20,
+                                  block_mean_depth_fa = 0.20,
+                                  distance_to_shore_km = 0.20,
+                                  dist_to_port_km = 0.20,
+                                  block_lat_dd = 1), # sd and then value
+                      std.caliper = c(TRUE, TRUE, TRUE, TRUE, FALSE), # std then value
+                     # mahvars = ~ block_area_km2 + block_mean_depth_fa + distance_to_shore_km + dist_to_port_km + block_lat_dd,
                       replace = F)
 
 matched.2c
-summary(matched.2c)
+summary(matched.2c, un = FALSE)
 plot(matched.2c)
+
+plot(summary(matched.2c), var.order = "unmatched")
+
 plot(matched.2c, type = "density")
 plot(matched.2c, type = "histogram")
 print(matched.2c)
@@ -200,7 +212,7 @@ print(matched.2c)
 matched.2c.data <- get_matches(matched.2c, data = data)
 matched.2c.all <- match.data(matched.2c)
 bal.plot(matched.2c, which = "both")
-love.plot(matched.2c, binary = "std", thresholds = c(m = .1))
+love.plot(matched.2c, binary = "std", thresholds = c(m = .2))
 
 
 p91 = createPalette(91,  c("#ff0000", "#00ff00", "#0000ff"))
@@ -215,11 +227,73 @@ ggplot(data = all_m2c_data) +
   geom_sf_text(aes(label = subclass), size = 3) +
   scale_fill_manual(values = p91, na.value = "grey50") 
 
+# Slightly more zoomed in version
+ggplot(data = all_m2c_data) +
+  geom_sf(aes(fill = subclass)) +
+  geom_sf_text(aes(label = subclass), size = 3) +
+  scale_fill_manual(values = p91, na.value = "grey50") +
+  scale_y_continuous(limits = c(38, 42))
+
 # Export this 2c version
 #saveRDS(matched.2c.all, file.path(getwd(), "analyses", "2performance_fisheries",
 #                                  "analyses", "blocks", 
 #                                  "block_counterfactual_key.Rds"))
 
+### CURRENT ------
+# Adjust caliper for latitude because they still aint close
+matched.2c <- matchit(data = data,
+                      block_treatment ~ block_area_km2 + block_mean_depth_fa + distance_to_shore_km + dist_to_port_km + block_lat_dd,
+                      ratio = 1, # match each treatment block with one control block
+                      distance = "glm", # logistic?
+                      caliper = c(0.20, block_lat_dd = 1), # sd and then value
+                      std.caliper = c(TRUE, FALSE), # std then value
+                      mahvars = ~ block_area_km2 + block_mean_depth_fa + distance_to_shore_km + dist_to_port_km + block_lat_dd,
+                      replace = F)
+
+matched.2c
+summary(matched.2c)
+plot(matched.2c)
+
+plot(summary(matched.2c), var.order = "unmatched")
+
+plot(matched.2c, type = "density")
+plot(matched.2c, type = "histogram")
+print(matched.2c)
+
+matched.2c.data <- get_matches(matched.2c, data = data)
+matched.2c.all <- match.data(matched.2c)
+bal.plot(matched.2c, which = "both")
+love.plot(matched.2c, binary = "std", thresholds = c(m = .2))
+
+
+p91 = createPalette(91,  c("#ff0000", "#00ff00", "#0000ff"))
+swatch(p91)
+names(p91) <- NULL
+
+all_m2c_data <- full_join(blocks_subset, matched.2c.data) %>% 
+  mutate(subclass = as.factor(subclass)) 
+
+ggplot(data = all_m2c_data) +
+  geom_sf(aes(fill = subclass)) +
+  geom_sf_text(aes(label = subclass), size = 3) +
+  scale_fill_manual(values = p91, na.value = "grey50") 
+
+# Slightly more zoomed in version
+ggplot(data = all_m2c_data) +
+  geom_sf(aes(fill = subclass)) +
+  geom_sf_text(aes(label = subclass), size = 3) +
+  scale_fill_manual(values = p91, na.value = "grey50") +
+  scale_y_continuous(limits = c(38, 42))
+
+ggplot(data = all_m2c_data) +
+  geom_sf(aes(fill = subclass, show.legend = F)) +
+  geom_sf_text(aes(label = subclass, show.legend = F), size = 3) +
+  scale_fill_manual(values = p91, na.value = "grey50") +
+  scale_y_continuous(limits = c(32.4, 35))
+# Export this 2c version
+#saveRDS(matched.2c.all, file.path(getwd(), "analyses", "2performance_fisheries",
+#                                  "analyses", "blocks", 
+#                                  "block_counterfactual_key.Rds"))
 
 
 

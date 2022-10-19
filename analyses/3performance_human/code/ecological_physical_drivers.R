@@ -26,7 +26,7 @@ charisma_data$mpa <- recode_factor(charisma_data$mpa, 'año nuevo smr' = 'ano nu
 charisma_data$mpa <- gsub("\\s*\\([^\\)]+\\)","",as.character(charisma_data$mpa))
 
 
-# # load physical data ----------------------------------------------------
+# # load MPA attribute data ----------------------------------------------------
 data_path <- "/home/shares/ca-mpa/data/sync-data/mpa_traits/processed"
 input_file <- "mpa_attributes_clean.csv" 
 mpa_attrib <- read.csv(file.path(data_path, input_file))
@@ -45,6 +45,19 @@ phys_drivers <- mpa_attrib %>%
 phys_drivers <- phys_drivers %>%
                 mutate(implementation_year = format(as.Date(phys_drivers$implementation_date, format="%m/%d/%Y"),"%Y"),
                        mpa_age = 2022-as.numeric(implementation_year))
+
+
+# Load infrastructure data ----------------------------------------------------
+
+
+data_path <- "/home/shares/ca-mpa/data/sync-data/mpa_traits/raw"
+input_file <- "mpa_nearby_infrastructure.xlsx" 
+mpa_inf <- read_excel(file.path(data_path, input_file), 1) %>%
+            select(mpa, area_sqkm, num_camps, num_fish_point,
+                   num_parking, num_picnic, park_names, park_types)
+
+mpa_inf$mpa <- tolower(mpa_inf$mpa)
+
 
 
 # Load biological data ----------------------------------------------------
@@ -73,11 +86,15 @@ bio_drivers <- left_join(fish_diversity,fish_biomass, by='affiliated_mpa')%>%
 #join data --------------------------------------------------------------
 
 
-phys_drivers_join <- left_join(charisma_data, phys_drivers, by="mpa")
-all_drivers <- left_join(phys_drivers_join, bio_drivers, by="mpa")
+traits_join <- left_join(phys_drivers, mpa_inf, by="mpa")
+
+drivers_join <- left_join(charisma_data, traits_join, by="mpa")
+
+all_drivers <- left_join(drivers_join, bio_drivers, by="mpa")
 
 all_drivers <- all_drivers %>%
-  mutate_at('sandy_beach_km', ~replace_na(.,0))
+  mutate_at('sandy_beach_km', ~replace_na(.,0)) %>%
+  mutate_at(c('num_camps', 'num_fish_point','num_parking','num_picnic'), as.numeric)
 
 
 
@@ -86,33 +103,41 @@ all_drivers <- all_drivers %>%
 
 
 #iNat logistic model
-logit_iNat <- all_drivers %>%
-              mutate(logit_y = ifelse(charisma_yn=="Charismatic", "1", "0"))%>%
-              filter(!(mpa=='robert w. crown smca'))
+logit_iNat_char <- all_drivers %>%
+              filter(!(category=="Inaccessible"))%>%
+              mutate(logit_y = ifelse(category=="Charismatic", "1", "0"))%>%
+              filter(!(mpa=='robert w. crown smca')) #%>%
+              #filter(!(is.na(num_parking) | is.na(num_picnic)))
+
+logit_iNat_char$num_camps[is.na(logit_iNat_char$num_camps)] <- 0
+logit_iNat_char$num_parking[is.na(logit_iNat_char$num_parking)] <- 0
+
 
 iNat_full_model <-glm(as.numeric(logit_y) ~ 
                         #npeople_50km+
-                        #size_km2+
+                        size_km2+
                         #shore_span_km+
                         #protection + 
                         #take + 
                         #mpa_age + 
                         mpa_within_or_part_of_state_park + 
-                        mpa_within_or_part_of_nat_marine_sanctuary+
+                        #mpa_within_or_part_of_nat_marine_sanctuary+
                         #port_size + 
                         #distance_to_port+
                         sandy_beach_km + 
                         #rocky_inter_km +
-                        estuary_km2  
-                        #depth_range +
-                        #max_kelp_canopy_cdfw_km2 +
+                        estuary_km2 +
+                        num_camps
+                        #num_parking
+                        #num_picnic
+                        #depth_range 
                         #H_fish+#biological
-                        #total_fish_biomass 
+                        #total_fish_biomass +
                         ,
-                  data = logit_iNat, family = binomial(link="logit"), 
+                  data = logit_iNat_char, family = binomial(link="logit"), 
                   na.action=na.exclude)
 
-tab_model(iNat_full_model, show.aic=T, show.r2=T, title="reduced logistic models",auto.label=T,
+sjPlot::tab_model(iNat_full_model, show.aic=T, show.r2=T, title="reduced logistic models",auto.label=T,
           #pred.labels = c("intercept","state parks (yes)","sandy beach","estuary","national marine sanctuary (yes)"),
           dv.labels = c("iNaturalist"))
 

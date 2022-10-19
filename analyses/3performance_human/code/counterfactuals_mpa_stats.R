@@ -20,11 +20,11 @@ raster_list <- list.files(counterfact_dir, pattern = "tif", full.names = TRUE)
 raster_cube <- rast(raster_list)
 
 # rename the layers with better names
-layer_names <- c("bathymetry", "population_density_50km", "distance_shore", "distance_park", "distance_beach", "inat_count", "park_count_600m", "beach_count_600m")
+layer_names <- c("bathymetry", "population_density_50km", "distance_shore", "distance_park", "distance_beach", "inat_count", "mpa_bin","mpa_id" ,"park_count_600m", "beach_access_count_600m")
 
 # check that we have 8 raster files in the folder
-if (length(filenames) != 8) {
-  stop("8 raster files were expected")
+if (length(filenames) != 10) {
+  stop("10 raster files were expected")
 }
 
 # needs improvements
@@ -44,9 +44,9 @@ bathy <- raster_cube$bathymetry
 # get the mpa shapefile from Chris' package
 mpas <- wcfish::mpas_ca %>% 
   sf::st_as_sf() %>% 
-  filter(type!="SMP")  %>%
-  st_transform(crs = st_crs(bathy)) %>%
-  tibble::rowid_to_column("ID")
+  filter(type!="SMP") %>%
+  tibble::rowid_to_column("ID") %>%
+  st_transform(crs = st_crs(bathy)) 
 
 
 bathy_mean <- terra::extract(bathy, vect(mpas), mean, na.rm = TRUE)
@@ -114,7 +114,9 @@ mpas_stat <- left_join(mpas_stat, inat_sum, by = "ID")
 
 #### Transform raster cube into a dataframe ----
 
-counterfact_df <- terra::as.data.frame(raster_cube, xy=TRUE, cells=TRUE)
+counterfact_df <- terra::as.data.frame(raster_cube, xy=TRUE, cells=TRUE) %>%
+  rename(x_epsg3309 = x,
+         y_epsg3309 = y)
 
 # Remove pixel that are below the deeper pixel of MPA to create a smaller data set
 bathy_min <- min(mpas_stat$bathy_min)
@@ -126,7 +128,9 @@ counterfact_df_shallow <- counterfact_df %>%
 #### Export ----
 
 # Write MPA stats as geojson
-st_write(mpas_stat, file.path(counterfact_dir, "mpas_counterfactuals_stats_epsg3309.geojson"), driver = "GeoJSON", append=FALSE)
+st_write(mpas_stat, file.path(counterfact_dir, "mpas_counterfactuals_stats_epsg3309.geojson"), 
+         driver = "GeoJSON", 
+         append=FALSE) # overwrites
 
 # Write raster data frame
 saveRDS(counterfact_df, file=file.path(counterfact_dir, "counterfactual_layers_epsg3309.Rds"))
