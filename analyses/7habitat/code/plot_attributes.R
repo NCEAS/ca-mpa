@@ -50,10 +50,10 @@ incomplete <- data %>%
   pivot_wider(names_from = "habitat_type", values_from = "n")
 
 incomplete_linear <- incomplete %>% 
-  filter(is.na(linear))
+  filter(!(is.na(linear)))
 
 incomplete_area <- incomplete %>% 
-  filter(is.na(area))
+  filter(!(is.na(area)))
 
 
 ## Summarize total habitat area for each habitat type ----
@@ -123,7 +123,8 @@ hab_linear_colors <- c("peachpuff2", # sandy
                        "steelblue3", # intertidal
                        "palegreen3", # coastal marsh
                        "burlywood4", # tidal flats,
-                       "snow4") # armored
+                       "snow4",# armored
+                       "grey50") # incomplete
 
 hab_colors <- c("wheat", "wheat1", "wheat2", "wheat3", # soft
                 "tan1", "tan2", "tan3", "tan4", # hard
@@ -132,7 +133,8 @@ hab_colors <- c("wheat", "wheat1", "wheat2", "wheat3", # soft
                 "steelblue3", # intertidal
                 "palegreen3", # coastal marsh
                 "burlywood4", # tidal flats,
-                "snow4") # armored
+                "snow4", # armored
+                "grey50") # incomplete
 
 hab_theme_wide <- theme(axis.text=element_text(size=6),
                         axis.title=element_text(size=8),
@@ -234,7 +236,7 @@ hs3
 ### 2. Prop from Calc ----
 hsk2 <- plot_df %>% 
   filter(habitat_type == "area") %>% 
-  #filter(!(mpa_habitat_type == "Estuary")) %>% 
+  filter(!(mpa_habitat_type == "Estuary")) %>% 
   ggplot(aes(x = name, y = habitat_prop_calc, fill = habitat)) +
   # Facet
   ggh4x::facet_nested(.~bioregion+mpa_habitat_type, 
@@ -245,7 +247,7 @@ hsk2 <- plot_df %>%
   # Legend colors
   scale_fill_manual(name = "Habitat Type", 
                     values = hab_area_colors) +
-  scale_y_continuous(limits = c(0, 1.1), expand = c(0,0)) +
+  scale_y_continuous(limits = c(0, 1.01), expand = c(0,0)) +
   labs(y="Percentage of total habitat area", x="") +
   theme_bw() +
   hab_theme_wide
@@ -293,6 +295,7 @@ hsk3
 ### 2. Prop from Calc ----
 s2 <- plot_df %>% 
   filter(habitat_type == "linear") %>% 
+  #filter(!(mpa_habitat_type == "Offshore")) %>% 
   ggplot(aes(x = name, y = habitat_prop_calc*100, fill = habitat)) +
   # Facet
   ggh4x::facet_nested(.~bioregion+mpa_habitat_type, space="free_x", scales="free_x") +

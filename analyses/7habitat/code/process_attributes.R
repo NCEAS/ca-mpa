@@ -76,11 +76,21 @@ area_habitats <- c("hard_substrate_0_30m_km2_comb",
 ## Identify habitat types ----
 estuaries <- att_clean %>% 
   filter_at(vars(linear_habitats), any_vars(. > 0)) %>% 
-  filter_at(vars(area_habitats), all_vars(. %in% c(0, NA)))
+  filter("hard_substrate_0_30m_km2_comb", 
+         "hard_substrate_30_100m_km2", 
+         "hard_substrate_100_200m_km2",
+         "hard_substrate_200_3000m_km2",
+         "soft_substrate_0_30m_km2_comb", 
+         "soft_substrate_30_100m_km2", 
+         "soft_substrate_100_200m_km2", 
+         "soft_substrate_200_3000m_km2",
+         "max_kelp_canopy_cdfw_km2")
+  mutate(new = across(area_habitats, rowSums(., na.rm = T)))
 
 offshore <- att_clean %>% 
   filter_at(vars(area_habitats), any_vars(. > 0)) %>% 
   filter_at(vars(linear_habitats), all_vars(. %in% c(0, NA)))
+
 # Casino Point = Shoreline all hardened/armored shore but values are zeroes
 # Moro Cojo Slough = "Shoreline mapping doesn't extend into embayment"
 
