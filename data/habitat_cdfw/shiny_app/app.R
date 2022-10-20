@@ -24,6 +24,7 @@ sapply(list.files(codedir), function(x) source(file.path(codedir, x)))
 
 # Read bottom substrate
 substrate_ras <- raster::raster(file.path(datadir, "CA_bottom_substrate_10m.tiff")) 
+substrate_by_mpa <- readRDS(file.path(datadir, "bottom_substrate_by_mpa.Rds")) 
 
 # Get MPAs
 mpas_sf <- wcfish::mpas_ca %>% 
@@ -55,10 +56,16 @@ ui <- fluidPage(
   # Title
   titlePanel("California MPA habitat explorer"),
 
-  # Select by nutrient
+  # Select by MPA
   selectInput(inputId = "mpa", label = "Select MPA:",
              choices = mpas,  multiple = F, selected=mpas[1]),
-  plotOutput(outputId = "plot_map", width=600, height=425)
+  
+  # Plot map
+  plotOutput(outputId = "plot_map", width=750, height=500),
+  br(),
+  
+  # Plot coverage
+  plotOutput(outputId = "plot_barplot", width=750, height=200),
      
 )
 
@@ -69,9 +76,15 @@ ui <- fluidPage(
 # Server
 server <- function(input, output, session){
 
-  # Plot coverage
+  # Plot map
   output$plot_map <- renderPlot({
     g <- plot_map(mpa = input$mpa)
+    g
+  })
+  
+  # Plot bar plot
+  output$plot_barplot <- renderPlot({
+    g <- plot_barplot(mpa = input$mpa)
     g
   })
 

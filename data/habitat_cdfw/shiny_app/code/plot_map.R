@@ -52,11 +52,11 @@ plot_map <- function(mpa){
                           "8"="Hard (200-3000m)") %>% factor(., levels=habitats))
   
   # Theme
-  my_theme <-  theme(axis.text=element_text(size=7),
-                     axis.title=element_text(size=8),
-                     legend.text=element_text(size=7),
-                     legend.title=element_text(size=8),
-                     plot.title=element_text(size=9),
+  my_theme <-  theme(axis.text=element_text(size=9),
+                     axis.title=element_blank(),
+                     legend.text=element_text(size=12),
+                     legend.title=element_text(size=14),
+                     plot.title=element_text(size=14),
                      axis.text.y = element_text(angle = 90, hjust = 0.5),
                      # Gridlines
                      panel.grid.major = element_blank(), 
@@ -78,9 +78,9 @@ plot_map <- function(mpa){
     # Plot habitat
     geom_raster(data=substrate_ras_crop_df, mapping=aes(x=x, y=y, fill=habitat)) +
     # Plot state waters
-    geom_sf(data=state_waters_line, color="grey40", lwd=0.1) +
+    geom_sf(data=state_waters_line, color="grey40", lwd=0.6) +
     # Plot MPA of interest
-    geom_sf(data=mpa_sf_do, color="black", fill=NA) +
+    geom_sf(data=mpa_sf_do, fill=NA, color="black",  lwd=0.8) +
     # Labels
     labs(x="", y="", title=mpa_do) +
     # Legend
