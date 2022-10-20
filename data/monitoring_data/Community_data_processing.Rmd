@@ -524,12 +524,19 @@ kelp_upc_counts4 <- kelp_upc_counts3 %>%
 #recalculate percent cov
 kelp_upc_counts5 <- kelp_upc_counts4 %>%
                     group_by(year, site, zone, transect, species)%>%
-                    dplyr::summarize(sum_count = sum(count))
+                    dplyr::summarize(sum_count = sum(count)) 
 
 #check to make sure UPC counts add up to ~30 per transect               
 check_counts <- kelp_upc_counts4 %>%
                     group_by(year, site, zone, transect)%>%
-                    dplyr::summarize(sum_count = sum(count))
+                    dplyr::summarize(transect_total = sum(count))
+
+#join percent cov with transect total
+kelp_upc_counts6 <- left_join(kelp_upc_counts5, check_counts, by=c("year","site","zone","transect"))%>%
+                    mutate(pct_cov = (sum_count / transect_total)*100)%>%
+                    mutate_at(vars(pct_cov), round, 1)
+
+
 
 #add affiliated_mpa
 
