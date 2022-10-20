@@ -72,7 +72,7 @@ substrate_ras <- fasterize::fasterize(sf=substrate,
 # raster::plot(substrate_ras)
 
 # Export
-raster::writeRaster(substrate_ras, filename = file.path(outdir, "CA_bottom_substrate_10m.tiff"))
+raster::writeRaster(substrate_ras, filename = file.path(outdir, "CA_bottom_substrate_10m.tiff"), overwrite=T)
 
 
 

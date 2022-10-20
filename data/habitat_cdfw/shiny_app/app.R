@@ -33,6 +33,10 @@ land <- rnaturalearth::ne_countries(country=c("United States of America", "Mexic
 # Get state waters
 state_waters_line <- readRDS(file.path(datadir, "CA_state_waters_polyline.Rds"))
 
+# Read bottom substrate
+substrate_ras <- raster::raster(file.path(outdir, "CA_bottom_substrate_10m.tiff"))
+
+
 
 # Parameters
 ################################################################################
