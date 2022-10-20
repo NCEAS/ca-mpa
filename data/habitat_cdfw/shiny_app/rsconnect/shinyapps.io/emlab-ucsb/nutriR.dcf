@@ -1,0 +1,12 @@
+name: nutriR
+title: nutriR
+username:
+account: emlab-ucsb
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 4516715
+bundleId: 5000590
+url: https://emlab-ucsb.shinyapps.io/nutriR/
+when: 1630791151.27483
+asMultiple: FALSE
+asStatic: FALSE
