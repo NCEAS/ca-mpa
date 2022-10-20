@@ -42,14 +42,19 @@ data <- att %>%
                values_to = "habitat_amount") %>% 
   mutate(habitat_type = if_else(habitat %in% linear_habitats, 'linear', 'area')) 
 
-## Create list of MPAs with incomplete data
+## Create list of MPAs with incomplete data ----
 incomplete <- data %>%
   filter(is.na(habitat_amount)) %>%
   group_by(name, habitat_type) %>%
   summarize(n = n()) %>%
   pivot_wider(names_from = "habitat_type", values_from = "n")
 
-# Remove MPAs with incomplete data? -----
+incomplete_linear <- incomplete %>% 
+  filter(is.na(linear))
+
+incomplete_area <- incomplete %>% 
+  filter(is.na(area))
+
 
 ## Summarize total habitat area for each habitat type ----
 type_totals <- data %>% 
@@ -68,6 +73,12 @@ data3 <- data2 %>%
          #                               habitat_type == "area" ~   habitat_amount/size_km2),
          habitat_prop_calc =  case_when(habitat_type == "linear" ~ habitat_amount/total_linear_calc,
                                         habitat_type == "area" ~   habitat_amount/total_area_calc)) %>% 
+  # Identify incomplete mapping as incomplete
+  mutate(habitat = if_else((name %in% incomplete_linear$name) &
+                             habitat_type == "linear", "Incomplete", habitat)) %>% 
+  mutate(habitat = if_else((name %in% incomplete_area$name) &
+                             habitat_type == "area", "Incomplete", habitat)) %>% 
+  mutate(habitat_prop_calc = if_else(habitat == "Incomplete", 1, habitat_prop_calc)) %>% 
   # Recode habitats as factors and give names for legend
   mutate(habitat = recode_factor(habitat,
                                  "soft_substrate_0_30m_km2_comb" = "Soft substrate (0-30m)",
@@ -83,10 +94,15 @@ data3 <- data2 %>%
                                  "rocky_inter_km" = "Rocky intertidal",
                                  "coastal_marsh_km" = "Coastal marsh",
                                  "tidal_flats_km" = "Tidal flats",
-                                 "hardened_armored_shore_km" = "Armored shore")) %>% 
+                                 "hardened_armored_shore_km" = "Armored shore",
+                                 "Incomplete" = "Incomplete")) %>% 
   mutate(habitat_prop_calc = if_else(is.na(habitat_prop_calc), 0, habitat_prop_calc)) %>% 
   mutate(name = reorder(name, size_km2))
   
+test <- data3 %>% 
+  group_by(name, habitat_type) %>% 
+  summarize(total_prop = sum(habitat_prop_calc)) %>% 
+  pivot_wider(names_from = "habitat_type", values_from = "total_prop")
 
 ## Save as df ----
 plot_df <- data3
@@ -97,7 +113,8 @@ plot_df <- data3
 ## Habitat colors ----
 hab_area_colors <- c("wheat", "wheat1", "wheat2", "wheat3", # soft
                      "tan1", "tan2", "tan3", "tan4", # hard
-                     "seagreen4") # kelp
+                     "seagreen4", # kelp
+                     "grey50") # incomplete
 
 hard_soft_colors <- c("wheat", "wheat1", "wheat2", "wheat3", # soft
                       "tan1", "tan2", "tan3", "tan4") # hard
@@ -141,22 +158,22 @@ hab_theme_wide <- theme(axis.text=element_text(size=6),
 # Plot ------------------------------------------------------------------------
 ## Hard/Soft Only ----
 ### 1. Prop from Given Size ----
-hs1 <- plot_df %>% 
-  filter(habitat_type == "area") %>% 
-  filter(!(habitat == "Kelp canopy")) %>% 
-  ggplot(aes(x = name, y = habitat_prop_given*100, fill = habitat)) +
-  # Facet
-  ggh4x::facet_nested(.~bioregion+mpa_habitat_type, space="free_x", scales="free_x") +
-  # Bar Plot
-  geom_col(color="grey30", lwd=0.1) +
-  geom_hline(yintercept = 100) +
-  scale_fill_manual(name = "Habitat Type", 
-                    values = hard_soft_colors) +
-  scale_y_continuous(limits = c(0, 107), expand = c(0,0)) +
-  labs(y="Percentage of MPA area", x="") +
-  theme_bw() +
-  hab_theme_wide
-hs1
+# hs1 <- plot_df %>% 
+#   filter(habitat_type == "area") %>% 
+#   filter(!(habitat == "Kelp canopy")) %>% 
+#   ggplot(aes(x = name, y = habitat_prop_given*100, fill = habitat)) +
+#   # Facet
+#   ggh4x::facet_nested(.~bioregion+mpa_habitat_type, space="free_x", scales="free_x") +
+#   # Bar Plot
+#   geom_col(color="grey30", lwd=0.1) +
+#   geom_hline(yintercept = 100) +
+#   scale_fill_manual(name = "Habitat Type", 
+#                     values = hard_soft_colors) +
+#   scale_y_continuous(limits = c(0, 107), expand = c(0,0)) +
+#   labs(y="Percentage of MPA area", x="") +
+#   theme_bw() +
+#   hab_theme_wide
+# hs1
 
 ### 2. Prop from Calc ----
 hs2 <- plot_df  %>% 
@@ -197,27 +214,28 @@ hs3
 
 ## Hard/Soft/Kelp---------------------------------------------------------------
 ### 1. Prop from Given Size ----
-hsk1 <- plot_df %>% 
-  filter(habitat_type == "area") %>% 
-  ggplot(aes(x = name, y = habitat_prop_given*100, fill = habitat)) +
-  # Facet
-  ggh4x::facet_nested(.~bioregion+mpa_habitat_type, space="free_x", scales="free_x") +
-  # Bar Plot
-  geom_col(color="grey30", lwd=0.1) +
-  geom_hline(yintercept = 100) +
-  # Legend colors
-  scale_fill_manual(name = "Habitat Type", 
-                    values = hab_area_colors) +
-  scale_y_continuous(limits = c(0, 130), expand = c(0,0)) +
-  labs(y="Percentage of MPA area", x="") +
-  theme_bw() +
-  hab_theme_wide
-hsk1
+# hsk1 <- plot_df %>% 
+#   filter(habitat_type == "area") %>% 
+#   ggplot(aes(x = name, y = habitat_prop_given*100, fill = habitat)) +
+#   # Facet
+#   ggh4x::facet_nested(.~bioregion+mpa_habitat_type, space="free_x", scales="free_x") +
+#   # Bar Plot
+#   geom_col(color="grey30", lwd=0.1) +
+#   geom_hline(yintercept = 100) +
+#   # Legend colors
+#   scale_fill_manual(name = "Habitat Type", 
+#                     values = hab_area_colors) +
+#   scale_y_continuous(limits = c(0, 130), expand = c(0,0)) +
+#   labs(y="Percentage of MPA area", x="") +
+#   theme_bw() +
+#   hab_theme_wide
+# hsk1
 
 ### 2. Prop from Calc ----
 hsk2 <- plot_df %>% 
   filter(habitat_type == "area") %>% 
-  ggplot(aes(x = name, y = habitat_prop_calc*100, fill = habitat)) +
+  #filter(!(mpa_habitat_type == "Estuary")) %>% 
+  ggplot(aes(x = name, y = habitat_prop_calc, fill = habitat)) +
   # Facet
   ggh4x::facet_nested(.~bioregion+mpa_habitat_type, 
                       space="free_x", scales="free_x") +
@@ -227,7 +245,7 @@ hsk2 <- plot_df %>%
   # Legend colors
   scale_fill_manual(name = "Habitat Type", 
                     values = hab_area_colors) +
-  scale_y_continuous(expand = c(0,0)) +
+  scale_y_continuous(limits = c(0, 1.1), expand = c(0,0)) +
   labs(y="Percentage of total habitat area", x="") +
   theme_bw() +
   hab_theme_wide
