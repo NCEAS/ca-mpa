@@ -26,6 +26,10 @@ spp_key <- spp_key_orig %>%
 # Get FishLife values
 spp_key_fl <- freeR::fishlife(species = spp_key$sci_name)
 
+# Get FishBase ecology
+spp_key_fb_eco <- freeR::fishbase(dataset = "ecosystem", species = spp_key$sci_name, clean=F, add_taxa=F)
+colnames(spp_key_fb_eco)
+
 # Get FishBase values
 spp_key_fb <- freeR::fishbase(dataset = "vonb", species = spp_key$sci_name, add_taxa=F)
 colnames(spp_key_fb)
