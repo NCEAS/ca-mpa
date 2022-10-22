@@ -33,3 +33,9 @@ pca-kf-new.R
 # Confidential data
 analyses/2performance_fisheries/analyses/lobster_logbooks/output
 analyses/2performance_fisheries/analyses/dive_logbooks/output
+
+# Large files
+data/habitat_cdfw/shiny_app/data
+
+
+

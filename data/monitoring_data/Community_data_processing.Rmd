@@ -74,6 +74,43 @@ CCFRP_CPUE$affiliated_mpa <- recode_factor(CCFRP_CPUE$affiliated_mpa, "southeast
 CCFRP_CPUE$affiliated_mpa <- recode_factor(CCFRP_CPUE$affiliated_mpa, "swamis smr" = "swami's smca") #clean up names 
 
 
+#drop species and combine to higher taxa
+#### see reference taxonomy table https://docs.google.com/spreadsheets/d/1vxy0XVOrlNhXD-i9tWL_F9G5h8S3S4OV/edit#gid=2031917236
+
+CCFRP_combined <- CCFRP_CPUE %>%
+                  #merge species
+                  mutate(blue_rockfish_merge = rowSums(select(.,'blue_rockfish','deacon_rockfish')),
+                         mackerel_family_merge = rowSums(select(., 'mackerel_family_scombridae','pacific_chub_mackerel','jack_mackerel')),
+                         sanddabs_merge = rowSums(select(., 'pacific_sanddab','sanddab_spp','speckled_sanddab')))%>%
+                  select(!(c('blue_rockfish','deacon_rockfish','mackerel_family_scombridae','pacific_chub_mackerel',
+                             'pacific_sanddab','sanddab_spp','speckled_sanddab','jack_mackerel'))) %>%
+                  #drop species
+                  select(!(c('northern_anchovy',
+                             'olive_or_yellowtail_rockfish',
+                             'pacific_sardine',
+                             'petrale_sole',
+                             'pile_perch',
+                             'rubberlip_seaperch',
+                             'sand_sole',
+                             'spiny_dogfish',
+                             'senorita',
+                             'starry_skate',
+                             'tubesnout',
+                             'silversides_family_atherinopsidae',
+                             'un_id_blue_rockfish',
+                             'unknown',
+                             'unknown_rockfish',
+                             'wolf_eel',
+                             'yelloweye_rockfish',
+                             'bull_sculpin',
+                             'pacific_barracuda',
+                             'total')))%>%
+                  #drop string
+                  rename(blue_rockfish = blue_rockfish_merge,
+                         mackerel_family = mackerel_family_merge,
+                         sanddabs = sanddabs_merge)
+
+
 #add regions
 data_path <- "/home/shares/ca-mpa/data/sync-data/mpa_traits"
 input_file <- "mpa-attributes.xlsx" 
@@ -82,7 +119,7 @@ four_region <- readxl::read_excel(file.path(data_path, input_file), sheet=1, ski
 regions <- four_region %>%
   dplyr::select(name, region3=bioregion, region4 = four_region_north_ci)
 
-CCFRP_CPUE <- left_join(CCFRP_CPUE, regions, by=c("affiliated_mpa"="name"))
+CCFRP_CPUE <- left_join(CCFRP_combined, regions, by=c("affiliated_mpa"="name"))
 
 #clean up a
 
@@ -90,12 +127,19 @@ CCFRP_CPUE <- CCFRP_CPUE %>%
   mutate(MHW = ifelse(year>=2014 & year<=2016, "during",ifelse(year<2014, "before","after")))%>%
   dplyr::select(year, group, region3, region4, MHW, everything())
 
+#drop species that were never observed on the central coast
+CCFRP_zero_drop <- CCFRP_CPUE %>% filter(region3=='central') %>%
+                    select(!(where(~ any(. != 0))))
+
+CCFRP_cen <- CCFRP_zero_drop <- CCFRP_CPUE %>% filter(region3=='central') %>%
+                    select(where(~ any(. != 0)))
+
 #Export
 #path_aurora <- "/home/shares/ca-mpa/data/sync-data/processed_data/ecological_community_data" 
 #write.csv(CCFRP_CPUE,file.path(path_aurora, "CCFRP_species_counts.csv"), row.names = FALSE)
 
 CCFRP_mpa_year_step1 <- CCFRP_CPUE %>%
-                  pivot_longer(cols=10:103, names_to="species",values_to="CPUE")%>%
+                  pivot_longer(cols=10:81, names_to="species",values_to="CPUE")%>%
                   group_by(year, group, region3, region4, MHW, affiliated_mpa, mpa_class, mpa_designation, species)%>%
                   dplyr::summarize(mean_CPUE = mean(CPUE))%>%
                   ungroup()%>%
@@ -107,8 +151,8 @@ CCFRP_mpa_year <- left_join(CCFRP_mpa_year_step1, envr_dat, by=c("year","group",
                                                        "mpa_designation"="mpa_defacto_designation",
                                                        "affiliated_mpa"="mpa_name"))%>%
                   filter(!(affiliated_mpa=="trinidad smr"))%>% #not a real MPA per PI
-                  dplyr::select(!(c("total", "mpa_class.y","mpa_designation.y")))%>%
-                  dplyr::select(1:8,102:117,9:101)
+                  dplyr::select(!(c("mpa_class.y","mpa_designation.y")))%>%
+                  dplyr::select(1:8,81:96,9:80)
 
 #Export
 #path_aurora <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/ecological_community_data/year_level_with_envr_vars" 
@@ -134,7 +178,6 @@ kelp_fish_counts <- kelp_fish_counts %>%
                     group_by(year, site, zone, level, transect, classcode)%>%
                     dplyr::summarize(total_count = sum(count)) #counts in raw data are grouped by size class. Take summary across all sizes
 
-
 #join species names by class code 
 input_file <- "MLPA_kelpforest_taxon_table.4.csv"  
 kelp_taxon <- read.csv(file.path(data_path, input_file)) %>%
@@ -147,7 +190,7 @@ kelp_fish_counts<-  left_join(kelp_fish_counts, kelp_taxon, by="classcode")
 kelp_fish_counts <- kelp_fish_counts %>%
                     dplyr::select(year, site, zone, level, transect, species=species_definition, total_count)%>%
                     filter(!(species=='Sebastes atrovirens/carnatus/chrysomelas/caurinus'))
-        
+
 
 #add affiliated_mpa
 
@@ -205,20 +248,64 @@ kelp_fish_counts <- kelp_fish_counts %>%
 
 
 #reshape to wide format
-kelp_fish_counts <- kelp_fish_counts %>%
+kelp_fish_counts1 <- kelp_fish_counts %>%
                     pivot_wider(names_from=species, values_from=counts, values_fill = 0) %>%
                     janitor::clean_names()%>%
                     drop_na(region4)%>%
                     mutate(MHW = ifelse(year>=2014 & year<=2016, "during",ifelse(year<2014, "before","after")))%>%
                     dplyr::select(year, region3, region4, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation, MHW, zone, level, transect, everything(),-c(no_organisms_present_in_this_sample))
 
+
+#drop species and combine to higher taxa
+#### see reference taxonomy table https://docs.google.com/spreadsheets/d/1vxy0XVOrlNhXD-i9tWL_F9G5h8S3S4OV/edit#gid=2031917236
+
+kelp_fish_combined <- as.data.frame(kelp_fish_counts1) %>%
+                  
+                  #merge species
+                  dplyr::mutate(citharichthys_merge = rowSums(select(.,'citharichthys','citharichthys_sordidus','citharichthys_stigmaeus')
+                                                              ))%>%
+                  select(!(c('citharichthys','citharichthys_sordidus','citharichthys_stigmaeus'))) %>%
+                  #drop species
+                  select(!(c('anisotremus_davidsonii',
+                             'cheilotrema_saturnum',
+                             'unidentified_fish',
+                             'apodichthys_flavidus',
+                             'atherinopsidae',
+                             'aulorhynchus_flavidus',
+                             'bothidae',
+                             'clupeiformes',
+                             'cryptacanthodes_giganteus',
+                             'embiotocidae',
+                             'engraulis_mordax',
+                             'gobiesox_maeandricus',
+                             'hyperprosopon_anale',
+                             'hyperprosopon_argenteum',
+                             'hyperprosopon_ellipticum',
+                             'leiocottus_hirundo',
+                             'lethops_connectens',
+                             'neoclinus_blanchardi',
+                             'pholidae',
+                             'pleuronectidae',
+                             'rathbunella_alleni',
+                             'rathbunella_hypoplecta',
+                             'ronquilus_jordani',
+                             'sardinops_sagax',
+                             'sebastes',
+                             'stichaeidae',
+                             'syngnathus',
+                             'trachurus_symmetricus',
+                             'ulvicola_sanctaerosae')))%>%
+                  #drop string
+                  rename(citharichthys=citharichthys_merge)
+                         
+
 #Export
 #path_aurora <- "/home/shares/ca-mpa/data/sync-data/processed_data/ecological_community_data" 
 #write.csv(kelp_fish_counts,file.path(path_aurora, "kelp_fish_counts.csv"), row.names = FALSE)
 
 
-kelp_fish_mpa_year_step1 <- kelp_fish_counts %>% 
-                  pivot_longer(cols=11:152, names_to="species",values_to="counts")%>%
+kelp_fish_mpa_year_step1 <- kelp_fish_combined %>% 
+                  pivot_longer(cols=11:121, names_to="species",values_to="counts")%>%
                   group_by(year, region3, region4, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation, MHW, species)%>%
                   dplyr::summarize(total_counts = sum(counts))%>%
                   ungroup()%>%
@@ -230,7 +317,7 @@ kelp_fish_mpa_year <- left_join(kelp_fish_mpa_year_step1, envr_dat, by=c("year",
                                                        "mpa_defacto_class",
                                                        "mpa_defacto_designation",
                                                        "affiliated_mpa"="mpa_name"))%>%
-                  dplyr::select(1:7,150:168,8:149) %>%
+                  dplyr::select(1:7,119:137,8:118) %>%
                   dplyr::select(!c("mpa_class","mpa_designation")) %>%
                   dplyr::select(group, everything()) %>%
                   mutate(group=recode(group,kelp="kelp_fish"))
@@ -331,7 +418,7 @@ kelp_swath_counts <- kelp_swath_counts %>%
 
 
 #reshape to wide format
-kelp_swath_counts <- kelp_swath_counts %>%
+kelp_swath_counts1 <- kelp_swath_counts %>%
                     pivot_wider(names_from=species, values_from=counts, values_fill = 0) %>%
                     janitor::clean_names()%>%
                     drop_na(region4) %>%
@@ -339,12 +426,49 @@ kelp_swath_counts <- kelp_swath_counts %>%
                     dplyr::select(year, region3, region4, affiliated_mpa, mpa_defacto_class, MHW, everything())
                     #dplyr::select(-c(no_organisms_present_in_this_sample))
 
+
+
+#drop species and combine to higher taxa
+#### see reference taxonomy table https://docs.google.com/spreadsheets/d/1vxy0XVOrlNhXD-i9tWL_F9G5h8S3S4OV/edit#gid=2031917236
+
+kelp_swath_counts2 <- as.data.frame(kelp_swath_counts1) %>%
+                  
+                  #merge species
+                  dplyr::mutate(urticina_merge = rowSums(select(.,'urticina', 
+                                                          'urticina_coriacea', 'urticina_crassicornis', 'urticina_piscivora')
+                                                              ))%>%
+                  select(!(c('urticina', 
+                                                          'urticina_coriacea', 'urticina_crassicornis', 'urticina_piscivora'))) %>%
+                  #drop species
+                  select(!(c('anthopleura',
+                             'asteroidea',
+                             'haliotis',
+                             'laminaria',
+                             'laminariales',
+                             'octopus',
+                             'pisaster',
+                             'pugettia_spp',
+                             'stylasterias_forreri',
+                             'urticina_columbiana',
+                             'urticina_columbiana_mcpeaki',
+                             )))%>%
+                  #drop string
+                  rename(urticina=urticina_merge)
+
+
+#drop species that were never observed on the central coast
+kelp_swath_zero_drop <- kelp_swath_counts2 %>% filter(region3=='central') %>%
+                    select(!(where(~ any(. != 0))))
+
+kelp_swath_counts3 <- kelp_swath_counts2 %>% filter(region3=='central') %>%
+                    select(where(~ any(. != 0)))
+
 #Export
 #path_aurora <- "/home/shares/ca-mpa/data/sync-data/processed_data/ecological_community_data" 
 #write.csv(kelp_swath_mpa_year, file.path(path_aurora, "kelp_swath_mpa_year_counts.csv"), row.names = FALSE)
 
-kelp_swath_mpa_year_step1 <- kelp_swath_counts %>%
-                        pivot_longer(cols=10:177, names_to="species",values_to="counts")%>%
+kelp_swath_mpa_year_step1 <- kelp_swath_counts3 %>%
+                        pivot_longer(cols=10:163, names_to="species",values_to="counts")%>%
                         group_by(year, region3, region4, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation, MHW, species)%>%
                         dplyr::summarize(total_counts = sum(counts))%>%
                         ungroup()%>%
@@ -358,7 +482,7 @@ kelp_swath_mpa_year <- left_join(kelp_swath_mpa_year_step1, envr_dat,
                                                        "mpa_defacto_class",
                                                        "mpa_defacto_designation",
                                                        "affiliated_mpa"="mpa_name"))%>%
-                  dplyr::select(1:7,176:194,8:175) %>%
+                  dplyr::select(1:7,162:180,8:161) %>%
                   dplyr::select(!c("mpa_class","mpa_designation")) %>%
                   dplyr::select(group, everything()) %>%
                   mutate(group=recode(group,kelp="kelp_swath"))
@@ -381,10 +505,9 @@ kelp_upc_counts <- read.csv(file.path(data_path, input_file)) %>%
 
 
 #select vars and clean
-kelp_upc_counts <- kelp_upc_counts %>%
-                    dplyr::select(year, site, zone, transect, classcode, pct_cov)%>%
-                    group_by(year, site, zone, transect, classcode)#%>%
-                     #counts in raw data are grouped by size class. Take summary across all sizes
+kelp_upc_counts1 <- kelp_upc_counts %>%
+                    dplyr::select(year, site, zone, transect, classcode, count, pct_cov)%>%
+                    group_by(year, site, zone, transect, classcode)
 
 
 #join species names by class code 
@@ -394,10 +517,47 @@ kelp_taxon <- read.csv(file.path(data_path, input_file)) %>%
                     dplyr::select(classcode, species_definition) %>%
                     distinct() #remove duplicates
 
-kelp_upc_counts<-  left_join(kelp_upc_counts, kelp_taxon, by="classcode")
+kelp_upc_counts2<-  left_join(kelp_upc_counts1, kelp_taxon, by="classcode")
 
-kelp_upc_counts <- kelp_upc_counts %>%
-                    dplyr::select(year, site, zone, transect, species=species_definition, pct_cov)
+kelp_upc_counts3 <- kelp_upc_counts2 %>%
+                    dplyr::select(year, site, zone, transect, classcode, species=species_definition, count, pct_cov)
+
+#drop data 
+kelp_upc_counts4 <- kelp_upc_counts3 %>%
+                    filter(!(species=="Haliotis"|
+                               species=="Laminaria"|
+                               species=="laminariales"|
+                               species=="UCSC 2000 Definition Of 'Other Red' Included All Red Algae Except Rhospp, Bushy, Leafy, Crucor And Erecor"|
+                               species=="UCSB 2000 Definition Of 'Other Red' Included All Red Algae Except Rhospp, Bushy, Leafy, Crucor And Erecor"|
+                               species=="Red Alga With Cylindrical Branches. Definition Used In 2000"|
+                              species=="UCSC and UCSB 1999 Definition Of 'Other Red' Included All Red Algae Except Rhospp, Crucor And Erecor"|
+                               species=="Laminariales Holdfast (Alive)"|
+                               species=="Sargassum"|
+                               species=="Aglaophenia struthionides"|
+                               species=="Macrosystis Holdfast (Dead)"|
+                               species=="Bare Rock"|
+                               species=="Bare Sand"|
+                               species=="Unidentified Fish"|
+                               species=="Actiniaria"|
+                               species=="Shell Debris"|
+                               species=="Sediment/Mud"))
+
+
+#recalculate percent cov
+kelp_upc_counts5 <- kelp_upc_counts4 %>%
+                    group_by(year, site, zone, transect, classcode, species)%>%
+                    dplyr::summarize(sum_count = sum(count)) 
+
+#check to make sure UPC counts add up to ~30 per transect               
+check_counts <- kelp_upc_counts4 %>%
+                    group_by(year, site, zone, transect)%>%
+                    dplyr::summarize(transect_total = sum(count))
+
+#join percent cov with transect total
+kelp_upc_counts6 <- left_join(kelp_upc_counts5, check_counts, by=c("year","site","zone","transect"))%>%
+                    mutate(pct_cov = (sum_count / transect_total)*100)%>%
+                    mutate_at(vars(pct_cov), round, 1)
+
 
 
 #add affiliated_mpa
@@ -408,11 +568,11 @@ kelp_sites <- read.csv(file.path(data_path, input_file)) %>%
                     dplyr::select(site, ca_mpa_name_short, mpa_class=site_designation, mpa_designation=site_status)%>%
                     distinct() #remove duplicates
 
-kelp_upc_counts <- left_join(kelp_upc_counts, kelp_sites, by="site")
+kelp_upc_counts <- left_join(kelp_upc_counts6, kelp_sites, by="site")
 
 kelp_upc_counts <- kelp_upc_counts %>%
                     ungroup() %>%
-                    dplyr::select(year, affiliated_mpa=ca_mpa_name_short,mpa_class, mpa_designation, zone, transect, species, pct_cov) %>%
+                    dplyr::select(year, affiliated_mpa=ca_mpa_name_short,mpa_class, mpa_designation, zone, transect, classcode, species, pct_cov) %>%
                     mutate(mpa_designation = ifelse(mpa_designation=="reference","ref",mpa_class))
 
 
@@ -440,17 +600,22 @@ defacto_smr <- readxl::read_excel(file.path(data_path, input_file), sheet=5, ski
 
 kelp_upc_counts <- left_join(kelp_upc_counts, defacto_smr, by="affiliated_mpa")
 
+#final check for any odd cen coast species
+
+kelp_spp_check <- kelp_upc_counts %>% filter(region3=='central')
+unique(kelp_spp_check$species)
 
 #clean up
 kelp_upc_counts <- kelp_upc_counts %>%
                     mutate(mpa_defacto_designation = ifelse(mpa_designation=="ref","ref",mpa_class.y))%>%
-                    dplyr::select(year, region3, region4, affiliated_mpa, mpa_defacto_class = mpa_class.y, mpa_defacto_designation, zone, transect, species, pct_cov)
+                    dplyr::select(year, region3, region4, affiliated_mpa, mpa_defacto_class = mpa_class.y, mpa_defacto_designation, zone, transect, 
+                                  classcode, species, pct_cov)
                  
 kelp_upc_counts$mpa_defacto_class <- tolower(kelp_upc_counts$mpa_defacto_class)
 kelp_upc_counts$mpa_defacto_designation <- tolower(kelp_upc_counts$mpa_defacto_designation)
 
 kelp_upc_counts <- kelp_upc_counts %>%
-                    group_by(year, region3, region4, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation,species) %>%
+                    group_by(year, region3, region4, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation, species) %>%
                     dplyr::summarise(mean_pct_cov = mean(pct_cov)) #take transect levels means
 
 
@@ -650,6 +815,31 @@ deep_reef_counts_drop <- deep_reef_counts %>%
                                       region4=='central'|
                                 scientific_name=='Halichoeres semicinctus' &
                                       region4=='central'|
+                                scientific_name=='Anarrihichthys ocellatus' &
+                                      region4=='central'|
+                                scientific_name=='Chromis punctipinnis' &
+                                      region4=='central'|
+                                scientific_name=='Cymatogaster aggregata' &
+                                      region4=='central'|
+                                scientific_name=='Eopsetta jordani' &
+                                      region4=='central'|
+                                scientific_name=='Lepidopsetta bilineata' &
+                                      region4=='central'|
+                                scientific_name=='Medialuna californiensis' &
+                                      region4=='central'|
+                                scientific_name=='Microstomus pacificus' &
+                                      region4=='central'|
+                                scientific_name=='Sebastes goodei' &
+                                      region4=='central'|
+                                scientific_name=='Torpedo californica' &
+                                      region4=='central'|
+                                scientific_name=='Squalus acanthias' &
+                                      region4=='central'|
+                                scientific_name=='Anarrhichthys ocellatus' &
+                                      region4=='central'|
+                               scientific_name=='Schooling (10-15 cm Sebastes sp.)' &
+                                      region4=='central'|
+                          
                         #drop for south
                                 scientific_name=='Enophrys bison' &
                                       region4=='south'|
@@ -661,10 +851,14 @@ deep_reef_counts_drop <- deep_reef_counts %>%
                             )
                         )
 
+#check cen coast spp
+
+deep_reef_counts_drop_check <- deep_reef_counts_drop %>% filter(region3=='central')
 
 
 #reshape to wide format
 deep_reef_counts_wide <- deep_reef_counts_drop %>%
+                    filter(region3=='central')%>%
                     pivot_wider(names_from=scientific_name, values_from=counts) %>%
                     janitor::clean_names()%>%
                     drop_na(region4) %>%
@@ -672,13 +866,34 @@ deep_reef_counts_wide <- deep_reef_counts_drop %>%
                     dplyr::select(year, region3, region4, affiliated_mpa,mpa_class, mpa_defacto_class, mpa_defacto_designation, MHW, everything()) %>%
                     replace(is.na(.),0)%>%
                     mutate(group='deep_reef')
+          
                     #dplyr::select(-c(no_organisms_present_in_this_sample))
 
 
 deep_reef_counts_wide$mpa_class <- tolower(deep_reef_counts_wide$mpa_class)
 
+#drop species that were never observed on the central coast
+deep_reef_counts_wide_drop <- deep_reef_counts_wide %>% filter(region3=='central') %>%
+                    select(!(where(~ any(. != 0))))
 
-deep_reef_counts_envr <- left_join(deep_reef_counts_wide, envr_dat, 
+deep_reef_counts_wide1 <- deep_reef_counts_wide %>% filter(region3=='central') %>%
+                    select(where(~ any(. != 0)))
+
+#merge data
+
+deep_reef_merge <- as.data.frame(deep_reef_counts_wide1) %>%
+                  mutate(zaniolepis_frenata_or_latipinnis_merge = rowSums(
+                    select(.,'zaniolepis_frenata_or_latipinnis',
+                           'zaniolepis_latipinnis',
+                           'zaniolepis_frenata')))%>%
+                  select(!(c('zaniolepis_frenata_or_latipinnis',
+                           'zaniolepis_latipinnis',
+                           'zaniolepis_frenata')))%>%
+                  rename(zaniolepis_frenata_or_latipinnis = zaniolepis_frenata_or_latipinnis_merge)
+
+
+#clean up
+deep_reef_counts_envr <- left_join(deep_reef_merge, envr_dat, 
                                   by=c("year","group",
                                                     "region3","region4",
                                                     "mpa_class"="mpa_class",

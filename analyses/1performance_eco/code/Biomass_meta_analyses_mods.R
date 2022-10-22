@@ -819,6 +819,38 @@ dev.off()
 
 
 
+#RR by mods
+################################################################################
+
+
+mpa.means.wide <-  mpa.means %>%
+  group_by(group,region4, affiliated_mpa, mpa_class, mpa_designation,target_status)%>%
+  dplyr::summarize(yr.mean = mean(mpa.mean,na.rm=TRUE), 
+                   sd_mpa=sd(mpa.mean), # standard deviation of across MPAs where indicator was observed/recorded
+                   n=n(),
+                   mean_age_mpa=mean(mean_age),
+                   mean_distance_mpa=mean(mean_distance),
+                   mean_size_mpa = mean(mean_size)) %>%
+  pivot_wider(names_from = mpa_designation,
+              values_from = c(yr.mean, sd_mpa, n, mean_age_mpa, mean_distance_mpa, mean_size_mpa)
+  )%>%
+          mutate(logRR = log10(yr.mean_smr/yr.mean_ref))
+
+
+
+mpa.means.wide %>%
+  ggplot(aes(x=mean_size_mpa_smr, y=logRR, color=target_status))+
+  geom_point()
+  geom_line()
+
+
+
+
+
+
+
+
+
 
 
 
