@@ -1,0 +1,1435 @@
+"join_ID","group","mlpa_region","region4","affiliated_mpa","mpa_defacto_class","mpa_defacto_designation","year","variable","indicator","mean","sd","n"
+"deep_reef","deep-reef","central","central","big creek smr","smr","smr",2016,"all fish","diversity",0,0,3
+"kelp","kelp forest-fish","south","south","point vicente smca","smr","smr",2012,"all fish","diversity",2.5357,0.0021,2
+"kelp","kelp forest-fish","central","central","lovers point - julia platt smr","smr","ref",2000,"all fish","diversity",1.7903,0.0033,2
+"kelp","kelp forest-fish","south","south","campus point smca","smr","smr",2011,"all fish","diversity",2.1718,0.0033,2
+"kelp","kelp forest-fish","central","central","lovers point - julia platt smr","smr","smr",2000,"all fish","diversity",1.7415,0.0063,2
+"kelp","kelp forest-fish","south","south","point vicente smca","smr","ref",2013,"all fish","diversity",2.056,0.0071,2
+"kelp","kelp forest-fish","south","north islands","south point smr","smr","smr",2014,"all fish","diversity",1.6454,0.0103,2
+"kelp","kelp forest-fish","south","south","campus point smca","smr","smr",2012,"all fish","diversity",2.0623,0.0103,2
+"kelp","kelp forest-fish","central","central","lovers point - julia platt smr","smr","ref",2002,"all fish","diversity",1.4379,0.0107,2
+"kelp","kelp forest-fish","north","north","point cabrillo smr","smr","smr",2017,"all fish","diversity",1.0077,0.0141,2
+"kelp","kelp forest-fish","central","central","white rock smca","smr","ref",2005,"all fish","diversity",1.8999,0.0141,2
+"kelp","kelp forest-fish","south","north islands","gull island smr","smr","smr",2010,"all fish","diversity",2.1693,0.0153,2
+"kelp","kelp forest-fish","north","north","stewarts point smca","smr","smr",2011,"all fish","diversity",0.939,0.0199,2
+"kelp","kelp forest-fish","central","central","white rock smca","smr","smr",2006,"all fish","diversity",1.8867,0.0206,2
+"kelp","kelp forest-fish","central","central","white rock smca","smr","smr",2004,"all fish","diversity",1.8197,0.0214,2
+"kelp","kelp forest-fish","south","north islands","anacapa island smca","smca","smca",2004,"all fish","diversity",1.3587,0.0216,3
+"kelp","kelp forest-fish","south","north islands","gull island smr","smr","smr",2015,"all fish","diversity",1.4087,0.0216,2
+"kelp","kelp forest-fish","south","south","campus point smca","smr","ref",2018,"all fish","diversity",2.2085,0.0237,2
+"kelp","kelp forest-fish","south","south","naples smca","smca","ref",2018,"all fish","diversity",2.2085,0.0237,2
+"kelp","kelp forest-fish","central","central","big creek smr","smr","smr",2015,"all fish","diversity",1.3902,0.0243,2
+"kelp","kelp forest-fish","south","north islands","santa barbara island smr","smr","ref",2009,"all fish","diversity",0.5745,0.0246,2
+"kelp","kelp forest-fish","south","north islands","harris point smr","smr","smr",2006,"all fish","diversity",2.2584,0.0256,2
+"kelp","kelp forest-fish","south","north islands","painted cave smca","smca","ref",2008,"all fish","diversity",2.3175,0.0256,3
+"kelp","kelp forest-fish","south","south","point vicente smca","smr","ref",2014,"all fish","diversity",1.9673,0.0257,2
+"kelp","kelp forest-fish","central","central","carmel bay smca","smca","ref",2014,"all fish","diversity",1.3141,0.0261,2
+"kelp","kelp forest-fish","south","north islands","painted cave smca","smca","ref",2017,"all fish","diversity",2.2703,0.0268,3
+"kelp","kelp forest-fish","south","north islands","gull island smr","smr","ref",2007,"all fish","diversity",2.3445,0.0291,2
+"kelp","kelp forest-fish","south","south","point vicente smca","smr","smr",2014,"all fish","diversity",2.0178,0.0302,2
+"kelp","kelp forest-fish","central","central","lovers point - julia platt smr","smr","ref",1999,"all fish","diversity",2.0327,0.0305,2
+"kelp","kelp forest-fish","south","south","point dume smr","smr","smr",2010,"all fish","diversity",1.808,0.0339,2
+"kelp","kelp forest-fish","central","central","natural bridges smr","smr","ref",2010,"all fish","diversity",0.9884,0.0348,2
+"ccfrp","ccfrp","south","north islands","anacapa island smr","smr","smr",2017,"all fish","diversity",1.005822,0.036926,12
+"kelp","kelp forest-fish","south","north islands","south point smr","smr","ref",2013,"all fish","diversity",2.1108,0.0374,6
+"kelp","kelp forest-fish","south","north islands","painted cave smca","smca","smca",2006,"all fish","diversity",2.075,0.0383,3
+"kelp","kelp forest-fish","south","north islands","anacapa island smca","smca","ref",2020,"all fish","diversity",2.0504,0.0396,3
+"kelp","kelp forest-fish","south","north islands","anacapa island smr","smr","ref",2020,"all fish","diversity",2.0504,0.0396,3
+"kelp","kelp forest-fish","south","north islands","harris point smr","smr","smr",2009,"all fish","diversity",1.9047,0.0403,2
+"kelp","kelp forest-fish","central","central","vandenberg smr","smr","ref",2009,"all fish","diversity",0.5012,0.0409,2
+"kelp","kelp forest-fish","south","north islands","santa barbara island smr","smr","smr",2013,"all fish","diversity",1.3209,0.0417,2
+"kelp","kelp forest-fish","central","central","carmel bay smca","smca","smca",2005,"all fish","diversity",1.852,0.0422,2
+"kelp","kelp forest-fish","south","north islands","harris point smr","smr","smr",2004,"all fish","diversity",2.2972,0.0436,2
+"kelp","kelp forest-fish","south","south","point dume smca","smr","ref",2010,"all fish","diversity",2.3783,0.0436,2
+"kelp","kelp forest-fish","south","north islands","painted cave smca","smca","smca",2009,"all fish","diversity",1.7765,0.0447,3
+"kelp","kelp forest-fish","central","central","natural bridges smr","smr","ref",2011,"all fish","diversity",1.9141,0.0461,2
+"kelp","kelp forest-fish","south","south","point vicente smca","smr","ref",2019,"all fish","diversity",1.6711,0.0464,2
+"kelp","kelp forest-fish","south","south","campus point smca","smr","ref",2011,"all fish","diversity",2.2135,0.0467,2
+"kelp","kelp forest-fish","south","south","naples smca","smca","ref",2011,"all fish","diversity",2.2135,0.0467,2
+"kelp","kelp forest-fish","south","south","campus point smca","smr","smr",2016,"all fish","diversity",1.4223,0.0476,2
+"kelp","kelp forest-fish","south","north islands","gull island smr","smr","smr",2005,"all fish","diversity",1.9298,0.0486,2
+"kelp","kelp forest-fish","central","central","lovers point - julia platt smr","smr","smr",1999,"all fish","diversity",1.7303,0.0512,2
+"kelp","kelp forest-fish","south","north islands","south point smr","smr","smr",2015,"all fish","diversity",1.667,0.0529,2
+"kelp","kelp forest-fish","central","central","point sur smr","smr","ref",2017,"all fish","diversity",1.873,0.0532,2
+"kelp","kelp forest-fish","central","central","cambria smca","smca","smca",2003,"all fish","diversity",1.5379,0.0537,2
+"kelp","kelp forest-fish","north","north","point cabrillo smr","smr","ref",2018,"all fish","diversity",0.8337,0.0538,4
+"kelp","kelp forest-fish","central","central","pacific grove marine gardens smca","smca","smca",2006,"all fish","diversity",1.3483,0.0542,2
+"kelp","kelp forest-fish","central","central","lovers point - julia platt smr","smr","ref",2003,"all fish","diversity",1.9687,0.0547,2
+"kelp","kelp forest-fish","south","north islands","harris point smr","smr","smr",2005,"all fish","diversity",2.37,0.0547,3
+"kelp","kelp forest-fish","south","north islands","painted cave smca","smca","ref",2011,"all fish","diversity",2.5403,0.0558,3
+"kelp","kelp forest-fish","central","central","natural bridges smr","smr","ref",2009,"all fish","diversity",1.8283,0.0562,2
+"kelp","kelp forest-fish","south","north islands","painted cave smca","smca","ref",2012,"all fish","diversity",2.6223,0.0563,3
+"kelp","kelp forest-fish","south","north islands","anacapa island smca","smca","ref",2019,"all fish","diversity",1.9343,0.0589,3
+"kelp","kelp forest-fish","south","north islands","anacapa island smr","smr","ref",2019,"all fish","diversity",1.9343,0.0589,3
+"kelp","kelp forest-fish","north","north","saunders reef smca","smca","ref",2017,"all fish","diversity",1.469,0.0592,4
+"kelp","kelp forest-fish","south","north islands","gull island smr","smr","ref",2003,"all fish","diversity",2.3951,0.0593,2
+"kelp","kelp forest-fish","south","north islands","harris point smr","smr","smr",2016,"all fish","diversity",1.4192,0.0594,2
+"kelp","kelp forest-fish","central","central","point buchon smr","smr","smr",2009,"all fish","diversity",2.1369,0.0596,2
+"kelp","kelp forest-fish","central","central","carmel bay smca","smca","smca",2001,"all fish","diversity",1.7796,0.0597,2
+"ccfrp","ccfrp","south","north islands","carrington point smr","smr","ref",2017,"all fish","diversity",1.447439,0.060273,12
+"ccfrp","ccfrp","central","central","point lobos smr","smr","ref",2019,"all fish","diversity",1.294944,0.060422,12
+"deep_reef","deep-reef","central","central","point buchon smr","smr","ref",2019,"all fish","diversity",1.899229,0.060986,4
+"kelp","kelp forest-fish","south","north islands","anacapa island smr","smr","ref",2004,"all fish","diversity",1.6127,0.061,2
+"kelp","kelp forest-fish","south","north islands","anacapa island smca","smca","smca",2018,"all fish","diversity",2.3048,0.0622,3
+"kelp","kelp forest-fish","central","central","vandenberg smr","smr","smr",2005,"all fish","diversity",1.8647,0.0638,2
+"kelp","kelp forest-fish","north","north","pyramid point smca","smca","smca",2015,"all fish","diversity",0.4407,0.0642,2
+"kelp","kelp forest-fish","south","north islands","harris point smr","smr","ref",2020,"all fish","diversity",1.5141,0.0644,2
+"deep_reef","deep-reef","central","central","ano nuevo smr","smr","ref",2015,"all fish","diversity",1.576611,0.064983,4
+"kelp","kelp forest-fish","south","north islands","gull island smr","smr","smr",2018,"all fish","diversity",2.0754,0.065,2
+"kelp","kelp forest-fish","central","central","lovers point - julia platt smr","smr","ref",2016,"all fish","diversity",2.0923,0.0652,2
+"kelp","kelp forest-fish","central","central","big creek smr","smr","smr",2004,"all fish","diversity",1.5138,0.0662,2
+"kelp","kelp forest-fish","south","south","naples smca","smca","smca",2012,"all fish","diversity",2.3023,0.0671,3
+"kelp","kelp forest-fish","south","south","campus point smca","smr","ref",2019,"all fish","diversity",2.1859,0.0673,2
+"kelp","kelp forest-fish","south","south","naples smca","smca","ref",2019,"all fish","diversity",2.1859,0.0673,2
+"kelp","kelp forest-fish","central","central","lovers point - julia platt smr","smr","smr",2008,"all fish","diversity",2.1865,0.0674,4
+"kelp","kelp forest-fish","south","north islands","carrington point smr","smr","smr",2007,"all fish","diversity",1.748,0.0681,2
+"kelp","kelp forest-fish","south","south","point dume smca","smr","ref",2011,"all fish","diversity",2.361,0.0686,2
+"kelp","kelp forest-fish","north","north","point cabrillo smr","smr","smr",2014,"all fish","diversity",1.0917,0.0691,2
+"kelp","kelp forest-fish","north","north","salt point smca","smca","ref",2018,"all fish","diversity",1.3744,0.0707,2
+"ccfrp","ccfrp","central","central","point lobos smr","smr","ref",2017,"all fish","diversity",1.28277,0.070943,12
+"kelp","kelp forest-fish","south","south","campus point smca","smr","ref",2010,"all fish","diversity",2.5435,0.0726,2
+"kelp","kelp forest-fish","south","south","naples smca","smca","ref",2010,"all fish","diversity",2.5435,0.0726,2
+"kelp","kelp forest-fish","central","central","natural bridges smr","smr","ref",2003,"all fish","diversity",2.2024,0.0728,2
+"kelp","kelp forest-fish","south","north islands","harris point smr","smr","smr",2020,"all fish","diversity",1.7437,0.0729,2
+"kelp","kelp forest-fish","north","north","del mar landing smr","smr","smr",2010,"all fish","diversity",1.467,0.0736,3
+"kelp","kelp forest-fish","central","central","point sur smr","smr","smr",2010,"all fish","diversity",1.6153,0.0753,2
+"kelp","kelp forest-fish","south","north islands","harris point smr","smr","ref",2016,"all fish","diversity",1.83,0.0755,2
+"kelp","kelp forest-fish","south","north islands","scorpion smr","smr","smr",2017,"all fish","diversity",2.3121,0.0757,3
+"ccfrp","ccfrp","north","north","stewarts point smr","smr","ref",2021,"all fish","diversity",1.373353,0.076736,12
+"kelp","kelp forest-fish","south","north islands","gull island smr","smr","smr",2019,"all fish","diversity",1.8918,0.0772,2
+"ccfrp","ccfrp","south","north islands","carrington point smr","smr","ref",2018,"all fish","diversity",1.450648,0.077258,12
+"kelp","kelp forest-fish","central","central","white rock smca","smr","smr",2011,"all fish","diversity",2.236,0.0778,2
+"kelp","kelp forest-fish","central","central","vandenberg smr","smr","smr",2006,"all fish","diversity",1.3243,0.0783,2
+"kelp","kelp forest-fish","central","central","point lobos smr","smr","ref",2008,"all fish","diversity",1.7945,0.0787,4
+"kelp","kelp forest-fish","central","central","point lobos smr","smr","ref",2006,"all fish","diversity",1.8232,0.0788,3
+"ccfrp","ccfrp","central","central","point lobos smr","smr","smr",2021,"all fish","diversity",1.407177,0.079551,12
+"kelp","kelp forest-fish","central","central","point lobos smr","smr","ref",2012,"all fish","diversity",1.348,0.0796,2
+"kelp","kelp forest-fish","south","north islands","gull island smr","smr","smr",2020,"all fish","diversity",1.9264,0.0797,2
+"kelp","kelp forest-fish","central","central","carmel bay smca","smca","ref",2016,"all fish","diversity",1.2155,0.0804,2
+"kelp","kelp forest-fish","south","north islands","santa barbara island smr","smr","ref",2011,"all fish","diversity",0.6984,0.082,2
+"kelp","kelp forest-fish","north","north","ten mile smr","smr","smr",2019,"all fish","diversity",1.2787,0.0824,3
+"kelp","kelp forest-fish","north","north","ten mile smr","smr","smr",2014,"all fish","diversity",1.1034,0.0829,3
+"kelp","kelp forest-fish","south","north islands","gull island smr","smr","ref",2017,"all fish","diversity",2.3366,0.0829,2
+"kelp","kelp forest-fish","central","central","cambria smca","smca","smca",2008,"all fish","diversity",2.3145,0.0837,4
+"ccfrp","ccfrp","south","north islands","carrington point smr","smr","ref",2020,"all fish","diversity",1.390453,0.084484,12
+"kelp","kelp forest-fish","north","north","stewarts point smca","smr","smr",2010,"all fish","diversity",1.231,0.0847,2
+"kelp","kelp forest-fish","central","central","lovers point - julia platt smr","smr","smr",2018,"all fish","diversity",1.6947,0.0851,4
+"kelp","kelp forest-fish","central","central","big creek smr","smr","smr",2011,"all fish","diversity",1.9952,0.0852,2
+"kelp","kelp forest-fish","central","central","lovers point - julia platt smr","smr","smr",2013,"all fish","diversity",1.1455,0.086,4
+"ccfrp","ccfrp","central","central","ano nuevo smr","smr","smr",2015,"all fish","diversity",1.50832,0.088717,12
+"kelp","kelp forest-fish","south","north islands","anacapa island smca","smca","ref",2015,"all fish","diversity",1.2268,0.0908,3
+"kelp","kelp forest-fish","south","north islands","anacapa island smr","smr","ref",2015,"all fish","diversity",1.2268,0.0908,3
+"deep_reef","deep-reef","north","north","sea lion gulch smr","smr","smr",2014,"all fish","diversity",1.476825,0.090977,6
+"ccfrp","ccfrp","north","north","bodega head smr","smr","smr",2018,"all fish","diversity",1.527433,0.091097,12
+"kelp","kelp forest-fish","central","central","lovers point - julia platt smr","smr","smr",2004,"all fish","diversity",1.8451,0.0911,2
+"kelp","kelp forest-fish","south","north islands","south point smr","smr","smr",2016,"all fish","diversity",1.859,0.0914,2
+"kelp","kelp forest-fish","central","central","cambria smca","smca","smca",2007,"all fish","diversity",2.0798,0.0918,4
+"kelp","kelp forest-fish","south","north islands","painted cave smca","smca","smca",2019,"all fish","diversity",1.8938,0.0923,3
+"kelp","kelp forest-fish","south","north islands","scorpion smr","smr","ref",2020,"all fish","diversity",1.9615,0.0937,6
+"ccfrp","ccfrp","south","north islands","carrington point smr","smr","ref",2021,"all fish","diversity",1.441343,0.094391,12
+"kelp","kelp forest-fish","south","north islands","scorpion smr","smr","smr",2020,"all fish","diversity",2.0581,0.0944,3
+"kelp","kelp forest-fish","south","south","point vicente smca","smr","smr",2019,"all fish","diversity",1.4676,0.0945,2
+"ccfrp","ccfrp","south","north islands","carrington point smr","smr","smr",2021,"all fish","diversity",1.429255,0.095244,12
+"ccfrp","ccfrp","south","north islands","carrington point smr","smr","smr",2020,"all fish","diversity",1.440917,0.096157,12
+"kelp","kelp forest-fish","south","north islands","anacapa island smca","smca","ref",1999,"all fish","diversity",1.5982,0.0962,2
+"ccfrp","ccfrp","central","central","point buchon smr","smr","ref",2011,"all fish","diversity",1.350999,0.096383,12
+"ccfrp","ccfrp","central","central","point lobos smr","smr","ref",2021,"all fish","diversity",1.344811,0.096758,12
+"kelp","kelp forest-fish","south","south","point dume smr","smr","smr",2013,"all fish","diversity",1.7335,0.097,2
+"kelp","kelp forest-fish","south","south","naples smca","smca","smca",2005,"all fish","diversity",2.1885,0.0979,3
+"ccfrp","ccfrp","north","north","bodega head smr","smr","smr",2021,"all fish","diversity",1.441265,0.098053,12
+"kelp","kelp forest-fish","south","north islands","anacapa island smca","smca","ref",2010,"all fish","diversity",1.9197,0.0982,3
+"kelp","kelp forest-fish","south","north islands","anacapa island smr","smr","ref",2010,"all fish","diversity",1.9197,0.0982,3
+"ccfrp","ccfrp","central","central","ano nuevo smr","smr","smr",2008,"all fish","diversity",1.306204,0.098401,12
+"ccfrp","ccfrp","south","north islands","carrington point smr","smr","smr",2017,"all fish","diversity",1.412217,0.098606,12
+"kelp","kelp forest-fish","south","south","naples smca","smca","smca",2008,"all fish","diversity",1.8155,0.0989,3
+"kelp","kelp forest-fish","south","north islands","south point smr","smr","smr",2004,"all fish","diversity",2.1423,0.0991,2
+"ccfrp","ccfrp","central","central","ano nuevo smr","smr","smr",2020,"all fish","diversity",1.448073,0.100141,12
+"kelp","kelp forest-fish","south","north islands","harris point smr","smr","smr",2010,"all fish","diversity",2.2742,0.1003,2
+"kelp","kelp forest-fish","central","central","point lobos smr","smr","smr",2004,"all fish","diversity",1.5335,0.1005,6
+"kelp","kelp forest-fish","south","south","point vicente smca","smr","smr",2010,"all fish","diversity",1.9038,0.1006,2
+"ccfrp","ccfrp","central","central","piedras blancas smr","smr","ref",2014,"all fish","diversity",1.455362,0.100706,12
+"kelp","kelp forest-fish","south","north islands","scorpion smr","smr","ref",2002,"all fish","diversity",1.6217,0.1009,3
+"kelp","kelp forest-fish","south","north islands","painted cave smca","smca","smca",2003,"all fish","diversity",2.183,0.1011,3
+"kelp","kelp forest-fish","south","south","campus point smca","smr","ref",2012,"all fish","diversity",1.8607,0.1025,2
+"kelp","kelp forest-fish","south","south","naples smca","smca","ref",2012,"all fish","diversity",1.8607,0.1025,2
+"kelp","kelp forest-fish","south","south","naples smca","smca","smca",2019,"all fish","diversity",1.9286,0.1026,3
+"kelp","kelp forest-fish","central","central","natural bridges smr","smr","smr",2003,"all fish","diversity",2.1559,0.1027,2
+"kelp","kelp forest-fish","south","north islands","scorpion smr","smr","smr",2018,"all fish","diversity",2.3018,0.1029,3
+"kelp","kelp forest-fish","central","central","point buchon smr","smr","smr",2019,"all fish","diversity",1.2966,0.1031,4
+"kelp","kelp forest-fish","north","north","salt point smca","smca","smca",2011,"all fish","diversity",1.2877,0.1033,3
+"kelp","kelp forest-fish","central","central","point sur smr","smr","ref",2011,"all fish","diversity",2.0685,0.1036,2
+"kelp","kelp forest-fish","central","central","natural bridges smr","smr","smr",2005,"all fish","diversity",0.7377,0.104,2
+"kelp","kelp forest-fish","central","central","white rock smca","smr","smr",2003,"all fish","diversity",1.9787,0.1043,2
+"deep_reef","deep-reef","central","central","montara smr","smr","smr",2020,"all fish","diversity",1.573656,0.104314,2
+"ccfrp","ccfrp","central","central","ano nuevo smr","smr","ref",2013,"all fish","diversity",1.052458,0.104612,12
+"ccfrp","ccfrp","central","central","piedras blancas smr","smr","smr",2019,"all fish","diversity",1.389228,0.104685,12
+"kelp","kelp forest-fish","central","central","natural bridges smr","smr","ref",2001,"all fish","diversity",1.77,0.1048,2
+"kelp","kelp forest-fish","central","central","natural bridges smr","smr","ref",2002,"all fish","diversity",1.9348,0.1048,2
+"ccfrp","ccfrp","central","central","point lobos smr","smr","smr",2008,"all fish","diversity",1.318633,0.105144,12
+"kelp","kelp forest-fish","central","central","big creek smr","smr","smr",2001,"all fish","diversity",1.5619,0.1068,2
+"kelp","kelp forest-fish","south","north islands","gull island smr","smr","ref",2019,"all fish","diversity",2.1336,0.1069,2
+"ccfrp","ccfrp","central","central","point buchon smr","smr","smr",2014,"all fish","diversity",1.539314,0.107163,12
+"kelp","kelp forest-fish","central","central","carmel bay smca","smca","smca",2018,"all fish","diversity",1.653,0.1079,4
+"kelp","kelp forest-fish","central","central","lovers point - julia platt smr","smr","ref",2013,"all fish","diversity",1.1194,0.1083,4
+"kelp","kelp forest-fish","south","south","blue cavern onshore smca","smr","smr",2019,"all fish","diversity",1.3176,0.109,2
+"kelp","kelp forest-fish","south","south","naples smca","smca","ref",2009,"all fish","diversity",2.2244,0.1092,2
+"ccfrp","ccfrp","central","central","point buchon smr","smr","ref",2018,"all fish","diversity",1.291317,0.109583,12
+"kelp","kelp forest-fish","central","central","white rock smca","smr","ref",2003,"all fish","diversity",1.0422,0.1103,2
+"kelp","kelp forest-fish","central","central","point sur smr","smr","smr",1999,"all fish","diversity",1.7817,0.1103,2
+"kelp","kelp forest-fish","south","south","point dume smr","smr","smr",2011,"all fish","diversity",1.9647,0.1104,2
+"ccfrp","ccfrp","central","central","point buchon smr","smr","smr",2007,"all fish","diversity",1.35165,0.110983,12
+"kelp","kelp forest-fish","south","north islands","gull island smr","smr","smr",2009,"all fish","diversity",1.5314,0.1111,2
+"kelp","kelp forest-fish","south","north islands","gull island smr","smr","smr",2016,"all fish","diversity",1.5808,0.1114,2
+"kelp","kelp forest-fish","central","central","lovers point - julia platt smr","smr","ref",2015,"all fish","diversity",2.1873,0.1115,4
+"kelp","kelp forest-fish","central","central","vandenberg smr","smr","smr",2003,"all fish","diversity",1.8477,0.1117,2
+"kelp","kelp forest-fish","south","north islands","gull island smr","smr","ref",2012,"all fish","diversity",2.2618,0.113,2
+"ccfrp","ccfrp","north","north","bodega head smr","smr","ref",2020,"all fish","diversity",1.506316,0.113534,12
+"kelp","kelp forest-fish","central","central","lovers point - julia platt smr","smr","smr",2006,"all fish","diversity",1.9852,0.1136,2
+"ccfrp","ccfrp","central","central","piedras blancas smr","smr","smr",2021,"all fish","diversity",1.438707,0.11363,12
+"kelp","kelp forest-fish","south","north islands","anacapa island smca","smca","smca",2020,"all fish","diversity",2.148,0.1139,3
+"kelp","kelp forest-fish","central","central","lovers point - julia platt smr","smr","smr",2014,"all fish","diversity",1.9288,0.114,4
+"kelp","kelp forest-fish","south","south","naples smca","smca","smca",2014,"all fish","diversity",2.0765,0.1142,3
+"ccfrp","ccfrp","central","central","ano nuevo smr","smr","smr",2021,"all fish","diversity",1.349457,0.114974,12
+"kelp","kelp forest-fish","south","south","point conception smr","smr","ref",2009,"all fish","diversity",1.9017,0.1154,2
+"kelp","kelp forest-fish","north","north","stewarts point smr","smr","smr",2010,"all fish","diversity",1.3048,0.1167,4
+"ccfrp","ccfrp","central","central","point buchon smr","smr","ref",2020,"all fish","diversity",1.224793,0.117781,12
+"ccfrp","ccfrp","central","central","ano nuevo smr","smr","smr",2011,"all fish","diversity",1.491103,0.117968,12
+"kelp","kelp forest-fish","central","central","natural bridges smr","smr","smr",2001,"all fish","diversity",2.2843,0.1181,2
+"kelp","kelp forest-fish","south","south","naples smca","smca","smca",2020,"all fish","diversity",2.0857,0.1188,3
+"ccfrp","ccfrp","central","central","ano nuevo smr","smr","ref",2010,"all fish","diversity",1.413205,0.118944,12
+"kelp","kelp forest-fish","central","central","lovers point - julia platt smr","smr","smr",2015,"all fish","diversity",2.0135,0.1193,4
+"ccfrp","ccfrp","south","north islands","carrington point smr","smr","ref",2019,"all fish","diversity",1.380444,0.11934,12
+"kelp","kelp forest-fish","north","north","saunders reef smca","smca","smca",2019,"all fish","diversity",1.3417,0.1195,3
+"ccfrp","ccfrp","central","central","point buchon smr","smr","ref",2014,"all fish","diversity",1.461503,0.120004,12
+"kelp","kelp forest-fish","north","north","ten mile smr","smr","smr",2020,"all fish","diversity",1.251,0.1207,3
+"kelp","kelp forest-fish","south","south","naples smca","smca","smca",2006,"all fish","diversity",2.0685,0.1208,3
+"ccfrp","ccfrp","north","north","south cape mendocino smr","smr","smr",2018,"all fish","diversity",1.530189,0.121727,12
+"kelp","kelp forest-fish","central","central","point buchon smr","smr","ref",2018,"all fish","diversity",1.5982,0.1218,4
+"ccfrp","ccfrp","central","central","ano nuevo smr","smr","ref",2016,"all fish","diversity",1.184211,0.121932,12
+"kelp","kelp forest-fish","central","central","carmel bay smca","smca","smca",2000,"all fish","diversity",2.0216,0.1228,2
+"ccfrp","ccfrp","central","central","point lobos smr","smr","smr",2007,"all fish","diversity",1.392691,0.122873,12
+"kelp","kelp forest-fish","central","central","point sur smr","smr","smr",2009,"all fish","diversity",1.737,0.1231,2
+"ccfrp","ccfrp","central","central","point lobos smr","smr","ref",2020,"all fish","diversity",1.239602,0.123283,12
+"kelp","kelp forest-fish","south","north islands","painted cave smca","smca","smca",2016,"all fish","diversity",1.3252,0.1233,3
+"ccfrp","ccfrp","central","central","point lobos smr","smr","smr",2016,"all fish","diversity",1.407251,0.123395,12
+"kelp","kelp forest-fish","south","north islands","painted cave smca","smca","smca",2014,"all fish","diversity",2.1223,0.1234,3
+"kelp","kelp forest-fish","south","north islands","painted cave smca","smca","smca",2005,"all fish","diversity",2.4836,0.1236,3
+"kelp","kelp forest-fish","south","north islands","painted cave smca","smca","ref",2007,"all fish","diversity",2.2013,0.1238,3
+"ccfrp","ccfrp","north","north","stewarts point smr","smr","smr",2018,"all fish","diversity",1.365524,0.123847,12
+"kelp","kelp forest-fish","south","north islands","harris point smr","smr","smr",2018,"all fish","diversity",1.6898,0.1239,2
+"ccfrp","ccfrp","central","central","ano nuevo smr","smr","ref",2014,"all fish","diversity",1.230825,0.124145,12
+"ccfrp","ccfrp","central","central","ano nuevo smr","smr","ref",2009,"all fish","diversity",1.372982,0.12432,12
+"kelp","kelp forest-fish","south","south","naples smca","smca","smca",2010,"all fish","diversity",2.2346,0.1246,3
+"kelp","kelp forest-fish","south","south","blue cavern onshore smca","smr","smr",2012,"all fish","diversity",0.9795,0.1248,2
+"kelp","kelp forest-fish","south","north islands","anacapa island smca","smca","smca",2006,"all fish","diversity",1.683,0.1248,3
+"ccfrp","ccfrp","central","central","ano nuevo smr","smr","smr",2007,"all fish","diversity",1.323942,0.124924,12
+"kelp","kelp forest-fish","south","south","point dume smr","smr","smr",2019,"all fish","diversity",1.7807,0.1252,2
+"ccfrp","ccfrp","central","central","point buchon smr","smr","ref",2012,"all fish","diversity",1.469234,0.126217,12
+"kelp","kelp forest-fish","south","north islands","painted cave smca","smca","smca",2012,"all fish","diversity",2.154,0.1268,3
+"kelp","kelp forest-fish","south","north islands","gull island smr","smr","smr",2004,"all fish","diversity",2.0968,0.1271,2
+"deep_reef","deep-reef","north","north","point st. george reef offshore smca","smca","smca",2015,"all fish","diversity",1.498883,0.127383,7
+"ccfrp","ccfrp","central","central","point lobos smr","smr","smr",2012,"all fish","diversity",1.562358,0.128293,12
+"kelp","kelp forest-fish","central","central","point lobos smr","smr","ref",2007,"all fish","diversity",1.7601,0.1283,4
+"ccfrp","ccfrp","south","north islands","carrington point smr","smr","smr",2019,"all fish","diversity",1.381688,0.128355,12
+"ccfrp","ccfrp","central","central","point lobos smr","smr","ref",2012,"all fish","diversity",1.561881,0.128355,12
+"ccfrp","ccfrp","central","central","point lobos smr","smr","ref",2007,"all fish","diversity",1.387928,0.128666,12
+"kelp","kelp forest-fish","central","central","vandenberg smr","smr","smr",2001,"all fish","diversity",1.2412,0.1311,2
+"ccfrp","ccfrp","central","central","point lobos smr","smr","ref",2016,"all fish","diversity",1.379989,0.131495,12
+"ccfrp","ccfrp","central","central","ano nuevo smr","smr","ref",2011,"all fish","diversity",1.254152,0.131635,12
+"ccfrp","ccfrp","central","central","point buchon smr","smr","ref",2013,"all fish","diversity",1.365905,0.13186,12
+"kelp","kelp forest-fish","central","central","white rock smca","smr","smr",2005,"all fish","diversity",1.0344,0.1325,2
+"kelp","kelp forest-fish","central","central","vandenberg smr","smr","ref",2010,"all fish","diversity",2.1016,0.1326,2
+"ccfrp","ccfrp","central","central","piedras blancas smr","smr","ref",2019,"all fish","diversity",1.219456,0.132696,12
+"kelp","kelp forest-fish","south","south","campus point smca","smr","ref",2017,"all fish","diversity",2.2607,0.1333,2
+"kelp","kelp forest-fish","south","south","naples smca","smca","ref",2017,"all fish","diversity",2.2607,0.1333,2
+"ccfrp","ccfrp","north","north","stewarts point smr","smr","ref",2018,"all fish","diversity",1.415561,0.133384,12
+"kelp","kelp forest-fish","south","north islands","painted cave smca","smca","smca",2018,"all fish","diversity",2.2398,0.1336,3
+"ccfrp","ccfrp","north","north","stewarts point smr","smr","ref",2020,"all fish","diversity",1.435212,0.133986,12
+"kelp","kelp forest-fish","central","central","carmel bay smca","smca","ref",2018,"all fish","diversity",1.1292,0.1345,4
+"ccfrp","ccfrp","central","central","point lobos smr","smr","ref",2015,"all fish","diversity",1.481017,0.134518,12
+"kelp","kelp forest-fish","north","north","point cabrillo smr","smr","ref",2014,"all fish","diversity",1.2192,0.1348,3
+"ccfrp","ccfrp","central","central","point lobos smr","smr","smr",2015,"all fish","diversity",1.467668,0.134802,12
+"ccfrp","ccfrp","central","central","ano nuevo smr","smr","ref",2021,"all fish","diversity",1.430072,0.134899,12
+"ccfrp","ccfrp","central","central","point buchon smr","smr","ref",2008,"all fish","diversity",1.243605,0.135187,12
+"kelp","kelp forest-fish","south","south","point conception smr","smr","ref",2010,"all fish","diversity",2.5321,0.1356,2
+"kelp","kelp forest-fish","south","south","point vicente smca","smr","ref",2007,"all fish","diversity",1.8991,0.1357,2
+"ccfrp","ccfrp","central","central","piedras blancas smr","smr","ref",2008,"all fish","diversity",1.329985,0.136719,12
+"ccfrp","ccfrp","north","north","south cape mendocino smr","smr","ref",2018,"all fish","diversity",1.543195,0.136921,12
+"kelp","kelp forest-fish","central","central","point buchon smr","smr","ref",2019,"all fish","diversity",1.987,0.137,4
+"kelp","kelp forest-fish","central","central","piedras blancas smr","smr","smr",2008,"all fish","diversity",1.8231,0.1371,2
+"ccfrp","ccfrp","central","central","point lobos smr","smr","smr",2014,"all fish","diversity",1.514229,0.137116,12
+"ccfrp","ccfrp","central","central","piedras blancas smr","smr","ref",2018,"all fish","diversity",1.097593,0.138282,12
+"ccfrp","ccfrp","central","central","point lobos smr","smr","smr",2017,"all fish","diversity",1.222678,0.138641,12
+"kelp","kelp forest-fish","central","central","lovers point - julia platt smr","smr","ref",2014,"all fish","diversity",2.007,0.1388,4
+"kelp","kelp forest-fish","central","central","big creek smr","smr","ref",2006,"all fish","diversity",1.6239,0.1392,4
+"kelp","kelp forest-fish","south","north islands","harris point smr","smr","smr",2019,"all fish","diversity",1.7322,0.1396,2
+"ccfrp","ccfrp","central","central","point buchon smr","smr","smr",2017,"all fish","diversity",1.091764,0.141164,12
+"kelp","kelp forest-fish","south","north islands","gull island smr","smr","ref",2010,"all fish","diversity",2.2016,0.1413,2
+"kelp","kelp forest-fish","central","central","carmel bay smca","smca","smca",2002,"all fish","diversity",1.5431,0.1417,2
+"kelp","kelp forest-fish","south","north islands","scorpion smr","smr","ref",2018,"all fish","diversity",1.9536,0.1422,6
+"kelp","kelp forest-fish","south","north islands","anacapa island smca","smca","ref",2008,"all fish","diversity",1.6875,0.1424,6
+"kelp","kelp forest-fish","central","central","lovers point - julia platt smr","smr","ref",2009,"all fish","diversity",1.8613,0.1428,2
+"ccfrp","ccfrp","south","south","south la jolla smr","smr","smr",2018,"all fish","diversity",1.601496,0.14283,12
+"ccfrp","ccfrp","central","central","piedras blancas smr","smr","ref",2017,"all fish","diversity",1.188825,0.142976,12
+"ccfrp","ccfrp","north","north","stewarts point smr","smr","smr",2020,"all fish","diversity",1.404556,0.14309,12
+"ccfrp","ccfrp","central","central","piedras blancas smr","smr","ref",2021,"all fish","diversity",1.226757,0.143262,12
+"ccfrp","ccfrp","north","north","stewarts point smr","smr","ref",2017,"all fish","diversity",1.376007,0.143552,12
+"kelp","kelp forest-fish","central","central","point sur smr","smr","smr",2020,"all fish","diversity",1.2342,0.1439,4
+"ccfrp","ccfrp","central","central","point buchon smr","smr","smr",2008,"all fish","diversity",1.312093,0.144254,12
+"ccfrp","ccfrp","central","central","ano nuevo smr","smr","ref",2015,"all fish","diversity",1.307174,0.144339,12
+"ccfrp","ccfrp","central","central","ano nuevo smr","smr","smr",2010,"all fish","diversity",1.472462,0.145054,12
+"ccfrp","ccfrp","central","central","point lobos smr","smr","smr",2011,"all fish","diversity",1.489372,0.145089,12
+"ccfrp","ccfrp","central","central","ano nuevo smr","smr","ref",2012,"all fish","diversity",1.195722,0.146121,12
+"ccfrp","ccfrp","central","central","point buchon smr","smr","ref",2015,"all fish","diversity",1.397715,0.146127,12
+"kelp","kelp forest-fish","south","north islands","south point smr","smr","smr",2005,"all fish","diversity",2.1141,0.1462,6
+"ccfrp","ccfrp","central","central","point buchon smr","smr","smr",2021,"all fish","diversity",1.27478,0.146562,12
+"ccfrp","ccfrp","central","central","piedras blancas smr","smr","ref",2013,"all fish","diversity",1.441986,0.147339,12
+"ccfrp","ccfrp","central","central","ano nuevo smr","smr","smr",2012,"all fish","diversity",1.490405,0.147617,12
+"ccfrp","ccfrp","central","central","point buchon smr","smr","smr",2013,"all fish","diversity",1.591515,0.147719,12
+"kelp","kelp forest-fish","north","north","double cone rock smca","smca","smca",2014,"all fish","diversity",1.2611,0.1482,2
+"ccfrp","ccfrp","central","central","point buchon smr","smr","smr",2016,"all fish","diversity",1.188726,0.148454,12
+"kelp","kelp forest-fish","south","north islands","gull island smr","smr","ref",2014,"all fish","diversity",1.869,0.1485,2
+"kelp","kelp forest-fish","central","central","point lobos smr","smr","ref",2010,"all fish","diversity",1.6345,0.1486,3
+"kelp","kelp forest-fish","central","central","big creek smr","smr","ref",2010,"all fish","diversity",1.7899,0.1486,4
+"kelp","kelp forest-fish","central","central","vandenberg smr","smr","ref",2002,"all fish","diversity",1.6318,0.1498,4
+"kelp","kelp forest-fish","central","central","point lobos smr","smr","smr",2018,"all fish","diversity",1.6692,0.1501,6
+"kelp","kelp forest-fish","north","north","point cabrillo smr","smr","smr",2015,"all fish","diversity",1.1408,0.1502,3
+"ccfrp","ccfrp","north","north","bodega head smr","smr","ref",2017,"all fish","diversity",1.490917,0.150365,12
+"ccfrp","ccfrp","central","central","point buchon smr","smr","smr",2019,"all fish","diversity",1.286256,0.150907,12
+"kelp","kelp forest-fish","south","north islands","anacapa island smr","smr","smr",2016,"all fish","diversity",1.6,0.1511,6
+"ccfrp","ccfrp","central","central","point lobos smr","smr","ref",2008,"all fish","diversity",1.344698,0.151323,12
+"ccfrp","ccfrp","central","central","piedras blancas smr","smr","smr",2013,"all fish","diversity",1.482712,0.151437,12
+"kelp","kelp forest-fish","central","central","natural bridges smr","smr","ref",1999,"all fish","diversity",1.6128,0.1515,2
+"kelp","kelp forest-fish","south","south","campus point smca","smr","ref",2016,"all fish","diversity",1.9634,0.1522,2
+"kelp","kelp forest-fish","south","south","naples smca","smca","ref",2016,"all fish","diversity",1.9634,0.1522,2
+"kelp","kelp forest-fish","south","north islands","scorpion smr","smr","ref",2000,"all fish","diversity",1.6881,0.1531,3
+"ccfrp","ccfrp","central","central","point buchon smr","smr","smr",2010,"all fish","diversity",1.286908,0.153456,12
+"kelp","kelp forest-fish","north","north","stewarts point smr","smr","smr",2019,"all fish","diversity",1.019,0.1535,4
+"kelp","kelp forest-fish","central","central","point lobos smr","smr","smr",2012,"all fish","diversity",1.8225,0.1541,3
+"ccfrp","ccfrp","central","central","ano nuevo smr","smr","smr",2009,"all fish","diversity",1.402988,0.154601,12
+"ccfrp","ccfrp","central","central","ano nuevo smr","smr","smr",2019,"all fish","diversity",1.277028,0.154667,12
+"ccfrp","ccfrp","central","central","point lobos smr","smr","smr",2020,"all fish","diversity",1.294,0.155029,12
+"ccfrp","ccfrp","central","central","point buchon smr","smr","smr",2009,"all fish","diversity",1.297809,0.155686,12
+"kelp","kelp forest-fish","south","south","cat harbor smca","smca","ref",2005,"all fish","diversity",1.7008,0.1558,2
+"ccfrp","ccfrp","central","central","point buchon smr","smr","ref",2021,"all fish","diversity",1.195117,0.156019,12
+"kelp","kelp forest-fish","south","north islands","anacapa island smca","smca","smca",2014,"all fish","diversity",1.1733,0.1561,3
+"kelp","kelp forest-fish","central","central","point buchon smr","smr","smr",2008,"all fish","diversity",1.8192,0.1567,4
+"kelp","kelp forest-fish","south","north islands","anacapa island smca","smca","smca",2017,"all fish","diversity",2.0565,0.1576,3
+"ccfrp","ccfrp","north","north","ten mile smr","smr","ref",2017,"all fish","diversity",1.425953,0.157897,12
+"ccfrp","ccfrp","central","central","ano nuevo smr","smr","ref",2019,"all fish","diversity",1.224945,0.157902,12
+"ccfrp","ccfrp","central","central","piedras blancas smr","smr","smr",2014,"all fish","diversity",1.410158,0.15798,12
+"kelp","kelp forest-fish","south","south","point vicente smca","smr","smr",2016,"all fish","diversity",1.109,0.159,2
+"kelp","kelp forest-fish","north","north","del mar landing smr","smr","ref",2010,"all fish","diversity",1.4902,0.1598,4
+"kelp","kelp forest-fish","central","central","white rock smca","smr","smr",2008,"all fish","diversity",2.1572,0.16,4
+"ccfrp","ccfrp","south","north islands","carrington point smr","smr","smr",2018,"all fish","diversity",1.380271,0.160027,12
+"kelp","kelp forest-fish","central","central","lovers point - julia platt smr","smr","ref",2011,"all fish","diversity",2.0761,0.1601,4
+"ccfrp","ccfrp","north","north","stewarts point smr","smr","smr",2017,"all fish","diversity",1.334137,0.16029,12
+"ccfrp","ccfrp","central","central","piedras blancas smr","smr","ref",2011,"all fish","diversity",1.406859,0.160391,12
+"kelp","kelp forest-fish","south","north islands","scorpion smr","smr","ref",2003,"all fish","diversity",1.2568,0.1608,3
+"ccfrp","ccfrp","central","central","point buchon smr","smr","ref",2007,"all fish","diversity",1.31248,0.160815,12
+"ccfrp","ccfrp","central","central","point buchon smr","smr","smr",2012,"all fish","diversity",1.527773,0.161636,12
+"kelp","kelp forest-fish","south","south","abalone cove smca","smr","ref",2011,"all fish","diversity",2.2602,0.1618,3
+"ccfrp","ccfrp","central","central","point buchon smr","smr","ref",2016,"all fish","diversity",1.268534,0.162109,12
+"kelp","kelp forest-fish","south","south","point vicente smca","smr","smr",2015,"all fish","diversity",1.6579,0.1627,2
+"ccfrp","ccfrp","central","central","point lobos smr","smr","smr",2019,"all fish","diversity",1.271496,0.16332,12
+"deep_reef","deep-reef","north","north","point arena smr","smr","ref",2011,"all fish","diversity",1.214137,0.163376,2
+"ccfrp","ccfrp","north","north","bodega head smr","smr","ref",2021,"all fish","diversity",1.524319,0.163471,12
+"kelp","kelp forest-fish","central","central","pacific grove marine gardens smca","smca","smca",2014,"all fish","diversity",1.684,0.164,4
+"kelp","kelp forest-fish","central","central","carmel bay smca","smca","smca",2008,"all fish","diversity",2.2434,0.1643,4
+"ccfrp","ccfrp","north","north","bodega head smr","smr","ref",2019,"all fish","diversity",1.420545,0.164612,12
+"kelp","kelp forest-fish","south","north islands","scorpion smr","smr","smr",2011,"all fish","diversity",2.2868,0.1647,3
+"kelp","kelp forest-fish","north","north","point cabrillo smr","smr","ref",2017,"all fish","diversity",0.9772,0.1652,4
+"kelp","kelp forest-fish","south","north islands","anacapa island smr","smr","smr",1999,"all fish","diversity",1.571,0.1654,3
+"kelp","kelp forest-fish","central","central","natural bridges smr","smr","ref",2004,"all fish","diversity",2.0964,0.1656,2
+"ccfrp","ccfrp","central","central","ano nuevo smr","smr","smr",2016,"all fish","diversity",1.29204,0.166048,12
+"ccfrp","ccfrp","central","central","point buchon smr","smr","smr",2018,"all fish","diversity",1.283188,0.166361,12
+"kelp","kelp forest-fish","central","central","white rock smca","smr","smr",2010,"all fish","diversity",1.9434,0.1669,2
+"kelp","kelp forest-fish","central","central","piedras blancas smr","smr","ref",2005,"all fish","diversity",1.9184,0.167,4
+"ccfrp","ccfrp","central","central","point buchon smr","smr","ref",2019,"all fish","diversity",1.24082,0.167458,12
+"kelp","kelp forest-fish","central","central","lovers point - julia platt smr","smr","smr",2016,"all fish","diversity",1.9853,0.1675,4
+"kelp","kelp forest-fish","central","central","lovers point - julia platt smr","smr","smr",2009,"all fish","diversity",2.1331,0.1678,2
+"kelp","kelp forest-fish","north","north","ten mile smr","smr","ref",2014,"all fish","diversity",1.1087,0.1681,2
+"kelp","kelp forest-fish","central","central","pacific grove marine gardens smca","smca","smca",2020,"all fish","diversity",1.1951,0.1684,4
+"kelp","kelp forest-fish","south","north islands","anacapa island smr","smr","smr",2017,"all fish","diversity",1.9049,0.1687,7
+"ccfrp","ccfrp","central","central","ano nuevo smr","smr","ref",2007,"all fish","diversity",1.217834,0.168778,12
+"ccfrp","ccfrp","central","central","ano nuevo smr","smr","smr",2014,"all fish","diversity",1.493608,0.169055,12
+"kelp","kelp forest-fish","north","north","del mar landing smr","smr","ref",2018,"all fish","diversity",0.9181,0.1692,2
+"ccfrp","ccfrp","south","south","swami's smca","smr","smr",2021,"all fish","diversity",1.169983,0.169828,12
+"kelp","kelp forest-fish","central","central","big creek smr","smr","ref",2002,"all fish","diversity",1.2662,0.17,4
+"kelp","kelp forest-fish","south","north islands","anacapa island smr","smr","ref",2008,"all fish","diversity",1.7765,0.17,6
+"ccfrp","ccfrp","central","central","piedras blancas smr","smr","smr",2017,"all fish","diversity",1.181869,0.170022,12
+"ccfrp","ccfrp","south","south","south la jolla smr","smr","ref",2018,"all fish","diversity",1.38602,0.170262,12
+"kelp","kelp forest-fish","south","north islands","santa barbara island smr","smr","smr",2007,"all fish","diversity",0.9799,0.1703,5
+"kelp","kelp forest-fish","central","central","vandenberg smr","smr","smr",1999,"all fish","diversity",1.6272,0.1706,2
+"ccfrp","ccfrp","central","central","piedras blancas smr","smr","smr",2012,"all fish","diversity",1.451463,0.17149,12
+"ccfrp","ccfrp","central","central","point buchon smr","smr","smr",2015,"all fish","diversity",1.416792,0.171789,12
+"deep_reef","deep-reef","north","north","point arena smca","smr","smr",2020,"all fish","diversity",1.466088,0.172175,2
+"kelp","kelp forest-fish","central","central","carmel bay smca","smca","ref",2013,"all fish","diversity",0.8433,0.1723,2
+"ccfrp","ccfrp","central","central","point buchon smr","smr","smr",2011,"all fish","diversity",1.378329,0.172525,12
+"kelp","kelp forest-fish","north","north","point cabrillo smr","smr","ref",2015,"all fish","diversity",1.1296,0.1727,3
+"ccfrp","ccfrp","central","central","point buchon smr","smr","smr",2020,"all fish","diversity",1.229664,0.173192,12
+"ccfrp","ccfrp","central","central","point lobos smr","smr","ref",2018,"all fish","diversity",1.276148,0.17423,12
+"ccfrp","ccfrp","central","central","point lobos smr","smr","smr",2018,"all fish","diversity",1.322067,0.174386,12
+"kelp","kelp forest-fish","south","north islands","anacapa island smca","smca","smca",2016,"all fish","diversity",1.5245,0.1752,3
+"ccfrp","ccfrp","central","central","piedras blancas smr","smr","ref",2020,"all fish","diversity",1.163096,0.176096,12
+"deep_reef","deep-reef","central","central","piedras blancas smca","smr","smr",2020,"all fish","diversity",1.264398,0.176213,5
+"kelp","kelp forest-fish","central","central","pacific grove marine gardens smca","smca","smca",2016,"all fish","diversity",1.7529,0.1769,3
+"kelp","kelp forest-fish","central","central","point sur smr","smr","smr",2004,"all fish","diversity",1.5364,0.1772,2
+"ccfrp","ccfrp","central","central","ano nuevo smr","smr","ref",2008,"all fish","diversity",1.328637,0.177378,12
+"kelp","kelp forest-fish","north","north","saunders reef smca","smca","ref",2016,"all fish","diversity",1.4608,0.1775,3
+"ccfrp","ccfrp","south","south","south la jolla smr","smr","smr",2021,"all fish","diversity",1.569093,0.178128,12
+"kelp","kelp forest-fish","south","north islands","carrington point smr","smr","smr",2008,"all fish","diversity",1.7418,0.179,2
+"kelp","kelp forest-fish","south","north islands","gull island smr","smr","ref",2011,"all fish","diversity",2.5196,0.1794,2
+"kelp","kelp forest-fish","south","south","point vicente smca","smr","ref",2020,"all fish","diversity",2.1335,0.1795,2
+"kelp","kelp forest-fish","south","south","swami's smca","smr","ref",2011,"all fish","diversity",1.9134,0.1799,2
+"ccfrp","ccfrp","north","north","stewarts point smr","smr","smr",2021,"all fish","diversity",1.482989,0.180141,12
+"kelp","kelp forest-fish","central","central","point lobos smr","smr","smr",2010,"all fish","diversity",1.6569,0.1804,6
+"ccfrp","ccfrp","central","central","point buchon smr","smr","ref",2010,"all fish","diversity",1.120203,0.180453,12
+"kelp","kelp forest-fish","south","south","naples smca","smca","smca",2004,"all fish","diversity",2.1481,0.1805,3
+"kelp","kelp forest-fish","south","north islands","gull island smr","smr","ref",2004,"all fish","diversity",1.971,0.1806,2
+"kelp","kelp forest-fish","south","south","laguna beach smr","smr","smr",2019,"all fish","diversity",1.5549,0.181,2
+"ccfrp","ccfrp","central","central","piedras blancas smr","smr","ref",2012,"all fish","diversity",1.37136,0.181482,12
+"kelp","kelp forest-fish","central","central","pacific grove marine gardens smca","smca","smca",2013,"all fish","diversity",1.1088,0.1818,4
+"kelp","kelp forest-fish","south","north islands","gull island smr","smr","ref",2016,"all fish","diversity",1.7456,0.1822,2
+"kelp","kelp forest-fish","north","north","saunders reef smca","smca","ref",2018,"all fish","diversity",1.41,0.1829,4
+"kelp","kelp forest-fish","south","north islands","gull island smr","smr","ref",2009,"all fish","diversity",2.4096,0.1829,2
+"ccfrp","ccfrp","central","central","point lobos smr","smr","ref",2010,"all fish","diversity",1.287139,0.184675,12
+"deep_reef","deep-reef","central","central","point lobos smr","smr","ref",2019,"all fish","diversity",1.187406,0.184899,10
+"kelp","kelp forest-fish","central","central","point lobos smr","smr","ref",2018,"all fish","diversity",1.1875,0.1857,3
+"ccfrp","ccfrp","south","north islands","anacapa island smr","smr","ref",2019,"all fish","diversity",1.082593,0.185895,12
+"ccfrp","ccfrp","north","north","ten mile smr","smr","ref",2020,"all fish","diversity",1.350558,0.186671,12
+"ccfrp","ccfrp","north","north","ten mile smr","smr","ref",2021,"all fish","diversity",1.371832,0.186759,12
+"ccfrp","ccfrp","central","central","piedras blancas smr","smr","ref",2010,"all fish","diversity",1.314539,0.186807,12
+"kelp","kelp forest-fish","south","north islands","anacapa island smca","smca","ref",2012,"all fish","diversity",1.8299,0.188,3
+"kelp","kelp forest-fish","south","north islands","anacapa island smr","smr","ref",2012,"all fish","diversity",1.8299,0.188,3
+"kelp","kelp forest-fish","south","north islands","anacapa island smca","smca","ref",2004,"all fish","diversity",1.4525,0.1884,4
+"kelp","kelp forest-fish","central","central","piedras blancas smr","smr","ref",2006,"all fish","diversity",1.6817,0.1887,4
+"ccfrp","ccfrp","central","central","piedras blancas smr","smr","smr",2018,"all fish","diversity",1.198416,0.188737,12
+"kelp","kelp forest-fish","south","north islands","anacapa island smr","smr","smr",2020,"all fish","diversity",1.99,0.1898,6
+"ccfrp","ccfrp","central","central","piedras blancas smr","smr","smr",2020,"all fish","diversity",1.361351,0.190945,12
+"ccfrp","ccfrp","north","north","bodega head smr","smr","smr",2019,"all fish","diversity",1.461894,0.190992,12
+"kelp","kelp forest-fish","south","north islands","painted cave smca","smca","ref",2013,"all fish","diversity",2.1484,0.191,3
+"kelp","kelp forest-fish","central","central","lovers point - julia platt smr","smr","smr",2019,"all fish","diversity",1.769,0.1912,4
+"kelp","kelp forest-fish","south","south","point conception smr","smr","ref",2011,"all fish","diversity",2.117,0.1918,2
+"ccfrp","ccfrp","north","north","stewarts point smr","smr","ref",2019,"all fish","diversity",1.325567,0.192039,12
+"kelp","kelp forest-fish","central","central","big creek smr","smr","ref",2011,"all fish","diversity",2.0702,0.1922,4
+"ccfrp","ccfrp","central","central","ano nuevo smr","smr","smr",2013,"all fish","diversity",1.379811,0.19223,12
+"kelp","kelp forest-fish","central","central","natural bridges smr","smr","smr",2002,"all fish","diversity",1.9539,0.1927,2
+"kelp","kelp forest-fish","south","north islands","painted cave smca","smca","ref",2002,"all fish","diversity",1.9158,0.1939,3
+"kelp","kelp forest-fish","central","central","asilomar smr","smr","smr",2008,"all fish","diversity",1.765,0.1944,4
+"kelp","kelp forest-fish","central","central","point sur smr","smr","ref",2005,"all fish","diversity",1.8384,0.1944,2
+"ccfrp","ccfrp","north","north","bodega head smr","smr","ref",2018,"all fish","diversity",1.452699,0.194418,12
+"kelp","kelp forest-fish","south","north islands","painted cave smca","smca","ref",2004,"all fish","diversity",1.7491,0.1945,3
+"kelp","kelp forest-fish","south","south","campus point smca","smr","smr",2017,"all fish","diversity",2.0427,0.1947,2
+"kelp","kelp forest-fish","central","central","lovers point - julia platt smr","smr","ref",2012,"all fish","diversity",2.0899,0.1947,4
+"ccfrp","ccfrp","south","south","south la jolla smr","smr","ref",2020,"all fish","diversity",1.371314,0.195798,12
+"kelp","kelp forest-fish","central","central","point sur smr","smr","smr",2006,"all fish","diversity",1.8584,0.1962,2
+"ccfrp","ccfrp","south","south","south la jolla smr","smr","ref",2017,"all fish","diversity",1.530807,0.196398,12
+"kelp","kelp forest-fish","central","central","carmel bay smca","smca","smca",2013,"all fish","diversity",0.9664,0.1967,4
+"kelp","kelp forest-fish","central","central","carmel bay smca","smca","ref",2020,"all fish","diversity",0.8197,0.1968,4
+"kelp","kelp forest-fish","central","central","point lobos smr","smr","smr",2007,"all fish","diversity",1.8164,0.1973,6
+"kelp","kelp forest-fish","central","central","lovers point - julia platt smr","smr","smr",2003,"all fish","diversity",2.1287,0.1974,2
+"kelp","kelp forest-fish","central","central","carmel bay smca","smca","ref",2008,"all fish","diversity",1.8928,0.1975,4
+"kelp","kelp forest-fish","central","central","cambria smca","smca","ref",2005,"all fish","diversity",1.6174,0.1976,2
+"kelp","kelp forest-fish","central","central","point lobos smr","smr","smr",2020,"all fish","diversity",1.0591,0.1979,6
+"kelp","kelp forest-fish","north","north","ten mile smr","smr","ref",2020,"all fish","diversity",1.564,0.1979,3
+"ccfrp","ccfrp","central","central","point lobos smr","smr","smr",2009,"all fish","diversity",1.386581,0.19904,12
+"ccfrp","ccfrp","central","central","piedras blancas smr","smr","smr",2016,"all fish","diversity",1.335182,0.199203,12
+"ccfrp","ccfrp","north","north","south cape mendocino smr","smr","smr",2019,"all fish","diversity",1.300944,0.200184,12
+"kelp","kelp forest-fish","south","south","naples smca","smca","smca",2007,"all fish","diversity",1.5686,0.2003,3
+"kelp","kelp forest-fish","central","central","point buchon smr","smr","smr",2007,"all fish","diversity",1.5083,0.2005,4
+"ccfrp","ccfrp","central","central","piedras blancas smr","smr","ref",2016,"all fish","diversity",1.350726,0.2006,12
+"ccfrp","ccfrp","north","north","south cape mendocino smr","smr","smr",2017,"all fish","diversity",1.221271,0.201142,12
+"kelp","kelp forest-fish","south","south","naples smca","smca","smca",1999,"all fish","diversity",1.4257,0.2013,2
+"kelp","kelp forest-fish","central","central","big creek smr","smr","smr",2010,"all fish","diversity",2.0661,0.2016,2
+"kelp","kelp forest-fish","north","north","stewarts point smca","smr","smr",2019,"all fish","diversity",0.947,0.2021,2
+"ccfrp","ccfrp","north","north","south cape mendocino smr","smr","ref",2017,"all fish","diversity",1.328754,0.202361,12
+"ccfrp","ccfrp","north","north","ten mile smr","smr","smr",2017,"all fish","diversity",1.394805,0.202397,12
+"kelp","kelp forest-fish","central","central","point lobos smr","smr","ref",2013,"all fish","diversity",1.0487,0.2026,2
+"kelp","kelp forest-fish","central","central","asilomar smr","smr","ref",2007,"all fish","diversity",1.4819,0.2029,4
+"kelp","kelp forest-fish","central","central","natural bridges smr","smr","smr",2008,"all fish","diversity",2.0086,0.203,4
+"kelp","kelp forest-fish","south","north islands","scorpion smr","smr","smr",2009,"all fish","diversity",1.6116,0.2045,6
+"kelp","kelp forest-fish","south","north islands","anacapa island smca","smca","ref",2016,"all fish","diversity",1.8575,0.2045,3
+"kelp","kelp forest-fish","south","north islands","anacapa island smr","smr","ref",2016,"all fish","diversity",1.8575,0.2045,3
+"ccfrp","ccfrp","south","north islands","anacapa island smr","smr","ref",2018,"all fish","diversity",1.087001,0.204558,12
+"kelp","kelp forest-fish","central","central","carmel bay smca","smca","smca",2019,"all fish","diversity",1.5173,0.2046,4
+"kelp","kelp forest-fish","south","north islands","gull island smr","smr","smr",2006,"all fish","diversity",1.9864,0.205,2
+"deep_reef","deep-reef","north","north","point arena smr","smr","smr",2011,"all fish","diversity",0.956274,0.205506,10
+"kelp","kelp forest-fish","south","south","blue cavern onshore smca","smr","smr",2005,"all fish","diversity",1.735,0.2056,3
+"kelp","kelp forest-fish","central","central","asilomar smr","smr","smr",2011,"all fish","diversity",1.8366,0.2059,4
+"kelp","kelp forest-fish","central","central","cambria smca","smca","ref",2008,"all fish","diversity",2.0461,0.2067,3
+"kelp","kelp forest-fish","south","north islands","anacapa island smr","smr","smr",2014,"all fish","diversity",1.5484,0.207,6
+"kelp","kelp forest-fish","central","central","point lobos smr","smr","ref",2014,"all fish","diversity",1.1477,0.2074,2
+"ccfrp","ccfrp","south","north islands","anacapa island smr","smr","smr",2019,"all fish","diversity",1.023953,0.207479,12
+"deep_reef","deep-reef","south","north islands","harris point smr","smr","smr",2007,"all fish","diversity",1.325095,0.208543,12
+"ccfrp","ccfrp","central","central","point buchon smr","smr","ref",2017,"all fish","diversity",1.133902,0.210514,12
+"kelp","kelp forest-fish","central","central","lovers point - julia platt smr","smr","ref",2020,"all fish","diversity",2.0165,0.2106,4
+"deep_reef","deep-reef","north","north","point st. george reef offshore smca","smca","ref",2020,"all fish","diversity",1.62765,0.211031,10
+"ccfrp","ccfrp","north","north","ten mile smr","smr","ref",2018,"all fish","diversity",1.424745,0.211698,12
+"kelp","kelp forest-fish","central","central","point buchon smr","smr","ref",2009,"all fish","diversity",1.8085,0.2117,2
+"ccfrp","ccfrp","north","north","south cape mendocino smr","smr","smr",2020,"all fish","diversity",1.292519,0.212916,12
+"ccfrp","ccfrp","north","north","ten mile smr","smr","smr",2021,"all fish","diversity",1.299942,0.213171,12
+"kelp","kelp forest-fish","south","north islands","south point smr","smr","ref",2017,"all fish","diversity",1.8015,0.2134,4
+"kelp","kelp forest-fish","south","north islands","scorpion smr","smr","smr",2006,"all fish","diversity",1.4359,0.2135,6
+"kelp","kelp forest-fish","south","north islands","south point smr","smr","smr",2013,"all fish","diversity",1.854,0.2135,6
+"kelp","kelp forest-fish","south","north islands","south point smr","smr","smr",2020,"all fish","diversity",2.3739,0.2136,2
+"ccfrp","ccfrp","central","central","ano nuevo smr","smr","ref",2017,"all fish","diversity",1.254502,0.21405,12
+"ccfrp","ccfrp","central","central","ano nuevo smr","smr","ref",2020,"all fish","diversity",1.374985,0.214094,12
+"kelp","kelp forest-fish","south","north islands","anacapa island smca","smca","smca",2005,"all fish","diversity",1.4495,0.2141,3
+"kelp","kelp forest-fish","north","north","del mar landing smr","smr","smr",2011,"all fish","diversity",1.6417,0.2144,3
+"kelp","kelp forest-fish","south","north islands","scorpion smr","smr","ref",2012,"all fish","diversity",2.1115,0.2146,6
+"kelp","kelp forest-fish","central","central","cambria smca","smca","ref",2004,"all fish","diversity",2.2325,0.2147,2
+"kelp","kelp forest-fish","south","north islands","carrington point smr","smr","ref",2008,"all fish","diversity",2.1091,0.2149,4
+"ccfrp","ccfrp","north","north","ten mile smr","smr","smr",2020,"all fish","diversity",1.486362,0.215198,12
+"kelp","kelp forest-fish","central","central","point sur smr","smr","smr",2007,"all fish","diversity",1.8225,0.2153,4
+"kelp","kelp forest-fish","south","south","abalone cove smca","smr","ref",2012,"all fish","diversity",2.0885,0.2156,3
+"ccfrp","ccfrp","north","north","south cape mendocino smr","smr","ref",2019,"all fish","diversity",1.385936,0.215769,12
+"ccfrp","ccfrp","central","central","point lobos smr","smr","ref",2013,"all fish","diversity",1.387326,0.216761,12
+"deep_reef","deep-reef","north","north","ten mile smr","smr","smr",2020,"all fish","diversity",1.822617,0.216966,10
+"kelp","kelp forest-fish","south","north islands","south point smr","smr","ref",2019,"all fish","diversity",1.8832,0.218,4
+"deep_reef","deep-reef","south","north islands","anacapa island smca","smca","smca",2014,"all fish","diversity",0.120144,0.218164,6
+"ccfrp","ccfrp","south","north islands","anacapa island smr","smr","ref",2021,"all fish","diversity",1.32081,0.218384,12
+"kelp","kelp forest-fish","south","north islands","santa barbara island smr","smr","ref",2005,"all fish","diversity",1.137,0.2185,8
+"deep_reef","deep-reef","north","north","point arena smr","smr","smr",2020,"all fish","diversity",1.855055,0.21855,4
+"kelp","kelp forest-fish","north","north","del mar landing smr","smr","ref",2011,"all fish","diversity",1.9177,0.2188,4
+"kelp","kelp forest-fish","south","south","point dume smr","smr","smr",2020,"all fish","diversity",1.8221,0.2192,2
+"ccfrp","ccfrp","south","north islands","anacapa island smr","smr","smr",2018,"all fish","diversity",1.047307,0.219432,12
+"deep_reef","deep-reef","north","north","bodega head smca","smca","ref",2020,"all fish","diversity",1.720593,0.219796,12
+"deep_reef","deep-reef","north","north","bodega head smr","smr","ref",2020,"all fish","diversity",1.720593,0.219796,12
+"ccfrp","ccfrp","north","north","stewarts point smr","smr","smr",2019,"all fish","diversity",1.306394,0.220017,12
+"kelp","kelp forest-fish","central","central","big creek smr","smr","ref",2001,"all fish","diversity",1.2517,0.2208,4
+"kelp","kelp forest-fish","central","central","point lobos smr","smr","smr",2017,"all fish","diversity",1.7539,0.2211,6
+"ccfrp","ccfrp","south","south","south la jolla smr","smr","smr",2020,"all fish","diversity",1.608068,0.221561,12
+"kelp","kelp forest-fish","south","north islands","south point smr","smr","smr",2019,"all fish","diversity",2.0804,0.2218,2
+"kelp","kelp forest-fish","central","central","pacific grove marine gardens smca","smca","smca",2015,"all fish","diversity",1.7909,0.2222,4
+"kelp","kelp forest-fish","south","south","point vicente smca","smr","ref",2015,"all fish","diversity",1.5895,0.2227,2
+"ccfrp","ccfrp","central","central","ano nuevo smr","smr","ref",2018,"all fish","diversity",1.149625,0.223677,12
+"kelp","kelp forest-fish","south","north islands","south point smr","smr","smr",2009,"all fish","diversity",1.8947,0.2238,6
+"kelp","kelp forest-fish","south","south","campus point smca","smr","smr",2018,"all fish","diversity",1.4429,0.2242,2
+"kelp","kelp forest-fish","central","central","point sur smr","smr","smr",2019,"all fish","diversity",1.1296,0.2245,4
+"kelp","kelp forest-fish","south","south","point vicente smca","smr","smr",2018,"all fish","diversity",1.6179,0.2248,2
+"kelp","kelp forest-fish","south","north islands","gull island smr","smr","ref",2005,"all fish","diversity",1.8127,0.2253,2
+"kelp","kelp forest-fish","south","south","campus point smca","smr","ref",2013,"all fish","diversity",2.3655,0.2255,2
+"kelp","kelp forest-fish","south","south","naples smca","smca","ref",2013,"all fish","diversity",2.3655,0.2255,2
+"kelp","kelp forest-fish","central","central","natural bridges smr","smr","ref",2005,"all fish","diversity",1.8759,0.2259,2
+"kelp","kelp forest-fish","central","central","lovers point - julia platt smr","smr","ref",2006,"all fish","diversity",1.2362,0.2264,2
+"ccfrp","ccfrp","south","south","swami's smca","smr","smr",2019,"all fish","diversity",1.437933,0.227487,12
+"kelp","kelp forest-fish","south","north islands","painted cave smca","smca","ref",2005,"all fish","diversity",2.2086,0.2278,3
+"deep_reef","deep-reef","north","north","bodega head smca","smca","ref",2019,"all fish","diversity",1.882857,0.227875,12
+"deep_reef","deep-reef","north","north","bodega head smr","smr","ref",2019,"all fish","diversity",1.882857,0.227875,12
+"ccfrp","ccfrp","north","north","ten mile smr","smr","smr",2019,"all fish","diversity",1.424625,0.227997,12
+"kelp","kelp forest-fish","central","central","point lobos smr","smr","smr",2008,"all fish","diversity",2.1459,0.2291,6
+"kelp","kelp forest-fish","north","north","point arena smr","smr","smr",2011,"all fish","diversity",1.6094,0.2295,2
+"kelp","kelp forest-fish","central","central","natural bridges smr","smr","ref",2000,"all fish","diversity",2.2765,0.2302,2
+"kelp","kelp forest-fish","central","central","cambria smca","smca","ref",2007,"all fish","diversity",1.9546,0.2303,2
+"kelp","kelp forest-fish","south","north islands","scorpion smr","smr","smr",2016,"all fish","diversity",1.7474,0.2305,3
+"kelp","kelp forest-fish","central","central","point lobos smr","smr","ref",2011,"all fish","diversity",1.7786,0.2317,3
+"ccfrp","ccfrp","south","south","south la jolla smr","smr","smr",2019,"all fish","diversity",1.468933,0.231783,12
+"kelp","kelp forest-fish","north","north","pyramid point smca","smca","smca",2019,"all fish","diversity",1.1078,0.2319,3
+"kelp","kelp forest-fish","central","central","carmel bay smca","smca","smca",2014,"all fish","diversity",1.6053,0.2323,4
+"kelp","kelp forest-fish","central","central","cambria smca","smca","smca",2005,"all fish","diversity",1.5167,0.2326,2
+"kelp","kelp forest-fish","south","north islands","harris point smr","smr","smr",2012,"all fish","diversity",2.1467,0.2327,2
+"kelp","kelp forest-fish","south","north islands","painted cave smca","smca","smca",2011,"all fish","diversity",2.453,0.2328,3
+"kelp","kelp forest-fish","central","central","big creek smr","smr","ref",2004,"all fish","diversity",1.2968,0.2332,5
+"ccfrp","ccfrp","central","central","point lobos smr","smr","smr",2010,"all fish","diversity",1.435298,0.234307,12
+"kelp","kelp forest-fish","central","central","vandenberg smr","smr","smr",2004,"all fish","diversity",2.0818,0.2345,2
+"kelp","kelp forest-fish","south","south","laguna beach smr","smr","smr",2020,"all fish","diversity",1.8838,0.2359,2
+"kelp","kelp forest-fish","north","north","van damme smca","smca","ref",2015,"all fish","diversity",1.2097,0.2361,2
+"kelp","kelp forest-fish","south","north islands","harris point smr","smr","smr",2003,"all fish","diversity",1.8127,0.2363,3
+"kelp","kelp forest-fish","central","central","carmel bay smca","smca","ref",2003,"all fish","diversity",1.4008,0.2368,4
+"ccfrp","ccfrp","south","south","south la jolla smr","smr","ref",2021,"all fish","diversity",1.421332,0.237178,12
+"kelp","kelp forest-fish","central","central","big creek smr","smr","smr",2002,"all fish","diversity",1.3036,0.2373,2
+"ccfrp","ccfrp","central","central","point lobos smr","smr","smr",2013,"all fish","diversity",1.339808,0.237474,12
+"ccfrp","ccfrp","central","central","point buchon smr","smr","ref",2009,"all fish","diversity",1.199844,0.238206,12
+"kelp","kelp forest-fish","central","central","cambria smca","smca","smca",2009,"all fish","diversity",2.1436,0.2385,2
+"ccfrp","ccfrp","south","south","swami's smca","smr","ref",2021,"all fish","diversity",1.05157,0.238583,12
+"kelp","kelp forest-fish","central","central","carmel bay smca","smca","smca",1999,"all fish","diversity",1.7243,0.2387,2
+"ccfrp","ccfrp","central","central","ano nuevo smr","smr","smr",2018,"all fish","diversity",1.332136,0.239692,12
+"kelp","kelp forest-fish","central","central","point buchon smr","smr","smr",2020,"all fish","diversity",1.3852,0.2402,4
+"kelp","kelp forest-fish","central","central","piedras blancas smr","smr","ref",2008,"all fish","diversity",2.1474,0.2402,5
+"kelp","kelp forest-fish","south","north islands","gull island smr","smr","smr",2017,"all fish","diversity",1.6825,0.2406,2
+"deep_reef","deep-reef","south","north islands","south point smr","smr","ref",2008,"all fish","diversity",0.809489,0.240611,8
+"kelp","kelp forest-fish","north","north","pyramid point smca","smca","smca",2018,"all fish","diversity",0.9337,0.2412,3
+"kelp","kelp forest-fish","south","south","point vicente smca","smr","ref",2017,"all fish","diversity",2.0451,0.2414,2
+"kelp","kelp forest-fish","south","south","south la jolla smr","smr","ref",2012,"all fish","diversity",1.7236,0.2416,2
+"kelp","kelp forest-fish","central","central","point lobos smr","smr","ref",2020,"all fish","diversity",0.7385,0.242,4
+"kelp","kelp forest-fish","south","south","point dume smr","smr","smr",2008,"all fish","diversity",1.2971,0.2422,2
+"kelp","kelp forest-fish","central","central","carmel bay smca","smca","ref",2019,"all fish","diversity",0.9754,0.2423,4
+"kelp","kelp forest-fish","central","central","big creek smr","smr","ref",2007,"all fish","diversity",1.6378,0.2428,4
+"kelp","kelp forest-fish","south","north islands","south point smr","smr","ref",2008,"all fish","diversity",2.0315,0.2435,10
+"kelp","kelp forest-fish","south","north islands","painted cave smca","smca","ref",2009,"all fish","diversity",2.1058,0.2436,3
+"kelp","kelp forest-fish","central","central","point lobos smr","smr","ref",2016,"all fish","diversity",1.2677,0.2452,3
+"kelp","kelp forest-fish","south","north islands","santa barbara island smr","smr","ref",2008,"all fish","diversity",0.9596,0.2455,8
+"kelp","kelp forest-fish","central","central","point buchon smr","smr","smr",2011,"all fish","diversity",1.6893,0.2456,4
+"kelp","kelp forest-fish","south","north islands","painted cave smca","smca","ref",2015,"all fish","diversity",1.2675,0.2467,3
+"kelp","kelp forest-fish","central","central","point lobos smr","smr","smr",2009,"all fish","diversity",1.9203,0.2474,6
+"kelp","kelp forest-fish","south","north islands","painted cave smca","smca","ref",2016,"all fish","diversity",1.5186,0.25,3
+"kelp","kelp forest-fish","central","central","point buchon smr","smr","ref",2017,"all fish","diversity",1.4148,0.2508,4
+"ccfrp","ccfrp","south","north islands","anacapa island smr","smr","ref",2017,"all fish","diversity",1.112973,0.250898,12
+"kelp","kelp forest-fish","south","north islands","anacapa island smca","smca","smca",2008,"all fish","diversity",1.2302,0.2514,3
+"ccfrp","ccfrp","central","central","ano nuevo smr","smr","smr",2017,"all fish","diversity",1.300763,0.251474,12
+"kelp","kelp forest-fish","central","central","pacific grove marine gardens smca","smca","smca",2011,"all fish","diversity",1.7734,0.2524,4
+"deep_reef","deep-reef","central","central","point buchon smr","smr","smr",2016,"all fish","diversity",1.682575,0.252579,5
+"kelp","kelp forest-fish","south","north islands","scorpion smr","smr","ref",2010,"all fish","diversity",1.9907,0.2528,6
+"kelp","kelp forest-fish","south","north islands","south point smr","smr","ref",2016,"all fish","diversity",1.8566,0.2531,4
+"kelp","kelp forest-fish","south","north islands","painted cave smca","smca","smca",2015,"all fish","diversity",1.6177,0.2533,3
+"deep_reef","deep-reef","central","central","portuguese ledge smca","smr","smr",2019,"all fish","diversity",1.214947,0.253884,6
+"kelp","kelp forest-fish","central","central","vandenberg smr","smr","smr",2008,"all fish","diversity",1.8531,0.2543,5
+"ccfrp","ccfrp","south","south","swami's smca","smr","ref",2020,"all fish","diversity",1.140851,0.2544,12
+"kelp","kelp forest-fish","south","north islands","scorpion smr","smr","smr",2012,"all fish","diversity",2.1528,0.2544,3
+"ccfrp","ccfrp","central","central","piedras blancas smr","smr","smr",2009,"all fish","diversity",1.446961,0.254446,12
+"kelp","kelp forest-fish","central","central","point lobos smr","smr","smr",2014,"all fish","diversity",1.344,0.2545,6
+"kelp","kelp forest-fish","south","north islands","gull island smr","smr","smr",2003,"all fish","diversity",1.8306,0.2549,2
+"kelp","kelp forest-fish","central","central","vandenberg smr","smr","ref",2005,"all fish","diversity",1.8808,0.2556,2
+"ccfrp","ccfrp","south","south","south la jolla smr","smr","smr",2017,"all fish","diversity",1.533451,0.255658,12
+"ccfrp","ccfrp","north","north","south cape mendocino smr","smr","ref",2020,"all fish","diversity",1.308265,0.255916,12
+"deep_reef","deep-reef","north","north","point st. george reef offshore smca","smca","ref",2014,"all fish","diversity",1.311202,0.256673,8
+"ccfrp","ccfrp","south","south","south la jolla smr","smr","ref",2019,"all fish","diversity",1.373632,0.25678,12
+"ccfrp","ccfrp","south","south","swami's smca","smr","smr",2017,"all fish","diversity",1.154877,0.25689,12
+"kelp","kelp forest-fish","south","north islands","painted cave smca","smca","ref",2019,"all fish","diversity",1.4055,0.258,3
+"kelp","kelp forest-fish","central","central","natural bridges smr","smr","smr",2000,"all fish","diversity",2.2496,0.2591,2
+"deep_reef","deep-reef","south","north islands","gull island smr","smr","ref",2015,"all fish","diversity",0.613066,0.259894,5
+"kelp","kelp forest-fish","central","central","white rock smca","smr","smr",2009,"all fish","diversity",1.6646,0.2599,2
+"kelp","kelp forest-fish","south","north islands","santa barbara island smr","smr","smr",2019,"all fish","diversity",1.7737,0.2601,2
+"ccfrp","ccfrp","south","north islands","anacapa island smr","smr","smr",2021,"all fish","diversity",1.092729,0.260192,12
+"kelp","kelp forest-fish","central","central","pacific grove marine gardens smca","smca","smca",2007,"all fish","diversity",2.1086,0.2604,4
+"kelp","kelp forest-fish","south","south","point vicente smca","smr","smr",2008,"all fish","diversity",1.6432,0.2605,2
+"deep_reef","deep-reef","north","north","southeast farallon island smca","smr","ref",2015,"all fish","diversity",1.309132,0.261196,5
+"kelp","kelp forest-fish","south","south","naples smca","smca","smca",2011,"all fish","diversity",2.2778,0.2623,3
+"ccfrp","ccfrp","north","north","bodega head smr","smr","smr",2017,"all fish","diversity",1.333769,0.262481,12
+"kelp","kelp forest-fish","south","south","naples smca","smca","smca",2013,"all fish","diversity",2.0948,0.2626,3
+"kelp","kelp forest-fish","south","north islands","carrington point smr","smr","smr",2004,"all fish","diversity",0.9757,0.2633,2
+"kelp","kelp forest-fish","south","north islands","south point smr","smr","smr",2006,"all fish","diversity",2.005,0.2635,6
+"kelp","kelp forest-fish","central","central","natural bridges smr","smr","smr",2011,"all fish","diversity",2.0029,0.2638,2
+"kelp","kelp forest-fish","south","south","point vicente smca","smr","smr",2011,"all fish","diversity",1.9942,0.264,2
+"kelp","kelp forest-fish","south","north islands","anacapa island smca","smca","smca",2019,"all fish","diversity",1.8499,0.2645,3
+"kelp","kelp forest-fish","north","north","saunders reef smca","smca","smca",2016,"all fish","diversity",1.7769,0.2655,3
+"kelp","kelp forest-fish","south","north islands","painted cave smca","smca","smca",2008,"all fish","diversity",2.3021,0.2656,3
+"kelp","kelp forest-fish","central","central","big creek smr","smr","ref",2005,"all fish","diversity",1.6809,0.2664,4
+"kelp","kelp forest-fish","central","central","vandenberg smr","smr","ref",2004,"all fish","diversity",2.1407,0.2668,2
+"kelp","kelp forest-fish","south","north islands","santa barbara island smr","smr","ref",2004,"all fish","diversity",0.4945,0.2669,2
+"kelp","kelp forest-fish","south","north islands","scorpion smr","smr","ref",2015,"all fish","diversity",1.2355,0.2669,6
+"deep_reef","deep-reef","south","north islands","carrington point smr","smr","ref",2019,"all fish","diversity",1.147642,0.267709,6
+"kelp","kelp forest-fish","central","central","carmel bay smca","smca","ref",2005,"all fish","diversity",1.3804,0.2679,2
+"kelp","kelp forest-fish","central","central","lovers point - julia platt smr","smr","smr",2012,"all fish","diversity",1.8926,0.2681,4
+"kelp","kelp forest-fish","south","south","campus point smca","smr","smr",2019,"all fish","diversity",1.8139,0.2686,2
+"kelp","kelp forest-fish","central","central","carmel bay smca","smca","smca",2006,"all fish","diversity",1.8245,0.2687,4
+"kelp","kelp forest-fish","central","central","carmel bay smca","smca","smca",2009,"all fish","diversity",2.0184,0.2689,2
+"kelp","kelp forest-fish","north","north","salt point smca","smca","smca",2010,"all fish","diversity",1.612,0.269,3
+"kelp","kelp forest-fish","south","north islands","scorpion smr","smr","ref",2007,"all fish","diversity",1.6042,0.2702,10
+"kelp","kelp forest-fish","north","north","ten mile smr","smr","smr",2018,"all fish","diversity",1.302,0.2706,3
+"kelp","kelp forest-fish","south","north islands","scorpion smr","smr","ref",2011,"all fish","diversity",2.1947,0.2706,6
+"kelp","kelp forest-fish","south","north islands","south point smr","smr","smr",2012,"all fish","diversity",2.1537,0.2708,2
+"ccfrp","ccfrp","north","north","south cape mendocino smr","smr","smr",2021,"all fish","diversity",1.227348,0.271117,12
+"kelp","kelp forest-fish","central","central","natural bridges smr","smr","ref",2007,"all fish","diversity",1.4611,0.2712,2
+"kelp","kelp forest-fish","south","south","point vicente smca","smr","ref",2016,"all fish","diversity",1.7645,0.2712,2
+"ccfrp","ccfrp","south","north islands","anacapa island smr","smr","smr",2020,"all fish","diversity",1.060786,0.271203,12
+"kelp","kelp forest-fish","south","north islands","painted cave smca","smca","ref",2006,"all fish","diversity",2.0752,0.2713,3
+"kelp","kelp forest-fish","north","north","stewarts point smr","smr","ref",2010,"all fish","diversity",1.3264,0.2714,4
+"deep_reef","deep-reef","north","north","southeast farallon island smr","smr","smr",2015,"all fish","diversity",1.427566,0.271629,4
+"kelp","kelp forest-fish","central","central","point lobos smr","smr","smr",2002,"all fish","diversity",1.2164,0.2718,6
+"kelp","kelp forest-fish","central","central","point sur smr","smr","ref",2010,"all fish","diversity",1.3111,0.2725,3
+"kelp","kelp forest-fish","north","north","ten mile smr","smr","ref",2019,"all fish","diversity",1.4062,0.2725,3
+"ccfrp","ccfrp","north","north","ten mile smr","smr","smr",2018,"all fish","diversity",1.463834,0.272545,12
+"deep_reef","deep-reef","south","north islands","carrington point smr","smr","smr",2006,"all fish","diversity",1.074845,0.272728,7
+"kelp","kelp forest-fish","south","north islands","anacapa island smca","smca","smca",2010,"all fish","diversity",1.473,0.273,3
+"kelp","kelp forest-fish","central","central","carmel bay smca","smca","ref",2006,"all fish","diversity",1.5314,0.2734,2
+"kelp","kelp forest-fish","south","north islands","anacapa island smca","smca","ref",2007,"all fish","diversity",1.6474,0.2735,6
+"kelp","kelp forest-fish","south","north islands","painted cave smca","smca","smca",2007,"all fish","diversity",1.6858,0.2737,3
+"kelp","kelp forest-fish","south","north islands","painted cave smca","smca","smca",2020,"all fish","diversity",1.9415,0.2741,3
+"kelp","kelp forest-fish","central","central","white rock smca","smr","smr",2002,"all fish","diversity",1.5739,0.2746,2
+"kelp","kelp forest-fish","south","north islands","south point smr","smr","ref",2010,"all fish","diversity",2.0663,0.2749,4
+"kelp","kelp forest-fish","central","central","big creek smr","smr","smr",2007,"all fish","diversity",1.8887,0.2752,4
+"ccfrp","ccfrp","north","north","south cape mendocino smr","smr","ref",2021,"all fish","diversity",1.389242,0.275527,12
+"kelp","kelp forest-fish","north","north","saunders reef smca","smca","smca",2018,"all fish","diversity",1.6524,0.278,4
+"deep_reef","deep-reef","north","north","point st. george reef offshore smca","smca","smca",2014,"all fish","diversity",1.486498,0.278241,7
+"kelp","kelp forest-fish","south","north islands","painted cave smca","smca","smca",2004,"all fish","diversity",1.7652,0.2792,3
+"kelp","kelp forest-fish","central","central","lovers point - julia platt smr","smr","ref",2007,"all fish","diversity",2.0006,0.2799,4
+"deep_reef","deep-reef","south","south","point conception smr","smr","ref",2014,"all fish","diversity",0.105943,0.2803,7
+"kelp","kelp forest-fish","north","north","saunders reef smca","smca","ref",2010,"all fish","diversity",1.318,0.2803,5
+"kelp","kelp forest-fish","south","north islands","scorpion smr","smr","ref",2013,"all fish","diversity",1.6814,0.2809,10
+"kelp","kelp forest-fish","central","central","point lobos smr","smr","smr",2011,"all fish","diversity",1.7407,0.2822,6
+"kelp","kelp forest-fish","south","south","point vicente smca","smr","ref",2012,"all fish","diversity",2.0616,0.2824,8
+"kelp","kelp forest-fish","central","central","point lobos smr","smr","smr",1999,"all fish","diversity",1.8162,0.2826,4
+"kelp","kelp forest-fish","south","north islands","scorpion smr","smr","smr",2008,"all fish","diversity",1.5951,0.2831,6
+"kelp","kelp forest-fish","south","south","naples smca","smca","smca",2017,"all fish","diversity",1.9603,0.2831,3
+"kelp","kelp forest-fish","north","north","stewarts point smr","smr","ref",2018,"all fish","diversity",1.1463,0.2839,4
+"kelp","kelp forest-fish","central","central","piedras blancas smr","smr","smr",2006,"all fish","diversity",1.6558,0.2844,2
+"kelp","kelp forest-fish","south","north islands","scorpion smr","smr","smr",2019,"all fish","diversity",1.9548,0.2845,3
+"kelp","kelp forest-fish","central","central","carmel pinnacles smr","smr","smr",2007,"all fish","diversity",1.3235,0.2861,2
+"kelp","kelp forest-fish","central","central","carmel bay smca","smca","ref",2012,"all fish","diversity",1.4057,0.2894,2
+"kelp","kelp forest-fish","central","central","pacific grove marine gardens smca","smca","smca",2018,"all fish","diversity",1.2147,0.2898,4
+"kelp","kelp forest-fish","south","north islands","gull island smr","smr","ref",2006,"all fish","diversity",2.0151,0.2901,2
+"kelp","kelp forest-fish","north","north","saunders reef smca","smca","smca",2017,"all fish","diversity",1.3372,0.2903,4
+"kelp","kelp forest-fish","central","central","lovers point - julia platt smr","smr","ref",2008,"all fish","diversity",1.9446,0.2904,4
+"deep_reef","deep-reef","north","north","ten mile smr","smr","ref",2015,"all fish","diversity",1.737375,0.290878,7
+"deep_reef","deep-reef","south","north islands","anacapa island smca","smca","ref",2020,"all fish","diversity",1.279634,0.291388,11
+"deep_reef","deep-reef","south","north islands","anacapa island smr","smr","ref",2020,"all fish","diversity",1.279634,0.291388,11
+"kelp","kelp forest-fish","south","north islands","anacapa island smca","smca","smca",2015,"all fish","diversity",1.3305,0.2915,3
+"kelp","kelp forest-fish","central","central","carmel bay smca","smca","smca",2020,"all fish","diversity",1.2958,0.2922,4
+"kelp","kelp forest-fish","south","north islands","carrington point smr","smr","smr",2003,"all fish","diversity",2.0285,0.293,3
+"kelp","kelp forest-fish","central","central","lovers point - julia platt smr","smr","smr",2010,"all fish","diversity",1.8874,0.2931,2
+"kelp","kelp forest-fish","south","north islands","painted cave smca","smca","smca",2010,"all fish","diversity",2.2643,0.2933,3
+"ccfrp","ccfrp","central","central","piedras blancas smr","smr","smr",2008,"all fish","diversity",1.302412,0.293682,12
+"kelp","kelp forest-fish","central","central","carmel bay smca","smca","ref",2004,"all fish","diversity",1.4401,0.2939,2
+"kelp","kelp forest-fish","south","north islands","harris point smr","smr","smr",2011,"all fish","diversity",2.091,0.2945,2
+"deep_reef","deep-reef","north","north","ten mile smr","smr","ref",2020,"all fish","diversity",1.425344,0.294853,10
+"kelp","kelp forest-fish","south","north islands","south point smr","smr","ref",2018,"all fish","diversity",2.0451,0.2949,4
+"ccfrp","ccfrp","central","central","piedras blancas smr","smr","ref",2009,"all fish","diversity",1.226773,0.295103,12
+"kelp","kelp forest-fish","south","north islands","south point smr","smr","ref",2020,"all fish","diversity",1.8931,0.2962,4
+"ccfrp","ccfrp","south","south","swami's smca","smr","smr",2020,"all fish","diversity",1.166083,0.296514,12
+"deep_reef","deep-reef","south","north islands","harris point smr","smr","smr",2005,"all fish","diversity",1.216929,0.296544,15
+"kelp","kelp forest-fish","central","central","point lobos smr","smr","smr",2003,"all fish","diversity",1.4362,0.2968,6
+"kelp","kelp forest-fish","south","north islands","harris point smr","smr","smr",2014,"all fish","diversity",1.9688,0.2973,2
+"deep_reef","deep-reef","north","north","sea lion gulch smr","smr","smr",2020,"all fish","diversity",1.352182,0.297864,10
+"kelp","kelp forest-fish","central","central","lovers point - julia platt smr","smr","smr",2001,"all fish","diversity",2.1489,0.2979,2
+"kelp","kelp forest-fish","south","south","campus point smca","smr","smr",2020,"all fish","diversity",1.7661,0.2986,2
+"kelp","kelp forest-fish","north","north","point arena smr","smr","ref",2011,"all fish","diversity",1.4377,0.2993,2
+"kelp","kelp forest-fish","south","south","point dume smr","smr","smr",2012,"all fish","diversity",1.969,0.2999,2
+"deep_reef","deep-reef","south","north islands","carrington point smr","smr","ref",2006,"all fish","diversity",1.055226,0.300556,6
+"deep_reef","deep-reef","south","north islands","carrington point smr","smr","ref",2020,"all fish","diversity",1.759204,0.30079,5
+"kelp","kelp forest-fish","south","north islands","anacapa island smca","smca","smca",2007,"all fish","diversity",1.7646,0.302,3
+"kelp","kelp forest-fish","central","central","lovers point - julia platt smr","smr","ref",2004,"all fish","diversity",1.8389,0.3023,2
+"kelp","kelp forest-fish","south","north islands","scorpion smr","smr","ref",2004,"all fish","diversity",2.0472,0.3038,6
+"kelp","kelp forest-fish","north","north","ten mile smr","smr","smr",2015,"all fish","diversity",1.2874,0.304,3
+"kelp","kelp forest-fish","south","north islands","carrington point smr","smr","ref",2007,"all fish","diversity",1.9267,0.3041,4
+"kelp","kelp forest-fish","central","central","big creek smr","smr","ref",2008,"all fish","diversity",1.7895,0.3042,4
+"kelp","kelp forest-fish","south","north islands","painted cave smca","smca","ref",2014,"all fish","diversity",2.0147,0.3045,3
+"deep_reef","deep-reef","central","central","big creek smr","smr","ref",2020,"all fish","diversity",1.470151,0.306722,8
+"kelp","kelp forest-fish","central","central","big creek smr","smr","smr",2005,"all fish","diversity",1.865,0.3068,2
+"kelp","kelp forest-fish","south","north islands","south point smr","smr","smr",2003,"all fish","diversity",2.0286,0.3074,2
+"kelp","kelp forest-fish","south","north islands","gull island smr","smr","ref",2002,"all fish","diversity",2.2195,0.3076,2
+"kelp","kelp forest-fish","south","north islands","scorpion smr","smr","smr",2010,"all fish","diversity",1.7319,0.3077,3
+"ccfrp","ccfrp","central","central","piedras blancas smr","smr","smr",2011,"all fish","diversity",1.345474,0.308496,12
+"kelp","kelp forest-fish","north","north","saunders reef smca","smca","ref",2011,"all fish","diversity",1.376,0.3089,6
+"kelp","kelp forest-fish","central","central","point lobos smr","smr","smr",2005,"all fish","diversity",1.5292,0.3094,6
+"kelp","kelp forest-fish","central","central","vandenberg smr","smr","ref",2012,"all fish","diversity",1.0685,0.3108,2
+"kelp","kelp forest-fish","north","north","stewarts point smr","smr","smr",2018,"all fish","diversity",1.028,0.3112,4
+"kelp","kelp forest-fish","central","central","carmel bay smca","smca","ref",2010,"all fish","diversity",1.5375,0.312,3
+"kelp","kelp forest-fish","south","north islands","harris point smr","smr","smr",2008,"all fish","diversity",2.3255,0.3121,2
+"kelp","kelp forest-fish","south","south","farnsworth onshore smca","smr","ref",2008,"all fish","diversity",1.0569,0.3123,2
+"deep_reef","deep-reef","north","north","bodega head smr","smr","smr",2011,"all fish","diversity",0.828966,0.313214,10
+"kelp","kelp forest-fish","south","south","point dume smca","smr","ref",2013,"all fish","diversity",2.0357,0.3142,2
+"kelp","kelp forest-fish","central","central","vandenberg smr","smr","ref",2006,"all fish","diversity",1.8433,0.3147,2
+"kelp","kelp forest-fish","central","central","lovers point - julia platt smr","smr","ref",2001,"all fish","diversity",1.9271,0.3148,2
+"ccfrp","ccfrp","central","central","point lobos smr","smr","ref",2011,"all fish","diversity",1.406787,0.314887,12
+"kelp","kelp forest-fish","south","north islands","anacapa island smca","smca","smca",2012,"all fish","diversity",1.486,0.3162,3
+"ccfrp","ccfrp","south","south","swami's smca","smr","smr",2018,"all fish","diversity",1.15985,0.317095,12
+"ccfrp","ccfrp","north","north","bodega head smr","smr","smr",2020,"all fish","diversity",1.419485,0.317706,12
+"kelp","kelp forest-fish","south","south","abalone cove smca","smr","ref",2008,"all fish","diversity",1.589,0.3178,3
+"deep_reef","deep-reef","south","north islands","carrington point smr","smr","ref",2015,"all fish","diversity",1.425095,0.318045,6
+"ccfrp","ccfrp","north","north","ten mile smr","smr","ref",2019,"all fish","diversity",1.334501,0.318193,12
+"kelp","kelp forest-fish","south","north islands","anacapa island smca","smca","ref",2005,"all fish","diversity",1.8394,0.3184,6
+"kelp","kelp forest-fish","central","central","carmel bay smca","smca","smca",2017,"all fish","diversity",1.7895,0.3185,4
+"kelp","kelp forest-fish","south","north islands","scorpion smr","smr","ref",2006,"all fish","diversity",1.7722,0.3186,10
+"deep_reef","deep-reef","north","north","southeast farallon island smr","smr","smr",2011,"all fish","diversity",1.135724,0.318862,7
+"kelp","kelp forest-fish","north","north","saunders reef smca","smca","smca",2020,"all fish","diversity",1.279,0.3196,3
+"kelp","kelp forest-fish","south","north islands","anacapa island smr","smr","smr",2018,"all fish","diversity",1.8454,0.3205,7
+"kelp","kelp forest-fish","south","north islands","santa barbara island smr","smr","smr",2008,"all fish","diversity",1.0115,0.3211,5
+"kelp","kelp forest-fish","central","central","point sur smr","smr","smr",2017,"all fish","diversity",1.2814,0.3214,3
+"kelp","kelp forest-fish","south","south","naples smca","smca","smca",2018,"all fish","diversity",2.2037,0.3214,3
+"kelp","kelp forest-fish","central","central","asilomar smr","smr","ref",2011,"all fish","diversity",1.7385,0.3218,4
+"kelp","kelp forest-fish","central","central","carmel pinnacles smr","smr","smr",2008,"all fish","diversity",0.8262,0.323,2
+"kelp","kelp forest-fish","north","north","ten mile smr","smr","ref",2018,"all fish","diversity",1.1565,0.3234,3
+"kelp","kelp forest-fish","central","central","point lobos smr","smr","smr",2019,"all fish","diversity",1.4108,0.3238,6
+"kelp","kelp forest-fish","south","north islands","gull island smr","smr","ref",2008,"all fish","diversity",2.0839,0.3254,2
+"deep_reef","deep-reef","south","north islands","harris point smr","smr","smr",2006,"all fish","diversity",1.387208,0.325849,14
+"kelp","kelp forest-fish","north","north","stewarts point smr","smr","smr",2011,"all fish","diversity",1.2191,0.3266,4
+"kelp","kelp forest-fish","south","north islands","scorpion smr","smr","ref",2008,"all fish","diversity",1.8745,0.3295,10
+"deep_reef","deep-reef","north","north","reading rock smr","smr","ref",2014,"all fish","diversity",1.527743,0.329772,7
+"kelp","kelp forest-fish","south","north islands","scorpion smr","smr","ref",2016,"all fish","diversity",1.2832,0.3299,6
+"kelp","kelp forest-fish","central","central","big creek smr","smr","ref",2009,"all fish","diversity",1.6872,0.3301,4
+"kelp","kelp forest-fish","south","north islands","scorpion smr","smr","smr",2014,"all fish","diversity",1.8785,0.3303,3
+"deep_reef","deep-reef","south","north islands","harris point smr","smr","ref",2009,"all fish","diversity",0.930273,0.330754,7
+"kelp","kelp forest-fish","south","north islands","anacapa island smca","smca","ref",2018,"all fish","diversity",1.8931,0.3314,3
+"kelp","kelp forest-fish","south","north islands","anacapa island smr","smr","ref",2018,"all fish","diversity",1.8931,0.3314,3
+"kelp","kelp forest-fish","central","central","carmel pinnacles smr","smr","smr",2010,"all fish","diversity",1.0536,0.3322,2
+"kelp","kelp forest-fish","south","north islands","south point smr","smr","ref",2006,"all fish","diversity",2.065,0.3323,6
+"kelp","kelp forest-fish","south","south","naples smca","smca","smca",2002,"all fish","diversity",1.9441,0.3329,2
+"kelp","kelp forest-fish","south","north islands","scorpion smr","smr","smr",2013,"all fish","diversity",1.8933,0.333,6
+"kelp","kelp forest-fish","central","central","point lobos smr","smr","ref",2019,"all fish","diversity",1.1858,0.3331,4
+"kelp","kelp forest-fish","central","central","point buchon smr","smr","smr",2016,"all fish","diversity",1.1063,0.3339,4
+"kelp","kelp forest-fish","central","central","cambria smca","smca","smca",2002,"all fish","diversity",1.7363,0.3359,2
+"kelp","kelp forest-fish","central","central","point sur smr","smr","ref",2007,"all fish","diversity",1.8578,0.3359,4
+"kelp","kelp forest-fish","south","north islands","anacapa island smr","smr","smr",2010,"all fish","diversity",2.0093,0.3364,7
+"deep_reef","deep-reef","south","north islands","gull island smr","smr","smr",2008,"all fish","diversity",0.993954,0.337167,21
+"deep_reef","deep-reef","north","north","southeast farallon island smca","smr","smr",2019,"all fish","diversity",1.444846,0.337444,6
+"deep_reef","deep-reef","central","central","point buchon smr","smr","ref",2012,"all fish","diversity",1.239442,0.339144,8
+"kelp","kelp forest-fish","south","north islands","south point smr","smr","ref",2014,"all fish","diversity",1.7819,0.3402,4
+"kelp","kelp forest-fish","central","central","carmel bay smca","smca","ref",2007,"all fish","diversity",1.9046,0.3402,4
+"kelp","kelp forest-fish","south","north islands","scorpion smr","smr","smr",2007,"all fish","diversity",1.6621,0.3411,6
+"deep_reef","deep-reef","south","north islands","south point smr","smr","smr",2008,"all fish","diversity",0.947873,0.343631,14
+"deep_reef","deep-reef","north","north","southeast farallon island smca","smr","smr",2011,"all fish","diversity",1.003893,0.343709,3
+"kelp","kelp forest-fish","central","central","cambria smca","smca","smca",2004,"all fish","diversity",1.8402,0.3439,2
+"kelp","kelp forest-fish","central","central","carmel bay smca","smca","smca",2003,"all fish","diversity",1.4925,0.344,4
+"deep_reef","deep-reef","south","north islands","carrington point smr","smr","smr",2015,"all fish","diversity",0.984752,0.345596,7
+"deep_reef","deep-reef","south","north islands","gull island smr","smr","ref",2007,"all fish","diversity",0.428716,0.345929,2
+"kelp","kelp forest-fish","south","north islands","painted cave smca","smca","ref",2020,"all fish","diversity",1.4969,0.346,3
+"kelp","kelp forest-fish","central","central","point sur smr","smr","smr",2011,"all fish","diversity",2.1604,0.3467,2
+"kelp","kelp forest-fish","central","central","carmel bay smca","smca","smca",2016,"all fish","diversity",1.8087,0.3475,2
+"deep_reef","deep-reef","north","north","ten mile smr","smr","smr",2015,"all fish","diversity",1.478728,0.347624,7
+"kelp","kelp forest-fish","north","north","saunders reef smca","smca","smca",2010,"all fish","diversity",1.6035,0.3477,2
+"kelp","kelp forest-fish","south","north islands","anacapa island smr","smr","smr",2007,"all fish","diversity",1.6689,0.3482,7
+"kelp","kelp forest-fish","central","central","carmel bay smca","smca","smca",2004,"all fish","diversity",2.1525,0.3485,2
+"deep_reef","deep-reef","south","north islands","harris point smr","smr","smr",2008,"all fish","diversity",1.345233,0.348583,13
+"deep_reef","deep-reef","south","north islands","harris point smr","smr","smr",2009,"all fish","diversity",1.107172,0.348765,12
+"kelp","kelp forest-fish","central","central","white rock smca","smr","ref",2008,"all fish","diversity",1.5154,0.3492,4
+"kelp","kelp forest-fish","north","north","salt point smca","smca","ref",2010,"all fish","diversity",1.4603,0.3494,5
+"kelp","kelp forest-fish","south","north islands","anacapa island smr","smr","smr",2008,"all fish","diversity",1.5615,0.3516,7
+"kelp","kelp forest-fish","central","central","vandenberg smr","smr","ref",2008,"all fish","diversity",1.3604,0.3517,5
+"kelp","kelp forest-fish","south","north islands","harris point smr","smr","ref",2004,"all fish","diversity",2.0984,0.3519,6
+"deep_reef","deep-reef","central","central","piedras blancas smca","smr","ref",2020,"all fish","diversity",1.538521,0.352688,5
+"deep_reef","deep-reef","central","central","piedras blancas smr","smr","ref",2020,"all fish","diversity",1.538521,0.352688,5
+"kelp","kelp forest-fish","south","north islands","anacapa island smca","smca","smca",2003,"all fish","diversity",0.999,0.3544,3
+"kelp","kelp forest-fish","south","north islands","anacapa island smr","smr","smr",2011,"all fish","diversity",1.6638,0.3545,7
+"kelp","kelp forest-fish","central","central","point buchon smr","smr","ref",2020,"all fish","diversity",1.5618,0.3552,4
+"deep_reef","deep-reef","north","north","bodega head smca","smca","smca",2011,"all fish","diversity",0.985864,0.355845,9
+"kelp","kelp forest-fish","central","central","piedras blancas smr","smr","smr",2003,"all fish","diversity",1.0955,0.3561,2
+"kelp","kelp forest-fish","south","north islands","south point smr","smr","smr",2008,"all fish","diversity",1.6812,0.3561,6
+"deep_reef","deep-reef","central","central","point sur smr","smr","smr",2019,"all fish","diversity",1.56211,0.356191,3
+"kelp","kelp forest-fish","south","north islands","anacapa island smr","smr","smr",2002,"all fish","diversity",1.3914,0.3563,6
+"kelp","kelp forest-fish","south","north islands","scorpion smr","smr","smr",2015,"all fish","diversity",1.7116,0.3573,3
+"kelp","kelp forest-fish","central","central","carmel bay smca","smca","ref",2015,"all fish","diversity",1.7024,0.3576,2
+"kelp","kelp forest-fish","central","central","natural bridges smr","smr","smr",2004,"all fish","diversity",1.8636,0.3582,2
+"deep_reef","deep-reef","north","north","reading rock smr","smr","smr",2014,"all fish","diversity",1.321486,0.358712,8
+"kelp","kelp forest-fish","central","central","point buchon smr","smr","ref",2016,"all fish","diversity",1.4953,0.361,3
+"kelp","kelp forest-fish","south","south","campus point smca","smr","ref",2020,"all fish","diversity",2.2935,0.3611,2
+"kelp","kelp forest-fish","south","south","naples smca","smca","ref",2020,"all fish","diversity",2.2935,0.3611,2
+"deep_reef","deep-reef","north","north","reading rock smr","smr","ref",2020,"all fish","diversity",1.46331,0.361278,10
+"kelp","kelp forest-fish","central","central","point buchon smr","smr","ref",2008,"all fish","diversity",1.623,0.3613,4
+"deep_reef","deep-reef","central","central","portuguese ledge smca","smr","smr",2016,"all fish","diversity",1.693828,0.361468,6
+"kelp","kelp forest-fish","central","central","point sur smr","smr","ref",2008,"all fish","diversity",2.0914,0.3615,4
+"kelp","kelp forest-fish","south","north islands","scorpion smr","smr","smr",2005,"all fish","diversity",1.678,0.3616,6
+"kelp","kelp forest-fish","south","north islands","harris point smr","smr","ref",2010,"all fish","diversity",2.0737,0.3619,6
+"kelp","kelp forest-fish","south","north islands","painted cave smca","smca","ref",2010,"all fish","diversity",2.3555,0.3626,3
+"kelp","kelp forest-fish","central","central","carmel bay smca","smca","smca",2015,"all fish","diversity",1.991,0.3634,4
+"deep_reef","deep-reef","central","central","point sur smca","smr","smr",2008,"all fish","diversity",0.840648,0.363647,6
+"kelp","kelp forest-fish","central","central","point sur smr","smr","ref",2006,"all fish","diversity",1.5561,0.3637,2
+"kelp","kelp forest-fish","south","north islands","anacapa island smca","smca","smca",2011,"all fish","diversity",1.9425,0.3653,3
+"deep_reef","deep-reef","north","north","point st. george reef offshore smca","smca","smca",2020,"all fish","diversity",1.402323,0.366409,9
+"kelp","kelp forest-fish","central","central","piedras blancas smr","smr","ref",2003,"all fish","diversity",1.3214,0.3667,10
+"kelp","kelp forest-fish","south","south","campus point smca","smr","smr",2010,"all fish","diversity",2.0177,0.3668,2
+"kelp","kelp forest-fish","south","north islands","anacapa island smca","smca","ref",2017,"all fish","diversity",1.7677,0.3672,3
+"kelp","kelp forest-fish","south","north islands","anacapa island smr","smr","ref",2017,"all fish","diversity",1.7677,0.3672,3
+"kelp","kelp forest-fish","south","north islands","gull island smr","smr","ref",2020,"all fish","diversity",1.9025,0.3676,2
+"kelp","kelp forest-fish","south","north islands","painted cave smca","smca","ref",2018,"all fish","diversity",1.9292,0.3678,3
+"kelp","kelp forest-fish","south","south","campus point smca","smr","smr",2009,"all fish","diversity",1.903,0.3683,2
+"kelp","kelp forest-fish","north","north","double cone rock smca","smca","smca",2019,"all fish","diversity",1.1038,0.3687,2
+"deep_reef","deep-reef","south","south","point conception smr","smr","ref",2019,"all fish","diversity",0.253255,0.370086,4
+"deep_reef","deep-reef","south","north islands","harris point smr","smr","smr",2020,"all fish","diversity",1.377853,0.37075,19
+"deep_reef","deep-reef","south","north islands","south point smr","smr","ref",2005,"all fish","diversity",1.433396,0.371648,9
+"deep_reef","deep-reef","south","north islands","carrington point smr","smr","smr",2008,"all fish","diversity",1.043248,0.371713,8
+"deep_reef","deep-reef","south","south","south la jolla smca","smca","smca",2020,"all fish","diversity",1.295041,0.372562,6
+"kelp","kelp forest-fish","central","central","point lobos smr","smr","ref",2017,"all fish","diversity",1.1176,0.3727,3
+"kelp","kelp forest-fish","south","north islands","painted cave smca","smca","ref",2003,"all fish","diversity",1.9769,0.3736,3
+"kelp","kelp forest-fish","central","central","piedras blancas smr","smr","smr",2004,"all fish","diversity",1.3401,0.3738,2
+"kelp","kelp forest-fish","south","north islands","harris point smr","smr","ref",2005,"all fish","diversity",1.7518,0.374,6
+"deep_reef","deep-reef","south","north islands","carrington point smr","smr","ref",2008,"all fish","diversity",1.277225,0.374247,5
+"kelp","kelp forest-fish","central","central","lovers point - julia platt smr","smr","ref",2018,"all fish","diversity",1.5574,0.3753,4
+"kelp","kelp forest-fish","north","north","ten mile smr","smr","ref",2015,"all fish","diversity",1.2811,0.3754,3
+"kelp","kelp forest-fish","central","central","natural bridges smr","smr","smr",2006,"all fish","diversity",1.8972,0.376,2
+"kelp","kelp forest-fish","central","central","white rock smca","smr","smr",2007,"all fish","diversity",1.3818,0.3765,4
+"kelp","kelp forest-fish","central","central","piedras blancas smr","smr","ref",2004,"all fish","diversity",1.6676,0.3775,7
+"kelp","kelp forest-fish","central","central","piedras blancas smr","smr","smr",2005,"all fish","diversity",1.4859,0.3778,2
+"deep_reef","deep-reef","central","central","point sur smr","smr","ref",2019,"all fish","diversity",1.210307,0.378415,9
+"deep_reef","deep-reef","south","north islands","south point smr","smr","smr",2005,"all fish","diversity",1.134293,0.378514,20
+"deep_reef","deep-reef","north","north","sea lion gulch smr","smr","ref",2014,"all fish","diversity",1.031251,0.378745,6
+"kelp","kelp forest-fish","south","south","naples smca","smca","smca",2016,"all fish","diversity",1.5047,0.3802,3
+"kelp","kelp forest-fish","central","central","lovers point - julia platt smr","smr","smr",2020,"all fish","diversity",1.1395,0.3804,4
+"kelp","kelp forest-fish","central","central","carmel bay smca","smca","ref",2017,"all fish","diversity",1.1285,0.3805,4
+"kelp","kelp forest-fish","south","north islands","scorpion smr","smr","ref",2019,"all fish","diversity",1.8034,0.3816,6
+"kelp","kelp forest-fish","central","central","point lobos smr","smr","smr",2013,"all fish","diversity",1.0417,0.3818,6
+"kelp","kelp forest-fish","south","south","point vicente smca","smr","ref",2009,"all fish","diversity",1.4389,0.3819,2
+"kelp","kelp forest-fish","south","north islands","gull island smr","smr","ref",2015,"all fish","diversity",1.6042,0.3821,2
+"kelp","kelp forest-fish","south","north islands","scorpion smr","smr","ref",2005,"all fish","diversity",1.4631,0.383,10
+"deep_reef","deep-reef","central","central","piedras blancas smr","smr","smr",2020,"all fish","diversity",1.3106,0.383081,2
+"kelp","kelp forest-fish","central","central","pacific grove marine gardens smca","smca","smca",2019,"all fish","diversity",1.32,0.3833,4
+"kelp","kelp forest-fish","south","south","blue cavern onshore smca","smr","ref",2012,"all fish","diversity",0.8465,0.3858,2
+"deep_reef","deep-reef","south","north islands","gull island smr","smr","smr",2005,"all fish","diversity",0.984331,0.385827,25
+"kelp","kelp forest-fish","south","south","naples smca","smca","smca",2015,"all fish","diversity",1.2886,0.3864,3
+"kelp","kelp forest-fish","south","north islands","anacapa island smr","smr","ref",2007,"all fish","diversity",1.4685,0.387,6
+"deep_reef","deep-reef","south","north islands","gull island smr","smr","ref",2009,"all fish","diversity",0.158426,0.388064,6
+"kelp","kelp forest-fish","south","north islands","anacapa island smr","smr","ref",2006,"all fish","diversity",1.3924,0.3884,6
+"deep_reef","deep-reef","south","south","south la jolla smca","smca","ref",2020,"all fish","diversity",1.462355,0.389624,12
+"deep_reef","deep-reef","south","south","south la jolla smr","smr","ref",2020,"all fish","diversity",1.462355,0.389624,12
+"kelp","kelp forest-fish","south","south","point vicente smca","smr","ref",2011,"all fish","diversity",1.9584,0.3901,5
+"kelp","kelp forest-fish","central","central","cambria smca","smca","smca",2010,"all fish","diversity",2.3219,0.3911,2
+"kelp","kelp forest-fish","south","north islands","anacapa island smca","smca","ref",2011,"all fish","diversity",1.8352,0.3913,3
+"kelp","kelp forest-fish","south","north islands","anacapa island smr","smr","ref",2011,"all fish","diversity",1.8352,0.3913,3
+"kelp","kelp forest-fish","south","north islands","harris point smr","smr","ref",2003,"all fish","diversity",1.6006,0.3923,5
+"kelp","kelp forest-fish","south","north islands","anacapa island smr","smr","ref",2005,"all fish","diversity",1.6164,0.3923,6
+"deep_reef","deep-reef","north","north","reading rock smr","smr","smr",2020,"all fish","diversity",1.661489,0.392379,10
+"kelp","kelp forest-fish","north","north","point cabrillo smr","smr","ref",2019,"all fish","diversity",0.8484,0.3939,3
+"deep_reef","deep-reef","north","north","southeast farallon island smr","smr","smr",2020,"all fish","diversity",1.41802,0.39391,6
+"deep_reef","deep-reef","south","north islands","harris point smr","smr","smr",2014,"all fish","diversity",1.078818,0.393929,14
+"deep_reef","deep-reef","north","north","reading rock smr","smr","smr",2015,"all fish","diversity",1.383466,0.39487,7
+"deep_reef","deep-reef","south","north islands","carrington point smr","smr","ref",2014,"all fish","diversity",1.199357,0.395192,6
+"deep_reef","deep-reef","central","central","piedras blancas smca","smr","smr",2016,"all fish","diversity",1.166089,0.39646,4
+"kelp","kelp forest-fish","south","south","point dume smr","smr","ref",2008,"all fish","diversity",1.414,0.3968,2
+"kelp","kelp forest-fish","south","north islands","south point smr","smr","ref",2004,"all fish","diversity",2.1285,0.3969,5
+"kelp","kelp forest-fish","central","central","white rock smca","smr","ref",2011,"all fish","diversity",1.8019,0.397,2
+"kelp","kelp forest-fish","central","central","lovers point - julia platt smr","smr","ref",2017,"all fish","diversity",1.7518,0.3981,4
+"deep_reef","deep-reef","central","central","point lobos smr","smr","ref",2009,"all fish","diversity",0.718573,0.398203,9
+"deep_reef","deep-reef","south","north islands","south point smr","smr","smr",2006,"all fish","diversity",1.289582,0.398779,13
+"kelp","kelp forest-fish","south","north islands","south point smr","smr","smr",2011,"all fish","diversity",1.6989,0.3994,2
+"kelp","kelp forest-fish","south","north islands","anacapa island smr","smr","smr",2001,"all fish","diversity",1.4451,0.4003,6
+"kelp","kelp forest-fish","central","central","pacific grove marine gardens smca","smca","smca",2017,"all fish","diversity",1.6381,0.4006,4
+"kelp","kelp forest-fish","central","central","point lobos smr","smr","smr",2016,"all fish","diversity",1.7433,0.401,6
+"ccfrp","ccfrp","central","central","point lobos smr","smr","ref",2009,"all fish","diversity",1.186873,0.4025,12
+"deep_reef","deep-reef","north","north","southeast farallon island smca","smr","smr",2015,"all fish","diversity",1.304443,0.402919,8
+"deep_reef","deep-reef","south","north islands","south point smr","smr","ref",2020,"all fish","diversity",1.350232,0.403458,11
+"kelp","kelp forest-fish","south","north islands","santa barbara island smr","smr","ref",2006,"all fish","diversity",0.994,0.4038,8
+"kelp","kelp forest-fish","central","central","point lobos smr","smr","smr",2000,"all fish","diversity",1.5758,0.4041,4
+"deep_reef","deep-reef","south","north islands","harris point smr","smr","ref",2005,"all fish","diversity",0.877168,0.405536,12
+"deep_reef","deep-reef","north","north","bodega head smr","smr","smr",2019,"all fish","diversity",1.61357,0.407691,8
+"ccfrp","ccfrp","central","central","piedras blancas smr","smr","smr",2010,"all fish","diversity",1.267328,0.40915,12
+"deep_reef","deep-reef","central","central","point lobos smr","smr","ref",2016,"all fish","diversity",1.163826,0.410112,7
+"kelp","kelp forest-fish","central","central","pacific grove marine gardens smca","smca","smca",2008,"all fish","diversity",1.8926,0.412,4
+"deep_reef","deep-reef","south","north islands","harris point smr","smr","ref",2007,"all fish","diversity",1.11142,0.412117,8
+"deep_reef","deep-reef","central","central","point buchon smr","smr","ref",2016,"all fish","diversity",1.408116,0.412923,6
+"deep_reef","deep-reef","south","north islands","south point smr","smr","ref",2007,"all fish","diversity",1.24696,0.41308,7
+"kelp","kelp forest-fish","north","north","stewarts point smca","smr","smr",2018,"all fish","diversity",1.0137,0.4133,2
+"kelp","kelp forest-fish","central","central","big creek smr","smr","smr",2003,"all fish","diversity",1.8415,0.4141,2
+"kelp","kelp forest-fish","central","central","carmel bay smca","smca","smca",2010,"all fish","diversity",1.9011,0.4145,4
+"kelp","kelp forest-fish","north","north","salt point smca","smca","ref",2011,"all fish","diversity",1.2359,0.4167,5
+"deep_reef","deep-reef","south","north islands","south point smr","smr","ref",2014,"all fish","diversity",1.130559,0.417906,9
+"kelp","kelp forest-fish","central","central","natural bridges smr","smr","ref",2008,"all fish","diversity",1.2398,0.4191,4
+"deep_reef","deep-reef","south","north islands","south point smr","smr","smr",2007,"all fish","diversity",1.055841,0.419324,11
+"kelp","kelp forest-fish","south","north islands","anacapa island smr","smr","smr",2019,"all fish","diversity",1.751,0.4198,7
+"deep_reef","deep-reef","south","north islands","harris point smr","smr","ref",2014,"all fish","diversity",1.180446,0.421393,9
+"deep_reef","deep-reef","north","north","ten mile smr","smr","ref",2014,"all fish","diversity",1.12596,0.422278,7
+"kelp","kelp forest-fish","central","central","point buchon smr","smr","smr",2018,"all fish","diversity",1.257,0.4224,4
+"kelp","kelp forest-fish","south","south","point vicente smca","smr","smr",2017,"all fish","diversity",1.7314,0.4225,2
+"kelp","kelp forest-fish","south","north islands","scorpion smr","smr","ref",2017,"all fish","diversity",1.7005,0.4229,6
+"kelp","kelp forest-fish","south","north islands","south point smr","smr","ref",2005,"all fish","diversity",1.8528,0.4234,6
+"kelp","kelp forest-fish","south","north islands","painted cave smca","smca","smca",2017,"all fish","diversity",1.8068,0.4237,3
+"kelp","kelp forest-fish","central","central","vandenberg smr","smr","ref",2000,"all fish","diversity",1.5742,0.4245,5
+"deep_reef","deep-reef","south","north islands","gull island smr","smr","smr",2007,"all fish","diversity",1.17091,0.424938,21
+"kelp","kelp forest-fish","central","central","point lobos smr","smr","smr",2001,"all fish","diversity",1.6684,0.4266,6
+"kelp","kelp forest-fish","north","north","del mar landing smr","smr","ref",2019,"all fish","diversity",1.3023,0.4269,2
+"kelp","kelp forest-fish","north","north","stewarts point smr","smr","ref",2019,"all fish","diversity",1.3023,0.4269,2
+"kelp","kelp forest-fish","south","north islands","harris point smr","smr","ref",2009,"all fish","diversity",1.8634,0.427,6
+"ccfrp","ccfrp","central","central","point lobos smr","smr","ref",2014,"all fish","diversity",1.407432,0.427365,12
+"kelp","kelp forest-fish","south","north islands","scorpion smr","smr","ref",2001,"all fish","diversity",1.5512,0.4276,4
+"deep_reef","deep-reef","south","north islands","south point smr","smr","ref",2015,"all fish","diversity",1.261143,0.429127,10
+"deep_reef","deep-reef","south","north islands","gull island smr","smr","smr",2006,"all fish","diversity",1.189597,0.429324,20
+"kelp","kelp forest-fish","south","south","point vicente smca","smr","smr",2009,"all fish","diversity",1.8449,0.4309,2
+"deep_reef","deep-reef","central","central","point sur smr","smr","smr",2012,"all fish","diversity",1.096737,0.430991,14
+"kelp","kelp forest-fish","south","north islands","anacapa island smca","smca","ref",2014,"all fish","diversity",1.5459,0.4318,3
+"kelp","kelp forest-fish","south","north islands","anacapa island smr","smr","ref",2014,"all fish","diversity",1.5459,0.4318,3
+"kelp","kelp forest-fish","south","north islands","anacapa island smca","smca","smca",2009,"all fish","diversity",1.3029,0.4329,3
+"kelp","kelp forest-fish","south","north islands","anacapa island smr","smr","smr",2015,"all fish","diversity",1.0814,0.4335,6
+"kelp","kelp forest-fish","central","central","piedras blancas smr","smr","smr",2007,"all fish","diversity",1.3034,0.4341,2
+"deep_reef","deep-reef","central","central","point sur smr","smr","ref",2016,"all fish","diversity",1.337531,0.435017,7
+"deep_reef","deep-reef","south","north islands","anacapa island smr","smr","smr",2007,"all fish","diversity",0.431239,0.435077,9
+"kelp","kelp forest-fish","south","north islands","carrington point smr","smr","smr",2005,"all fish","diversity",1.4402,0.436,2
+"kelp","kelp forest-fish","central","central","big creek smr","smr","smr",2009,"all fish","diversity",2.031,0.4366,2
+"kelp","kelp forest-fish","south","south","point dume smca","smr","ref",2012,"all fish","diversity",2.1251,0.4366,2
+"kelp","kelp forest-fish","south","north islands","santa barbara island smr","smr","smr",2006,"all fish","diversity",1.2696,0.4368,5
+"kelp","kelp forest-fish","south","north islands","carrington point smr","smr","ref",2004,"all fish","diversity",1.3041,0.4376,3
+"kelp","kelp forest-fish","south","north islands","anacapa island smca","smca","ref",2009,"all fish","diversity",1.5623,0.4392,6
+"deep_reef","deep-reef","south","north islands","harris point smr","smr","ref",2006,"all fish","diversity",0.991048,0.439678,8
+"deep_reef","deep-reef","south","north islands","harris point smr","smr","ref",2019,"all fish","diversity",1.311284,0.440277,9
+"kelp","kelp forest-fish","south","south","blue cavern onshore smca","smr","smr",2020,"all fish","diversity",1.188,0.4403,2
+"kelp","kelp forest-fish","central","central","point lobos smr","smr","smr",2015,"all fish","diversity",1.4277,0.4417,6
+"deep_reef","deep-reef","south","north islands","south point smr","smr","ref",2006,"all fish","diversity",1.289116,0.442573,10
+"kelp","kelp forest-fish","north","north","point cabrillo smr","smr","smr",2018,"all fish","diversity",0.851,0.4431,3
+"deep_reef","deep-reef","south","south","campus point smca","smr","ref",2019,"all fish","diversity",0.793563,0.444625,2
+"deep_reef","deep-reef","north","north","bodega head smca","smca","ref",2015,"all fish","diversity",1.098256,0.444769,14
+"deep_reef","deep-reef","north","north","bodega head smr","smr","ref",2015,"all fish","diversity",1.098256,0.444769,14
+"kelp","kelp forest-fish","south","north islands","gull island smr","smr","smr",2008,"all fish","diversity",1.7422,0.445,2
+"deep_reef","deep-reef","central","central","point lobos smr","smr","smr",2007,"all fish","diversity",0.324881,0.445244,11
+"kelp","kelp forest-fish","south","south","campus point smca","smr","smr",2013,"all fish","diversity",1.9731,0.4467,2
+"kelp","kelp forest-fish","central","central","pacific grove marine gardens smca","smca","smca",2012,"all fish","diversity",1.5093,0.4473,4
+"kelp","kelp forest-fish","central","central","lovers point - julia platt smr","smr","smr",2011,"all fish","diversity",1.9035,0.4479,4
+"deep_reef","deep-reef","south","north islands","carrington point smr","smr","smr",2009,"all fish","diversity",1.085712,0.448746,4
+"deep_reef","deep-reef","south","north islands","harris point smr","smr","smr",2019,"all fish","diversity",1.622181,0.450887,14
+"deep_reef","deep-reef","south","north islands","south point smr","smr","smr",2019,"all fish","diversity",1.49094,0.451135,13
+"kelp","kelp forest-fish","south","north islands","anacapa island smr","smr","smr",2000,"all fish","diversity",1.0783,0.4524,5
+"kelp","kelp forest-fish","south","north islands","south point smr","smr","smr",2010,"all fish","diversity",2.0395,0.4527,2
+"deep_reef","deep-reef","north","north","southeast farallon island smr","smr","smr",2019,"all fish","diversity",1.466705,0.452758,4
+"kelp","kelp forest-fish","north","north","stewarts point smr","smr","ref",2017,"all fish","diversity",1.4038,0.4528,4
+"deep_reef","deep-reef","south","north islands","gull island smr","smr","smr",2009,"all fish","diversity",0.635786,0.452886,19
+"kelp","kelp forest-fish","south","north islands","gull island smr","smr","smr",2011,"all fish","diversity",2.2958,0.453,2
+"kelp","kelp forest-fish","central","central","big creek smr","smr","ref",2003,"all fish","diversity",1.6323,0.4534,9
+"deep_reef","deep-reef","central","central","point buchon smr","smr","smr",2009,"all fish","diversity",1.547271,0.45371,6
+"kelp","kelp forest-fish","central","central","white rock smca","smr","ref",2009,"all fish","diversity",1.267,0.4539,4
+"kelp","kelp forest-fish","south","north islands","scorpion smr","smr","ref",2014,"all fish","diversity",1.7549,0.4542,6
+"deep_reef","deep-reef","south","north islands","carrington point smr","smr","smr",2014,"all fish","diversity",1.231405,0.455323,7
+"deep_reef","deep-reef","south","south","campus point smca","smr","smr",2014,"all fish","diversity",0.299108,0.456257,8
+"deep_reef","deep-reef","central","central","point lobos smr","smr","ref",2008,"all fish","diversity",0.835929,0.456594,12
+"kelp","kelp forest-fish","south","north islands","south point smr","smr","ref",2007,"all fish","diversity",1.7076,0.4566,11
+"kelp","kelp forest-fish","south","south","point dume smca","smr","ref",2008,"all fish","diversity",1.7138,0.4582,4
+"deep_reef","deep-reef","central","central","point buchon smr","smr","smr",2008,"all fish","diversity",0.825627,0.459059,10
+"kelp","kelp forest-fish","south","north islands","anacapa island smr","smr","smr",2006,"all fish","diversity",1.4938,0.4597,7
+"kelp","kelp forest-fish","north","north","del mar landing smr","smr","ref",2017,"all fish","diversity",1.3636,0.4598,2
+"kelp","kelp forest-fish","south","north islands","anacapa island smr","smr","ref",2009,"all fish","diversity",1.5218,0.4608,6
+"deep_reef","deep-reef","south","north islands","gull island smr","smr","smr",2019,"all fish","diversity",1.427449,0.463292,18
+"kelp","kelp forest-fish","central","central","cambria smca","smca","smca",2011,"all fish","diversity",2.0084,0.4633,2
+"kelp","kelp forest-fish","north","north","point cabrillo smr","smr","smr",2019,"all fish","diversity",0.7923,0.4636,3
+"deep_reef","deep-reef","south","north islands","south point smr","smr","smr",2015,"all fish","diversity",1.024165,0.464042,12
+"deep_reef","deep-reef","south","north islands","south point smr","smr","ref",2009,"all fish","diversity",0.755516,0.464231,7
+"kelp","kelp forest-fish","south","north islands","gull island smr","smr","ref",2018,"all fish","diversity",2.0911,0.4644,2
+"kelp","kelp forest-fish","south","north islands","carrington point smr","smr","ref",2005,"all fish","diversity",1.999,0.4646,2
+"kelp","kelp forest-fish","central","central","carmel bay smca","smca","ref",2002,"all fish","diversity",1.0184,0.4648,2
+"kelp","kelp forest-fish","south","north islands","painted cave smca","smca","ref",2000,"all fish","diversity",1.8703,0.4648,3
+"deep_reef","deep-reef","south","north islands","harris point smr","smr","smr",2015,"all fish","diversity",1.151119,0.467287,14
+"ccfrp","ccfrp","south","north islands","anacapa island smr","smr","ref",2020,"all fish","diversity",1.115016,0.46759,12
+"kelp","kelp forest-fish","central","central","point buchon smr","smr","smr",2017,"all fish","diversity",1.1125,0.4696,4
+"ccfrp","ccfrp","south","south","swami's smca","smr","ref",2017,"all fish","diversity",1.098624,0.469687,12
+"kelp","kelp forest-fish","central","central","point sur smr","smr","ref",2020,"all fish","diversity",1.6698,0.4698,2
+"deep_reef","deep-reef","central","central","point buchon smr","smr","ref",2008,"all fish","diversity",1.264751,0.47067,9
+"deep_reef","deep-reef","south","north islands","carrington point smr","smr","smr",2005,"all fish","diversity",1.127813,0.471257,5
+"kelp","kelp forest-fish","south","north islands","anacapa island smr","smr","smr",2005,"all fish","diversity",1.595,0.4742,6
+"kelp","kelp forest-fish","south","north islands","anacapa island smr","smr","smr",2009,"all fish","diversity",1.5014,0.4747,7
+"kelp","kelp forest-fish","central","central","point lobos smr","smr","smr",2006,"all fish","diversity",1.5647,0.4795,6
+"kelp","kelp forest-fish","south","south","naples smca","smca","smca",2003,"all fish","diversity",2.0759,0.4796,2
+"kelp","kelp forest-fish","north","north","double cone rock smca","smca","smca",2015,"all fish","diversity",1.1235,0.4816,2
+"kelp","kelp forest-fish","central","central","cambria smca","smca","smca",2006,"all fish","diversity",1.48,0.4818,2
+"kelp","kelp forest-fish","south","north islands","santa barbara island smr","smr","ref",2007,"all fish","diversity",0.9151,0.4827,8
+"deep_reef","deep-reef","central","central","point lobos smr","smr","smr",2008,"all fish","diversity",0.828638,0.482968,19
+"kelp","kelp forest-fish","central","central","natural bridges smr","smr","ref",2006,"all fish","diversity",1.6566,0.4834,2
+"kelp","kelp forest-fish","central","central","lovers point - julia platt smr","smr","smr",2005,"all fish","diversity",2.0883,0.4839,2
+"kelp","kelp forest-fish","south","north islands","south point smr","smr","smr",2007,"all fish","diversity",1.8907,0.4853,6
+"deep_reef","deep-reef","south","north islands","anacapa island smr","smr","smr",2015,"all fish","diversity",0.829322,0.485324,11
+"kelp","kelp forest-fish","north","north","saunders reef smca","smca","smca",2011,"all fish","diversity",1.5352,0.4867,4
+"kelp","kelp forest-fish","central","central","piedras blancas smr","smr","ref",2007,"all fish","diversity",1.8477,0.4875,5
+"deep_reef","deep-reef","central","central","point lobos smr","smr","smr",2019,"all fish","diversity",1.353413,0.488522,13
+"deep_reef","deep-reef","north","north","bodega head smca","smca","smca",2015,"all fish","diversity",1.150965,0.489939,18
+"deep_reef","deep-reef","south","north islands","carrington point smr","smr","ref",2009,"all fish","diversity",0.246042,0.492084,4
+"kelp","kelp forest-fish","south","north islands","anacapa island smr","smr","smr",2012,"all fish","diversity",1.9235,0.4922,7
+"deep_reef","deep-reef","central","central","point sur smca","smr","ref",2008,"all fish","diversity",0.879234,0.492798,6
+"kelp","kelp forest-fish","central","central","lovers point - julia platt smr","smr","smr",2002,"all fish","diversity",1.7513,0.4941,2
+"kelp","kelp forest-fish","central","central","carmel bay smca","smca","ref",2011,"all fish","diversity",1.4605,0.4954,4
+"deep_reef","deep-reef","central","central","big creek smr","smr","ref",2016,"all fish","diversity",1.358649,0.497778,20
+"deep_reef","deep-reef","north","north","ten mile smr","smr","smr",2014,"all fish","diversity",1.023423,0.499355,6
+"deep_reef","deep-reef","south","north islands","carrington point smr","smr","smr",2007,"all fish","diversity",0.828438,0.49945,6
+"deep_reef","deep-reef","south","north islands","harris point smr","smr","ref",2020,"all fish","diversity",1.487382,0.500036,13
+"deep_reef","deep-reef","central","central","point lobos smr","smr","smr",2016,"all fish","diversity",1.233683,0.501883,15
+"kelp","kelp forest-fish","south","north islands","south point smr","smr","ref",2009,"all fish","diversity",1.8136,0.5045,10
+"kelp","kelp forest-fish","south","north islands","scorpion smr","smr","ref",2009,"all fish","diversity",1.5724,0.5068,10
+"kelp","kelp forest-fish","central","central","point sur smr","smr","ref",2019,"all fish","diversity",1.4408,0.5074,2
+"kelp","kelp forest-fish","central","central","big creek smr","smr","smr",2008,"all fish","diversity",2.0437,0.5077,4
+"deep_reef","deep-reef","south","north islands","anacapa island smr","smr","smr",2008,"all fish","diversity",0.58462,0.509113,8
+"kelp","kelp forest-fish","central","central","asilomar smr","smr","ref",2008,"all fish","diversity",1.7202,0.5147,4
+"deep_reef","deep-reef","central","central","piedras blancas smr","smr","smr",2016,"all fish","diversity",0.782191,0.515212,3
+"deep_reef","deep-reef","north","north","southeast farallon island smca","smr","ref",2020,"all fish","diversity",1.142007,0.518183,7
+"deep_reef","deep-reef","north","north","southeast farallon island smr","smr","ref",2020,"all fish","diversity",1.142007,0.518183,7
+"kelp","kelp forest-fish","south","north islands","gull island smr","smr","smr",2014,"all fish","diversity",1.4813,0.5193,2
+"deep_reef","deep-reef","south","north islands","south point smr","smr","smr",2020,"all fish","diversity",1.416084,0.520632,15
+"deep_reef","deep-reef","south","north islands","anacapa island smr","smr","smr",2009,"all fish","diversity",0.407483,0.521714,7
+"kelp","kelp forest-fish","south","north islands","anacapa island smca","smca","ref",2006,"all fish","diversity",1.6502,0.5228,6
+"kelp","kelp forest-fish","south","south","naples smca","smca","smca",2009,"all fish","diversity",1.7548,0.5228,3
+"ccfrp","ccfrp","south","south","swami's smca","smr","ref",2019,"all fish","diversity",0.868174,0.523955,12
+"kelp","kelp forest-fish","south","north islands","harris point smr","smr","smr",2007,"all fish","diversity",1.6794,0.5259,2
+"kelp","kelp forest-fish","central","central","asilomar smr","smr","smr",2007,"all fish","diversity",1.7138,0.5268,4
+"deep_reef","deep-reef","south","north islands","south point smr","smr","smr",2009,"all fish","diversity",0.943498,0.526939,17
+"kelp","kelp forest-fish","south","north islands","south point smr","smr","ref",2015,"all fish","diversity",1.6571,0.5278,4
+"kelp","kelp forest-fish","south","north islands","anacapa island smr","smr","smr",2003,"all fish","diversity",1.4302,0.5279,6
+"deep_reef","deep-reef","south","south","swami's smca","smca","ref",2014,"all fish","diversity",0.726794,0.528075,14
+"deep_reef","deep-reef","south","north islands","anacapa island smr","smr","smr",2020,"all fish","diversity",1.267826,0.529986,13
+"kelp","kelp forest-fish","south","north islands","harris point smr","smr","ref",2019,"all fish","diversity",1.4299,0.5303,2
+"deep_reef","deep-reef","central","central","point lobos smr","smr","smr",2009,"all fish","diversity",0.707399,0.530543,14
+"kelp","kelp forest-fish","south","south","point vicente smca","smr","ref",2008,"all fish","diversity",1.5554,0.5318,5
+"deep_reef","deep-reef","north","north","reading rock smr","smr","ref",2015,"all fish","diversity",1.60645,0.531807,7
+"deep_reef","deep-reef","north","north","southeast farallon island smr","smr","ref",2011,"all fish","diversity",0.649824,0.532465,8
+"deep_reef","deep-reef","central","central","point sur smca","smr","smr",2012,"all fish","diversity",1.246106,0.532585,10
+"deep_reef","deep-reef","central","central","portuguese ledge smca","smr","ref",2019,"all fish","diversity",1.361421,0.532641,5
+"kelp","kelp forest-fish","south","north islands","anacapa island smr","smr","smr",2013,"all fish","diversity",1.6067,0.5348,6
+"kelp","kelp forest-fish","south","north islands","harris point smr","smr","ref",2018,"all fish","diversity",1.7134,0.5352,2
+"kelp","kelp forest-fish","central","central","cambria smca","smca","ref",2003,"all fish","diversity",1.7912,0.5356,2
+"kelp","kelp forest-fish","south","north islands","santa barbara island smr","smr","smr",2005,"all fish","diversity",1.1989,0.5358,5
+"kelp","kelp forest-fish","central","central","point sur smr","smr","smr",2008,"all fish","diversity",1.7496,0.5364,4
+"deep_reef","deep-reef","north","north","bodega head smr","smr","smr",2020,"all fish","diversity",1.642473,0.53641,8
+"kelp","kelp forest-fish","central","central","white rock smca","smr","ref",2007,"all fish","diversity",1.4314,0.5365,4
+"kelp","kelp forest-fish","north","north","stewarts point smr","smr","smr",2017,"all fish","diversity",1.3381,0.5384,4
+"deep_reef","deep-reef","south","south","south la jolla smca","smca","ref",2014,"all fish","diversity",1.08604,0.538715,14
+"deep_reef","deep-reef","north","north","sea lion gulch smr","smr","ref",2020,"all fish","diversity",1.383566,0.538911,6
+"deep_reef","deep-reef","south","north islands","gull island smr","smr","smr",2020,"all fish","diversity",1.317746,0.539271,18
+"kelp","kelp forest-fish","central","central","carmel bay smca","smca","smca",2011,"all fish","diversity",1.6388,0.5397,4
+"kelp","kelp forest-fish","central","central","carmel bay smca","smca","ref",2009,"all fish","diversity",1.671,0.5466,2
+"deep_reef","deep-reef","south","north islands","gull island smr","smr","smr",2015,"all fish","diversity",1.000456,0.549011,21
+"deep_reef","deep-reef","south","south","campus point smca","smr","ref",2014,"all fish","diversity",0.274653,0.549306,4
+"kelp","kelp forest-fish","central","central","big creek smr","smr","smr",2006,"all fish","diversity",1.8651,0.5494,2
+"kelp","kelp forest-fish","south","north islands","harris point smr","smr","ref",2006,"all fish","diversity",1.6875,0.5499,6
+"deep_reef","deep-reef","north","north","bodega head smca","smca","ref",2011,"all fish","diversity",0.906215,0.551848,9
+"deep_reef","deep-reef","north","north","bodega head smr","smr","ref",2011,"all fish","diversity",0.906215,0.551848,9
+"kelp","kelp forest-fish","central","central","point buchon smr","smr","smr",2010,"all fish","diversity",1.6859,0.5527,2
+"deep_reef","deep-reef","south","north islands","carrington point smr","smr","ref",2007,"all fish","diversity",0.834932,0.554313,5
+"deep_reef","deep-reef","north","north","sea lion gulch smr","smr","smr",2015,"all fish","diversity",1.531307,0.55837,6
+"deep_reef","deep-reef","south","north islands","carrington point smr","smr","ref",2005,"all fish","diversity",0.838577,0.558421,6
+"deep_reef","deep-reef","central","central","point sur smr","smr","smr",2008,"all fish","diversity",0.306143,0.559013,6
+"deep_reef","deep-reef","central","central","montara smr","smr","smr",2015,"all fish","diversity",1.303999,0.559679,3
+"kelp","kelp forest-fish","south","north islands","harris point smr","smr","ref",2012,"all fish","diversity",1.4704,0.5631,6
+"deep_reef","deep-reef","central","central","big creek smr","smr","smr",2020,"all fish","diversity",0.39272,0.565131,3
+"deep_reef","deep-reef","south","north islands","south point smr","smr","smr",2014,"all fish","diversity",1.356243,0.565571,12
+"kelp","kelp forest-fish","central","central","point sur smr","smr","smr",2003,"all fish","diversity",1.7699,0.5687,2
+"kelp","kelp forest-fish","south","north islands","harris point smr","smr","ref",2008,"all fish","diversity",1.5418,0.5695,6
+"deep_reef","deep-reef","central","central","point sur smr","smr","smr",2016,"all fish","diversity",1.219494,0.570333,3
+"deep_reef","deep-reef","south","south","south la jolla smca","smca","smca",2014,"all fish","diversity",1.090917,0.57172,7
+"deep_reef","deep-reef","south","north islands","gull island smr","smr","smr",2014,"all fish","diversity",1.077463,0.573294,21
+"deep_reef","deep-reef","central","central","point sur smca","smr","smr",2016,"all fish","diversity",0.951023,0.574004,11
+"deep_reef","deep-reef","south","south","farnsworth onshore smca","smr","ref",2020,"all fish","diversity",1.505615,0.574506,15
+"deep_reef","deep-reef","south","south","swami's smca","smca","ref",2020,"all fish","diversity",1.327951,0.574555,7
+"kelp","kelp forest-fish","north","north","stewarts point smr","smr","ref",2011,"all fish","diversity",1.6798,0.5771,4
+"deep_reef","deep-reef","south","north islands","anacapa island smr","smr","smr",2005,"all fish","diversity",0.415803,0.577275,12
+"kelp","kelp forest-fish","south","north islands","south point smr","smr","smr",2017,"all fish","diversity",1.8816,0.5839,2
+"kelp","kelp forest-fish","south","north islands","anacapa island smr","smr","smr",2004,"all fish","diversity",1.5642,0.5853,6
+"deep_reef","deep-reef","south","north islands","harris point smr","smr","ref",2015,"all fish","diversity",1.353494,0.586031,9
+"deep_reef","deep-reef","south","north islands","anacapa island smr","smr","smr",2014,"all fish","diversity",0.622587,0.590287,23
+"ccfrp","ccfrp","south","south","swami's smca","smr","ref",2018,"all fish","diversity",1.061362,0.595226,12
+"deep_reef","deep-reef","central","central","point sur smca","smr","smr",2019,"all fish","diversity",1.202537,0.595245,10
+"deep_reef","deep-reef","central","central","ano nuevo smr","smr","ref",2019,"all fish","diversity",1.79612,0.595398,4
+"deep_reef","deep-reef","south","north islands","anacapa island smr","smr","smr",2006,"all fish","diversity",0.410871,0.595899,9
+"kelp","kelp forest-fish","central","central","lovers point - julia platt smr","smr","smr",2007,"all fish","diversity",1.9418,0.5964,4
+"deep_reef","deep-reef","north","north","point arena smr","smr","smr",2015,"all fish","diversity",0.89882,0.597554,7
+"deep_reef","deep-reef","north","north","bodega head smr","smr","smr",2015,"all fish","diversity",0.910179,0.59818,8
+"deep_reef","deep-reef","north","north","southeast farallon island smr","smr","ref",2019,"all fish","diversity",1.061738,0.60213,12
+"kelp","kelp forest-fish","south","south","campus point smca","smr","ref",2015,"all fish","diversity",1.793,0.6074,2
+"kelp","kelp forest-fish","south","south","naples smca","smca","ref",2015,"all fish","diversity",1.793,0.6074,2
+"kelp","kelp forest-fish","central","central","vandenberg smr","smr","smr",2000,"all fish","diversity",1.803,0.6094,2
+"kelp","kelp forest-fish","central","central","carmel pinnacles smr","smr","smr",2011,"all fish","diversity",1.3901,0.6107,2
+"kelp","kelp forest-fish","central","central","carmel bay smca","smca","smca",2007,"all fish","diversity",1.6207,0.6111,4
+"deep_reef","deep-reef","south","south","farnsworth onshore smca","smr","smr",2020,"all fish","diversity",1.462071,0.611613,10
+"kelp","kelp forest-fish","central","central","point buchon smr","smr","ref",2011,"all fish","diversity",1.7997,0.614,4
+"deep_reef","deep-reef","central","central","point buchon smr","smr","smr",2012,"all fish","diversity",1.093282,0.616194,21
+"deep_reef","deep-reef","central","central","point sur smr","smr","ref",2008,"all fish","diversity",0.756974,0.616271,4
+"deep_reef","deep-reef","central","central","point buchon smr","smr","smr",2019,"all fish","diversity",1.678378,0.618402,5
+"deep_reef","deep-reef","south","north islands","harris point smr","smr","ref",2008,"all fish","diversity",1.004722,0.620955,8
+"deep_reef","deep-reef","south","south","swami's smca","smca","smca",2014,"all fish","diversity",0.720664,0.62283,6
+"deep_reef","deep-reef","south","north islands","gull island smr","smr","ref",2020,"all fish","diversity",0.716383,0.623131,3
+"deep_reef","deep-reef","south","south","swami's smca","smca","smca",2020,"all fish","diversity",0.838069,0.623146,5
+"kelp","kelp forest-fish","north","north","saunders reef smca","smca","ref",2019,"all fish","diversity",1.339,0.6249,2
+"deep_reef","deep-reef","south","south","farnsworth onshore smca","smr","ref",2014,"all fish","diversity",0.763613,0.627695,14
+"kelp","kelp forest-fish","south","north islands","south point smr","smr","ref",2011,"all fish","diversity",1.8727,0.6281,4
+"kelp","kelp forest-fish","north","north","salt point smca","smca","ref",2017,"all fish","diversity",1.444,0.6302,2
+"deep_reef","deep-reef","north","north","bodega head smca","smca","smca",2019,"all fish","diversity",1.705987,0.630514,10
+"kelp","kelp forest-fish","south","north islands","harris point smr","smr","ref",2011,"all fish","diversity",1.6847,0.6325,6
+"deep_reef","deep-reef","south","north islands","gull island smr","smr","ref",2008,"all fish","diversity",0.532981,0.633111,4
+"deep_reef","deep-reef","north","north","bodega head smca","smca","smca",2020,"all fish","diversity",1.571278,0.633156,17
+"kelp","kelp forest-fish","south","south","blue cavern onshore smca","smr","ref",2019,"all fish","diversity",0.7963,0.637,2
+"deep_reef","deep-reef","south","south","farnsworth onshore smca","smr","smr",2014,"all fish","diversity",1.304217,0.637582,10
+"deep_reef","deep-reef","central","central","point buchon smr","smr","ref",2009,"all fish","diversity",1.336688,0.638772,7
+"deep_reef","deep-reef","south","north islands","gull island smr","smr","ref",2019,"all fish","diversity",0.648048,0.639843,7
+"deep_reef","deep-reef","north","north","point arena smr","smr","ref",2015,"all fish","diversity",1.142036,0.643627,7
+"kelp","kelp forest-fish","south","south","point conception smr","smr","ref",2012,"all fish","diversity",1.6955,0.651,2
+"kelp","kelp forest-fish","south","south","point vicente smca","smr","smr",2013,"all fish","diversity",1.8771,0.6524,2
+"deep_reef","deep-reef","south","north islands","carrington point smr","smr","smr",2020,"all fish","diversity",1.467662,0.660338,19
+"kelp","kelp forest-fish","south","south","blue cavern onshore smca","smr","ref",2020,"all fish","diversity",0.6308,0.6629,2
+"kelp","kelp forest-fish","south","north islands","santa barbara island smr","smr","smr",2011,"all fish","diversity",1.4074,0.6642,2
+"kelp","kelp forest-fish","south","north islands","south point smr","smr","ref",2012,"all fish","diversity",1.6843,0.677,4
+"deep_reef","deep-reef","south","south","south la jolla smr","smr","smr",2014,"all fish","diversity",0.692635,0.693148,3
+"kelp","kelp forest-fish","south","south","point vicente smca","smr","smr",2020,"all fish","diversity",1.8177,0.6961,2
+"kelp","kelp forest-fish","north","north","stewarts point smca","smr","smr",2017,"all fish","diversity",1.0385,0.6986,2
+"deep_reef","deep-reef","north","north","point arena smca","smr","ref",2020,"all fish","diversity",1.184286,0.706968,5
+"deep_reef","deep-reef","north","north","point arena smr","smr","ref",2020,"all fish","diversity",1.184286,0.706968,5
+"kelp","kelp forest-fish","south","north islands","gull island smr","smr","smr",2007,"all fish","diversity",1.7648,0.7076,2
+"kelp","kelp forest-fish","central","central","point sur smr","smr","smr",2016,"all fish","diversity",1.1241,0.7156,2
+"deep_reef","deep-reef","south","north islands","south point smr","smr","ref",2019,"all fish","diversity",1.145987,0.720307,10
+"deep_reef","deep-reef","south","south","campus point smca","smr","smr",2019,"all fish","diversity",0.852795,0.730163,4
+"deep_reef","deep-reef","north","north","southeast farallon island smr","smr","ref",2015,"all fish","diversity",1.145517,0.742864,8
+"kelp","kelp forest-fish","south","north islands","gull island smr","smr","smr",2012,"all fish","diversity",1.5801,0.743,2
+"deep_reef","deep-reef","south","south","south la jolla smr","smr","smr",2020,"all fish","diversity",1.284588,0.746749,5
+"deep_reef","deep-reef","south","south","point conception smr","smr","smr",2014,"all fish","diversity",0.675349,0.747727,6
+"kelp","kelp forest-fish","central","central","vandenberg smr","smr","ref",2011,"all fish","diversity",1.7296,0.7519,2
+"deep_reef","deep-reef","central","central","ano nuevo smr","smr","smr",2015,"all fish","diversity",0.899225,0.75534,4
+"kelp","kelp forest-fish","central","central","lovers point - julia platt smr","smr","smr",2017,"all fish","diversity",1.2359,0.7624,4
+"kelp","kelp forest-fish","central","central","vandenberg smr","smr","smr",2002,"all fish","diversity",1.5431,0.7714,2
+"kelp","kelp forest-fish","south","north islands","santa barbara island smr","smr","ref",2019,"all fish","diversity",1.3248,0.7727,2
+"kelp","kelp forest-fish","south","north islands","harris point smr","smr","ref",2007,"all fish","diversity",1.4134,0.7758,6
+"kelp","kelp forest-fish","central","central","natural bridges smr","smr","smr",2009,"all fish","diversity",1.9107,0.7823,2
+"deep_reef","deep-reef","south","north islands","gull island smr","smr","ref",2014,"all fish","diversity",0.570815,0.793398,9
+"deep_reef","deep-reef","south","north islands","anacapa island smr","smr","smr",2019,"all fish","diversity",0.952371,0.800529,10
+"kelp","kelp forest-fish","central","central","vandenberg smr","smr","ref",2003,"all fish","diversity",1.474,0.8031,4
+"kelp","kelp forest-fish","central","central","white rock smca","smr","ref",2006,"all fish","diversity",1.0063,0.8191,2
+"kelp","kelp forest-fish","central","central","vandenberg smr","smr","ref",1999,"all fish","diversity",1.3535,0.8322,6
+"deep_reef","deep-reef","south","north islands","carrington point smr","smr","smr",2019,"all fish","diversity",1.218632,0.843309,7
+"kelp","kelp forest-fish","central","central","point buchon smr","smr","ref",2010,"all fish","diversity",1.6051,0.8491,2
+"deep_reef","deep-reef","south","south","point conception smr","smr","smr",2019,"all fish","diversity",0.92751,0.859523,8
+"deep_reef","deep-reef","central","central","portuguese ledge smca","smr","ref",2016,"all fish","diversity",1.431661,0.882096,5
+"kelp","kelp forest-fish","central","central","carmel bay smca","smca","ref",2001,"all fish","diversity",1.3027,0.907,2
+"kelp","kelp forest-fish","south","south","blue cavern onshore smca","smr","smr",2011,"all fish","diversity",1.3458,0.9142,2
+"kelp","kelp forest-fish","central","central","vandenberg smr","smr","ref",2001,"all fish","diversity",1.0329,0.9458,3
+"kelp","kelp forest-fish","central","central","point sur smr","smr","smr",2005,"all fish","diversity",1.1591,0.9644,2
+"kelp","kelp forest-fish","central","central","point buchon smr","smr","ref",2007,"all fish","diversity",1.4997,0.9776,2
+"kelp","kelp forest-fish","south","north islands","harris point smr","smr","ref",2014,"all fish","diversity",1.5385,1.0227,2
+"deep_reef","deep-reef","central","central","ano nuevo smr","smr","smr",2019,"all fish","diversity",1.193139,1.047307,3
+"kelp","kelp forest-fish","south","south","campus point smca","smr","ref",2009,"all fish","diversity",1.299,1.0904,4
+"kelp","kelp forest-fish","south","south","point vicente smca","smr","ref",2018,"all fish","diversity",1.5152,1.0963,2
+"kelp","kelp forest-fish","south","north islands","south point smr","smr","smr",2018,"all fish","diversity",1.4694,1.1936,2
+"kelp","kelp forest-fish","central","central","vandenberg smr","smr","ref",2007,"all fish","diversity",1.4573,1.2224,2
+"kelp","kelp forest-fish","central","central","lovers point - julia platt smr","smr","ref",2005,"all fish","diversity",1.4186,1.2736,2
+"kelp","kelp forest-fish","south","north islands","gull island smr","smr","ref",2001,"all fish","diversity",1.4437,1.2915,2
+"kelp","kelp forest-fish","central","central","white rock smca","smr","ref",2004,"all fish","diversity",1.1477,1.3069,2
+"deep_reef","deep-reef","central","central","pillar point smca","smca","smca",2020,"all fish","diversity",0,NA,1
+"kelp","kelp forest-fish","north","north","pyramid point smca","smca","ref",2018,"all fish","diversity",0.0683,NA,1
+"deep_reef","deep-reef","south","north islands","gull island smr","smr","ref",2005,"all fish","diversity",0.130673,NA,1
+"kelp","kelp forest-fish","south","south","lover's cove smca","smca","ref",2008,"all fish","diversity",0.1653,NA,1
+"kelp","kelp forest-fish","south","north islands","santa barbara island smr","smr","ref",2013,"all fish","diversity",0.2575,NA,1
+"deep_reef","deep-reef","south","north islands","anacapa island smca","smca","smca",2009,"all fish","diversity",0.357882,NA,1
+"kelp","kelp forest-fish","central","central","natural bridges smr","smr","smr",2007,"all fish","diversity",0.3768,NA,1
+"kelp","kelp forest-fish","north","north","sea lion cove smca","smca","ref",2010,"all fish","diversity",0.4613,NA,1
+"deep_reef","deep-reef","south","north islands","anacapa island smca","smca","smca",2008,"all fish","diversity",0.48775,NA,1
+"kelp","kelp forest-fish","north","north","point cabrillo smr","smr","smr",2020,"all fish","diversity",0.5403,NA,1
+"kelp","kelp forest-fish","south","south","lover's cove smca","smca","ref",2004,"all fish","diversity",0.6029,NA,1
+"kelp","kelp forest-fish","north","north","point arena smr","smr","ref",2010,"all fish","diversity",0.6365,NA,1
+"kelp","kelp forest-fish","south","south","point conception smr","smr","smr",2012,"all fish","diversity",0.6688,NA,1
+"kelp","kelp forest-fish","south","south","blue cavern onshore smca","smr","ref",2008,"all fish","diversity",0.6752,NA,1
+"kelp","kelp forest-fish","south","south","long point smr","smr","smr",2012,"all fish","diversity",0.6909,NA,1
+"kelp","kelp forest-fish","south","south","abalone cove smca","smr","ref",2014,"all fish","diversity",0.7035,NA,1
+"kelp","kelp forest-fish","south","south","crystal cove smca","smca","ref",2019,"all fish","diversity",0.7412,NA,1
+"kelp","kelp forest-fish","south","south","blue cavern onshore smca","smr","ref",2004,"all fish","diversity",0.7808,NA,1
+"kelp","kelp forest-fish","south","north islands","santa barbara island smr","smr","smr",2004,"all fish","diversity",0.7829,NA,1
+"kelp","kelp forest-fish","south","south","blue cavern onshore smca","smr","smr",2004,"all fish","diversity",0.7956,NA,1
+"kelp","kelp forest-fish","south","south","cat harbor smca","smca","smca",2004,"all fish","diversity",0.8042,NA,1
+"kelp","kelp forest-fish","south","south","long point smr","smr","ref",2019,"all fish","diversity",0.8048,NA,1
+"kelp","kelp forest-fish","south","south","arrow point to lion head point smca",NA,NA,2020,"all fish","diversity",0.8187,NA,1
+"kelp","kelp forest-fish","south","south","blue cavern onshore smca","smr","ref",2013,"all fish","diversity",0.854,NA,1
+"kelp","kelp forest-fish","north","north","saunders reef smca","smca","ref",2020,"all fish","diversity",0.8765,NA,1
+"kelp","kelp forest-fish","south","south","point dume smr","smr","ref",2019,"all fish","diversity",0.9773,NA,1
+"kelp","kelp forest-fish","south","south","point dume smr","smr","ref",2004,"all fish","diversity",0.978,NA,1
+"kelp","kelp forest-fish","south","south","long point smr","smr","smr",2011,"all fish","diversity",0.9842,NA,1
+"kelp","kelp forest-fish","south","south","abalone cove smca","smr","smr",2019,"all fish","diversity",1.0125,NA,1
+"kelp","kelp forest-fish","south","north islands","scorpion smr","smr","smr",2004,"all fish","diversity",1.0755,NA,1
+"kelp","kelp forest-fish","south","south","cat harbor smca","smca","ref",2020,"all fish","diversity",1.09,NA,1
+"kelp","kelp forest-fish","south","south","matlahuayl smr","smr","ref",2011,"all fish","diversity",1.1224,NA,1
+"kelp","kelp forest-fish","south","south","abalone cove smca","smr","smr",2017,"all fish","diversity",1.132,NA,1
+"kelp","kelp forest-fish","south","south","arrow point to lion head point smca",NA,"ref",2005,"all fish","diversity",1.1531,NA,1
+"deep_reef","deep-reef","south","north islands","gull island smr","smr","ref",2006,"all fish","diversity",1.153272,NA,1
+"kelp","kelp forest-fish","south","south","crystal cove smca","smca","smca",2019,"all fish","diversity",1.1545,NA,1
+"kelp","kelp forest-fish","central","central","big creek smr","smr","ref",2015,"all fish","diversity",1.1565,NA,1
+"kelp","kelp forest-fish","south","south","cat harbor smca","smca","ref",2011,"all fish","diversity",1.1573,NA,1
+"kelp","kelp forest-fish","south","south","point conception smr","smr","ref",2007,"all fish","diversity",1.158,NA,1
+"kelp","kelp forest-fish","south","south","cat harbor smca","smca","smca",2019,"all fish","diversity",1.1628,NA,1
+"kelp","kelp forest-fish","south","south","long point smr","smr","ref",2012,"all fish","diversity",1.1628,NA,1
+"kelp","kelp forest-fish","south","south","abalone cove smca","smr","ref",2015,"all fish","diversity",1.1706,NA,1
+"kelp","kelp forest-fish","south","south","point conception smr","smr","smr",2001,"all fish","diversity",1.1713,NA,1
+"kelp","kelp forest-fish","south","south","cat harbor smca","smca","smca",2005,"all fish","diversity",1.1794,NA,1
+"deep_reef","deep-reef","south","north islands","anacapa island smca","smca","smca",2015,"all fish","diversity",1.181475,NA,1
+"kelp","kelp forest-fish","south","south","matlahuayl smr","smr","ref",2012,"all fish","diversity",1.1857,NA,1
+"kelp","kelp forest-fish","central","central","natural bridges smr","smr","smr",2010,"all fish","diversity",1.1965,NA,1
+"kelp","kelp forest-fish","south","south","abalone cove smca","smr","smr",2018,"all fish","diversity",1.1979,NA,1
+"kelp","kelp forest-fish","south","south","long point smr","smr","ref",2011,"all fish","diversity",1.2238,NA,1
+"kelp","kelp forest-fish","south","north islands","begg rock smr","smr","smr",2009,"all fish","diversity",1.2254,NA,1
+"kelp","kelp forest-fish","north","north","sea lion cove smca","smca","ref",2011,"all fish","diversity",1.2258,NA,1
+"kelp","kelp forest-fish","south","south","cat harbor smca","smca","ref",2019,"all fish","diversity",1.2408,NA,1
+"kelp","kelp forest-fish","south","south","point conception smr","smr","ref",2008,"all fish","diversity",1.2555,NA,1
+"kelp","kelp forest-fish","south","south","blue cavern onshore smca","smr","ref",2011,"all fish","diversity",1.2582,NA,1
+"deep_reef","deep-reef","north","north","point st. george reef offshore smca","smca","ref",2015,"all fish","diversity",1.261726,NA,1
+"kelp","kelp forest-fish","south","south","point vicente smca","smr","smr",2007,"all fish","diversity",1.2704,NA,1
+"kelp","kelp forest-fish","south","north islands","begg rock smr","smr","ref",2013,"all fish","diversity",1.2728,NA,1
+"kelp","kelp forest-fish","north","north","van damme smca","smca","ref",2014,"all fish","diversity",1.2737,NA,1
+"kelp","kelp forest-fish","south","south","cat harbor smca","smca","smca",2020,"all fish","diversity",1.2789,NA,1
+"kelp","kelp forest-fish","south","south","point conception smr","smr","ref",2001,"all fish","diversity",1.2801,NA,1
+"kelp","kelp forest-fish","north","north","point arena smr","smr","smr",2010,"all fish","diversity",1.2841,NA,1
+"kelp","kelp forest-fish","south","south","south la jolla smr","smr","smr",2019,"all fish","diversity",1.2959,NA,1
+"kelp","kelp forest-fish","south","north islands","begg rock smr","smr","smr",2013,"all fish","diversity",1.2979,NA,1
+"kelp","kelp forest-fish","south","south","laguna beach smr","smr","smr",2012,"all fish","diversity",1.3148,NA,1
+"kelp","kelp forest-fish","south","south","south la jolla smr","smr","ref",2019,"all fish","diversity",1.3181,NA,1
+"kelp","kelp forest-fish","south","south","abalone cove smca","smr","smr",2014,"all fish","diversity",1.3251,NA,1
+"kelp","kelp forest-fish","south","south","arrow point to lion head point smca",NA,NA,2019,"all fish","diversity",1.3468,NA,1
+"kelp","kelp forest-fish","south","south","point conception smr","smr","smr",2007,"all fish","diversity",1.351,NA,1
+"kelp","kelp forest-fish","south","south","long point smr","smr","ref",2020,"all fish","diversity",1.3621,NA,1
+"kelp","kelp forest-fish","south","south","point vicente smca","smr","smr",2004,"all fish","diversity",1.3629,NA,1
+"kelp","kelp forest-fish","north","north","pyramid point smca","smca","ref",2019,"all fish","diversity",1.3662,NA,1
+"kelp","kelp forest-fish","north","north","sea lion cove smca","smca","smca",2010,"all fish","diversity",1.3665,NA,1
+"kelp","kelp forest-fish","south","south","arrow point to lion head point smca",NA,NA,2012,"all fish","diversity",1.3962,NA,1
+"kelp","kelp forest-fish","south","south","campus point smca","smr","smr",2015,"all fish","diversity",1.4181,NA,1
+"kelp","kelp forest-fish","south","south","swami's smca","smr","ref",2012,"all fish","diversity",1.4244,NA,1
+"kelp","kelp forest-fish","south","south","swami's smca","smr","ref",2020,"all fish","diversity",1.4256,NA,1
+"kelp","kelp forest-fish","south","south","abalone cove smca","smr","smr",2013,"all fish","diversity",1.4296,NA,1
+"kelp","kelp forest-fish","south","south","cat harbor smca","smca","ref",2012,"all fish","diversity",1.4335,NA,1
+"kelp","kelp forest-fish","south","south","swami's smca","smr","smr",2011,"all fish","diversity",1.4336,NA,1
+"kelp","kelp forest-fish","south","south","farnsworth onshore smca","smr","ref",2019,"all fish","diversity",1.4431,NA,1
+"kelp","kelp forest-fish","central","central","point lobos smr","smr","ref",2009,"all fish","diversity",1.454,NA,1
+"kelp","kelp forest-fish","south","south","campus point smca","smr","smr",2014,"all fish","diversity",1.4573,NA,1
+"kelp","kelp forest-fish","south","south","point dume smca","smr","smr",2019,"all fish","diversity",1.4621,NA,1
+"kelp","kelp forest-fish","south","south","dana point smca","smca","smca",2012,"all fish","diversity",1.4775,NA,1
+"kelp","kelp forest-fish","south","south","swami's smca","smr","smr",2020,"all fish","diversity",1.4821,NA,1
+"kelp","kelp forest-fish","south","south","arrow point to lion head point smca",NA,NA,2008,"all fish","diversity",1.501,NA,1
+"kelp","kelp forest-fish","south","south","point dume smca","smr","ref",2019,"all fish","diversity",1.532,NA,1
+"kelp","kelp forest-fish","north","north","ten mile smr","smr","smr",2017,"all fish","diversity",1.5438,NA,1
+"kelp","kelp forest-fish","south","south","point conception smr","smr","smr",2008,"all fish","diversity",1.5531,NA,1
+"kelp","kelp forest-fish","central","central","point sur smr","smr","ref",2018,"all fish","diversity",1.5533,NA,1
+"kelp","kelp forest-fish","south","south","point conception smr","smr","ref",1999,"all fish","diversity",1.5579,NA,1
+"kelp","kelp forest-fish","south","south","farnsworth onshore smca","smr","ref",2012,"all fish","diversity",1.5717,NA,1
+"kelp","kelp forest-fish","south","south","abalone cove smca","smr","ref",2018,"all fish","diversity",1.5736,NA,1
+"kelp","kelp forest-fish","south","south","crystal cove smca","smca","ref",2011,"all fish","diversity",1.5833,NA,1
+"kelp","kelp forest-fish","south","south","abalone cove smca","smr","smr",2015,"all fish","diversity",1.584,NA,1
+"kelp","kelp forest-fish","south","south","long point smr","smr","smr",2020,"all fish","diversity",1.6215,NA,1
+"kelp","kelp forest-fish","south","south","cat harbor smca","smca","ref",2008,"all fish","diversity",1.6307,NA,1
+"kelp","kelp forest-fish","south","south","point conception smr","smr","ref",2006,"all fish","diversity",1.6349,NA,1
+"kelp","kelp forest-fish","south","south","abalone cove smca","smr","ref",2007,"all fish","diversity",1.6416,NA,1
+"kelp","kelp forest-fish","south","south","point conception smr","smr","smr",2006,"all fish","diversity",1.6486,NA,1
+"kelp","kelp forest-fish","south","south","cat harbor smca","smca","ref",2004,"all fish","diversity",1.6638,NA,1
+"kelp","kelp forest-fish","south","south","lover's cove smca","smca","smca",2012,"all fish","diversity",1.6822,NA,1
+"kelp","kelp forest-fish","south","south","point conception smr","smr","smr",1999,"all fish","diversity",1.6973,NA,1
+"kelp","kelp forest-fish","south","south","matlahuayl smr","smr","smr",2011,"all fish","diversity",1.7027,NA,1
+"kelp","kelp forest-fish","south","south","abalone cove smca","smr","smr",2010,"all fish","diversity",1.7088,NA,1
+"kelp","kelp forest-fish","south","south","long point smr","smr","smr",2019,"all fish","diversity",1.7189,NA,1
+"kelp","kelp forest-fish","south","south","point conception smr","smr","smr",2002,"all fish","diversity",1.7375,NA,1
+"kelp","kelp forest-fish","south","south","crystal cove smca","smca","ref",2020,"all fish","diversity",1.7464,NA,1
+"kelp","kelp forest-fish","south","south","point conception smr","smr","ref",2013,"all fish","diversity",1.7642,NA,1
+"kelp","kelp forest-fish","central","central","point lobos smr","smr","ref",2015,"all fish","diversity",1.7741,NA,1
+"kelp","kelp forest-fish","south","north islands","carrington point smr","smr","ref",2003,"all fish","diversity",1.7949,NA,1
+"kelp","kelp forest-fish","south","south","point dume smca","smr","smr",2020,"all fish","diversity",1.7966,NA,1
+"kelp","kelp forest-fish","south","south","point dume smca","smr","ref",2020,"all fish","diversity",1.8039,NA,1
+"kelp","kelp forest-fish","south","south","matlahuayl smr","smr","ref",2019,"all fish","diversity",1.8071,NA,1
+"kelp","kelp forest-fish","north","north","sea lion cove smca","smca","smca",2011,"all fish","diversity",1.8079,NA,1
+"kelp","kelp forest-fish","south","south","matlahuayl smr","smr","smr",2020,"all fish","diversity",1.8105,NA,1
+"kelp","kelp forest-fish","south","south","swami's smca","smr","ref",2019,"all fish","diversity",1.812,NA,1
+"kelp","kelp forest-fish","south","south","point conception smr","smr","ref",2005,"all fish","diversity",1.8175,NA,1
+"kelp","kelp forest-fish","south","south","dana point smca","smca","smca",2011,"all fish","diversity",1.825,NA,1
+"kelp","kelp forest-fish","south","south","crystal cove smca","smca","smca",2020,"all fish","diversity",1.8401,NA,1
+"kelp","kelp forest-fish","south","south","abalone cove smca","smr","smr",2020,"all fish","diversity",1.8431,NA,1
+"kelp","kelp forest-fish","south","south","matlahuayl smr","smr","smr",2012,"all fish","diversity",1.8432,NA,1
+"kelp","kelp forest-fish","south","south","farnsworth onshore smca","smr","smr",2011,"all fish","diversity",1.8436,NA,1
+"kelp","kelp forest-fish","south","south","cabrillo smr","smr","smr",2012,"all fish","diversity",1.8567,NA,1
+"kelp","kelp forest-fish","south","south","farnsworth onshore smca","smr","smr",2012,"all fish","diversity",1.8588,NA,1
+"kelp","kelp forest-fish","south","south","abalone cove smca","smr","ref",2016,"all fish","diversity",1.8653,NA,1
+"kelp","kelp forest-fish","south","south","point conception smr","smr","ref",2002,"all fish","diversity",1.8692,NA,1
+"kelp","kelp forest-fish","south","south","point dume smr","smr","ref",2020,"all fish","diversity",1.8705,NA,1
+"kelp","kelp forest-fish","south","south","south la jolla smr","smr","smr",2012,"all fish","diversity",1.8714,NA,1
+"kelp","kelp forest-fish","south","south","point conception smr","smr","smr",2009,"all fish","diversity",1.8764,NA,1
+"kelp","kelp forest-fish","south","south","farnsworth onshore smca","smr","smr",2019,"all fish","diversity",1.9,NA,1
+"kelp","kelp forest-fish","south","south","arrow point to lion head point smca",NA,NA,2011,"all fish","diversity",1.9029,NA,1
+"kelp","kelp forest-fish","south","south","south la jolla smr","smr","smr",2011,"all fish","diversity",1.9072,NA,1
+"kelp","kelp forest-fish","south","south","dana point smca","smca","smca",2019,"all fish","diversity",1.9259,NA,1
+"kelp","kelp forest-fish","south","south","matlahuayl smr","smr","ref",2020,"all fish","diversity",1.9274,NA,1
+"kelp","kelp forest-fish","south","south","abalone cove smca","smr","ref",2020,"all fish","diversity",1.9283,NA,1
+"kelp","kelp forest-fish","south","south","south la jolla smr","smr","smr",2020,"all fish","diversity",1.9375,NA,1
+"kelp","kelp forest-fish","south","south","farnsworth onshore smca","smr","ref",2011,"all fish","diversity",1.949,NA,1
+"kelp","kelp forest-fish","south","south","point conception smr","smr","smr",2005,"all fish","diversity",1.9543,NA,1
+"kelp","kelp forest-fish","south","south","abalone cove smca","smr","smr",2012,"all fish","diversity",1.9564,NA,1
+"kelp","kelp forest-fish","south","south","point conception smr","smr","smr",2003,"all fish","diversity",1.9607,NA,1
+"kelp","kelp forest-fish","south","south","abalone cove smca","smr","smr",2016,"all fish","diversity",1.9715,NA,1
+"kelp","kelp forest-fish","south","north islands","painted cave smca","smca","ref",2001,"all fish","diversity",1.9723,NA,1
+"kelp","kelp forest-fish","south","south","south la jolla smr","smr","ref",2011,"all fish","diversity",1.9764,NA,1
+"kelp","kelp forest-fish","south","south","point conception smr","smr","smr",2011,"all fish","diversity",1.977,NA,1
+"kelp","kelp forest-fish","south","south","matlahuayl smr","smr","smr",2019,"all fish","diversity",1.9956,NA,1
+"kelp","kelp forest-fish","south","south","point conception smr","smr","ref",2004,"all fish","diversity",2.0018,NA,1
+"kelp","kelp forest-fish","south","south","crystal cove smca","smca","ref",2012,"all fish","diversity",2.0052,NA,1
+"kelp","kelp forest-fish","south","south","point vicente smca","smr","ref",2010,"all fish","diversity",2.02,NA,1
+"kelp","kelp forest-fish","south","south","abalone cove smca","smr","ref",2019,"all fish","diversity",2.042,NA,1
+"kelp","kelp forest-fish","south","south","south la jolla smr","smr","ref",2020,"all fish","diversity",2.0476,NA,1
+"kelp","kelp forest-fish","south","south","swami's smca","smr","smr",2019,"all fish","diversity",2.0527,NA,1
+"kelp","kelp forest-fish","south","south","crystal cove smca","smca","smca",2011,"all fish","diversity",2.0635,NA,1
+"kelp","kelp forest-fish","south","south","abalone cove smca","smr","ref",2013,"all fish","diversity",2.0725,NA,1
+"kelp","kelp forest-fish","south","south","crystal cove smca","smca","smca",2012,"all fish","diversity",2.0753,NA,1
+"kelp","kelp forest-fish","south","south","point vicente smca","smr","ref",2004,"all fish","diversity",2.0845,NA,1
+"kelp","kelp forest-fish","south","south","point conception smr","smr","ref",2000,"all fish","diversity",2.0846,NA,1
+"kelp","kelp forest-fish","south","south","point conception smr","smr","smr",2004,"all fish","diversity",2.0898,NA,1
+"kelp","kelp forest-fish","south","south","dana point smca","smca","smca",2020,"all fish","diversity",2.1044,NA,1
+"kelp","kelp forest-fish","south","south","naples smca","smca","smca",2000,"all fish","diversity",2.1055,NA,1
+"kelp","kelp forest-fish","south","south","cabrillo smr","smr","smr",2011,"all fish","diversity",2.1078,NA,1
+"kelp","kelp forest-fish","south","south","abalone cove smca","smr","smr",2011,"all fish","diversity",2.1169,NA,1
+"kelp","kelp forest-fish","south","south","point conception smr","smr","ref",2003,"all fish","diversity",2.1455,NA,1
+"kelp","kelp forest-fish","south","south","point dume smca","smr","smr",2010,"all fish","diversity",2.1577,NA,1
+"kelp","kelp forest-fish","south","south","campus point smca","smr","ref",2014,"all fish","diversity",2.1757,NA,1
+"kelp","kelp forest-fish","south","south","naples smca","smca","ref",2014,"all fish","diversity",2.1757,NA,1
+"kelp","kelp forest-fish","south","south","laguna beach smr","smr","smr",2011,"all fish","diversity",2.1908,NA,1
+"kelp","kelp forest-fish","south","south","point conception smr","smr","smr",2000,"all fish","diversity",2.1989,NA,1
+"kelp","kelp forest-fish","south","south","cat harbor smca","smca","smca",2011,"all fish","diversity",2.2198,NA,1
+"kelp","kelp forest-fish","south","south","naples smca","smca","smca",2001,"all fish","diversity",2.288,NA,1
+"kelp","kelp forest-fish","south","south","cat harbor smca","smca","smca",2012,"all fish","diversity",2.3006,NA,1
+"kelp","kelp forest-fish","south","south","swami's smca","smr","smr",2012,"all fish","diversity",2.3151,NA,1
+"kelp","kelp forest-fish","south","south","point conception smr","smr","smr",2010,"all fish","diversity",2.359,NA,1
+"kelp","kelp forest-fish","south","south","abalone cove smca","smr","ref",2017,"all fish","diversity",2.3818,NA,1
+"kelp","kelp forest-fish","south","south","point dume smca","smr","smr",2011,"all fish","diversity",2.448,NA,1
+"kelp","kelp forest-fish","south","south","point dume smca","smr","smr",2013,"all fish","diversity",2.4775,NA,1
+"kelp","kelp forest-fish","south","south","point dume smca","smr","smr",2012,"all fish","diversity",2.6561,NA,1
+"surf","surf-seine","central","central","ano nuevo smr","smr","smr",2019,"all fish","diversity",0.57113470367743,0.231042222794699,6
+"surf","surf-seine","central","central","ano nuevo smr","smr","smr",2020,"all fish","diversity",1.04224169267686,0.169226775336946,6
+"surf","surf-seine","central","central","ano nuevo smr","smr","ref",2019,"all fish","diversity",0.87099601452156,0.473710235599029,6
+"surf","surf-seine","central","central","ano nuevo smr","smr","ref",2020,"all fish","diversity",0.957477844742817,0.361491578974568,6
+"surf","surf-seine","central","central","asilomar smr","smr","smr",2019,"all fish","diversity",0.338195827030515,0.561990167647432,6
+"surf","surf-seine","central","central","asilomar smr","smr","smr",2020,"all fish","diversity",0.602097704684903,0.352826592390988,6
+"surf","surf-seine","central","central","asilomar smr","smr","ref",2019,"all fish","diversity",0.247530579861253,0.288909519063464,6
+"surf","surf-seine","central","central","asilomar smr","smr","ref",2020,"all fish","diversity",0.516008184837001,0.458161763909319,6
+"surf","surf-seine","central","central","natural bridges smr","smr","smr",2019,"all fish","diversity",1.21656968363615,0.277345217628738,6
+"surf","surf-seine","central","central","natural bridges smr","smr","smr",2020,"all fish","diversity",1.13968053753053,0.329555168176402,6
+"surf","surf-seine","central","central","natural bridges smr","smr","ref",2019,"all fish","diversity",0.673082592371687,0.0714589900562109,6
+"surf","surf-seine","central","central","natural bridges smr","smr","ref",2020,"all fish","diversity",0.843103808941624,0.114537448958332,6
+"surf","surf-seine","central","central","point lobos smr","smr","smr",2019,"all fish","diversity",0.802342473152609,0.456379896381427,6
+"surf","surf-seine","central","central","point lobos smr","smr","smr",2020,"all fish","diversity",0.28275819541691,0.352994430709577,4
+"surf","surf-seine","central","central","point lobos smr","smr","ref",2019,"all fish","diversity",1.12347178851985,0.319591750265843,6
+"surf","surf-seine","central","central","point lobos smr","smr","ref",2020,"all fish","diversity",0.964766182414587,0.546901724266618,6
+"surf","surf-seine","north","north","point reyes smr","smr","smr",2019,"all fish","diversity",0.577396937786097,0.476037682967045,6
+"surf","surf-seine","north","north","point reyes smr","smr","smr",2020,"all fish","diversity",1.12706870134761,0.123600636664937,6
+"surf","surf-seine","north","north","point reyes smr","smr","ref",2019,"all fish","diversity",1.08531661161195,0.392438640425054,6
+"surf","surf-seine","north","north","point reyes smr","smr","ref",2020,"all fish","diversity",1.65152027209718,0.140655139880522,6
+"surf","surf-seine","north","north","reading rock smca","smr","smr",2019,"all fish","diversity",0,0,6
+"surf","surf-seine","north","north","reading rock smca","smr","smr",2020,"all fish","diversity",0,0,4
+"surf","surf-seine","north","north","reading rock smca","smr","ref",2019,"all fish","diversity",0,0,4
+"surf","surf-seine","north","north","reading rock smca","smr","ref",2020,"all fish","diversity",0,0,4
+"surf","surf-seine","north","north","samoa smca","smr","smr",2019,"all fish","diversity",0.411467876806695,0.444106871748337,4
+"surf","surf-seine","north","north","samoa smca","smr","smr",2020,"all fish","diversity",0.553397066696843,0.346230079821699,6
+"surf","surf-seine","north","north","samoa smca","smr","ref",2019,"all fish","diversity",0.484263586007325,0.39106454567334,6
+"surf","surf-seine","north","north","samoa smca","smr","ref",2020,"all fish","diversity",0.138629436111989,0.309984842828872,5
+"surf","surf-seine","north","north","ten mile smr","smr","smr",2019,"all fish","diversity",0.277258872223978,0.379652346463788,5
+"surf","surf-seine","north","north","ten mile smr","smr","smr",2020,"all fish","diversity",0.227636034900157,0.394277178080594,3
+"surf","surf-seine","north","north","ten mile smr","smr","ref",2019,"all fish","diversity",0,NA,1
+"surf","surf-seine","south","south","campus point smca","smr","smr",2019,"all fish","diversity",1.13052615260786,0.385183874992869,6
+"surf","surf-seine","south","south","campus point smca","smr","smr",2020,"all fish","diversity",1.45910410515699,0.367675752981102,6
+"surf","surf-seine","south","south","campus point smca","smr","ref",2019,"all fish","diversity",0.968631123461451,0.482450772231909,6
+"surf","surf-seine","south","south","campus point smca","smr","ref",2020,"all fish","diversity",1.39972938628684,0.268297186350627,6
+"surf","surf-seine","south","south","laguna beach smr","smr","smr",2019,"all fish","diversity",0.919844424798832,0.17004725151922,6
+"surf","surf-seine","south","south","laguna beach smr","smr","smr",2020,"all fish","diversity",0.707987636124958,0.591202032546813,6
+"surf","surf-seine","south","south","laguna beach smr","smr","ref",2019,"all fish","diversity",0.851189972609919,0.199041142775083,6
+"surf","surf-seine","south","south","laguna beach smr","smr","ref",2020,"all fish","diversity",1.19442335323433,0.275886489663811,6
+"surf","surf-seine","south","south","matlahuayl smr","smr","smr",2019,"all fish","diversity",0.909592562260806,0.201149031373791,6
+"surf","surf-seine","south","south","matlahuayl smr","smr","smr",2020,"all fish","diversity",1.08707635722776,0.158103221121852,6
+"surf","surf-seine","south","south","matlahuayl smr","smr","ref",2019,"all fish","diversity",0.955588077141723,0.200293173264778,6
+"surf","surf-seine","south","south","matlahuayl smr","smr","ref",2020,"all fish","diversity",1.16755711584761,0.2368445767816,6
+"surf","surf-seine","south","south","point conception smr","smr","smr",2019,"all fish","diversity",0.538507598148031,0.125499549137711,6
+"surf","surf-seine","south","south","point conception smr","smr","smr",2020,"all fish","diversity",1.28395184306736,0.303755615461405,6
+"surf","surf-seine","south","south","point conception smr","smr","ref",2019,"all fish","diversity",1.05267343356937,0.495828181077646,6
+"surf","surf-seine","south","south","point conception smr","smr","ref",2020,"all fish","diversity",1.77382776521254,0.136347765053087,6
+"surf","surf-seine","south","south","point dume smr","smr","smr",2019,"all fish","diversity",1.29303705915966,0.415156704520415,6
+"surf","surf-seine","south","south","point dume smr","smr","smr",2020,"all fish","diversity",1.34442468077523,0.487939462787491,6
+"surf","surf-seine","south","south","point dume smr","smr","ref",2019,"all fish","diversity",1.17179351482575,0.182358262779577,6
+"surf","surf-seine","south","south","point dume smr","smr","ref",2020,"all fish","diversity",1.03660301876181,0.230786210495958,6
+"surf","surf-bruv","central","central","ano nuevo smr","smr","smr",2019,"all fish","diversity",1.6295746363456,0.19972232648612,6
+"surf","surf-bruv","central","central","ano nuevo smr","smr","smr",2020,"all fish","diversity",1.51892474033864,0.326802017262659,6
+"surf","surf-bruv","central","central","ano nuevo smr","smr","ref",2019,"all fish","diversity",1.28226845796445,0.430702677399343,6
+"surf","surf-bruv","central","central","ano nuevo smr","smr","ref",2020,"all fish","diversity",1.05645594338604,0.598836850309971,6
+"surf","surf-bruv","central","central","asilomar smr","smr","smr",2019,"all fish","diversity",0.78753310356621,0.255182110144595,6
+"surf","surf-bruv","central","central","asilomar smr","smr","smr",2020,"all fish","diversity",1.09044005359313,0.327456108634472,6
+"surf","surf-bruv","central","central","asilomar smr","smr","ref",2019,"all fish","diversity",1.20606691690383,0.299505917731057,6
+"surf","surf-bruv","central","central","asilomar smr","smr","ref",2020,"all fish","diversity",1.41066296420886,0.170676004713102,6
+"surf","surf-bruv","central","central","natural bridges smr","smr","smr",2019,"all fish","diversity",1.65377327790667,0.292926716315837,6
+"surf","surf-bruv","central","central","natural bridges smr","smr","smr",2020,"all fish","diversity",1.7829341161493,0.378545927102321,6
+"surf","surf-bruv","central","central","natural bridges smr","smr","ref",2019,"all fish","diversity",1.71118678394476,0.341540472584803,6
+"surf","surf-bruv","central","central","natural bridges smr","smr","ref",2020,"all fish","diversity",1.76540130817267,0.222938353010809,6
+"surf","surf-bruv","central","central","point lobos smr","smr","smr",2019,"all fish","diversity",1.57848632946968,0.284757751294317,6
+"surf","surf-bruv","central","central","point lobos smr","smr","smr",2020,"all fish","diversity",1.87129047691358,0.203573533507279,6
+"surf","surf-bruv","central","central","point lobos smr","smr","ref",2019,"all fish","diversity",1.31652760857482,0.367269923245145,5
+"surf","surf-bruv","central","central","point lobos smr","smr","ref",2020,"all fish","diversity",1.35913240583524,0.332427000083503,5
+"surf","surf-bruv","north","north","reading rock smca","smca","smca",2019,"all fish","diversity",0.327001317260661,0.360160462943764,6
+"surf","surf-bruv","north","north","reading rock smca","smca","smca",2020,"all fish","diversity",0.540914862792374,0.48012148893365,6
+"surf","surf-bruv","north","north","reading rock smca","smca","ref",2019,"all fish","diversity",0.44839843884415,0.386720322566213,6
+"surf","surf-bruv","north","north","reading rock smca","smca","ref",2020,"all fish","diversity",0,0,5
+"surf","surf-bruv","north","north","samoa smca","smca","smca",2019,"all fish","diversity",0.77241086456452,0.483486513123764,6
+"surf","surf-bruv","north","north","samoa smca","smca","smca",2020,"all fish","diversity",0.441150572882398,0.42620968629125,5
+"surf","surf-bruv","north","north","samoa smca","smca","ref",2019,"all fish","diversity",1.12948213737142,0.322143429079396,6
+"surf","surf-bruv","north","north","samoa smca","smca","ref",2020,"all fish","diversity",0.792131126060832,0.306178438283037,6
+"surf","surf-bruv","north","north","ten mile smr","smr","smr",2019,"all fish","diversity",0.55929177663985,0.487434106185727,6
+"surf","surf-bruv","north","north","ten mile smr","smr","smr",2020,"all fish","diversity",0.306794137250981,0.309330569103492,6
+"surf","surf-bruv","north","north","ten mile smr","smr","ref",2019,"all fish","diversity",0.509824714531332,0.461469309377304,6
+"surf","surf-bruv","north","north","ten mile smr","smr","ref",2020,"all fish","diversity",1.1831943144848,0.333395242924987,6
+"surf","surf-bruv","south","south","campus point smca","smca","smca",2019,"all fish","diversity",2.17083405276032,0.572668204787972,3
+"surf","surf-bruv","south","south","campus point smca","smca","smca",2020,"all fish","diversity",2.1814506221778,0.34927454559996,4
+"surf","surf-bruv","south","south","laguna beach smr","smr","smr",2019,"all fish","diversity",1.36824245228689,0.621329601085787,4
+"surf","surf-bruv","south","south","laguna beach smr","smr","smr",2020,"all fish","diversity",1.92854951514835,0.170023362487535,3
+"surf","surf-bruv","south","south","matlahuayl smr","smr","smr",2019,"all fish","diversity",0.996034455456115,1.0203978287386,4
+"surf","surf-bruv","south","south","matlahuayl smr","smr","smr",2020,"all fish","diversity",0.607260238864542,0.417685771454957,4
+"surf","surf-bruv","south","south","matlahuayl smr","smr","ref",2019,"all fish","diversity",0.812116009408569,0.453812008388078,4
+"surf","surf-bruv","south","south","matlahuayl smr","smr","ref",2020,"all fish","diversity",1.49776503411731,0.230241448675517,4
+"surf","surf-bruv","south","south","point conception smr","smr","smr",2019,"all fish","diversity",1.568178377533,0.290868787917187,4
+"surf","surf-bruv","south","south","point conception smr","smr","smr",2020,"all fish","diversity",1.86686539602356,0.159012858562414,4
+"surf","surf-bruv","south","south","point conception smr","smr","ref",2019,"all fish","diversity",2.07950529490246,0.234467096729508,3
+"surf","surf-bruv","south","south","point conception smr","smr","ref",2020,"all fish","diversity",1.82200392552369,0.0983562280769858,3
+"surf","surf-bruv","south","south","point dume smr","smr","smr",2019,"all fish","diversity",1.33903630255489,0.290644623019217,5
+"surf","surf-bruv","south","south","point dume smr","smr","smr",2020,"all fish","diversity",2.0309751515452,0.224530136084517,3
+"surf","surf-bruv","south","south","point dume smr","smr","ref",2019,"all fish","diversity",1.95710483283844,0.319095685288293,4
+"surf","surf-bruv","south","south","point dume smr","smr","ref",2020,"all fish","diversity",1.93601124383778,0.155085413321169,4

@@ -1,10 +1,13 @@
 #Processing monitoring data for mpa-year level analyses
 #Joshua G Smith; June 1, 2022
 
+rm(list=ls())
 
 #load required packages
 require(dplyr)
 require(stringr)
+
+outdir <-  "analyses/1performance_eco/output"
 
 # mid-depth rock / deep reef ----------------------------------------------
 
@@ -72,9 +75,9 @@ deep_reef_biomass$affiliated_mpa <- tolower(deep_reef_biomass$affiliated_mpa) #m
 
 #aggregate by MPA-year and targeted/nontargeted
 
-deep_reef_biomass <- deep_reef_biomass %>%
+deep_reef_biomass1 <- deep_reef_biomass %>%
                       group_by(Year, Region, affiliated_mpa, Type, Designation, targeted)%>%
-                      summarize(sum_biomass = sum(Mean_Biomass, na.rm=TRUE))%>%
+                      dplyr::summarize(sum_biomass = sum(Mean_Biomass, na.rm=TRUE))%>%
                       mutate(group='deep_reef')
 
 #prep for joining reclassified defacto smrs
@@ -86,13 +89,13 @@ defacto_smr <- readxl::read_excel(file.path(data_path, input_file), sheet=5, ski
 buchon_row <- c("Point Buchon","SMR","point buchon smr","No take.","deep_reef","SMR") 
 defacto_smr <- rbind(defacto_smr,buchon_row) #add missing row
 
-deep_reef_biomass$affiliated_mpa <- recode_factor(deep_reef_biomass$affiliated_mpa, "se farallon islands smca" = "southeast farallon island smca") #correct spelling to match affiliated
-deep_reef_biomass$affiliated_mpa <- recode_factor(deep_reef_biomass$affiliated_mpa, "se farallon islands smr" = "southeast farallon island smr") #correct spelling to match affiliated
-deep_reef_biomass$affiliated_mpa <- recode_factor(deep_reef_biomass$affiliated_mpa, "farnsworth smca" = "farnsworth offshore smca") #correct spelling to match affiliated
-deep_reef_biomass$affiliated_mpa <- recode_factor(deep_reef_biomass$affiliated_mpa, "point st. george smca" = "point st. george reef offshore smca") #correct spelling to match affiliated
+deep_reef_biomass1$affiliated_mpa <- recode_factor(deep_reef_biomass1$affiliated_mpa, "se farallon islands smca" = "southeast farallon island smca") #correct spelling to match affiliated
+deep_reef_biomass1$affiliated_mpa <- recode_factor(deep_reef_biomass1$affiliated_mpa, "se farallon islands smr" = "southeast farallon island smr") #correct spelling to match affiliated
+deep_reef_biomass1$affiliated_mpa <- recode_factor(deep_reef_biomass1$affiliated_mpa, "farnsworth smca" = "farnsworth offshore smca") #correct spelling to match affiliated
+deep_reef_biomass1$affiliated_mpa <- recode_factor(deep_reef_biomass1$affiliated_mpa, "point st. george smca" = "point st. george reef offshore smca") #correct spelling to match affiliated
 
 
-deep_reef <- left_join(deep_reef_biomass, defacto_smr, by=c("group"="group","affiliated_mpa"="affiliated_mpa"))
+deep_reef <- left_join(deep_reef_biomass1, defacto_smr, by=c("group"="group","affiliated_mpa"="affiliated_mpa"))
 
 
 #create new mpa_designation field to match other datasets
@@ -159,14 +162,13 @@ ccfrp_biomass <- ccfrp_biomass %>%
                   mutate(mpa_class="smr", 
                          group="ccfrp")%>%
                   filter(Fished %in% c("targeted","nontargeted"))
-                       
 
 
 #aggregate by MPA-year and targeted/nontargeted
 
 ccfrp_biomass.new <- ccfrp_biomass %>%
   group_by(group, year, affiliated_mpa, mpa_class, mpa_designation, Fished)%>%
-  summarise(sum_biomass = sum(BPUE_biomass.kg._per_angler_hour, na.rm=TRUE))
+  dplyr::summarise(sum_biomass = sum(BPUE_biomass.kg._per_angler_hour, na.rm=TRUE))
 
 
 #add regions
@@ -189,12 +191,14 @@ ccfrp_biomass.new <- left_join(ccfrp_biomass.new, regions, by=c("affiliated_mpa"
 #clean up and reorder to match other datasets
 
 ccfrp_biom <- ccfrp_biomass.new %>%
-  dplyr::select(year, group, region3, region4, affiliated_mpa, mpa_class, mpa_designation, target_status="Fished", sum_biomass)
+  dplyr::select(year, group, region3, region4, affiliated_mpa, mpa_class, mpa_designation, target_status="Fished", sum_biomass)%>%
+  dplyr::filter(!(affiliated_mpa=="trinidad smr"))
 
 
 
 # kelp forest -------------------------------------------------------------
 
+###Biomas not reported on DataOne -- data requested from PI
 
 data_path <- "/home/shares/ca-mpa/data/sync-data/monitoring"
 input_file <- "Ecol_perform_metrics_means_working.xlsx" 
@@ -269,6 +273,8 @@ defacto_smr <- rbind(defacto_smr,buchon_row) #add missing row
 
 biomass_data_final <- left_join(biomass_data,defacto_smr, by=c("affiliated_mpa"="affiliated_mpa","group"="group"))
 
+
+
 #select final table
 
 biomass_data_final <- biomass_data_final %>%
@@ -281,24 +287,16 @@ biomass_data_final$mpa_designation <- tolower(biomass_data_final$mpa_designation
 
 
 
-#load MPA traits
-
-data_path <- "/home/shares/ca-mpa/data/sync-data/mpa_traits/processed"
-input_file <- "mpa_attributes_clean.csv" 
-traits <- read.csv(file.path(data_path, input_file)) %>%
-              dplyr::select(affiliated_mpa=name, distance_to_port, implementation_date, size_km2) %>%
-              mutate(implementation_year = format(as.Date(traits$implementation_date, format="%m/%d/%Y"),"%Y"))
-
-#Join MPA trait data
-
-biomass_data_mods <- left_join(biomass_data_final, traits, by="affiliated_mpa") %>%
-                     mutate(mpa_age = as.numeric(year)-as.numeric(implementation_year))
-
-
-
 #export
-#path_aurora <- "/home/shares/ca-mpa/data/sync-data/processed_data" 
-#write.csv(biomass_data_final,file.path(path_aurora, "targeted_nontargeted_fish_biomass.csv"), row.names = FALSE)
+#write.csv(biomass_data_final,file.path(outdir, "targeted_nontargeted_fish_biomass.csv"), row.names = FALSE)
+
+
+
+
+
+
+
+
 
 
 
