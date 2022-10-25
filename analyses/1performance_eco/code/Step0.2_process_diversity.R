@@ -1,13 +1,16 @@
 #Processing monitoring data for mpa-year level analyses
 #Joshua G Smith; June 7, 2022
 
+rm(list=ls())
 
 #load required packages
 require(dplyr)
 require(stringr)
 
+outdir <- "analyses/1performance_eco/output"
 
 # Load and clean derived data ---------------------------------------------
+###dataset requested from monitoring PIs
 
 data_path <- "/home/shares/ca-mpa/data/sync-data/monitoring"
 input_file <- "Ecol_perform_metrics_means_working.xlsx" 
@@ -90,13 +93,13 @@ surf_seine <- surf_seine %>%
 
 surf_seine_sum <- surf_seine %>%
                   group_by(region, affiliated_mpa, mpa_status, mpa_type, year, haul_number, genus_species)%>%
-                  summarise(total_count = sum(count))
+                  dplyr::summarise(total_count = sum(count))
 
 #calculate community total per haul
 
 haul_total <- surf_seine %>%
                  group_by(region, affiliated_mpa, mpa_status, mpa_type, year, haul_number)%>%
-                 summarise(total_count = sum(count))
+                 dplyr::summarise(total_count = sum(count))
 
 #join sum per species and haul total to calculate proportion
 
@@ -105,17 +108,17 @@ prop_species <- left_join( haul_total, surf_seine_sum, by=c("affiliated_mpa","mp
 #Calculate H_pi for each species -- prep for shannon diversity
 prop_species <- prop_species %>%
   mutate(H_pi = (total_count.y/total_count.x)*log(total_count.y/total_count.x))%>%
-dplyr::select(region=region.x, affiliated_mpa, mpa_status, mpa_type=mpa_type.x, year, haul_number, genus_species, species_count=total_count.y, haul_total=total_count.x, H_pi)
+  dplyr::select(region=region.x, affiliated_mpa, mpa_status, mpa_type=mpa_type.x, year, haul_number, genus_species, species_count=total_count.y, haul_total=total_count.x, H_pi)
 
 
 haul_diversity <- prop_species %>%
                    group_by(region, affiliated_mpa, mpa_status, mpa_type, year, haul_number)%>%
-                   summarize(H = -1*sum(H_pi)) #calculates shannon diversity for each haul
+                   dplyr::summarize(H = -1*sum(H_pi)) #calculates shannon diversity for each haul
 
 #take mean diversity of all hauls to end up with MPA-year level means
 seine_diversity <- haul_diversity %>%
                    group_by(region, affiliated_mpa, mpa_status, mpa_type, year)%>%
-                   summarize(diversity = mean(H),
+                   dplyr::summarize(diversity = mean(H),
                              sd = sd(H),
                              n = n()) 
 
@@ -185,14 +188,14 @@ surf_bruv <- surf_bruv %>%
 
 surf_bruv_sum <- surf_bruv %>%
   group_by(region, affiliated_mpa, mpa_status, mpa_type, year, bruv, common_name)%>%
-  summarise(total_count = sum(max_n))
+  dplyr::summarise(total_count = sum(max_n))
 
 
 #calculate community total per bruv
 
 bruv_total <- surf_bruv %>%
   group_by(region, affiliated_mpa, mpa_status, mpa_type, year, bruv)%>%
-  summarise(total_count = sum(max_n))
+  dplyr::summarise(total_count = sum(max_n))
 
 #join sum per species and haul total to calculate proportion
 
@@ -208,12 +211,12 @@ prop_species <- prop_species %>%
 
 bruv_diversity <- prop_species %>%
   group_by(region, affiliated_mpa, mpa_status, mpa_type, year, bruv)%>%
-  summarize(H = -1*sum(H_pi)) #calculates shannon diversity for each haul
+  dplyr::summarize(H = -1*sum(H_pi)) #calculates shannon diversity for each haul
 
 #take mean diversity of all hauls to end up with MPA-year level means
 bruv_diversity <- bruv_diversity %>%
   group_by(region, affiliated_mpa, mpa_status, mpa_type, year)%>%
-  summarize(diversity = mean(H),
+  dplyr::summarize(diversity = mean(H),
             sd = sd(H),
             n = n()) 
 
@@ -262,8 +265,7 @@ fish_diversity <- rbind(fish_diversity, bruv_diversity)
 
 # Export all fish diversity -----------------------------------------------
 
-#path_aurora <- "/home/shares/ca-mpa/data/sync-data/processed_data" 
-#write.csv(fish_diversity,file.path(path_aurora, "all_fish_diversity.csv"), row.names = FALSE)
+#write.csv(fish_diversity,file.path(outdir, "all_fish_diversity.csv"), row.names = FALSE)
 
 
 
@@ -342,14 +344,14 @@ CCFRP_Fished <- CCFRP_data %>%  #clean up
 
 CCFRP_targeted <- CCFRP_Fished %>%
   group_by(join_ID, group, region4, affiliated_mpa, mpa_class, mpa_defacto_designation, Year, Grid_Cell_ID, Common_Name)%>%
-  summarise(total_count = sum(CPUE_catch_per_angler_hour))
+  dplyr::summarise(total_count = sum(CPUE_catch_per_angler_hour))
 
 
 #calculate community total per cell
 
 cell_total <- CCFRP_Fished %>%
   group_by(join_ID, group, region4, affiliated_mpa, mpa_class, mpa_defacto_designation, Year, Grid_Cell_ID)%>%
-  summarise(total_count = sum(CPUE_catch_per_angler_hour))
+  dplyr::summarise(total_count = sum(CPUE_catch_per_angler_hour))
 
 #join sum per species and total to calculate proportion
 
@@ -366,12 +368,12 @@ prop_species <- prop_species %>%
 
 CCFRP_diversity <- prop_species %>%
   group_by(join_ID, group, region4, affiliated_mpa, mpa_class, mpa_defacto_designation, Year, Grid_Cell_ID)%>%
-  summarize(H = -1*sum(H_pi)) #calculates shannon diversity for each haul
+  dplyr::summarize(H = -1*sum(H_pi)) #calculates shannon diversity for each haul
 
 #take mean diversity of all cells to end up with MPA-year level means
 CCFRP_targeted_diversity <- CCFRP_diversity %>%
   group_by(join_ID, group, region4, affiliated_mpa, mpa_class, mpa_defacto_designation, Year)%>%
-  summarize(diversity = mean(H),
+  dplyr::summarize(diversity = mean(H),
             sd = sd(H),
             n = n())%>%
   mutate(target_status = 'targeted',
@@ -388,7 +390,6 @@ CCFRP_targeted_diversity <- CCFRP_diversity %>%
 
 #NOTE:: Diversity of 'nontargeted' CCFRP species was calculated, but ended
 #with too many zeros to include in any future analyses. 
-
 
 
 
@@ -423,13 +424,13 @@ surf_seine <- surf_seine %>%
 
 surf_seine_sum <- surf_seine %>%
   group_by(region, affiliated_mpa, mpa_status, mpa_type, year, haul_number, genus_species)%>%
-  summarise(total_count = sum(count))
+  dplyr::summarise(total_count = sum(count))
 
 #calculate community total per haul
 
 haul_total <- surf_seine %>%
   group_by(region, affiliated_mpa, mpa_status, mpa_type, year, haul_number)%>%
-  summarise(total_count = sum(count))
+  dplyr::summarise(total_count = sum(count))
 
 #join sum per species and haul total to calculate proportion
 
@@ -443,12 +444,12 @@ prop_species <- prop_species %>%
 
 haul_diversity <- prop_species %>%
   group_by(region, affiliated_mpa, mpa_status, mpa_type, year, haul_number)%>%
-  summarize(H = -1*sum(H_pi)) #calculates shannon diversity for each haul
+  dplyr::summarize(H = -1*sum(H_pi)) #calculates shannon diversity for each haul
 
 #take mean diversity of all hauls to end up with MPA-year level means
 seine_diversity <- haul_diversity %>%
   group_by(region, affiliated_mpa, mpa_status, mpa_type, year)%>%
-  summarize(diversity = mean(H),
+  dplyr::summarize(diversity = mean(H),
             sd = sd(H),
             n = n()) 
 
@@ -507,13 +508,13 @@ surf_seine <- surf_seine %>%
 
 surf_seine_sum <- surf_seine %>%
   group_by(region, affiliated_mpa, mpa_status, mpa_type, year, haul_number, genus_species)%>%
-  summarise(total_count = sum(count))
+  dplyr::summarise(total_count = sum(count))
 
 #calculate community total per haul
 
 haul_total <- surf_seine %>%
   group_by(region, affiliated_mpa, mpa_status, mpa_type, year, haul_number)%>%
-  summarise(total_count = sum(count))
+  dplyr::summarise(total_count = sum(count))
 
 #join sum per species and haul total to calculate proportion
 
@@ -527,12 +528,12 @@ prop_species <- prop_species %>%
 
 haul_diversity <- prop_species %>%
   group_by(region, affiliated_mpa, mpa_status, mpa_type, year, haul_number)%>%
-  summarize(H = -1*sum(H_pi)) #calculates shannon diversity for each haul
+  dplyr::summarize(H = -1*sum(H_pi)) #calculates shannon diversity for each haul
 
 #take mean diversity of all hauls to end up with MPA-year level means
 seine_diversity <- haul_diversity %>%
   group_by(region, affiliated_mpa, mpa_status, mpa_type, year)%>%
-  summarize(diversity = mean(H),
+  dplyr::summarize(diversity = mean(H),
             sd = sd(H),
             n = n()) 
 
@@ -597,14 +598,14 @@ surf_bruv <- surf_bruv %>%
 
 surf_bruv_sum <- surf_bruv %>%
   group_by(region, affiliated_mpa, mpa_status, mpa_type, year, bruv, common_name)%>%
-  summarise(total_count = sum(max_n))
+  dplyr::summarise(total_count = sum(max_n))
 
 
 #calculate community total per bruv
 
 bruv_total <- surf_bruv %>%
   group_by(region, affiliated_mpa, mpa_status, mpa_type, year, bruv)%>%
-  summarise(total_count = sum(max_n))
+  dplyr::summarise(total_count = sum(max_n))
 
 #join sum per species and haul total to calculate proportion
 
@@ -620,12 +621,12 @@ prop_species <- prop_species %>%
 
 bruv_diversity <- prop_species %>%
   group_by(region, affiliated_mpa, mpa_status, mpa_type, year, bruv)%>%
-  summarize(H = -1*sum(H_pi)) #calculates shannon diversity for each haul
+  dplyr::summarize(H = -1*sum(H_pi)) #calculates shannon diversity for each haul
 
 #take mean diversity of all hauls to end up with MPA-year level means
 bruv_diversity <- bruv_diversity %>%
   group_by(region, affiliated_mpa, mpa_status, mpa_type, year)%>%
-  summarize(diversity = mean(H),
+  dplyr::summarize(diversity = mean(H),
             sd = sd(H),
             n = n()) 
 
@@ -694,14 +695,14 @@ surf_bruv <- surf_bruv %>%
 
 surf_bruv_sum <- surf_bruv %>%
   group_by(region, affiliated_mpa, mpa_status, mpa_type, year, bruv, common_name)%>%
-  summarise(total_count = sum(max_n))
+  dplyr::summarise(total_count = sum(max_n))
 
 
 #calculate community total per bruv
 
 bruv_total <- surf_bruv %>%
   group_by(region, affiliated_mpa, mpa_status, mpa_type, year, bruv)%>%
-  summarise(total_count = sum(max_n))
+  dplyr::summarise(total_count = sum(max_n))
 
 #join sum per species and haul total to calculate proportion
 
@@ -717,12 +718,12 @@ prop_species <- prop_species %>%
 
 bruv_diversity <- prop_species %>%
   group_by(region, affiliated_mpa, mpa_status, mpa_type, year, bruv)%>%
-  summarize(H = -1*sum(H_pi)) #calculates shannon diversity for each haul
+  dplyr::summarize(H = -1*sum(H_pi)) #calculates shannon diversity for each haul
 
 #take mean diversity of all hauls to end up with MPA-year level means
 bruv_diversity <- bruv_diversity %>%
   group_by(region, affiliated_mpa, mpa_status, mpa_type, year)%>%
-  summarize(diversity = mean(H),
+  dplyr::summarize(diversity = mean(H),
             sd = sd(H),
             n = n()) 
 
@@ -870,7 +871,7 @@ deep_reef_vars <- deep_reef_den %>%
 
 MPA_total <- deep_reef_vars %>%
   group_by(group, year, region3, region4, affiliated_mpa, mpa_class, mpa_designation)%>%
-  summarise(total_count = sum(mean))
+  dplyr::summarise(total_count = sum(mean))
 
 #join sum per species and haul total to calculate proportion
 
@@ -885,7 +886,7 @@ prop_species <- prop_species %>%
 
 deep_reef_target_diversity <- prop_species %>%
   group_by(group, year, region3, region4, affiliated_mpa, mpa_class, mpa_designation)%>%
-  summarize(mean = -1*sum(H_pi))%>% #calculates shannon diversity for each MPA
+  dplyr::summarize(mean = -1*sum(H_pi))%>% #calculates shannon diversity for each MPA
   mutate(join_ID="deep_reef", target_status="targeted",variable="targeted_fish",indicator="diversity")%>%
   dplyr::select(join_ID, group, year, mlpa_region=region3, region4, affiliated_mpa, mpa_defacto_class=mpa_class, mpa_defacto_designation=mpa_designation,mean,
                 target_status, variable, indicator)
@@ -905,7 +906,7 @@ deep_reef_vars <- deep_reef_den %>%
 
 MPA_total <- deep_reef_vars %>%
   group_by(group, year, region3, region4, affiliated_mpa, mpa_class, mpa_designation)%>%
-  summarise(total_count = sum(mean))
+  dplyr::summarise(total_count = sum(mean))
 
 #join sum per species and haul total to calculate proportion
 
@@ -920,7 +921,7 @@ prop_species <- prop_species %>%
 
 deep_reef_nontarget_diversity <- prop_species %>%
   group_by(group, year, region3, region4, affiliated_mpa, mpa_class, mpa_designation)%>%
-  summarize(mean = -1*sum(H_pi))%>% #calculates shannon diversity for each MPA
+  dplyr::summarize(mean = -1*sum(H_pi))%>% #calculates shannon diversity for each MPA
   mutate(join_ID="deep_reef", target_status="nontargeted",variable="nontargeted_fish",indicator="diversity")%>%
   dplyr::select(join_ID, group, year, mlpa_region=region3, region4, affiliated_mpa, mpa_defacto_class=mpa_class, mpa_defacto_designation=mpa_designation,mean,
                 target_status, variable, indicator)
@@ -983,7 +984,7 @@ fish_counts <- fish_counts %>%
 #calculate species total per MPA 
 species_total <- fish_counts %>%
                   group_by(year, CA_MPA_Name_Short, site_designation, site_status, classcode)%>% 
-                  summarize(species_total = sum(count))%>% #sum of counts across zone, level, and transects
+                  dplyr::summarize(species_total = sum(count))%>% #sum of counts across zone, level, and transects
                   filter(!(classcode=="KGB" | classcode=="BFREYOY" | classcode=="CPUNYOY" | classcode=="BFREYOY" | classcode=="HSEMYOY" | 
                              classcode=="OCALYOY" | classcode=="OYB" | classcode=="PCLAYOY" | classcode=="RYOY" | classcode=="SMYSYOY" |
                              classcode=="SPAUYOY" | classcode=="SPINYOY" | classcode=="SPULYOY")) #remove YOY, focus on adult diversity only
@@ -996,7 +997,7 @@ MPA_total <- fish_counts %>%
              classcode=="OCALYOY" | classcode=="OYB" | classcode=="PCLAYOY" | classcode=="RYOY" | classcode=="SMYSYOY" |
              classcode=="SPAUYOY" | classcode=="SPINYOY" | classcode=="SPULYOY"))%>% #remove YOY, focus on adult diversity only
   group_by(year, CA_MPA_Name_Short, site_designation, site_status)%>%
-  summarize(MPA_total = sum(count)) #sum of counts across MPA, zone, level, and transects
+  dplyr::summarize(MPA_total = sum(count)) #sum of counts across MPA, zone, level, and transects
   
 
 #join sum per species and MPA total to calculate proportion
@@ -1012,7 +1013,7 @@ prop_species <- prop_species %>%
 
 kelp_targeted_diversity <- prop_species %>%
   group_by(year, CA_MPA_Name_Short, site_designation, site_status)%>%
-  summarize(mean = -1*sum(H_pi))%>% #calculates shannon diversity for each MPA
+  dplyr::summarize(mean = -1*sum(H_pi))%>% #calculates shannon diversity for each MPA
   mutate(join_ID="kelp", group="kelp-fish", target_status="targeted",variable="targeted_fish",indicator="diversity")%>%
   dplyr::select(join_ID, group, year, affiliated_mpa=CA_MPA_Name_Short, mpa_defacto_class=site_designation, mpa_defacto_designation=site_status,mean,
                 target_status, variable, indicator)
@@ -1072,7 +1073,7 @@ fish_counts <- fish_counts %>%
 #calculate species total per MPA 
 species_total <- fish_counts %>%
   group_by(year, CA_MPA_Name_Short, site_designation, site_status, classcode)%>% 
-  summarize(species_total = sum(count))%>% #sum of counts across zone, level, and transects
+  dplyr::summarize(species_total = sum(count))%>% #sum of counts across zone, level, and transects
   filter(!(classcode=="KGB" | classcode=="BFREYOY" | classcode=="CPUNYOY" | classcode=="BFREYOY" | classcode=="HSEMYOY" | 
              classcode=="OCALYOY" | classcode=="OYB" | classcode=="PCLAYOY" | classcode=="RYOY" | classcode=="SMYSYOY" |
              classcode=="SPAUYOY" | classcode=="SPINYOY" | classcode=="SPULYOY")) #remove YOY, focus on adult diversity only
@@ -1085,7 +1086,7 @@ MPA_total <- fish_counts %>%
              classcode=="OCALYOY" | classcode=="OYB" | classcode=="PCLAYOY" | classcode=="RYOY" | classcode=="SMYSYOY" |
              classcode=="SPAUYOY" | classcode=="SPINYOY" | classcode=="SPULYOY"))%>% #remove YOY, focus on adult diversity only
   group_by(year, CA_MPA_Name_Short, site_designation, site_status)%>%
-  summarize(MPA_total = sum(count)) #sum of counts across MPA, zone, level, and transects
+  dplyr::summarize(MPA_total = sum(count)) #sum of counts across MPA, zone, level, and transects
 
 
 #join sum per species and MPA total to calculate proportion
@@ -1101,7 +1102,7 @@ prop_species <- prop_species %>%
 
 kelp_nontargeted_diversity <- prop_species %>%
   group_by(year, CA_MPA_Name_Short, site_designation, site_status)%>%
-  summarize(mean = -1*sum(H_pi))%>% #calculates shannon diversity for each MPA
+  dplyr::summarize(mean = -1*sum(H_pi))%>% #calculates shannon diversity for each MPA
   mutate(join_ID="kelp", group="kelp-fish", target_status="nontargeted",variable="nontargeted_fish",indicator="diversity")%>%
   dplyr::select(join_ID, group, year, affiliated_mpa=CA_MPA_Name_Short, mpa_defacto_class=site_designation, mpa_defacto_designation=site_status,mean,
                 target_status, variable, indicator)
@@ -1210,7 +1211,7 @@ diversity_targeted_nontargeted_fish <- diversity_with_defacto %>%
 
 #export
 #path_aurora <- "/home/shares/ca-mpa/data/sync-data/processed_data" 
-#write.csv(diversity_targeted_nontargeted_fish,file.path(path_aurora, "targeted_nontargeted_fish_diversity.csv"), row.names = FALSE)
+#write.csv(diversity_targeted_nontargeted_fish,file.path(outdir, "targeted_nontargeted_fish_diversity.csv"), row.names = FALSE)
 
 
 

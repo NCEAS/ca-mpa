@@ -50,10 +50,10 @@ incomplete <- data %>%
   pivot_wider(names_from = "habitat_type", values_from = "n")
 
 incomplete_linear <- incomplete %>% 
-  filter(is.na(linear))
+  filter(!(is.na(linear)))
 
 incomplete_area <- incomplete %>% 
-  filter(is.na(area))
+  filter(!(is.na(area)))
 
 
 ## Summarize total habitat area for each habitat type ----
@@ -114,7 +114,7 @@ plot_df <- data3
 hab_area_colors <- c("wheat", "wheat1", "wheat2", "wheat3", # soft
                      "tan1", "tan2", "tan3", "tan4", # hard
                      "seagreen4", # kelp
-                     "grey50") # incomplete
+                     "white") # incomplete
 
 hard_soft_colors <- c("wheat", "wheat1", "wheat2", "wheat3", # soft
                       "tan1", "tan2", "tan3", "tan4") # hard
@@ -123,7 +123,8 @@ hab_linear_colors <- c("peachpuff2", # sandy
                        "steelblue3", # intertidal
                        "palegreen3", # coastal marsh
                        "burlywood4", # tidal flats,
-                       "snow4") # armored
+                       "snow4",# armored
+                       "white") # incomplete
 
 hab_colors <- c("wheat", "wheat1", "wheat2", "wheat3", # soft
                 "tan1", "tan2", "tan3", "tan4", # hard
@@ -132,7 +133,8 @@ hab_colors <- c("wheat", "wheat1", "wheat2", "wheat3", # soft
                 "steelblue3", # intertidal
                 "palegreen3", # coastal marsh
                 "burlywood4", # tidal flats,
-                "snow4") # armored
+                "snow4", # armored
+                "white") # incomplete
 
 hab_theme_wide <- theme(axis.text=element_text(size=6),
                         axis.title=element_text(size=8),
@@ -141,7 +143,7 @@ hab_theme_wide <- theme(axis.text=element_text(size=6),
                         axis.text.y = element_text(angle = 90, hjust = 0.5),
                         legend.text=element_text(size=6),
                         legend.title=element_text(size=7),
-                        strip.text=element_text(size=6),
+                        strip.text=element_text(size=4.5),
                         plot.title=element_blank(),
                         panel.spacing=unit(0.1,"lines"),
                         # Gridlines
@@ -234,10 +236,10 @@ hs3
 ### 2. Prop from Calc ----
 hsk2 <- plot_df %>% 
   filter(habitat_type == "area") %>% 
-  #filter(!(mpa_habitat_type == "Estuary")) %>% 
+  filter(!(mpa_habitat_type == "Estuary")) %>% 
   ggplot(aes(x = name, y = habitat_prop_calc, fill = habitat)) +
   # Facet
-  ggh4x::facet_nested(.~bioregion+mpa_habitat_type, 
+  ggh4x::facet_nested(.~four_region_north_ci+mpa_habitat_type, 
                       space="free_x", scales="free_x") +
   # Bar Plot
   geom_col(color="grey30", lwd=0.1, na.rm = F) +
@@ -245,8 +247,8 @@ hsk2 <- plot_df %>%
   # Legend colors
   scale_fill_manual(name = "Habitat Type", 
                     values = hab_area_colors) +
-  scale_y_continuous(limits = c(0, 1.1), expand = c(0,0)) +
-  labs(y="Percentage of total habitat area", x="") +
+  scale_y_continuous(limits = c(0, 1.0001), expand = c(0,0)) +
+  labs(y="Proportion of total habitat area", x="") +
   theme_bw() +
   hab_theme_wide
 hsk2 
@@ -293,17 +295,19 @@ hsk3
 ### 2. Prop from Calc ----
 s2 <- plot_df %>% 
   filter(habitat_type == "linear") %>% 
-  ggplot(aes(x = name, y = habitat_prop_calc*100, fill = habitat)) +
+  filter(!(mpa_habitat_type == "Offshore")) %>% 
+  ggplot(aes(x = name, y = habitat_prop_calc, fill = habitat)) +
   # Facet
-  ggh4x::facet_nested(.~bioregion+mpa_habitat_type, space="free_x", scales="free_x") +
+  ggh4x::facet_nested(.~four_region_north_ci+mpa_habitat_type, 
+                      space="free_x", scales="free_x") +
   # Bar Plot
   geom_col(color="grey30", lwd=0.1, na.rm = F) +
   geom_hline(yintercept = 100) +
   # Legend colors
   scale_fill_manual(name = "Habitat Type", 
                     values = hab_linear_colors) +
-  scale_y_continuous(limits = c(0, 105), expand = c(0,0)) +
-  labs(y="Percentage of total MPA shoreline habitat", x="") +
+  scale_y_continuous(limits = c(0, 1.001), expand = c(0,0)) +
+  labs(y="Proportion of total MPA shoreline habitat", x="") +
   theme_bw() +
   hab_theme_wide
 s2
@@ -313,7 +317,8 @@ s3 <- plot_df %>%
   filter(habitat_type == "linear") %>% 
   ggplot(aes(x = name, y = habitat_amount, fill = habitat)) +
   # Facet
-  ggh4x::facet_nested(.~bioregion+mpa_habitat_type, space="free_x", scales="free_x") +
+  ggh4x::facet_nested(.~bioregion+mpa_habitat_type, 
+                      space="free_x", scales="free_x") +
   # Bar Plot
   geom_col(color="grey30", lwd=0.1) +
   # Legend colors
@@ -338,7 +343,7 @@ ggsave(hs3, filename=file.path(plot.dir, "hard_soft_amount.png"),
 ggsave(hsk1, filename=file.path(plot.dir, "hard_soft_kelp_size.png"),
        width=8, height=4, units="in", dpi=600)
 ggsave(hsk2, filename=file.path(plot.dir, "hard_soft_kelp_calc.png"),
-       width=8, height=4, units="in", dpi=600)
+       width=10, height=4, units="in", dpi=600)
 ggsave(hsk3, filename=file.path(plot.dir, "hard_soft_kelp_amount.png"),
        width=8, height=4, units="in", dpi=600)
 

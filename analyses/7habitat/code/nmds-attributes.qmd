@@ -12,7 +12,6 @@ library(tidyverse)
 library(vegan)
 ```
 
-
 ```{r}
 # Clear workspace
 rm(list = ls())
@@ -45,17 +44,6 @@ area_habitats <- c("hard_substrate_0_30m_km2_comb",
                    "soft_substrate_200_3000m_km2",
                    "max_kelp_canopy_cdfw_km2")
 ```
-
-## Drop Wrong Data
-
-```{r}
-att_raw <- att_raw %>% 
-  filter(!(name %in% c("Reading Rock SMR", "Reading Rock SMCA",
-                       "Piedras Blancas SMR", 
-                       "Piedras Blancas SMCA")))
-
-```
-
 
 
 ## Create habitat and metadata dataframes
@@ -128,6 +116,7 @@ nmds_df <- scores(mds, display = "sites") %>%
 ## Generate Ellipses
 
 ### Option 1: MPA Habitat Type
+
 ```{r}
 plot.new()
 ell <- ordiellipse(mds, nmds_df$mpa_habitat_type, kind = "se", conf = 0.95, label = T)
@@ -143,6 +132,7 @@ for(i in levels(nmds_df$mpa_habitat_type)){
 ```
 
 ### Option 2: Planning Region
+
 ```{r}
 plot.new()
 ell_bioregion <- ordiellipse(mds, nmds_df$bioregion, 
@@ -160,6 +150,7 @@ for(i in levels(nmds_df$bioregion)){
 ```
 
 ### Option 3: 4 Region
+
 ```{r}
 plot.new()
 ell_4region <- ordiellipse(mds, nmds_df$four_region_north_ci, 
@@ -175,7 +166,6 @@ for(i in levels(nmds_df$four_region_north_ci)){
                                                    ell_4region[[i]]$scale))), 
                 four_region_north_ci = i))}
 ```
-
 
 ## Plot
 
@@ -203,7 +193,9 @@ ggplot(nmds_df, aes(x = NMDS1, y = NMDS2)) +
        shape = "") + 
   theme_classic() 
 ```
+
 ### 1b. Habitat Types, Centroid
+
 ```{r}
 centroids_habitat <- nmds_df %>% 
   group_by(mpa_habitat_type) %>% 
@@ -234,7 +226,6 @@ ggsave(file.path(plot.dir, "nmds-type-max.png"),
        width=7, height=4, units="in", dpi=600)
 ```
 
-
 ### 2. Planning Region
 
 ```{r}
@@ -260,6 +251,7 @@ ggplot(nmds_df, aes(x = NMDS1, y = NMDS2)) +
        shape = "") + 
   theme_classic()
 ```
+
 ### 3. Four Region
 
 ```{r}
@@ -285,6 +277,7 @@ ggplot(nmds_df, aes(x = NMDS1, y = NMDS2)) +
        shape = "") + 
   theme_classic()
 ```
+
 ### 4. Four Region, Centroid
 
 ```{r}
@@ -311,26 +304,24 @@ ggplot(nmds_df, aes(x = NMDS1, y = NMDS2)) +
   geom_text(data = fit_att, 
             aes(x = NMDS1*0.65, y = NMDS2*0.65, label = att_label), size = 3) +
   scale_color_manual(values = c("purple", "orange", "green4", "blue")) +
-  scale_x_continuous(limits = c(-0.55, 0.55), expand = c(0,0)) +
+  scale_x_continuous(limits = c(-0.55, 0.7), expand = c(0,0)) +
   # Formatting
   coord_fixed() +
   labs(color = "",
        shape = "") + 
   theme_classic()
 ```
+
 ```{r}
 ggsave(file.path(plot.dir, "nmds-4reg-max.png"),
        width=7, height=4, units="in", dpi=600)
 ```
-
-
 
 ## Test for Differences
 
 ```{r}
 dismat <- vegdist(nmds_data, method = "euclidean")
 ```
-
 
 ### Among Habitat Types
 
@@ -419,6 +410,3 @@ pairwise <- pairwise.adonis(x = dismat,
 
 pairwise
 ```
-
-
-

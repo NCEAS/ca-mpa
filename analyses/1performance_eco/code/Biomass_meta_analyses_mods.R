@@ -4,6 +4,7 @@
 #author: "Joshua G. Smith"
 #date: "3/30/2022"
 
+rm(list=ls())
   
 #required packages
 
@@ -25,9 +26,10 @@ require(ggtext)
 
 # Load ecological data ----------------------------------------------------
 
-data_path <- "/home/shares/ca-mpa/data/sync-data/processed_data"
-input_file <- "targeted_nontargeted_fish_biomass_with_mods.csv" 
+data_path <- "analyses/1performance_eco/output"
+input_file <- "MPA_targeted_nontargeted_biomass_with_mods.csv" 
 meta.data <- read.csv(file.path(data_path, input_file)) %>%
+              dplyr::select(!(X))%>%
               filter(!(group=='ccfrp' & target_status=='nontargeted'))#drop nontargeted ccfrp
       
 meta.data$group <- recode_factor(meta.data$group, "deep_reef"='deep reef')        
@@ -163,7 +165,7 @@ mlabfun <- function(text, y) {
 cols <- c("red", "blue")[match(dat$target_status, c("targeted", "nontargeted"))]
 
 
-png("/home/joshsmith/CA_MPA_Project/ca-mpa/analyses/1performance_eco/figures/fish_biomass_forestplot.png", width = 2400, height = 2400, res=300)
+#png("/home/joshsmith/CA_MPA_Project/ca-mpa/analyses/1performance_eco/figures/fish_biomass_forestplot.png", width = 2400, height = 2400, res=300)
 
 
 forest(dat$yi, dat$vi, xlim=c(-8, 6), #at=log(c(0.05, 0.25, 1, 4)), #atransf=exp,
@@ -335,7 +337,7 @@ dev.off()
 
 
 total_biom <- mpa.means %>%
-            group_by(year, group, region3, region4, affiliated_mpa,
+            group_by(year, group, region4, affiliated_mpa,
                      mpa_class, mpa_designation) %>%
             dplyr::summarise(total_biomass = sum(sum_biomass))
 
@@ -810,6 +812,38 @@ dev.off()
 
 
 
+
+
+
+
+
+
+
+
+
+#RR by mods
+################################################################################
+
+
+mpa.means.wide <-  mpa.means %>%
+  group_by(group,region4, affiliated_mpa, mpa_class, mpa_designation,target_status)%>%
+  dplyr::summarize(yr.mean = mean(mpa.mean,na.rm=TRUE), 
+                   sd_mpa=sd(mpa.mean), # standard deviation of across MPAs where indicator was observed/recorded
+                   n=n(),
+                   mean_age_mpa=mean(mean_age),
+                   mean_distance_mpa=mean(mean_distance),
+                   mean_size_mpa = mean(mean_size)) %>%
+  pivot_wider(names_from = mpa_designation,
+              values_from = c(yr.mean, sd_mpa, n, mean_age_mpa, mean_distance_mpa, mean_size_mpa)
+  )%>%
+          mutate(logRR = log10(yr.mean_smr/yr.mean_ref))
+
+
+
+mpa.means.wide %>%
+  ggplot(aes(x=mean_size_mpa_smr, y=logRR, color=target_status))+
+  geom_point()
+  geom_line()
 
 
 
