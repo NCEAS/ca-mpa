@@ -111,6 +111,10 @@ plot(matched, type = "density")
 plot(matched, type = "histogram")
 print(matched)
 
+# 4. Get matches
+matches <- get_matches(matched, data = data_use)
+
+
 
 
 
