@@ -154,76 +154,83 @@ pooled_size <- coef(summary(rma_size)) %>%
 
 
 ################################################################################
-# Now plot them
 
+################################################################################
+# prepare for plotting
+
+#sort
+lm_model_plot <- rbind.fill(lm_model_out1, pooled_lat, pooled_age, pooled_size)
+lm_model_plot1 <- lm_model_plot %>%
+                  mutate(sorting_var = ifelse(group=="pooled","pooled","coef"))
+
+#define colors
 group.colors <- c('deep reef' = "#1B9E77", ccfrp = "#D95F02", kelp ="#7570B3", surf = "#E7298A", pooled = "black")
+group.labs <- expression("deep reef", "ccfrp","kelp","surf",
+                         italic("pooled"))
 
 #clean up names
-lm_model_out1$term <- recode_factor(lm_model_out1$term, "lat"="latitude")
-lm_model_out1$term <- recode_factor(lm_model_out1$term, "mpa_age"="MPA age")
-lm_model_out1$term <- recode_factor(lm_model_out1$term, "size_km2"="MPA size")
+lm_model_plot1$term <- recode_factor(lm_model_plot1$term, "lat"="latitude")
+lm_model_plot1$term <- recode_factor(lm_model_plot1$term, "mpa_age"="MPA age")
+lm_model_plot1$term <- recode_factor(lm_model_plot1$term, "size_km2"="MPA size")
 
 #add p-val
-lm_model_out1 <- lm_model_out1 %>%
-                  mutate(p_label = case_when(
-                    p.value > 0.05 ~ "",
-                    p.value > 0.01 ~ "*",
-                    p.value > 0.001 ~ "**")
-                  )
+lm_model_plot2 <- lm_model_plot1 %>%
+  mutate(p_label = case_when(
+    p.value > 0.05 ~ "",
+    p.value > 0.01 ~ "*",
+    p.value > 0.001 ~ "**")
+  )
 
-B<- lm_model_out1 %>%
-ggplot(aes(x=tidytext::reorder_within(term, estimate, group), y=estimate, color=group)) +
+lm_model_plot3 <- as.data.frame(lm_model_plot2) %>%
+                  arrange(term, sorting_var, desc(estimate))%>%
+                  mutate(group = as.factor(group),
+                         term= as.factor(term),
+                         sorting_num = seq(1:nrow(.)))
+                  
+#lock in factor level ordering
+lm_model_plot3$sorting_num <- factor(lm_model_plot3$sorting_num, levels = lm_model_plot3$sorting_num)
+
+B <- lm_model_plot3 %>%
+  ggplot(aes(x=tidytext::reorder_within(term, as.numeric(desc(sorting_num)), group), y=estimate, color=group)) +
   geom_errorbar(aes(ymin=conf.low, ymax=conf.high), 
                 width = 0,size  = 0.5,
-                position = position_dodge(width=0.5)) +
+                position = position_dodge(width=0.5), stat="identity") +
   geom_hline(yintercept = 0, color = "black", size = 0.5, linetype="dashed") +
   geom_point(position=position_dodge(width=0.5), size=2) + 
   geom_text(aes(label=p_label), nudge_x = 0.15, size=6, show.legend = FALSE)+
-  #add pooled effect for latitude
-  geom_point(aes(x=0.2, y=estimate),data=pooled_lat, shape=18, color="black", size=3)+
-  geom_errorbar(aes(x=0.2, ymin=conf.low, ymax=conf.high), 
-                width = 0,size  = 0.5,
-                position = position_dodge(width=0.5), data=pooled_lat, color="black")+
-  #add pooled effect for age
-  geom_point(aes(x=0.2, y=estimate),data=pooled_age, shape=18, color="black", size=3)+
-  geom_errorbar(aes(x=0.2, ymin=conf.low, ymax=conf.high), 
-                width = 0,size  = 0.5,
-                position = position_dodge(width=0.5), data=pooled_age, color="black")+
-  #add pooled effect for size
-  geom_point(aes(x=0.2, y=estimate),data=pooled_size, shape=18, color="black", size=3)+
-  geom_errorbar(aes(x=0.2, ymin=conf.low, ymax=conf.high), 
-                width = 0,size  = 0.5,
-                position = position_dodge(width=0.5), data=pooled_size, color="black")+
   #scale_x_discrete(expand = c(0.2, 0.1) )+
   coord_flip() +
   theme_bw()+
   scale_x_discrete(breaks = c('size_km2',
-                             'lat',
-                            'mpa_age'),
+                              'lat',
+                              'mpa_age'),
                    labels = c('MPA size (km2)',
                               'latitude',
-                              'MPA age'),
-                   expand = c(0.1,1))+
+                              'MPA age'))+
   xlab("")+
   ylab("Beta coefficients with 95% CI")+
   ggtitle("Nontargeted fish biomass")+
   theme(legend.title=element_blank())+
   theme_bw(base_size = 14)+
   scale_fill_manual(values=c(group.colors))+
-  scale_color_manual(values=c(group.colors))+
+  scale_color_manual(values=c(group.colors),
+                     labels = group.labs)+
   facet_wrap(~term, ncol=1, scales="free_y")
-   
+
 
 
 ggarrange(A, B, common.legend = TRUE)
 
 
 
-
-################################################################################
-
+###############################################################################
 
 ###############################################################################
+
+###############################################################################
+
+#RESAMPLING APPROACH --- WORKING
+
 #create boot fun
 
 bootfun <- function(data, i){
@@ -292,14 +299,6 @@ boot.ci(b)
 
 
 
-
-
-test2 <- rma(estimate, std.error, method="REML", verbose=TRUE, digits=5, data=out_conf)
-
-
-
-
-
 test <- lm(RR ~ lat, data=targeted_dat)
 
 b <- test$coefficients
@@ -333,23 +332,6 @@ plot(res.list, distance ~ fitted(.) | Subject, abline = c(0,1))
 
 
 dat <- as.data.frame(Orthodont)
-
-
-
-
-
-
-
-set.seed(123)
-df <- data.frame(
-  group=rep(c('region1','region2'), 100),
-  subgroup=rep(c('location1','location2',
-                 'location2', 'location1'), 25),
-  soil_type = rep(c('soil1','soil2','soil3','soil4'), 25),
-  temperature = abs(rnorm(100, 2,1.75)),
-  RR=rnorm(200)
-)
-
 
 
 
