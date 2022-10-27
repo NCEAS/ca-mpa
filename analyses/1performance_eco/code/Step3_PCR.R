@@ -64,16 +64,18 @@ PCR_nontargeted_dat <- PCR_dat %>% filter(target_status == 'nontargeted')
 ################################################################################
 #PCR
 
-PCR_dat_kelp <- PCR_targeted_dat %>% filter(
+PCR_dat_kelp <- PCR_targeted_dat %>% filter(#year=='2018'|
                                             year=='2019'|
-                                              year=='2020') 
+                                              year=='2020'
+                                            ) 
 
 pcr_target<- prcomp(~ mpa_age + size_km2 + lat, scale=TRUE, data = PCR_dat_kelp)
 summary(pcr_target)
 
 #examine output
 p<-autoplot(pcr_target, data=PCR_dat_kelp, loadings=TRUE,
-            loadings.label=TRUE, size="RR",
+            loadings.label=TRUE, loadings.label.hjust = -0.01,
+            size="RR",
             #colour="RR_sign"
             ) + scale_size_continuous(range = c(-3,6))
 ggplotly(p) 

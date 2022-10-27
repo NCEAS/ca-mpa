@@ -43,7 +43,7 @@ meta.data$mpa_designation <- tolower(meta.data$mpa_designation)
 #reshape to wide format
 
 mpa.means<- meta.data%>%
-  filter( target_status=='nontargeted',
+  filter( target_status=='targeted',
           #group=="kelp",
           mpa_class=='smr'| mpa_class=='ref'
   )
@@ -87,10 +87,26 @@ fitted_models <- targeted_dat %>%
     tidied = map(mod, conf.int=TRUE, tidy))%>%
   unnest(tidied)
 
-
-
 lm_model_out <- round_df(fitted_models, digits=3)
 lm_model_out1 <- lm_model_out %>% filter(!(term=="(Intercept)")) #remove the intercept 
+
+
+
+################################################################################
+#analyze partial regressions
+#lm_kelp <- targeted_dat %>% filter(group=='kelp')
+#kelp_partial <- avPlots(lm(RR~mpa_age + size_km2 + lat , data = lm_kelp))
+
+#lm_ccfrp <- targeted_dat %>% filter(group=='ccfrp')
+#ccfrp_partial <- avPlots(lm(RR~mpa_age + size_km2 + lat , data = lm_ccfrp))
+
+#lm_deep_reef <- targeted_dat %>% filter(group=='deep reef')
+#deep_reef_partial <- avPlots(lm(RR~mpa_age + size_km2 + lat , data = lm_deep_reef))
+
+#lm_surf <- targeted_dat %>% filter(group=='surf')
+#surf_partial <- avPlots(lm(RR~mpa_age + size_km2 + lat , data = lm_surf))
+
+
 
 #lm_model_out1$group = with(lm_model_out1, factor(group, levels=group[order(ave(estimate, term, FUN=min),estimate)]))
 
@@ -167,6 +183,7 @@ lm_model_plot1 <- lm_model_plot %>%
 group.colors <- c('deep reef' = "#1B9E77", ccfrp = "#D95F02", kelp ="#7570B3", surf = "#E7298A", pooled = "black")
 group.labs <- expression("deep reef", "ccfrp","kelp","surf",
                          italic("pooled"))
+group.shape <- c('deep reef'= 16, ccfrp=16, kelp=16, surf=16, pooled = 18)
 
 #clean up names
 lm_model_plot1$term <- recode_factor(lm_model_plot1$term, "lat"="latitude")
@@ -190,14 +207,14 @@ lm_model_plot3 <- as.data.frame(lm_model_plot2) %>%
 #lock in factor level ordering
 lm_model_plot3$sorting_num <- factor(lm_model_plot3$sorting_num, levels = lm_model_plot3$sorting_num)
 
-B <- lm_model_plot3 %>%
+A <- lm_model_plot3 %>%
   ggplot(aes(x=tidytext::reorder_within(term, as.numeric(desc(sorting_num)), group), y=estimate, color=group)) +
   geom_errorbar(aes(ymin=conf.low, ymax=conf.high), 
                 width = 0,size  = 0.5,
                 position = position_dodge(width=0.5), stat="identity") +
   geom_hline(yintercept = 0, color = "black", size = 0.5, linetype="dashed") +
-  geom_point(position=position_dodge(width=0.5), size=2) + 
-  geom_text(aes(label=p_label), nudge_x = 0.15, size=6, show.legend = FALSE)+
+  geom_point(position=position_dodge(width=0.5), size=1.5) + 
+  geom_text(aes(label=p_label), nudge_x = 0.15, size=5, show.legend = FALSE)+
   #scale_x_discrete(expand = c(0.2, 0.1) )+
   coord_flip() +
   theme_bw()+
@@ -209,18 +226,24 @@ B <- lm_model_plot3 %>%
                               'MPA age'))+
   xlab("")+
   ylab("Beta coefficients with 95% CI")+
-  ggtitle("Nontargeted fish biomass")+
+  ggtitle("Targeted fish biomass")+
   theme(legend.title=element_blank())+
-  theme_bw(base_size = 14)+
+  theme_bw(base_size = 8)+
   scale_fill_manual(values=c(group.colors))+
-  scale_color_manual(values=c(group.colors),
+  #scale_shape_manual(values = c(16,16,16,16,22))+
+  scale_color_manual(name="",
+                     values=c(group.colors),
                      labels = group.labs)+
   facet_wrap(~term, ncol=1, scales="free_y")
 
 
 
-ggarrange(A, B, common.legend = TRUE)
+biomass_coef <- ggarrange(A, B, common.legend = TRUE)
 
+
+#ggsave(here::here("analyses", "1performance_eco", "figures", 
+#"Fig2.1_coef_meta_regress_biomass_2019.png"), biomass_coef, width=6, height=4,
+#bg="white",dpi = 600, units = "in")
 
 
 ###############################################################################
