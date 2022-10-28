@@ -444,6 +444,7 @@ kelp_swath_counts2 <- as.data.frame(kelp_swath_counts1) %>%
                                                           'urticina_coriacea', 'urticina_crassicornis', 'urticina_piscivora'))) %>%
                   #drop species
                   select(!(c('anthopleura',
+                             'apostichopus',
                              'asteroidea',
                              'haliotis',
                              'laminaria',
@@ -471,7 +472,7 @@ kelp_swath_counts3 <- kelp_swath_counts2 %>% filter(region3=='central') %>%
 #write.csv(kelp_swath_mpa_year, file.path(path_aurora, "kelp_swath_mpa_year_counts.csv"), row.names = FALSE)
 
 kelp_swath_mpa_year_step1 <- kelp_swath_counts3 %>%
-                        pivot_longer(cols=10:73, names_to="species",values_to="counts")%>%
+                        pivot_longer(cols=10:72, names_to="species",values_to="counts")%>%
                         group_by(year, region3, region4, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation, MHW, species)%>%
                         dplyr::summarize(total_counts = sum(counts))%>%
                         ungroup()%>%
@@ -485,7 +486,7 @@ kelp_swath_mpa_year <- left_join(kelp_swath_mpa_year_step1, envr_dat,
                                                        "mpa_defacto_class",
                                                        "mpa_defacto_designation",
                                                        "affiliated_mpa"="mpa_name"))%>%
-                  dplyr::select(1:7,72:90,8:71) %>%
+                  dplyr::select(1:7,71:89,8:70) %>%
                   dplyr::select(!c("mpa_class","mpa_designation")) %>%
                   mutate(group = "kelp_swath")%>%
                   dplyr::select(group, everything()) %>%
@@ -545,7 +546,8 @@ kelp_upc_counts4 <- kelp_upc_counts3 %>%
                                species=="Unidentified Fish"|
                                species=="Actiniaria"|
                                species=="Shell Debris"|
-                               species=="Sediment/Mud"))
+                               species=="Sediment/Mud"|
+                               species==""))
 
 
 #recalculate percent cov
