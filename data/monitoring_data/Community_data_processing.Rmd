@@ -547,6 +547,8 @@ kelp_upc_counts4 <- kelp_upc_counts3 %>%
                                species=="Actiniaria"|
                                species=="Shell Debris"|
                                species=="Sediment/Mud"|
+                               species=="Stylantheca papillosa"|
+                               species=="Diaperoforma californica"|
                                species==""))
 
 
@@ -644,11 +646,11 @@ kelp_upc_mpa_year <- left_join(kelp_upc_mpa_year_step1, envr_dat,
                                                        "mpa_defacto_class",
                                                        "mpa_defacto_designation",
                                                        "affiliated_mpa"="mpa_name"))%>%
-                  dplyr::select(1:7,66:84,8:65) %>%
+                  dplyr::select(1:7,64:82,8:63) %>%
                   mutate(group="kelp_upc")%>%
                   dplyr::select(!c("mpa_class","mpa_designation")) %>%
                   dplyr::select(group, everything()) %>%
-                  mutate_at(c(25:82), ~replace_na(.,0))%>%
+                  mutate_at(c(25:80), ~replace_na(.,0))%>%
                   filter(region3 == 'central') %>%
                   select(where(~ any(. != 0)))
 

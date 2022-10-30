@@ -312,10 +312,10 @@ deep_reef <- deep_reef_cen %>%
                   filter(!(sum==0))%>% #remove rows containing only zeros
                   dplyr::select(-c(
                                 young_of_year_10_cm_sebastes_sp,
-                                ))%>%
+                                sum))%>%
                   mutate(desig_state = paste(mpa_defacto_designation,MHW))%>%
                   dplyr::select(desig_state, everything())%>%
-                  filter(mpa_defacto_designation=="smr" | mpa_defacto_designation=="ref") #drop sum columns and non-species categories
+                  filter(mpa_defacto_designation=="smr" | mpa_defacto_designation=="ref") 
         
 #define grouping vars
 deep_reef_group_vars <- deep_reef%>%
@@ -376,7 +376,7 @@ rocky_distmat <-
 
 
 #save group vars
-#output_path <-  "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data" 
+output_path <-  "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data" 
 #save(CCFRP_group_vars,kelp_invalg_group_vars,kelp_fish_group_vars,
 #     kelp_swath_group_vars, kelp_upc_group_vars,
 #   deep_reef_group_vars,rocky_group_vars,
