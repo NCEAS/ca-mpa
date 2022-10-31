@@ -969,7 +969,7 @@ rocky_count_prop <- rocky_count_envr %>%
 
 #export
 #path_aurora <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data" 
-#write.csv(rocky_count_envr, file.path(path_aurora, "rocky_mpa_year.csv"), row.names = FALSE)
+#write.csv(rocky_count_prop, file.path(path_aurora, "rocky_mpa_year.csv"), row.names = FALSE)
 
 ```
 
