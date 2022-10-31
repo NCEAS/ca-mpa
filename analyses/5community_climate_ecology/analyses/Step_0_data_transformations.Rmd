@@ -375,11 +375,11 @@ rocky_distmat <-
     vegan::vegdist(rocky_rel, method = "bray", na.rm=T) #generates a BC dissim matrix
 
 
-#save group vars
-output_path <-  "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data" 
+###save group vars
+#output_path <-  "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data" 
 #save(CCFRP_group_vars,kelp_invalg_group_vars,kelp_fish_group_vars,
 #     kelp_swath_group_vars, kelp_upc_group_vars,
-#   deep_reef_group_vars,rocky_group_vars,
+#  deep_reef_group_vars,rocky_group_vars,
 #    file = file.path(output_path, "group_vars.rda"))
 
 #save community matrices
