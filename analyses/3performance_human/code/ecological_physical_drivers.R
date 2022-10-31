@@ -156,9 +156,22 @@ tab_char <- sjPlot::tab_model(iNat_full_model, show.aic=T, show.r2=T, title="Ful
           #pred.labels = c("intercept","state parks (yes)","sandy beach","estuary","national marine sanctuary (yes)"),
           dv.labels = c("iNaturalist"))
 
+
 tab_inaccess <- sjPlot::tab_model(iNat_full_model, show.aic=T, show.r2=T, title="Full logistic model",auto.label=T,
                                      #pred.labels = c("intercept","state parks (yes)","sandy beach","estuary","national marine sanctuary (yes)"),
                                      dv.labels = c("iNaturalist"))
+
+
+##Save plots
+
+figdir <- here::here("analyses","3performance_human","figures")
+
+sjPlot::tab_model(iNat_full_model, show.aic=T, show.r2=T, title="Full logistic model",auto.label=T,
+                              #pred.labels = c("intercept","state parks (yes)","sandy beach","estuary","national marine sanctuary (yes)"),
+                              dv.labels = c("iNaturalist"), file=file.path(figdir, "FigX_engagement_drivers.html"))
+
+webshot(file.path(figdir, "FigX_engagement_drivers.html"), file.path(figdir, "FigX_engagement_drivers.png"))
+
 
 
 summary(iNat_full_model)
