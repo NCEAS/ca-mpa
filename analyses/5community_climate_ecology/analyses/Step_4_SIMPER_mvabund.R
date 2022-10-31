@@ -14,12 +14,16 @@ require(reshape2)
 require(ggfittext)
 require(mvabund)
 require(stringr)
+require(gt)
 
 
 
 # #load data --------------------------------------------------------------
 
-data_path <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/ecological_community_data/year_level_with_envr_vars"
+#old dat
+#data_path <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/ecological_community_data/year_level_with_envr_vars"
+
+data_path <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data"
 
 comm_data <- load(file.path(data_path, "comm_data.rda"))
 group_vars <- load(file.path(data_path, "group_vars.rda"))
@@ -31,9 +35,10 @@ group_vars <- load(file.path(data_path, "group_vars.rda"))
 sim_CCFRP <- with(CCFRP_group_vars, simper(CCFRP_ord_data, MHW), 
                   ordered=TRUE)
 
-kelp_invalg_ord_data[is.na(kelp_invalg_ord_data)] = 0
-sim_kelp_invalg <- with(kelp_invalg_group_vars, simper(kelp_invalg_ord_data, MHW),
-                  ordered=TRUE)
+#SIMPER does not work on standardized data
+#kelp_invalg_ord_data[is.na(kelp_invalg_ord_data)] = 0
+#sim_kelp_invalg <- with(kelp_invalg_group_vars, simper(kelp_invalg_ord_data, MHW),
+#                  ordered=TRUE)
 
 sim_kelp_upc <- with(kelp_upc_group_vars, simper(kelp_upc_ord_data, MHW),
                  ordered=TRUE)
@@ -70,11 +75,11 @@ kelp_upc_a_b_table <- as.data.frame(summary(sim_kelp_upc)$before_after)%>%
          perc_change = (avb-ava)/ava,
          sign = ifelse(perc_change > 0, "positive","negative"))
 
-kelp_invalg_a_b_table <- as.data.frame(summary(sim_kelp_invalg)$before_after)%>%
-  mutate(group="kelp_invalg",
-         contrib = cumsum-lag(cumsum, default=0),
-         perc_change = (avb-ava)/ava,
-         sign = ifelse(perc_change > 0, "positive","negative"))
+#kelp_invalg_a_b_table <- as.data.frame(summary(sim_kelp_invalg)$before_after)%>%
+#  mutate(group="kelp_invalg",
+#         contrib = cumsum-lag(cumsum, default=0),
+#         perc_change = (avb-ava)/ava,
+#         sign = ifelse(perc_change > 0, "positive","negative"))
 
 kelp_fish_a_b_table <- as.data.frame(summary(sim_kelp_fish)$before_after)%>%
   mutate(group="kelp_fish",
@@ -200,7 +205,8 @@ simper_table$monitoring <- factor(simper_table$monitoring,
 
 
 
-#plot
+###############################################################################
+#plot SIMPER
 st <- ggplot(simper_table, aes(x = group, y = contrib, label = stringr::str_wrap(species_ID, 20), fill=sign)) +
   geom_bar(stat = "identity", color="black") +
   geom_text(size = 3, position = position_stack(vjust = 0.5), color="black", 
@@ -219,16 +225,59 @@ st
 # Saving the plot with dimensions that facilitate the text wrapping
 #ggsave("analyses/5community_climate_ecology/figures/simper_table_plot.png", width = 15, height = 12, dpi = 300)
 
+###############################################################################
+#SIMPER output table
+
+#gt option
+simper_out_gt <- simper_table %>%
+              select('monitoring group'=monitoring, "community type"=group, 
+                     'species' = species_ID,
+                     'cumulative contrib.'=cumsum, 'individual contrib.' = contrib)%>%
+              dplyr::group_by(`monitoring group`, `community type`)%>%
+              dplyr::arrange(`cumulative contrib.`,.by_group=TRUE)%>%
+              mutate(`cumulative contrib.` = round(`cumulative contrib.`,2),
+                     `individual contrib.` = round(`individual contrib.`,2))%>%
+  gt(rowname_col = 'community type',
+     groupname_col = 'monitoring group',
+     )%>%
+  tab_header(title = md("Cumulative contribution of species to community 
+                        structure changes"))
 
 
+gtsave(simper_out_gt, "analyses/5community_climate_ecology/tables/simper_table.docx")
+
+#flex option
+simper_out_flex <- simper_table %>%
+  select('monitoring group'=monitoring, "community type"=group, 
+         'species' = species_ID,
+         'cumulative contrib.'=cumsum, 'individual contrib.' = contrib)%>%
+  dplyr::group_by(`monitoring group`, `community type`)%>%
+  dplyr::arrange(`cumulative contrib.`,.by_group=TRUE)%>%
+  mutate(`cumulative contrib.` = round(`cumulative contrib.`,2),
+         `individual contrib.` = round(`individual contrib.`,2))
+
+ftab <- flextable::qflextable(simper_out_flex) %>%
+        #theme_zebra()%>%
+       #theme_tron_legacy()
+        #theme_vader()%>%
+        #theme_box()
+        theme_alafoli()
 
 
+        library(officer)
+sect_properties <- prop_section(
+          page_size = page_size(
+            orient = "landscape",
+            width = 8.3, height = 11
+          ),
+          type = "continuous",
+          page_margins = page_mar()
+        )
 
-
-
-
-
-
+save_as_docx(ftab,
+             path = "analyses/5community_climate_ecology/tables/simper_out.docx",
+             pr_section = sect_properties)
+        
 
 
 
