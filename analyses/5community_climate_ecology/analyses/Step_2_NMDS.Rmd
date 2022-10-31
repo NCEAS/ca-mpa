@@ -118,7 +118,7 @@ ccfrp_stress <- as.data.frame(CCFRP_ord[["stress"]]) %>%
   mutate_at(1, round, 3)
 
 CCFRP<- ggplot(data=cent, aes(NMDS1, NMDS2)) +
-  geom_point(aes(shape=mpa_designation, color=MHW), size=3) +                           #centroids
+  geom_point(aes(shape=mpa_designation, color=MHW), size=2) +                           #centroids
   geom_path(data = df_ell, aes(NMDS1, NMDS2, colour=MHW, 
                                group=group), size = 0.4, linetype=2, 
             )+           #line connecting groups (years)
@@ -201,7 +201,7 @@ kelp_invalg_stress <- as.data.frame(kelp_invalg_ord[["stress"]]) %>%
 
 
 kelp_invalg<- ggplot(data=cent, aes(NMDS1, NMDS2)) +
-  geom_point(aes(shape=mpa_designation, color=MHW), size=3) +                           #centroids
+  geom_point(aes(shape=mpa_designation, color=MHW), size=2) +                           #centroids
   geom_path(data = df_ell, aes(NMDS1, NMDS2, colour=MHW, 
                                group=group), size = 0.4, linetype=2, 
             )+           #line connecting groups (years)
@@ -277,7 +277,7 @@ kelp_fish_stress <- as.data.frame(kelp_fish_ord[["stress"]]) %>%
   mutate_at(1, round, 3)
 
 kelp_fish<- ggplot(data=cent, aes(NMDS1, NMDS2)) +
-  geom_point(aes(shape=mpa_designation, color=MHW), size=3) +                           #centroids
+  geom_point(aes(shape=mpa_designation, color=MHW), size=2) +                           #centroids
   geom_path(data = df_ell, aes(NMDS1, NMDS2, colour=MHW, 
                                group=group), size = 0.4, linetype=2, 
             )+           #line connecting groups (years)
@@ -353,7 +353,7 @@ deep_reef_stress <- as.data.frame(deep_reef_ord[["stress"]]) %>%
   mutate_at(1, round, 3)
 
 deep_reef<- ggplot(data=cent, aes(NMDS1, NMDS2)) +
-  geom_point(aes(shape=mpa_designation, color=MHW), size=3) +                           #centroids
+  geom_point(aes(shape=mpa_designation, color=MHW), size=2) +                           #centroids
   geom_path(data = df_ell, aes(NMDS1, NMDS2, colour=MHW, 
                                group=group), size = 0.4, linetype=2, 
             )+           #line connecting groups (years)
@@ -368,7 +368,7 @@ deep_reef<- ggplot(data=cent, aes(NMDS1, NMDS2)) +
   #theme(text = element_text(12))+
   annotate(geom="text", 
            x=0.17, 
-           y=0.2, 
+           y=0.3, 
            col="black", 
            label= paste("Stress: ",deep_reef_stress$stress), parse=T,
            size=3)+
@@ -432,7 +432,7 @@ rocky_stress <- as.data.frame(rocky_ord[["stress"]]) %>%
 
 
 rocky<- ggplot(data=cent, aes(NMDS1, NMDS2)) +
-  geom_point(aes(shape=mpa_designation, color=MHW), size=3) +                           #centroids
+  geom_point(aes(shape=mpa_designation, color=MHW), size=2) +                           #centroids
   geom_path(data = df_ell, aes(NMDS1, NMDS2, colour=MHW, 
                                group=group), size = 0.4, linetype=2, 
             )+           #line connecting groups (years)
