@@ -33,7 +33,8 @@ eco_dist <- load(file.path(data_path, "distance_matrices_BC.rda"))
 
 CCFRP_disper <- betadisper(CCFRP_distmat, type="centroid", 
                            group=CCFRP_group_vars$desig_state)
-A<- plot(CCFRP_disper, main="CCFRP", col=c('red','blue'))
+A<- plot(CCFRP_disper, main="CCFRP", col=c('red','blue'),
+         hull=TRUE, ellipse=FALSE, label=FALSE)
 
 
 kelp_swath_disper <- betadisper(kelp_swath_distmat, type="centroid", 
@@ -78,18 +79,91 @@ eig_fun <- function(disper_mat) {
          dist(disper_mat$centroids[,disper_mat$eig<0]^2))))
   tibble::rownames_to_column(x, "distance")
 
-  x %>% filter(Var1 == "ref before" & Var2 == "ref after" |
+  x2 <- x %>% filter(Var1 == "ref before" & Var2 == "ref after" |
                  Var1 == "smr before" & Var2 == "smr after") %>%
-        mutate(MPA = gsub( " .*$", "", Var1)) %>%
-        select(MPA, value)%>%
-        pivot_wider(names_from="MPA")%>%
-        mutate(logRR = log(smr/ref))
+        mutate(MPA = gsub( " .*$", "", Var1)) # %>%
+        #select(MPA, value)%>%
+        #pivot_wider(names_from="MPA")%>%
+        #mutate(logRR = log(smr/ref))
   
+  sd = melt(as.matrix(tapply(disper_mat$distances, disper_mat$group, sd)))%>%
+    tibble::rownames_to_column() %>% mutate(s_d = value)%>%
+    select(Var1, s_d) %>%
+    filter(Var1 == 'ref before' | Var1 =='ref after'|
+             Var1=='smr before' | Var1 == 'smr after') 
+  
+  n = melt(table(disper_mat$group))%>%
+    tibble::rownames_to_column() %>% mutate(n = value)%>%
+    select(Var1, n) %>%
+    filter(Var1 == 'ref before' | Var1 =='ref after'|
+             Var1=='smr before' | Var1 == 'smr after') 
+  
+  e_hat <- left_join(sd, n, by='Var1') %>%
+    pivot_wider(names_from='Var1', values_from = c('s_d','n'))%>%
+    mutate(sd_ref_pooled = sqrt(
+      ((`n_ref before`-1)*`s_d_ref before`^2 + (`n_ref after`-1)*`s_d_ref after`^2)/
+        (`n_ref before`+`n_ref after`-2)
+    ),
+    sd_smr_pooled = sqrt(
+      ((`n_smr before`-1)*`s_d_smr before`^2 + (`n_smr after`-1)*`s_d_smr after`^2)/
+        (`n_smr before`+`n_smr after`-2)
+    )
+    ) %>%
+    select(`sd_ref_pooled`,`sd_smr_pooled`)%>%
+    pivot_longer(cols=c(`sd_ref_pooled`,`sd_smr_pooled`), values_to ="sd_pooled")
+  
+  #sd = as.matrix(tapply(CCFRP_disper$distances, CCFRP_disper$group, sd)) %>% 
+    #select(
+    #'ref before','ref after','smr before','smr after')
+  
+  cbind(x2, e_hat)
 }
 
-eig_fun(CCFRP_disper)
+ccfrp_travel <- eig_fun(CCFRP_disper) %>% mutate(group = "CCFRP")
+kelp_invalg_travel <- eig_fun(kelp_invalg_disper) %>% mutate(group = "kelp inverts and algae")
+kelp_fish_travel <- eig_fun(kelp_fish_disper) %>% mutate(group = "kelp fish")
+deep_reef_travel <- eig_fun(deep_reef_disper) %>% mutate(group = "deep reef")
+rocky_travel <- eig_fun(rocky_disper) %>% mutate(group = "rocky intertidal")
 
-as.matrix(cc)
+travel_distance <- as.data.frame(rbind(ccfrp_travel, kelp_invalg_travel, kelp_fish_travel,
+                         deep_reef_travel, rocky_travel))
+
+travel_distance$MPA <- recode_factor(travel_distance$MPA, 'smr'='SMR')
+travel_distance$MPA <- recode_factor(travel_distance$MPA, 'ref'='Reference')
+
+dist_smr <- travel_distance %>% filter(MPA=='smr')
+mean_smr <- mean(dist_smr$value)
+
+dist_ref <- travel_distance %>% filter(MPA=='ref')
+mean_ref <- mean(dist_ref$value)
+
+betadisp_plot <- travel_distance%>%
+ggplot(aes(x=reorder(group,value), y=value, color=MPA))+
+  geom_point(position = position_dodge(width=0.5))+
+  geom_errorbar(aes(ymin=value-sd_pooled,
+                    ymax = value+sd_pooled), stat="identity",
+                position = position_dodge(width=0.5), size=0.3, width=.3)+
+  #geom_hline(yintercept = mean_smr, linetype="dashed", color='#EB6977')+
+  #geom_hline(yintercept = mean_ref, linetype="dashed", color='#13A0DD')+
+  scale_color_manual(name='MPA type',
+                    breaks=c('SMR', 'Reference'),
+                    values=c('SMR'='#EB6977', 'Reference'='#13A0DD'))+
+  theme_minimal(base_size=12) +
+  ylab("Distance (Bray-Curtis)")+
+  xlab("Community")+
+  coord_flip()
+
+#ggsave(here::here("analyses", "5community_climate_ecology", "figures", "betadisp_plot.png"), betadisp_plot, height=6, width = 8, units = "in", 
+#   dpi = 600, bg="white")
+
+
+
+
+
+
+
+
+
 
 #CCFRP
 
@@ -98,7 +172,7 @@ ccfrp_centroids <- sqrt(dist(CCFRP_disper$centroids[,CCFRP_disper$eig>0]^2)-
                         )
 
 
-
+tapply(CCFRP_disper$centroids, CCFRP_disper$group, sd)
 
 
 # step 2 calculate dist between centroids inside and outide of MPAs-------------
