@@ -26,20 +26,45 @@ data_dir <- "/home/shares/ca-mpa/data/sync-data/kelp_lter/"
 kelpwatch_file <- "LandsatKelpBiomass_2022_Q2_withmetadata.nc"
 
 kelpwatch_raw <- tidync(file.path(data_dir, kelpwatch_file))
-kelpwatch_raw
+kelpwatch_raw # select the biomass grid by default
 
 # kelpwatch_grid <- kelpwatch_raw %>% 
 #   hyper_array()
 
-# Transform the netcdf file as a data frame
+# Transform the biomass grid into a data frame
 kelpwatch_df <- kelpwatch_raw %>% 
   hyper_tibble()
 
 kelpwatch_max <- kelpwatch_df %>%
-  group_by(station) %>%
-  summarise_all(max, na.rm=TRUE,.groups="keep")
+  group_by(station, .drop = FALSE) %>%
+  summarise_all(max, na.rm = TRUE)
 
-# 
+# Transform the latitude grid into a data frame
+kelp_lat <- kelpwatch_raw %>%
+  activate("latitude") %>%
+  hyper_tibble()
+
+# Transform the longitude grid into a data frame
+kelp_lon <- kelpwatch_raw %>%
+  activate("longitude") %>%
+  hyper_tibble()
+
+# Join the two geo info
+kelp_latlon <- left_join(kelp_lat, kelp_lon, by = "station") %>%
+  relocate(station, .before=everything())
+
+# Join with the biomass data
+
+kelp_biomass_latlon <- left_join(kelp_latlon, kelpwatch_max, by = "station") %>%
+  relocate(station, .before=everything())
+
+# Makes it a sf object
+kelp_biomass_sf <- kelp_biomass_latlon %>%
+  st_as_sf(coords=c("latitude","longitude"), crs=4326, remove=FALSE)
+
+
+
+ 
 # # Read the data with stars
 # kelp_stars <- stars::read_stars(file.path(data_dir, kelpwatch_file)) # warnings because does not recognize dim
 # bio <- kelp_stars$biomass # Extract the array for the biomass data
