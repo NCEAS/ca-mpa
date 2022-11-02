@@ -66,6 +66,40 @@ rocky_disper <- betadisper(rocky_distmat, type="centroid",
 F <- plot(rocky_disper, main="rocky", col=c('red','blue'))
 
 
+################################################################################
+#calculate dist between centroids using betadisper output
+
+#create helper function to handle negative eigenvalues and
+#convert to square mat
+
+eig_fun <- function(disper_mat) {
+  
+  x = melt(as.matrix(sqrt(dist(disper_mat$centroids[,disper_mat$eig>0]^2)-
+         dist(disper_mat$centroids[,disper_mat$eig<0]^2))))
+  tibble::rownames_to_column(x, "distance")
+
+  x %>% filter(Var1 == "ref before" & Var2 == "ref after" |
+                 Var1 == "smr before" & Var2 == "smr after") %>%
+        mutate(MPA = gsub( " .*$", "", Var1)) %>%
+        select(MPA, value)%>%
+        pivot_wider(names_from="MPA")%>%
+        mutate(logRR = log(smr/ref))
+  
+}
+
+eig_fun(CCFRP_disper)
+
+as.matrix(cc)
+
+#CCFRP
+
+ccfrp_centroids <- sqrt(dist(CCFRP_disper$centroids[,CCFRP_disper$eig>0]^2)-
+                          dist(CCFRP_disper$centroids[,CCFRP_disper$eig<0]^2)
+                        )
+
+
+
+
 
 # step 2 calculate dist between centroids inside and outide of MPAs-------------
 
@@ -145,7 +179,6 @@ vegan::permutest(kelp_swath_disper)
 vegan::permutest(kelp_fish_disper)
 vegan::permutest(kelp_upc_disper)
 vegan::permutest(kelp_invalg_disper)
-vegan::permutest(deep_reef_disper)
 vegan::permutest(rocky_disper)
 
 
