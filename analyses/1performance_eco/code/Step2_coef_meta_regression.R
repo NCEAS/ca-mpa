@@ -76,6 +76,7 @@ DataExplorer::plot_histogram(targeted_dat)
 
 psych::pairs.panels(targeted_dat)
 
+lw <- length_weight("Oreochromis niloticus")
 
 
 ################################################################################
@@ -115,14 +116,22 @@ lm_model_out1 <- lm_model_out %>% filter(!(term=="(Intercept)")) #remove the int
 #compute meta regression for overall pooled coefficients
 
 #rma 
-targeted_dat$vi <- 0
-meta_regress <- rma(RR, vi, mods = ~ mpa_age + size_km2 + lat, 
-                    data = targeted_dat, test = "knha")
+targeted_dat$V <- 0
+meta_regress <- rma.mv(RR, V, mods = ~ mpa_age + size_km2 + lat, 
+                       random = ~ 1| group,
+                    data = targeted_dat)
 summary(meta_regress)
+
+forest(meta_regress)
 
 
 #mixed effects model with random ~ group
-lm_mix <- lme4::lmer(RR ~ mpa_age + size_km2 + lat + (1|group) , data = targeted_dat)
+lm_mix <- lme4::lmer(RR ~ mpa_age + size_km2 + lat + (1|group) , 
+                  
+                     data = targeted_dat)
+
+
+
 CI_int <- as.data.frame(confint(lm_mix)) %>%
           janitor::clean_names()%>%
           tibble::rownames_to_column()%>%
