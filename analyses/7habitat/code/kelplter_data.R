@@ -19,12 +19,16 @@
 
 
 # install.packages("librarian")
-librarian::shelf(tidyverse, tidync, sf, stars)
+librarian::shelf(tidyverse, tidync, sf, rnaturalearth, tmap)
 
+# paths
 data_dir <- "/home/shares/ca-mpa/data/sync-data/kelp_lter/"
+gisdir <- file.path(data_dir, "gis_data/processed")
 
 kelpwatch_file <- "LandsatKelpBiomass_2022_Q2_withmetadata.nc"
 
+
+# read the data in
 kelpwatch_raw <- tidync(file.path(data_dir, kelpwatch_file))
 kelpwatch_raw # select the biomass grid by default
 
@@ -33,7 +37,7 @@ kelpwatch_raw # select the biomass grid by default
 
 # Transform the biomass grid into a data frame
 kelpwatch_df <- kelpwatch_raw %>% 
-  hyper_tibble()
+  hyper_tibble(force = TRUE)
 
 kelpwatch_max <- kelpwatch_df %>%
   group_by(station, .drop = FALSE) %>%
@@ -54,17 +58,32 @@ kelp_latlon <- left_join(kelp_lat, kelp_lon, by = "station") %>%
   relocate(station, .before=everything())
 
 # Join with the biomass data
-
 kelp_biomass_latlon <- left_join(kelp_latlon, kelpwatch_max, by = "station") %>%
   relocate(station, .before=everything())
 
 # Makes it a sf object
 kelp_biomass_sf <- kelp_biomass_latlon %>%
-  st_as_sf(coords=c("latitude","longitude"), crs=4326, remove=FALSE)
+  st_as_sf(coords=c("longitude", "latitude"), crs=4326, remove=FALSE)
 
 
 
- 
-# # Read the data with stars
-# kelp_stars <- stars::read_stars(file.path(data_dir, kelpwatch_file)) # warnings because does not recognize dim
-# bio <- kelp_stars$biomass # Extract the array for the biomass data
+#### PLOT ####
+
+# Get land
+usa <- rnaturalearth::ne_states(country="United States of America", returnclass = "sf")
+foreign <- rnaturalearth::ne_countries(country=c("Canada", "Mexico"), returnclass = "sf")
+
+g <- ggplot() +
+  # Plot land
+  geom_sf(data=foreign, fill="grey90", color="white", lwd=0.3) +
+  geom_sf(data=usa, fill="grey90", color="white", lwd=0.3) +
+  # Plot kelp
+  geom_sf(data=kelp_biomass_sf, aes(color = biomass), size = 2) +
+  # Labels
+  labs(x="", y="") +
+  # Crop
+  coord_sf(xlim = c(-124.5, -117), ylim = c(32.5, 42)) +
+  # Theme
+  theme_bw()
+g
+
