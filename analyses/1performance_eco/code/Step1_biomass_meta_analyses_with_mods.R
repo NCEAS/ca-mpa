@@ -272,7 +272,7 @@ text(-8, 0, pos=4, cex=0.7, mlabfun("RE Model for nontargeted", y=res.s.nontarge
 
 
 ### fit meta-regression model to test for subgroup differences
-res <- rma(yi, vi, mods = ~ region4+target_status+mean_age_mpa_smr, data=dat)
+res <- rma(yi, vi, mods = ~ region4+mean_age_mpa_smr+mean_size_mpa_smr, data=dat, method="REML")
 
 ### add text for the test of subgroup differences
 

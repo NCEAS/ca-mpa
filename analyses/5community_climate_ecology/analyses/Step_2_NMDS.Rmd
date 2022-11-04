@@ -74,7 +74,7 @@ scrs$MHW <- factor(scrs$MHW, level = c("before","during","after")) #set order
 scrs$mpa_designation <- factor(scrs$mpa_designation, level = c("smr","ref")) #set order
 
 
-cent <- aggregate(cbind(NMDS1, NMDS2) ~ MHW+region4+mpa_designation, data = scrs, FUN = mean) #computes centroids by MHW and region
+cent <- aggregate(cbind(NMDS1, NMDS2, NMDS3) ~ MHW+region4+mpa_designation, data = scrs, FUN = mean) #computes centroids by MHW and region
 
 segs <- merge(scrs, setNames(cent, c('year','oNMDS1','oNMDS2')),
               by = 'year', sort=FALSE) #to draw the spider, we need to use geom_segment() which required coordinates to draw the segment from and to. Our 'to'
@@ -491,6 +491,100 @@ cowplot::save_plot(here::here("analyses", "5community_climate_ecology", "figures
 ```
 
 
+#####test ordiplot 3D
+```{r}
+
+#prep
+scrs <- as.data.frame(vegan::scores(CCFRP_ord, display="sites"))
+en_coord_cont = as.data.frame(vegan::scores(CCFRP_en, "vectors")) * ordiArrowMul(CCFRP_en, fill=0.2)
+
+scrs <- cbind(as.data.frame(scrs), desig_state=CCFRP_group_vars$desig_state, year=CCFRP_group_vars$year, MHW=CCFRP_group_vars$MHW, region4=CCFRP_group_vars$region4, mpa_designation=CCFRP_group_vars$mpa_designation) #to facilitate computing centroids, add group var
+
+scrs$region4 <- factor(scrs$region4, level = c("north","central","north islands","south")) #set order
+scrs$MHW <- factor(scrs$MHW, level = c("before","during","after")) #set order
+scrs$mpa_designation <- factor(scrs$mpa_designation, level = c("smr","ref")) #set order
+
+
+cent <- aggregate(cbind(NMDS1, NMDS2, NMDS3) ~ MHW+region4+mpa_designation, data = scrs, FUN = mean) #computes centroids by MHW and region
+
+
+#prep plot
+cent1 <- cent%>%
+          mutate(centroid_type = paste(mpa_designation, MHW))
+
+ef <- envfit(CCFRP_ord ~ SST + CUTI + BEUTI + MOCI, data = CCFRP_envr_vars, choices=1:3)
+
+
+
+rownames(cent1) <- cent1$centroid_type
+  
+
+scrs <- scores(CCFRP_ord, display="sites")
+
+
+
+
+#plot
+#png("/home/joshsmith/CA_MPA_Project/ca-mpa/analyses/5community_climate_ecology/figures/ccfrp_3d.png", width = 2400, height = 2400, res=300)
+
+p1 <- ordiplot3d(cent1[,4:6], type="h",
+                  scaling = "symmetric",
+                  envfit=ef, arr.len = 0.1,pch=16, col=cent1$MHW,
+                 #angle=60, 
+                 ax.col = "black"
+                 )
+identify(p1, "arrows", col="blue")
+text(p1, "arrows", col="blue", pos=3)
+#ordilabel(p1$arrows*1.5)
+text(p1$xyz.convert(cent1[,4:6]), rownames(cent1))
+
+
+#dynamic 3D plot
+ordirgl(cent1[,4:6], display = "sites", choices = 1:3, type = "t", col = cent1$MHW,
+ax.col = "red", arr.col = "purple", envfit=ef, alpha=0.1)
+orgltext(cent1[,4:6], display = "sites", col=c("black"))
+with(CCFRP_envr_vars, orglellipse(CCFRP_ord, CCFRP_group_vars$desig_state, col = 1:3, kind = "se", conf = 0.95,
+scaling = "sites"))
+rgl.bg(color="grey")
+rglwidget()
+
+browseURL(paste("file://", writeWebGL(dir=file.path("/home/joshsmith/CA_MPA_Project/ca-mpa/analyses/5community_climate_ecology/figures/", "webGL.html"), width=700), sep=""))
+
+
+
+#plot(ef,arrow.mul=1, col="blue")
+#points(p1, "points", pch=16, col=cent1$MHW, cex=2)
+
+dev.off()
+
+
+
+p2 <- with(CCFRP_envr_vars, ordiplot3d(CCFRP_ord, type="n", angle=170))
+with(CCFRP_envr_vars, ordihull(p2, CCFRP_group_vars$MHW, col= 1:4, draw="poly"))
+
+
+
+
+```
+
+```{r, setup}
+
+library(rgl)
+knitr::knit_hooks$set(webgl = hook_webgl)
+```
+
+```{r, test-rgl, webgl=TRUE}
+
+ordirgl(cent1[,4:6], display = "sites", choices = 1:3, type = "t", col = cent1$MHW,
+ax.col = "red", arr.col = "purple", envfit=ef, alpha=0.1)
+orgltext(cent1[,4:6], display = "sites", col=c("black"))
+with(CCFRP_envr_vars, orglellipse(CCFRP_ord, CCFRP_group_vars$desig_state, col = 1:3, kind = "se", conf = 0.95,
+scaling = "sites"))
+rgl.bg(color="grey")
+rglwidget()
+
+
+```
 
 
 **PART 1.2 COMMUNITY TRAJECTORY OVER TIME**
