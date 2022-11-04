@@ -567,24 +567,7 @@ with(CCFRP_envr_vars, ordihull(p2, CCFRP_group_vars$MHW, col= 1:4, draw="poly"))
 
 ```
 
-```{r, setup}
 
-library(rgl)
-knitr::knit_hooks$set(webgl = hook_webgl)
-```
-
-```{r, test-rgl, webgl=TRUE}
-
-ordirgl(cent1[,4:6], display = "sites", choices = 1:3, type = "t", col = cent1$MHW,
-ax.col = "red", arr.col = "purple", envfit=ef, alpha=0.1)
-orgltext(cent1[,4:6], display = "sites", col=c("black"))
-with(CCFRP_envr_vars, orglellipse(CCFRP_ord, CCFRP_group_vars$desig_state, col = 1:3, kind = "se", conf = 0.95,
-scaling = "sites"))
-rgl.bg(color="grey")
-rglwidget()
-
-
-```
 
 
 **PART 1.2 COMMUNITY TRAJECTORY OVER TIME**

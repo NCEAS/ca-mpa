@@ -1,0 +1,128 @@
+---
+title: "Community_structure_static_3D"
+author: "Joshua G. Smith"
+date: "2022-11-04"
+output: html_document
+---
+
+
+
+#load packages
+```{r}
+rm(list=ls())
+require(tidyverse)
+require(stringr)
+require(janitor)
+require(vegan)
+require(ggplot2)
+library(parallel)
+library(scales)
+library(here)
+library(ggpubr)
+library(usedist)
+library(here)
+library(vegan3d)
+```
+
+
+#load data
+```{r}
+
+#old dir
+#data_path <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/ecological_community_data/year_level_with_envr_vars"
+
+data_path <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data"
+
+comm_data <- load(file.path(data_path, "comm_data.rda"))
+nmds_scores <- load(file.path(data_path, "bray_nmds_scores.rda"))
+env_fit_scores <- load(file.path(data_path, "env_fit_scores.rda"))
+group_vars <- load(file.path(data_path, "group_vars.rda"))
+envr_vars <- load(file.path(data_path, "envr_vars.rda"))
+eco_dist <- load(file.path(data_path, "distance_matrices_BC.rda"))
+
+```
+
+
+
+
+
+
+
+#####test ordiplot 3D
+```{r}
+
+#prep
+scrs <- as.data.frame(vegan::scores(CCFRP_ord, display="sites"))
+en_coord_cont = as.data.frame(vegan::scores(CCFRP_en, "vectors")) * ordiArrowMul(CCFRP_en, fill=0.2)
+
+scrs <- cbind(as.data.frame(scrs), desig_state=CCFRP_group_vars$desig_state, year=CCFRP_group_vars$year, MHW=CCFRP_group_vars$MHW, region4=CCFRP_group_vars$region4, mpa_designation=CCFRP_group_vars$mpa_designation) #to facilitate computing centroids, add group var
+
+scrs$region4 <- factor(scrs$region4, level = c("north","central","north islands","south")) #set order
+scrs$MHW <- factor(scrs$MHW, level = c("before","during","after")) #set order
+scrs$mpa_designation <- factor(scrs$mpa_designation, level = c("smr","ref")) #set order
+
+
+cent <- aggregate(cbind(NMDS1, NMDS2, NMDS3) ~ MHW+region4+mpa_designation, data = scrs, FUN = mean) #computes centroids by MHW and region
+
+
+#prep plot
+cent1 <- cent%>%
+          mutate(centroid_type = paste(mpa_designation, MHW))
+
+ef <- envfit(CCFRP_ord ~ SST + CUTI + BEUTI + MOCI, data = CCFRP_envr_vars, choices=1:3)
+
+
+
+rownames(cent1) <- cent1$centroid_type
+  
+
+scrs <- scores(CCFRP_ord, display="sites")
+
+
+
+
+#plot
+png("/home/joshsmith/CA_MPA_Project/ca-mpa/analyses/5community_climate_ecology/figures/ccfrp_3d.png", width = 2400, height = 2400, res=300)
+
+p1 <- ordiplot3d(cent1[,4:6], type="h",
+                  scaling = 4,
+                  #envfit=ef, 
+                 arr.len = 0.1,pch=16, col=c('#44b89d','#f56969','#4c78b5'),
+                 angle=60, 
+                 ax.col = NA,
+                 #mar = c(1,0.05,1,1)
+                box = FALSE,
+                #main = "CCFRP community structure"
+                #grid = FALSE
+                 ) 
+FactoClass::addgrids3d(cent1[,4:6], grid = c("xy","xz","yz"), angle=60)
+plot(p1$envfit.convert(ef), at = p1$origin)
+
+#identify(p1, "arrows", col="blue")
+points(p1, "points", pch=16, col=c('#44b89d','#f56969','#4c78b5'), cex=2)
+#text(p1, "sites", col="blue", pos=3)
+#ordilabel(p1$arrows*1.5)
+text(p1$xyz.convert(cent1[,4:6]), rownames(cent1), pos=2)
+
+#plot(ef,arrow.mul=1, col="blue")
+
+dev.off()
+
+
+
+######plot_ly version
+
+library(plotly)
+
+fig <- plot_ly(cent1, x = ~NMDS1, y = ~NMDS2, z = ~NMDS3, color = ~MHW,
+                       colors = c('#44b89d','#f56969','#4c78b5'),
+                        symbol = ~mpa_designation,
+                        symbols = c(16, 15)) 
+
+
+fig <- fig %>% add_markers()
+
+
+
+
+```
