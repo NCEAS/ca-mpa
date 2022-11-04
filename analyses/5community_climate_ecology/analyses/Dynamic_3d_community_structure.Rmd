@@ -126,20 +126,6 @@ browseURL(paste("file://", writeWebGL(dir=file.path("/home/joshsmith/CA_MPA_Proj
 
 
 
-```{r}
-#dynamic 3D plot
-ordirgl(cent1[,4:6], display = "sites", choices = 1:3, type = "t", col = cent1$MHW,
-ax.col = "red", arr.col = "purple", envfit=ef, alpha=0.1)
-orgltext(cent1[,4:6], display = "sites", col=c("black"))
-with(CCFRP_envr_vars, orglellipse(CCFRP_ord, CCFRP_group_vars$desig_state, col = 1:3, kind = "se", conf = 0.95,
-scaling = "sites"))
-rgl.bg(color="grey")
-rglwidget()
-
-browseURL(paste("file://", writeWebGL(dir=file.path("/home/joshsmith/CA_MPA_Project/ca-mpa/analyses/5community_climate_ecology/figures/", "CCFRP_dynamic_3D.html"), width=700), sep=""))
-
-
-```
 
 
 
