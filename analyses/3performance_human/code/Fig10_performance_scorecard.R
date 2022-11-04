@@ -116,7 +116,7 @@ g <- ggplot(data_ordered, aes(x=indicator, y=mpa, fill=value_scaled)) +
 g
 
 # Export figure
-ggsave(g, filename=file.path(plotdir, "Fig10_performance_scorecard_long.png"), 
+ggsave(g, filename=file.path(plotdir, "Fig10_performance_scorecard_long.png"),
        width=4.5, height=7.5, units="in", dpi=600)
 
 
@@ -137,8 +137,10 @@ char_key1 <- char_key %>%
 char_key2 <- char_key %>% 
   filter(region=="South Coast")
 
-# Range
+# Set SD range
 range(data$value_scaled, na.rm=T) # -1.2, 10.8
+sd_min <- min(data$value_scaled, na.rm=T)
+sd_max_cap <- 3
 
 # Theme
 theme1 <- theme(axis.text=element_text(size=6),
@@ -159,7 +161,7 @@ theme1 <- theme(axis.text=element_text(size=6),
                 legend.background = element_rect(fill=alpha('blue', 0)))
 
 # Plot data
-g1 <- ggplot(data1, aes(x=indicator, y=mpa, fill=value_scaled)) +
+g1 <- ggplot(data1, aes(x=indicator, y=mpa, fill=pmin(value_scaled, sd_max_cap))) +
   # Facet
   facet_grid(region~., scales="free_y", space="free_y") +
   # Raster
@@ -172,7 +174,10 @@ g1 <- ggplot(data1, aes(x=indicator, y=mpa, fill=value_scaled)) +
   labs(x="", y="") +
   # Legend
   scale_color_manual(name="MPA type", values=c("navy", "darkred")) +
-  scale_fill_gradient2("Engagement\n(scaled and centered)", lim=c(-1.2, 10.8),
+  scale_fill_gradient2("Engagement\n(SDs from the mean)", 
+                       lim=c(sd_min, sd_max_cap),
+                       breaks=seq(-1, 3, 1),
+                       labels=c(seq(-1, 2, 1), "≥3"),
                        midpoint = 0, low="darkred", high="navy", mid="white", na.value="grey50") +  
   guides(fill = guide_colorbar(ticks.colour = "black", frame.colour = "black")) +
   # Theme
@@ -181,7 +186,7 @@ g1 <- ggplot(data1, aes(x=indicator, y=mpa, fill=value_scaled)) +
 g1
 
 # Plot data
-g2 <- ggplot(data2, aes(x=indicator, y=mpa, fill=value_scaled)) +
+g2 <- ggplot(data2, aes(x=indicator, y=mpa, fill=pmin(value_scaled, sd_max_cap))) +
   # Facet
   facet_grid(region~., scales="free_y", space="free_y") +
   # Raster
@@ -194,7 +199,10 @@ g2 <- ggplot(data2, aes(x=indicator, y=mpa, fill=value_scaled)) +
   labs(x="", y="") +
   # Legend
   scale_color_manual(name="MPA type", values=c("navy", "darkred")) +
-  scale_fill_gradient2(name="Engagement\n(scaled and centered)", lim=c(-1.2, 10.8),
+  scale_fill_gradient2(name="Engagement\n(SDs from the mean)", # centered and scaled
+                       lim=c(sd_min, sd_max_cap),
+                       breaks=seq(-1, 3, 1),
+                       labels=c(seq(-1, 2, 1), "≥3"),
                        midpoint = 0, low="darkred", high="navy", mid="white", na.value="grey50") +
   guides(fill = guide_colorbar(ticks.colour = "black", frame.colour = "black",
                                title.position="top", title.hjust = 0),
@@ -213,9 +221,68 @@ ggsave(g, filename=file.path(plotdir, "Fig10_performance_scorecard_wide.png"),
        width=6.5, height=6.5, units="in", dpi=600)
 
 
+# Plot data - wide - simplified
+################################################################################
 
+# Plot data
+g1 <- ggplot(data1, aes(x=indicator, y=mpa, fill=pmin(value_scaled, sd_max_cap))) +
+  # Facet
+  facet_grid(region~., scales="free_y", space="free_y") +
+  # Raster
+  geom_tile(lwd=0.1, color="grey60") +
+  # Mark charisma
+  # geom_point(char_key1, mapping=aes(x=indicator, y=mpa, color=category), size=0.9, inherit.aes=F) +
+  # Mark zeroes
+  geom_point(data=data_zeroes1, mapping=aes(x=indicator, y=mpa), pch="x", inherit.aes = F) +
+  # Labels
+  labs(x="", y="") +
+  # Legend
+  scale_color_manual(name="MPA type", values=c("navy", "darkred")) +
+  scale_fill_gradient2("Engagement\n(SDs from the mean)", 
+                       lim=c(sd_min, sd_max_cap),
+                       breaks=seq(-1, 3, 1),
+                       labels=c(seq(-1, 2, 1), "≥3"),
+                       midpoint = 0, low="darkred", high="navy", mid="white", na.value="grey50") +  
+  guides(fill = guide_colorbar(ticks.colour = "black", frame.colour = "black")) +
+  # Theme
+  theme_bw() + theme1 +
+  theme(legend.position = "none")
+g1
 
+# Plot data
+g2 <- ggplot(data2, aes(x=indicator, y=mpa, fill=pmin(value_scaled, sd_max_cap))) +
+  # Facet
+  facet_grid(region~., scales="free_y", space="free_y") +
+  # Raster
+  geom_tile(lwd=0.1, color="grey60") +
+  # Mark charisma
+  # geom_point(char_key2, mapping=aes(x=indicator, y=mpa, color=category), size=0.9, inherit.aes=F) +
+  # Mark zeroes
+  geom_point(data=data_zeroes2, mapping=aes(x=indicator, y=mpa), pch="x", inherit.aes = F) +
+  # Labels
+  labs(x="", y="") +
+  # Legend
+  scale_color_manual(name="MPA type", values=c("navy", "darkred")) +
+  scale_fill_gradient2(name="Engagement\n(SDs from the mean)", # centered and scaled
+                       lim=c(sd_min, sd_max_cap),
+                       breaks=seq(-1, 3, 1),
+                       labels=c(seq(-1, 2, 1), "≥3"),
+                       midpoint = 0, low="darkred", high="navy", mid="white", na.value="grey50") +
+  guides(fill = guide_colorbar(ticks.colour = "black", frame.colour = "black",
+                               title.position="top", title.hjust = 0),
+         color = guide_legend(title.position="top", title.hjust = 0, ncol=1)) +
+  # Theme
+  theme_bw() + theme1 +
+  theme(legend.position = "top")
+g2
 
+# Merge
+g <-gridExtra::grid.arrange(g1, g2, nrow=1)
+g
+
+# Export figure
+ggsave(g, filename=file.path(plotdir, "Fig10_performance_scorecard_wide_simple.png"), 
+       width=6.5, height=6.5, units="in", dpi=600)
 
 
 
