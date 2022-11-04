@@ -440,7 +440,7 @@ kelp_upc_en <- envfit(kelp_upc_ord, kelp_upc_envr_vars, permutations=999, na.rm=
 message("Done processing kelp_upc_ord")
 
 message("Processing deep_reef_ord")
-deep_reef_ord <- metaMDS(deep_reef_distmat, distance="bray", trymax = 100, parallel = num_cores)
+deep_reef_ord <- metaMDS(deep_reef_distmat, distance="bray", k=3,  trymax = 100, parallel = num_cores)
 deep_reef_en <- envfit(deep_reef_ord, deep_reef_envr_vars, permutations=999, na.rm=TRUE) 
 message("Done processing deep_reef_ord")
 
