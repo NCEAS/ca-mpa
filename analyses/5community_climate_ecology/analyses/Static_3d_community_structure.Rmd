@@ -82,7 +82,7 @@ scrs <- scores(CCFRP_ord, display="sites")
 
 
 #plot
-png("/home/joshsmith/CA_MPA_Project/ca-mpa/analyses/5community_climate_ecology/figures/ccfrp_3d.png", width = 2400, height = 2400, res=300)
+#png("/home/joshsmith/CA_MPA_Project/ca-mpa/analyses/5community_climate_ecology/figures/ccfrp_3d.png", width = 2400, height = 2400, res=300)
 
 p1 <- ordiplot3d(cent1[,4:6], type="h",
                   scaling = 4,
@@ -98,11 +98,14 @@ p1 <- ordiplot3d(cent1[,4:6], type="h",
 FactoClass::addgrids3d(cent1[,4:6], grid = c("xy","xz","yz"), angle=60)
 plot(p1$envfit.convert(ef), at = p1$origin)
 
-#identify(p1, "arrows", col="blue")
-points(p1, "points", pch=16, col=c('#44b89d','#f56969','#4c78b5'), cex=2)
-#text(p1, "sites", col="blue", pos=3)
-#ordilabel(p1$arrows*1.5)
+points(p1, "points", pch=c(16,17), col=c('#44b89d','#f56969','#4c78b5'), cex=2)
+
 text(p1$xyz.convert(cent1[,4:6]), rownames(cent1), pos=2)
+
+legend("topright", pch = c(16,17), yjust=0,
+legend = c("MPA","REF"), cex = 0.8)
+legend(s3d$xyz.convert(47, 60, 0.24), pch = 22:21, yjust = 0,
+legend = c("vaccinated", "not vaccinated"), cex = 1.1)
 
 #plot(ef,arrow.mul=1, col="blue")
 
@@ -124,5 +127,5 @@ fig <- fig %>% add_markers()
 
 
 
-
 ```
+
