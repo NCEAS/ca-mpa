@@ -1,0 +1,293 @@
+---
+title: "Community_structure_3d"
+author: "Joshua G. Smith"
+date: "2022-11-04"
+output: html_document
+---
+
+#load packages
+```{r}
+rm(list=ls())
+
+require(dplyr)
+require(vegan)
+```
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#load data
+```{r}
+#old dir
+#data_path <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/ecological_community_data/year_level_with_envr_vars"
+
+#current dir
+data_path <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data"
+
+comm_data <- load(file.path(data_path, "comm_data.rda"))
+nmds_scores <- load(file.path(data_path, "bray_nmds_scores.rda"))
+env_fit_scores <- load(file.path(data_path, "env_fit_scores.rda"))
+group_vars <- load(file.path(data_path, "group_vars.rda"))
+envr_vars <- load(file.path(data_path, "envr_vars.rda"))
+eco_dist <- load(file.path(data_path, "distance_matrices_BC.rda"))
+
+```
+
+
+
+**3D CHUNK**
+
+```{r, setup}
+
+library(rgl)
+knitr::knit_hooks$set(webgl = hook_webgl)
+```
+
+
+#CCFRP
+```{r, test-rgl, webgl=TRUE}
+
+################################################################################
+#prep data
+scrs <- as.data.frame(vegan::scores(CCFRP_ord, display="sites"))
+en_coord_cont = as.data.frame(vegan::scores(CCFRP_en, "vectors")) * ordiArrowMul(CCFRP_en, fill=0.2)
+
+scrs <- cbind(as.data.frame(scrs), desig_state=CCFRP_group_vars$desig_state, year=CCFRP_group_vars$year, MHW=CCFRP_group_vars$MHW, region4=CCFRP_group_vars$region4, mpa_designation=CCFRP_group_vars$mpa_designation) #to facilitate computing centroids, add group var
+
+scrs$region4 <- factor(scrs$region4, level = c("north","central","north islands","south")) #set order
+scrs$MHW <- factor(scrs$MHW, level = c("before","during","after")) #set order
+scrs$mpa_designation <- factor(scrs$mpa_designation, level = c("smr","ref")) #set order
+
+
+cent <- aggregate(cbind(NMDS1, NMDS2, NMDS3) ~ MHW+region4+mpa_designation, data = scrs, FUN = mean) #computes centroids by MHW and region
+
+cent1 <- cent%>%
+          mutate(centroid_type = paste(mpa_designation, MHW))
+
+ef <- envfit(CCFRP_ord ~ SST + CUTI + BEUTI + MOCI, data = CCFRP_envr_vars, choices=1:3)
+
+
+
+rownames(cent1) <- cent1$centroid_type
+
+
+
+################################################################################
+#plot
+
+
+
+ordirgl(cent1[,4:6], display = "sites", choices = 1:3, type = "t", col = cent1$MHW,
+ax.col = "#800000", arr.col = "#DAD308", envfit=ef, alpha=0.9)
+orgltext(cent1[,4:6], display = "sites", col=c("black"))
+with(CCFRP_envr_vars, orglellipse(CCFRP_ord, CCFRP_group_vars$desig_state, kind = "se", conf = 0.95,
+scaling = "sites", alpha=0.2, col=c('#4c78b5','#44b89d','#f56969')))
+rgl.bg(color="grey")
+rglwidget()
+
+#htmlwidgets::saveWidget(rglwidget(), "/home/joshsmith/CA_MPA_Project/ca-mpa/analyses/5community_climate_ecology/figures/interactive_plots/CCFRP_webGL.html")
+
+```
+
+
+
+#kelp forest fish
+```{r, test-rgl, webgl=TRUE}
+
+################################################################################
+#prep data
+scrs <- as.data.frame(vegan::scores(kelp_fish_ord, display="sites"))
+scrs <- cbind(as.data.frame(scrs), desig_state=kelp_fish_group_vars$desig_state, 
+              year=kelp_fish_group_vars$year, MHW=kelp_fish_group_vars$MHW, 
+              region4=kelp_fish_group_vars$region4, 
+              mpa_designation=kelp_fish_group_vars$mpa_defacto_designation) #to facilitate computing centroids, add group var
+
+scrs$region4 <- factor(scrs$region4, level = c("north","central","north islands","south")) #set order
+scrs$MHW <- factor(scrs$MHW, level = c("before","during","after")) #set order
+scrs$mpa_designation <- factor(scrs$mpa_designation, level = c("smr","ref")) #set order
+
+
+cent <- aggregate(cbind(NMDS1, NMDS2, NMDS3) ~ MHW+region4+mpa_designation, data = scrs, FUN = mean) #computes centroids by MHW and region
+
+cent1 <- cent%>%
+          mutate(centroid_type = paste(mpa_designation, MHW))
+
+ef <- envfit(kelp_fish_ord ~ SST + CUTI + BEUTI + MOCI, data = kelp_fish_envr_vars, choices=1:3, na.rm=TRUE)
+
+
+
+rownames(cent1) <- cent1$centroid_type
+
+
+
+
+################################################################################
+#plot
+
+ordirgl(cent1[,4:6], display = "sites", choices = 1:3, type = "t", col = cent1$MHW,
+ax.col = "#800000", arr.col = "#DAD308", envfit=ef, alpha=0.9)
+orgltext(cent1[,4:6], display = "sites", col=c("black"))
+with(kelp_fish_envr_vars, orglellipse(kelp_fish_ord, kelp_fish_group_vars$desig_state, kind = "se", conf = 0.95,
+scaling = "sites", alpha=0.2, col=c('#4c78b5','#44b89d','#f56969')))
+rgl.bg(color="grey")
+rglwidget()
+
+htmlwidgets::saveWidget(rglwidget(),
+"/home/joshsmith/CA_MPA_Project/ca-mpa/analyses/5community_climate_ecology/figures/interactive_plots/kelp_fish_3d.html")
+
+```
+
+
+
+
+
+#kelp inverts and algae
+```{r, test-rgl, webgl=TRUE}
+
+################################################################################
+#prep data
+scrs <- as.data.frame(vegan::scores(kelp_invalg_ord, display="sites"))
+scrs <- cbind(as.data.frame(scrs), desig_state=kelp_invalg_group_vars$desig_state, 
+              year=kelp_invalg_group_vars$year, MHW=kelp_invalg_group_vars$MHW, 
+              region4=kelp_invalg_group_vars$region4, 
+              mpa_designation=kelp_invalg_group_vars$mpa_defacto_designation) #to facilitate computing centroids, add group var
+
+scrs$region4 <- factor(scrs$region4, level = c("north","central","north islands","south")) #set order
+scrs$MHW <- factor(scrs$MHW, level = c("before","during","after")) #set order
+scrs$mpa_designation <- factor(scrs$mpa_designation, level = c("smr","ref")) #set order
+
+
+cent <- aggregate(cbind(NMDS1, NMDS2, NMDS3) ~ MHW+region4+mpa_designation, data = scrs, FUN = mean) #computes centroids by MHW and region
+
+cent1 <- cent%>%
+          mutate(centroid_type = paste(mpa_designation, MHW))
+
+ef <- envfit(kelp_invalg_ord ~ SST + CUTI + BEUTI + MOCI, data = kelp_invalg_envr_vars, choices=1:3, na.rm=TRUE)
+
+
+
+rownames(cent1) <- cent1$centroid_type
+
+
+
+
+################################################################################
+#plot
+
+ordirgl(cent1[,4:6], display = "sites", choices = 1:3, type = "t", col = cent1$MHW,
+ax.col = "#800000", arr.col = "#DAD308", envfit=ef, alpha=0.9)
+orgltext(cent1[,4:6], display = "sites", col=c("black"))
+with(kelp_invalg_envr_vars, orglellipse(kelp_invalg_ord, kelp_invalg_group_vars$desig_state, kind = "se", conf = 0.95,
+scaling = "sites", alpha=0.2, col=c('#4c78b5','#44b89d','#f56969')))
+rgl.bg(color="grey")
+rglwidget()
+
+#htmlwidgets::saveWidget(rglwidget(),
+#"/home/joshsmith/CA_MPA_Project/ca-mpa/analyses/5community_climate_ecology/figures/interactive_plots/kelp_invalg_3d.html")
+
+```
+
+
+
+
+#deep reef
+```{r, test-rgl, webgl=TRUE}
+
+################################################################################
+#prep data
+scrs <- as.data.frame(vegan::scores(deep_reef_ord, display="sites"))
+scrs <- cbind(as.data.frame(scrs), desig_state=deep_reef_group_vars$desig_state, 
+              year=deep_reef_group_vars$year, MHW=deep_reef_group_vars$MHW, 
+              region4=deep_reef_group_vars$region4, 
+              mpa_designation=deep_reef_group_vars$mpa_defacto_designation) #to facilitate computing centroids, add group var
+
+scrs$region4 <- factor(scrs$region4, level = c("north","central","north islands","south")) #set order
+scrs$MHW <- factor(scrs$MHW, level = c("before","during","after")) #set order
+scrs$mpa_designation <- factor(scrs$mpa_designation, level = c("smr","ref")) #set order
+
+
+cent <- aggregate(cbind(NMDS1, NMDS2, NMDS3) ~ MHW+region4+mpa_designation, data = scrs, FUN = mean) #computes centroids by MHW and region
+
+cent1 <- cent%>%
+          mutate(centroid_type = paste(mpa_designation, MHW))
+
+ef <- envfit(deep_reef_ord ~ SST + CUTI + BEUTI + MOCI, data = deep_reef_envr_vars, choices=1:3, na.rm=TRUE)
+
+
+
+rownames(cent1) <- cent1$centroid_type
+
+
+
+
+################################################################################
+#plot
+
+ordirgl(cent1[,4:6], display = "sites", choices = 1:3, type = "t", col = cent1$MHW,
+ax.col = "#800000", arr.col = "#DAD308", envfit=ef, alpha=0.9)
+orgltext(cent1[,4:6], display = "sites", col=c("black"))
+with(deep_reef_envr_vars, orglellipse(deep_reef_ord, deep_reef_group_vars$desig_state, kind = "se", conf = 0.95,
+scaling = "sites", alpha=0.2, col=c('#4c78b5','#44b89d','#f56969')))
+rgl.bg(color="grey")
+rglwidget()
+
+#htmlwidgets::saveWidget(rglwidget(),
+#"/home/joshsmith/CA_MPA_Project/ca-mpa/analyses/5community_climate_ecology/figures/interactive_plots/deep_reef_3d.html")
+
+```
+
+
+
+
+
+
+#rocky intertidal
+```{r, test-rgl, webgl=TRUE}
+
+################################################################################
+#prep data
+scrs <- as.data.frame(vegan::scores(rocky_ord, display="sites"))
+scrs <- cbind(as.data.frame(scrs), desig_state=rocky_group_vars$desig_state, 
+              year=rocky_group_vars$year, MHW=rocky_group_vars$MHW, 
+              region4=rocky_group_vars$region4, 
+              mpa_designation=rocky_group_vars$mpa_designation) #to facilitate computing centroids, add group var
+
+scrs$region4 <- factor(scrs$region4, level = c("north","central","north islands","south")) #set order
+scrs$MHW <- factor(scrs$MHW, level = c("before","during","after")) #set order
+scrs$mpa_designation <- factor(scrs$mpa_designation, level = c("smr","ref")) #set order
+
+
+cent <- aggregate(cbind(NMDS1, NMDS2, NMDS3) ~ MHW+region4+mpa_designation, data = scrs, FUN = mean) #computes centroids by MHW and region
+
+cent1 <- cent%>%
+          mutate(centroid_type = paste(mpa_designation, MHW))
+
+ef <- envfit(rocky_ord ~ SST + CUTI + BEUTI + MOCI, data = rocky_envr_vars, choices=1:3, na.rm=TRUE)
+
+
+
+rownames(cent1) <- cent1$centroid_type
+
+
+
+
+################################################################################
+#plot
+
+ordirgl(cent1[,4:6], display = "sites", choices = 1:3, type = "t", col = cent1$MHW,
+ax.col = "#800000", arr.col = "#DAD308", envfit=ef, alpha=0.9)
+orgltext(cent1[,4:6], display = "sites", col=c("black"))
+with(rocky_envr_vars, orglellipse(rocky_ord, rocky_group_vars$desig_state, kind = "se", conf = 0.95,
+scaling = "sites", alpha=0.2, col=c('#4c78b5','#44b89d','#f56969')))
+rgl.bg(color="grey")
+rglwidget()
+
+#htmlwidgets::saveWidget(rglwidget(),
+#"/home/joshsmith/CA_MPA_Project/ca-mpa/analyses/5community_climate_ecology/figures/interactive_plots/rocky_3d.html")
+
+```
+
+
+

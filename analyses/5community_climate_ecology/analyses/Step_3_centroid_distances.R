@@ -249,11 +249,13 @@ cen_distances2 <- as.data.frame(cen_distances2)
 # test for significant dispersion between periods -----------------------------
 
 vegan::permutest(CCFRP_disper)
+  TukeyHSD(CCFRP_disper)
 vegan::permutest(kelp_swath_disper)
 vegan::permutest(kelp_fish_disper)
 vegan::permutest(kelp_upc_disper)
 vegan::permutest(kelp_invalg_disper)
 vegan::permutest(rocky_disper)
+vegan::permutest(deep_reef_disper)
 
 
 #permanovas
@@ -265,32 +267,70 @@ kelp_invalg_perm <- adonis2(formula = kelp_invalg_distmat ~ MHW+desig_state, dat
 kelp_upc_perm <- adonis2(formula = kelp_upc_distmat ~ MHW+desig_state, data = kelp_upc_group_vars, permutations = 99) 
 CCFRP_perm <- adonis2(formula = CCFRP_distmat ~ MHW+desig_state, data = CCFRP_group_vars, permutations = 99) 
 
-#save output
-rocky_output <-as.data.frame(rocky_perm$aov.tab)[1,]%>%
-  mutate(group='rocky')
-CCFRP_output <-as.data.frame(CCFRP_perm$aov.tab)[1,]%>%
-  mutate(group='CCFRP')
-kelp_swath_output <-as.data.frame(kelp_swath_perm$aov.tab)[1,]%>%
-  mutate(group='kelp swath')
-kelp_upc_output <-as.data.frame(kelp_upc_perm$aov.tab)[1,]%>%
-  mutate(group='kelp upc')
-kelp_invalg_output <-as.data.frame(kelp_invalg_perm$aov.tab)[1,]%>%
-  mutate(group='kelp inverts and algae')
-kelp_fish_output <-as.data.frame(kelp_fish_perm$aov.tab)[1,]%>%
-  mutate(group='kelp fish')
-deep_reef_output <-as.data.frame(deep_reef_perm$aov.tab)[1,]%>%
-  mutate(group='deep reef')
+#pariwise permanova
+ccfrp_pair_perm <- pairwise.adonis2(CCFRP_distmat ~ desig_state, data = CCFRP_group_vars, permutations = 999)
+dr_pair_perm <- pairwise.adonis2(deep_reef_distmat ~ desig_state, data = deep_reef_group_vars, permutations = 999) 
+kelp_fish_pair_perm <- pairwise.adonis2(kelp_fish_distmat ~ desig_state, data = kelp_fish_group_vars,permutations = 999) 
+kelp_invalg_pair_perm <- pairwise.adonis2(kelp_invalg_distmat ~ desig_state, data = kelp_invalg_group_vars, permutations = 999) 
+rocky_pair_perm <- pairwise.adonis2(rocky_distmat ~ desig_state, data = rocky_group_vars, permutations = 999) 
 
-aov_output <- rbind(rocky_output, CCFRP_output, kelp_swath_output, 
-                    kelp_upc_output, kelp_invalg_output, kelp_fish_output,deep_reef_output)%>%
-  dplyr::select(group, everything())
-  #arrange(desc(F.Model))
+#create helper function to collect pairwise output
 
-rownames(aov_output) <- NULL
+perm_fun <- function(perm_table, group_name){
+  before = (as.data.frame(perm_table[["ref before_vs_smr before"]])%>%
+            mutate(group = group_name,
+                   heatwave_period = 'before') %>%
+              filter(row_number()==1) %>%
+              select(group, heatwave_period, Df, SumOfSqs, R2, `F`,`Pr(>F)`))
+  during = (as.data.frame(perm_table[["ref during_vs_smr during"]])%>%
+              mutate(group = group_name,
+                     heatwave_period = 'during') %>%
+              filter(row_number()==1) %>%
+              select(group, heatwave_period, Df, SumOfSqs, R2, `F`,`Pr(>F)`))
+  after = (as.data.frame(perm_table[["ref after_vs_smr after"]])%>%
+              mutate(group = group_name,
+                     heatwave_period = 'after') %>%
+              filter(row_number()==1) %>%
+              select(group, heatwave_period, Df, SumOfSqs, R2, `F`,`Pr(>F)`))
+  rbind(before, during, after)
+}
+
+perm_fun2 <- function(perm_table, group_name){
+  before = (as.data.frame(perm_table[["smr before_vs_ref before"]])%>%
+              mutate(group = group_name,
+                     heatwave_period = 'before') %>%
+              filter(row_number()==1) %>%
+              select(group, heatwave_period, Df, SumOfSqs, R2, `F`,`Pr(>F)`))
+  during = (as.data.frame(perm_table[["smr during_vs_ref during"]])%>%
+              mutate(group = group_name,
+                     heatwave_period = 'during') %>%
+              filter(row_number()==1) %>%
+              select(group, heatwave_period, Df, SumOfSqs, R2, `F`,`Pr(>F)`))
+  after = (as.data.frame(perm_table[["smr after_vs_ref after"]])%>%
+             mutate(group = group_name,
+                    heatwave_period = 'after') %>%
+             filter(row_number()==1) %>%
+             select(group, heatwave_period, Df, SumOfSqs, R2, `F`,`Pr(>F)`))
+  rbind(before, during, after)
+}
 
 
-#pdf("/home/joshsmith/CA_MPA_Project/ca-mpa/analyses/5community_climate_ecology/tables/permanova_table.pdf")       # Export PDF
-#grid.table(aov_output)
+
+#collect output
+ccfrp_op <- perm_fun(ccfrp_pair_perm, group="CCFRP")
+kelp_fish_op <- perm_fun(kelp_fish_pair_perm, group='Kelp forest fish')
+kelp_invalg_perm <- perm_fun(kelp_invalg_pair_perm, group = "kelp forest inverts and algae")
+rocky_op <- perm_fun2(rocky_pair_perm, group="Rocky intertidal")
+deep_reef_op <- perm_fun2(dr_pair_perm, group = "Deep reef")
+
+perm_output <- rbind(ccfrp_op, kelp_fish_op, deep_reef_op,
+                     kelp_invalg_perm, rocky_op)
+
+rownames(perm_output) <- NULL
+
+
+#write.csv(perm_output, "/home/joshsmith/CA_MPA_Project/ca-mpa/analyses/5community_climate_ecology/tables/pairwise_permanova_table.csv")       # Export PDF
+#grid.table(perm_output)
 #dev.off()
 
 
