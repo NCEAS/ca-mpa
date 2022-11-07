@@ -23,15 +23,31 @@ mpas_orig <- readRDS(file.path(gisdir, "CA_MPA_polygons.Rds"))
 usa <- rnaturalearth::ne_states(country="United States of America", returnclass = "sf")
 foreign <- rnaturalearth::ne_countries(country=c("Canada", "Mexico"), returnclass = "sf")
 
-# Reduce to MPAs of interest
+
+# Format data
+################################################################################
+
+# MPA types
 sort(unique(mpas_orig$type))
-types_use <- c("SMR", "SMCA", "SMCA (No-Take)", "SMP")
-types <- c("SMR", "SMCA (No-Take)", "SMCA", "SMP", "SMRMA", "Special Closure", "FMR", "FMCA")
+
+# MPA order
+# Note: There are no SMPs outside SF Bay
+types <- c("SMR", "SMCA (No-Take)", "SMCA",  "SMRMA", 
+           "SMCA (SF Bay)", "SMP (SF Bay)", "Special Closure", 
+           "FMR", "FMCA")
+
+# Format MPA keys
 mpas <- mpas_orig %>% 
+  # Add SF types
+  mutate(type=case_when(region=="SFBSR" ~ paste(type, "(SF Bay)"),
+                        T ~ type)) %>% 
   # Order types
   mutate(type=factor(type, types))
   # Reduce
   # filter(type %in% types_use)
+
+# MPA types
+sort(unique(mpas$type))
 
 # Stats for paper
 mpas %>% 
@@ -66,16 +82,16 @@ my_theme <-  theme(axis.text=element_text(size=6),
                    panel.background = element_blank(), 
                    axis.line = element_line(colour = "black"),
                    # Legend
-                   legend.position = c(0.8, 0.7), # when color/size legends
+                   legend.position = c(0.8, 0.68), # when color/size legends
                    # legend.position = c(0.8, 0.8), # when only color legend
                    legend.key.size = unit(0.4, "cm"),
                    legend.key = element_rect(fill=alpha('blue', 0)),
                    legend.background = element_rect(fill=alpha('blue', 0)))
 
 # Type colors
-type_colors <- c(RColorBrewer::brewer.pal(9, "Greens")[5:8] %>% rev(), 
-                 RColorBrewer::brewer.pal(9, "Oranges")[6:7] %>% rev(), 
-                 RColorBrewer::brewer.pal(9, "Purples")[6:7] %>% rev())
+type_colors <- c(RColorBrewer::brewer.pal(9, "Greens")[5:8] %>% rev(), # 4
+                 RColorBrewer::brewer.pal(9, "Oranges")[5:7] %>% rev(), # 3
+                 RColorBrewer::brewer.pal(9, "Purples")[6:7] %>% rev()) # 2
 
 # Plot data
 g <- ggplot() +

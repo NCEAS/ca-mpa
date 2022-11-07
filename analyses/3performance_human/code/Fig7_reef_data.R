@@ -130,6 +130,7 @@ saveRDS(stats_full, file=file.path(outputdir, "reef_indicators.Rds"))
 stats <- stats_full %>% 
   # Reduce to types of interest
   filter(mlpa=="MLPA")
+n_distinct(stats$mpa)
 
 # Time series by habitat type
 habitat_ts <- data %>% 
