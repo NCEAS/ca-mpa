@@ -10,79 +10,39 @@ require(stringr)
 require(broom)
 require(vcdExtra)
 require(forcats)
+require(MASS)
+library(ggeffects)
+library(patchwork)
 
-# #load charismatic MPAs --------------------------------------------------
 
+################################################################################
+
+figdir <- "/home/joshsmith/CA_MPA_Project/ca-mpa/analyses/3performance_human/figures" 
+
+# Load data
+
+#charismatic MPAs
 data_path <- "/home/joshsmith/CA_MPA_Project/ca-mpa/analyses/3performance_human/output" 
 input_file <- "CA_MPA_charisma_key.csv" 
 charisma_data <- read.csv(file.path(data_path, input_file))
 
-#clean up
-charisma_data$mpa <- tolower(charisma_data$mpa)
-charisma_data$mpa_short <- tolower(charisma_data$mpa_short)
-charisma_data$mpa <- recode_factor(charisma_data$mpa, 'año nuevo' = 'ano nuevo')
-charisma_data$mpa <- recode_factor(charisma_data$mpa, 'año nuevo smr' = 'ano nuevo smr')
-
-charisma_data$mpa <- gsub("\\s*\\([^\\)]+\\)","",as.character(charisma_data$mpa))
-
-
-# # load MPA attribute data ----------------------------------------------------
+#MPA attributes
 data_path <- "/home/shares/ca-mpa/data/sync-data/mpa_traits/processed"
 input_file <- "mpa_attributes_clean.csv" 
 mpa_attrib <- read.csv(file.path(data_path, input_file))
 
-#select vars
-phys_drivers <- mpa_attrib %>%
-                  dplyr::select(mpa=name, mpa_class, bioregion, four_region_north_ci, long, lat,
-                         coastal_estuary, implementation_date, port_size,
-                         distance_to_port, size_km2, shore_span_km, protection,
-                         take, sandy_beach_km, rocky_inter_km, offshore_rock_km,
-                         max_kelp_canopy_cdfw_km2, estuary_km2, mpa_within_or_part_of_state_park,
-                         mpa_within_or_part_of_nat_marine_sanctuary, total_hard_substrate,
-                         total_soft_substrate, depth_range)
-          
-#calculate mpa age
-phys_drivers <- phys_drivers %>%
-                mutate(implementation_year = format(as.Date(phys_drivers$implementation_date, format="%m/%d/%Y"),"%Y"),
-                       mpa_age = 2022-as.numeric(implementation_year))
-
-
-
-
-# Load infrastructure data ----------------------------------------------------
-
-
-#data_path <- "/home/shares/ca-mpa/data/sync-data/mpa_traits/raw"
-#input_file <- "mpa_nearby_infrastructure.xlsx" 
-#mpa_inf <- readxl::read_excel(file.path(data_path, input_file), 1) %>%
-#            select(mpa, area_sqkm, num_camps, num_fish_point,
-#                   num_parking, num_picnic, park_names, park_types)
-
-#mpa_inf$mpa <- tolower(mpa_inf$mpa)
-
-
-# Load parks ----------------------------------------------------
+#Infrastructure
 data_path <- "/home/shares/ca-mpa/data/sync-data/mpa_traits/processed"
 input_file <- "mpa_nearby_parks.Rds" 
-
 parks <- readRDS(file.path(data_path,input_file))
 
-parks$name <- tolower(parks$name)
-
-parks1 <- parks %>%
-          mutate(mpa = gsub(" \\(no-take\\)","",name))
-
-parks1$mpa <- recode_factor(parks1$mpa, "año nuevo smr"="ano nuevo smr")
-
-
-# Load biological data ----------------------------------------------------
-
+#Biological
 data_path <- "/home/shares/ca-mpa/data/sync-data/processed_data"
 input_file <- "all_fish_diversity.csv" 
 fish_diversity <- read.csv(file.path(data_path, input_file))%>%
-                  filter(group == 'kelp forest-fish')%>%
-                  group_by(affiliated_mpa)%>%
-                  dplyr::summarize(H_fish = mean(mean, na.rm=TRUE))
+  filter(group == 'kelp forest-fish')%>%
+  group_by(affiliated_mpa)%>%
+  dplyr::summarize(H_fish = mean(mean, na.rm=TRUE))
 
 
 input_file <- "targeted_nontargeted_fish_biomass.csv"
@@ -95,274 +55,230 @@ fish_biomass <- read.csv(file.path(data_path, input_file))%>%
 
 
 bio_drivers <- left_join(fish_diversity,fish_biomass, by='affiliated_mpa')%>%
-               dplyr::select(mpa=affiliated_mpa, H_fish, total_fish_biomass)
+  dplyr::select(mpa=affiliated_mpa, H_fish, total_fish_biomass)
+
+#Social
+
+data_path <- "/home/shares/ca-mpa/data/sync-data/census_data/processed"
+input_file <- "social_vulnerability_index_by_mpa.Rds" 
+social_dat <- readRDS(file.path(data_path,input_file))
 
 
-#join data --------------------------------------------------------------
+# Process charismatic MPAs -----------------------------------------------------
+#clean up
+charisma_data$mpa <- tolower(charisma_data$mpa)
+charisma_data$mpa_short <- tolower(charisma_data$mpa_short)
+charisma_data$mpa <- recode_factor(charisma_data$mpa, 'año nuevo' = 'ano nuevo')
+charisma_data$mpa <- recode_factor(charisma_data$mpa, 'año nuevo smr' = 
+                                     'ano nuevo smr')
 
+charisma_data$mpa <- gsub("\\s*\\([^\\)]+\\)","",
+                          as.character(charisma_data$mpa))
+
+# Process trait data -----------------------------------------------------------
+#select vars
+phys_drivers <- mpa_attrib %>%
+                  dplyr::select(mpa=name, mpa_class, bioregion, 
+                                four_region_north_ci, long, lat,
+                                coastal_estuary, implementation_date, 
+                                port_size, distance_to_port, size_km2, 
+                                shore_span_km, protection,take, sandy_beach_km, 
+                                rocky_inter_km, offshore_rock_km,
+                                max_kelp_canopy_cdfw_km2, estuary_km2,
+                                mpa_within_or_part_of_state_park,
+                                mpa_within_or_part_of_nat_marine_sanctuary,
+                                total_hard_substrate,total_soft_substrate, 
+                                depth_range)
+          
+#calculate mpa age
+phys_drivers <- phys_drivers %>%
+                mutate(implementation_year = 
+                         format(as.Date(phys_drivers$implementation_date, 
+                                        format="%m/%d/%Y"),"%Y"),
+                       mpa_age = 2022-as.numeric(implementation_year))
+
+# Process parks ----------------------------------------------------
+parks$name <- tolower(parks$name)
+
+parks1 <- parks %>%
+          mutate(mpa = gsub(" \\(no-take\\)","",name))
+
+parks1$mpa <- recode_factor(parks1$mpa, "año nuevo smr"="ano nuevo smr")
+
+# Process social data ----------------------------------------------------
+social_dat$name <- tolower(social_dat$name)
+social_dat$name <- recode_factor(social_dat$name, 'año nuevo' = 'ano nuevo')
+social_dat$name <- recode_factor(social_dat$name, 
+                                 'año nuevo smr' = 'ano nuevo smr')
+
+social_dat$name <- gsub("\\s*\\([^\\)]+\\)","",as.character(social_dat$name)) 
+
+
+
+################################################################################
+# join data
 
 traits_join <- left_join(phys_drivers, parks1, by="mpa")
-
 drivers_join <- left_join(charisma_data, traits_join, by="mpa")
-
-all_drivers <- left_join(drivers_join, bio_drivers, by="mpa")
-
-#all_drivers <- all_drivers %>%
-#  mutate_at('sandy_beach_km', ~replace_na(.,0)) %>%
-#  mutate_at(c('num_camps', 'num_fish_point','num_parking','num_picnic'), as.numeric)
-
-
-
-
-# Build full logistic models ---------------------------------------------------
-
-
-#iNat logistic model
-logit_iNat_char <- all_drivers %>%
-              filter(!(category=="Inaccessible"))%>%
-              mutate(logit_y = ifelse(category=="Charismatic", "1", "0"),
-                     state_park_yn = ifelse(nparks > 0,"yes","no"))%>%
-              filter(!(mpa=='robert w. crown smca')) #%>%
-              #filter(!(is.na(num_parking) | is.na(num_picnic)))
-
-iNat_full_model <-glm(as.numeric(logit_y) ~ 
-                        #npeople_50km+
-                        size_km2+
-                        #shore_span_km+
-                        #protection + 
-                        take + 
-                        #mpa_age + 
-                        #mpa_within_or_part_of_state_park + 
-                        #mpa_within_or_part_of_nat_marine_sanctuary+
-                        #port_size + 
-                        #distance_to_port+
-                        sandy_beach_km + 
-                        #rocky_inter_km +
-                        estuary_km2 +
-                        #num_camps+
-                        nparks+
-                        area_km2+
-                        n_parking_lots
-                        #num_parking
-                        #num_picnic
-                        #depth_range 
-                        #H_fish+#biological
-                        #total_fish_biomass +
-                        ,
-                  data = logit_iNat_char, family = binomial(link="logit"), 
-                  na.action=na.exclude)
-
-tab_char <- sjPlot::tab_model(iNat_full_model, show.aic=T, show.r2=T, title="Full logistic model",auto.label=T,
-          #pred.labels = c("intercept","state parks (yes)","sandy beach","estuary","national marine sanctuary (yes)"),
-          dv.labels = c("iNaturalist"))
-
-
-tab_inaccess <- sjPlot::tab_model(iNat_full_model, show.aic=T, show.r2=T, title="Full logistic model",auto.label=T,
-                                     #pred.labels = c("intercept","state parks (yes)","sandy beach","estuary","national marine sanctuary (yes)"),
-                                     dv.labels = c("iNaturalist"))
-
-
-##Save plots
-
-figdir <- here::here("analyses","3performance_human","figures")
-
-sjPlot::tab_model(iNat_full_model, show.aic=T, show.r2=T, title="Full logistic model",auto.label=T,
-                              #pred.labels = c("intercept","state parks (yes)","sandy beach","estuary","national marine sanctuary (yes)"),
-                              dv.labels = c("iNaturalist"), file=file.path(figdir, "FigX_engagement_drivers.html"))
-
-webshot(file.path(figdir, "FigX_engagement_drivers.html"), file.path(figdir, "FigX_engagement_drivers.png"))
-
-
-
-summary(iNat_full_model)
-
-#lowest score - AIC 78
-logit.1 <-glm(as.numeric(logit_y) ~ mpa_within_or_part_of_state_park + sandy_beach_km + estuary_km2 +
-               mpa_within_or_part_of_nat_marine_sanctuary, data = logit_data, family = binomial(link="logit"))
-
-summary(logit.1)
-
-
-tab_model(logit.1, show.aic=T, show.r2=T, title="reduced logistic models",auto.label=T,
-          pred.labels = c("intercept","state parks (yes)","sandy beach","estuary","national marine sanctuary (yes)"),
-          dv.labels = c("iNaturalist"))
-
-
-tidy_lofit <- tidy(logit)
-
-
-
-
-
-
-
-
-# REEF data ---------------------------------------------------------------
-
-
-data_path <- "/home/shares/ca-mpa/data/sync-data/reef/processed"
-input_file <- "REEF_sites_without_xy_data.csv" 
-reef.data <- read.csv(file.path(data_path, input_file))
-
-
-
-input_file<-"REEF_1994_2022_survey_metadata.Rds"
-reef.meta <- readRDS(file.path(data_path, input_file)) %>%
-  drop_na(mpa)
-
-
-#clean and standardize mpa names
-reef.meta$mpa <- gsub("\\s*\\([^\\)]+\\)","",as.character(reef.meta$mpa))
-reef.meta$mpa <- tolower(reef.meta$mpa)
-
-
-
-#check frequency of sampling by mpa
-mpa_fq_all <- reef.meta %>%
-  group_by(mpa)%>%
-  dplyr::summarize(n = sum(n()))%>%
-  mutate(type = "focal")
-
-
-#Join REEF with phys drivers
-
-reef_drivers <- left_join(all_drivers, mpa_fq_all, by='mpa')
-#reef_drivers <- left_join(reef_phys_drivers, bio_drivers, by="mpa")
+social_join <- left_join(drivers_join, social_dat, by = c("mpa"="name"))
+all_drivers <- left_join(social_join, bio_drivers, by="mpa")
 
 
 #clean up
-reef_drivers <- reef_drivers %>%
-                mutate(reef_n = n)%>%
-                mutate_at('type', ~replace_na(.,'nonfocal'))%>%
-                filter(type=='focal') #select ONLY REEF survey
 
+drivers_dat <- all_drivers %>%
+                dplyr::select(!(c("long_dd","lat_dd")))
 
-logit_reef <- reef_drivers %>%
-  mutate(logit_y = ifelse(charisma_yn=="Charismatic", "1", "0")) %>%
-  mutate_at('reef_n', ~replace_na(.,0))
+#select data for model
 
-logit_reef$logit_y = as.numeric(logit_reef$logit_y)
-
-
-
-#reef full model
-
-reef_full_model <-glm(as.numeric(logit_y) ~ npeople_50km+
-                        size_km2+
-                        shore_span_km+
-                        protection + 
-                        take + 
-                        mpa_age + 
-                        mpa_within_or_part_of_state_park + 
-                        mpa_within_or_part_of_nat_marine_sanctuary+
-                        port_size + 
-                        sandy_beach_km + 
-                        rocky_inter_km +
-                        estuary_km2 + 
-                        depth_range +
-                        max_kelp_canopy_cdfw_km2 +
-                        H_fish+#biological
-                        total_fish_biomass, 
-                      data = logit_reef, family = binomial(link="logit"), na.action=na.exclude)
-
-summary(reef_full_model)
-
-
-#lowest score 
-logit.2 <-glm(as.numeric(logit_y) ~ mpa_within_or_part_of_state_park + mpa_age + estuary_km2 + max_kelp_canopy_cdfw_km2+ 
-               mpa_within_or_part_of_nat_marine_sanctuary+H_fish+total_fish_biomass, data = logit_reef, family = binomial(link="logit"),na.action=na.exclude)
-
-
-summary(logit.2)
-
-
-logit_data_focal <- logit_data %>%
-                    filter(type == 'focal')
-ggplot(logit_data_focal,
-       aes(x = log(n+1),
-           y= reorder(mpa, n),
-           fill = charisma_yn
-       )
-) +
-  xlab("number of REEF surveys")+
-  ylab("")+
-  geom_col()
-
-
-tidy_lofit <- tidy(logit)
+model_dat <- drivers_dat %>%
+             dplyr::select(category, 
+                           #port_size,
+                    distance_to_port, 
+                    size_km2, 
+                    shore_span_km,
+                   take, 
+                   sandy_beach_km, 
+                   rocky_inter_km,
+                    max_kelp_canopy_cdfw_km2, 
+                   estuary_km2, 
+                   #depth_range,
+                    mpa_age, nparks, 
+                   'park_area' = area_km2, 
+                   n_camp_grounds,
+                    n_picnic_areas, 
+                   n_parking_lots, 
+                   index_wt) %>%
+             mutate_if(is.character,as.factor)
 
 
 
-
-tab_model(logit.1, logit.2, show.aic=T, show.r2=T, title="reduced logistic models",auto.label=T,
-          pred.labels = c("intercept","state parks (yes)","sandy beach","estuary","national marine sanctuary (yes)","population density","mpa age","max kelp canopy"),
-          dv.labels = c("iNaturalist", "REEF"))
-
-tab_model(iNat_full_model, reef_full_model, show.aic=T, show.r2=T, title="reduced logistic models",auto.label=T
-          )
-
-
+################################################################################
+# analyze charismatic MPAs using stepwise model selection
+char_dat <- model_dat %>%
+  filter(!(category=="Inaccessible"))%>%
+  mutate(logit_y = ifelse(category=="Charismatic", "1", "0"))%>%
+  drop_na()%>%
+  dplyr::select(!(category))
 
 
+char_step_mod <- glm(as.numeric(logit_y) ~., data = char_dat, 
+                     family=binomial(link="logit"), na.action = na.exclude)%>%
+                stepAIC(trace=FALSE)
+
+summary(char_step_mod)
+
+tab_char_step <- sjPlot::tab_model(char_step_mod, show.aic=T, show.r2=T, title="Stepwise reduced logistic model",auto.label=T,
+                              #pred.labels = c("intercept","state parks (yes)","sandy beach","estuary","national marine sanctuary (yes)"),
+                              dv.labels = c("iNaturalist"))
 
 
 
+# plot predicted probabilities of charismatic MPAs
 
+pred_age_char <- ggpredict(char_step_mod,terms = "mpa_age[all]")%>%
+            ggplot(aes(x, predicted)) +
+            geom_line() +
+            geom_ribbon(aes(ymin = conf.low, ymax = conf.high), alpha = .1)+
+            theme_minimal(base_size = 8)+
+            xlab("MPA age")+
+            ylab("Probability of charismatic MPA")
+       
+pred_beach_char <- ggpredict(char_step_mod,terms = "sandy_beach_km[all]")%>%
+  ggplot(aes(x, predicted)) +
+  geom_line() +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high), alpha = .1)+
+  theme_minimal(base_size = 8)+
+  xlab("Sandy beach extent (km)")+
+  ylab("Probability of charismatic MPA")
+
+pred_park_char <- ggpredict(char_step_mod,terms = "nparks[all]")%>%
+  ggplot(aes(x, predicted)) +
+  geom_line() +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high), alpha = .1)+
+  theme_minimal(base_size = 8)+
+  xlab("Park density (no. within 1km)")+
+  ylab("Probability of charismatic MPA")
 
 
 
 
-
-#create table of physical and biological drivers 
-
-table_working <- as.data.frame(colnames(logit_data_focal)) %>%
-                 mutate(driver = colnames(logit_data_focal))%>%
-                 filter(!(driver=='mpa'|
-                          driver=='mpa_short'|
-                          driver=='four_region_north_ci'|
-                          driver=='inat_observers_tot'|
-                          driver=='re'|
-                          driver=='re_perc'|
-                          driver=='charisma_yn'|
-                          driver=='mpa_class'|
-                          driver=='long'|
-                          driver=='lat'|
-                          driver=='mpa'|
-                          driver=='n'|
-                          driver=='reef_n'|
-                          driver=='offshore_rock_km'|
-                          driver=='implementation_year'|
-                          driver=='implementation date'|
-                          driver=='type'|
-                          driver=='logit_y'))
-                  
-                
-table_working$driver <- recode_factor(table_working$driver, npeople_50km='population density')
-table_working$driver <- recode_factor(table_working$driver, coastal_estuary='coastal or estuary')
-table_working$driver <- recode_factor(table_working$driver, port_size='port size')
-table_working$driver <- recode_factor(table_working$driver, distance_to_port='distance to port')
-table_working$driver <- recode_factor(table_working$driver, size_km2='MPA size (area)')
-table_working$driver <- recode_factor(table_working$driver, shore_span_km='shore span')
-table_working$driver <- recode_factor(table_working$driver, protection='protection level')
-table_working$driver <- recode_factor(table_working$driver, take='allowed take')
-table_working$driver <- recode_factor(table_working$driver, sandy_beach_km='sandy beach extent')
-table_working$driver <- recode_factor(table_working$driver, rocky_inter_km='rocky intertidal extent')
-table_working$driver <- recode_factor(table_working$driver, max_kelp_canopy_cdfw_km2='max kelp canopy extent')
-table_working$driver <- recode_factor(table_working$driver, estuary_km2='estuary extent')
-table_working$driver <- recode_factor(table_working$driver, mpa_within_or_part_of_state_park='state park')
-table_working$driver <- recode_factor(table_working$driver, mpa_within_or_part_of_nat_marine_sanctuary='national marine sanctuary')
-table_working$driver <- recode_factor(table_working$driver, total_hard_substrate='total hard substrate')
-table_working$driver <- recode_factor(table_working$driver, total_soft_substrate='total soft substrate')
-table_working$driver <- recode_factor(table_working$driver, depth_range ='depth range')
-table_working$driver <- recode_factor(table_working$driver, mpa_age='MPA age')
+################################################################################
+# analyze underutilized MPAs using stepwise model selection
+under_dat <- model_dat %>%
+  filter(!(category=="Charismatic"))%>%
+  mutate(logit_y = ifelse(category=="Inaccessible", "1", "0"))%>%
+  drop_na()%>%
+  dplyr::select(!(c(category, n_camp_grounds)))
 
 
-table_working <- table_working %>%
-                 mutate(dummy = 1) %>%
-                 pivot_wider(names_from = 'driver', values_from='dummy') %>%
-                 dplyr::select('population density', 'bioregion','coastal or estuary', 'port size', 'distance to port',
-                               'MPA size (area)', 'shore span','')
-         
+under_step_mod <- glm(as.numeric(logit_y) ~., data = under_dat, 
+                     family=binomial(link="logit"), na.action = na.exclude)%>%
+  stepAIC(trace=FALSE)
+
+summary(char_step_mod)
+
+tab_under_step <- sjPlot::tab_model(under_step_mod, show.aic=T, show.r2=T, 
+                      title="Reduced logistic model: underutilized vs. typical",
+                      auto.label=T, dv.labels = c("iNaturalist"))
+
+
+
+# plot predicted probabilities
+
+pred_distance_under <- ggpredict(under_step_mod,terms = "distance_to_port[all]")%>%
+  ggplot(aes(x/1000, predicted)) +
+  geom_line() +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high), alpha = .1)+
+  theme_minimal(base_size = 8)+
+  xlab("Distance to port (km)")+
+  ylab("Probability of underutilized MPA")
+
+pred_beach_under <- ggpredict(under_step_mod,terms = "sandy_beach_km[all]")%>%
+  ggplot(aes(x, predicted)) +
+  geom_line() +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high), alpha = .1)+
+  theme_minimal(base_size = 8)+
+  xlab("Sandy beach extent (km)")+
+  ylab("Probability of underutilized MPA")
+
+pred_park_under <- ggpredict(under_step_mod,terms = "n_parking_lots[all]")%>%
+  ggplot(aes(x, predicted)) +
+  geom_line() +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high), alpha = .1)+
+  theme_minimal(base_size = 8)+
+  xlab("Parking lot density (no. within 1km)")+
+  ylab("Probability of underutilized MPA")
+
+
+
+#plot all
+predicted_coef_plot <- ggarrange(pred_age_char, pred_beach_char, 
+                          pred_park_char, pred_distance_under, pred_beach_under, 
+                          pred_park_under, nrow=2, ncol=3)
+
+
+#Export figure
+ggsave(here::here("analyses", "3performance_human", "figures", 
+"FigX_predicted_probabilities.png"),bg="white", predicted_coef_plot, height=6, width = 6, 
+units = "in", dpi = 300)
+
+
+################################################################################
+#Save coef table
+
+
+
+model_out <- sjPlot::tab_model(char_step_mod, under_step_mod, show.aic=T, show.r2=T, 
+                                    title="Reduced logistic models",
+                                    auto.label=T, 
+                               dv.labels = c("Charismatic vs. Typical",
+                                            "Underutilized vs. Typical"),
+                               file=file.path(figdir, "FigX_engagement_drivers.doc")
+                               )
+
+
+
 
 
 
