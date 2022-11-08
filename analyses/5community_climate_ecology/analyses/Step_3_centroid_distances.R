@@ -76,48 +76,53 @@ F <- plot(rocky_disper, main="rocky", col=c('red','blue'))
 eig_fun <- function(disper_mat) {
   
   x = melt(as.matrix(sqrt(dist(disper_mat$centroids[,disper_mat$eig>0]^2)-
-         dist(disper_mat$centroids[,disper_mat$eig<0]^2))))
+                            dist(disper_mat$centroids[,disper_mat$eig<0]^2))))
   tibble::rownames_to_column(x, "distance")
-
+  
   x2 <- x %>% filter(Var1 == "ref before" & Var2 == "ref after" |
-                 Var1 == "smr before" & Var2 == "smr after") %>%
-        mutate(MPA = gsub( " .*$", "", Var1)) # %>%
-        #select(MPA, value)%>%
-        #pivot_wider(names_from="MPA")%>%
-        #mutate(logRR = log(smr/ref))
+                       Var1 == "ref before" & Var2 == "ref during" |
+                       Var1 == "smr before" & Var2 == "smr after"|
+                       Var1 == "smr before" & Var2 == "smr during") %>%
+    mutate(MPA = gsub( " .*$", "", Var1)) # %>%
+  #select(MPA, value)%>%
+  #pivot_wider(names_from="MPA")%>%
+  #mutate(logRR = log(smr/ref))
   
   sd = melt(as.matrix(tapply(disper_mat$distances, disper_mat$group, sd)))%>%
     tibble::rownames_to_column() %>% mutate(s_d = value)%>%
-    select(Var1, s_d) %>%
-    filter(Var1 == 'ref before' | Var1 =='ref after'|
-             Var1=='smr before' | Var1 == 'smr after') 
+    dplyr::select(Var1, s_d)
   
   n = melt(table(disper_mat$group))%>%
     tibble::rownames_to_column() %>% mutate(n = value)%>%
-    select(Var1, n) %>%
-    filter(Var1 == 'ref before' | Var1 =='ref after'|
-             Var1=='smr before' | Var1 == 'smr after') 
+    dplyr::select(Var1, n) 
   
   e_hat <- left_join(sd, n, by='Var1') %>%
     pivot_wider(names_from='Var1', values_from = c('s_d','n'))%>%
-    mutate(sd_ref_pooled = sqrt(
+    mutate(sd_ref_pooled_before_after = sqrt(
       ((`n_ref before`-1)*`s_d_ref before`^2 + (`n_ref after`-1)*`s_d_ref after`^2)/
         (`n_ref before`+`n_ref after`-2)
     ),
-    sd_smr_pooled = sqrt(
+    sd_smr_pooled_before_after = sqrt(
       ((`n_smr before`-1)*`s_d_smr before`^2 + (`n_smr after`-1)*`s_d_smr after`^2)/
         (`n_smr before`+`n_smr after`-2)
+    ),
+    sd_ref_pooled_before_during = sqrt(
+      ((`n_ref before`-1)*`s_d_ref before`^2 + (`n_ref during`-1)*`s_d_ref during`^2)/
+        (`n_ref before`+`n_ref during`-2)
+    ),
+    sd_smr_pooled_before_during = sqrt(
+      ((`n_smr before`-1)*`s_d_smr before`^2 + (`n_smr during`-1)*`s_d_smr during`^2)/
+        (`n_smr before`+`n_smr during`-2)
     )
     ) %>%
-    select(`sd_ref_pooled`,`sd_smr_pooled`)%>%
-    pivot_longer(cols=c(`sd_ref_pooled`,`sd_smr_pooled`), values_to ="sd_pooled")
-  
-  #sd = as.matrix(tapply(CCFRP_disper$distances, CCFRP_disper$group, sd)) %>% 
-    #select(
-    #'ref before','ref after','smr before','smr after')
-  
+    dplyr::select(`sd_ref_pooled_before_after`,`sd_ref_pooled_before_during`,
+                  `sd_smr_pooled_before_after`,`sd_smr_pooled_before_during`)%>%
+    pivot_longer(cols=c(`sd_ref_pooled_before_after`,`sd_ref_pooled_before_during`,
+                        `sd_smr_pooled_before_after`,`sd_smr_pooled_before_during`),
+                 values_to ="sd_pooled")
   cbind(x2, e_hat)
 }
+
 
 ccfrp_travel <- eig_fun(CCFRP_disper) %>% mutate(group = "CCFRP")
 kelp_invalg_travel <- eig_fun(kelp_invalg_disper) %>% mutate(group = "kelp inverts and algae")
@@ -128,17 +133,26 @@ rocky_travel <- eig_fun(rocky_disper) %>% mutate(group = "rocky intertidal")
 travel_distance <- as.data.frame(rbind(ccfrp_travel, kelp_invalg_travel, kelp_fish_travel,
                          deep_reef_travel, rocky_travel))
 
-travel_distance$MPA <- recode_factor(travel_distance$MPA, 'smr'='SMR')
+travel_distance$MPA <- recode_factor(travel_distance$MPA, 'smr'='MPA')
 travel_distance$MPA <- recode_factor(travel_distance$MPA, 'ref'='Reference')
 
-dist_smr <- travel_distance %>% filter(MPA=='smr')
-mean_smr <- mean(dist_smr$value)
+dist_mpa <- travel_distance %>% filter(MPA=='MPA')
+mean_mpa <- mean(dist_mpa$value)
 
-dist_ref <- travel_distance %>% filter(MPA=='ref')
+dist_ref <- travel_distance %>% filter(MPA=='Reference')
 mean_ref <- mean(dist_ref$value)
 
+
+
 betadisp_plot <- travel_distance%>%
-ggplot(aes(x=reorder(group,value), y=value, color=MPA))+
+  mutate(period = ifelse(Var1 == "ref before" & Var2== "ref during" |
+                           Var1== "smr before" & Var2== "smr during","before-to-during",
+                         ifelse(Var1 == "ref before" & Var2== "ref after" |
+                                  Var1== "smr before" & Var2== "smr after","before-to-after","")),
+         period=fct_relevel(period, c("before-to-during","before-to-after")),
+         MPA = tidytext::reorder_within(MPA, value, period),
+         MPA_type = toupper(gsub( " .*$", "", Var1)))%>%
+ggplot(aes(x=reorder(group,value), y=value, shape=period, color=MPA_type))+
   geom_point(position = position_dodge(width=0.5))+
   geom_errorbar(aes(ymin=value-sd_pooled,
                     ymax = value+sd_pooled), stat="identity",
@@ -146,8 +160,8 @@ ggplot(aes(x=reorder(group,value), y=value, color=MPA))+
   #geom_hline(yintercept = mean_smr, linetype="dashed", color='#EB6977')+
   #geom_hline(yintercept = mean_ref, linetype="dashed", color='#13A0DD')+
   scale_color_manual(name='MPA type',
-                    breaks=c('SMR', 'Reference'),
-                    values=c('SMR'='#EB6977', 'Reference'='#13A0DD'))+
+                    breaks=c('SMR', 'REF'),
+                    values=c('SMR'='#EB6977', 'REF'='#13A0DD'))+
   theme_minimal(base_size=12) +
   ylab("Distance (Bray-Curtis)")+
   xlab("Community")+
