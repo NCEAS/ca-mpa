@@ -18,26 +18,31 @@ library(patchwork)
 ################################################################################
 
 figdir <- "/home/joshsmith/CA_MPA_Project/ca-mpa/analyses/3performance_human/figures" 
+plotdir <- "analyses/3performance_human/figures" # chris
 
 # Load data
 
 #charismatic MPAs
-data_path <- "/home/joshsmith/CA_MPA_Project/ca-mpa/analyses/3performance_human/output" 
+data_path <- "/home/joshsmith/CA_MPA_Project/ca-mpa/analyses/3performance_human/output" # josh
+data_path <- "analyses/3performance_human/output" # chris
 input_file <- "CA_MPA_charisma_key.csv" 
 charisma_data <- read.csv(file.path(data_path, input_file))
 
 #MPA attributes
-data_path <- "/home/shares/ca-mpa/data/sync-data/mpa_traits/processed"
+data_path <- "/home/shares/ca-mpa/data/sync-data/mpa_traits/processed" # josh
+data_path <- "/Volumes/GoogleDrive/.shortcut-targets-by-id/1kCsF8rkm1yhpjh2_VMzf8ukSPf9d4tqO/MPA Network Assessment: Working Group Shared Folder/data/sync-data/mpa_traits/processed" # chris
 input_file <- "mpa_attributes_clean.csv" 
 mpa_attrib <- read.csv(file.path(data_path, input_file))
 
 #Infrastructure
-data_path <- "/home/shares/ca-mpa/data/sync-data/mpa_traits/processed"
+data_path <- "/home/shares/ca-mpa/data/sync-data/mpa_traits/processed" # josh
+data_path <- "/Volumes/GoogleDrive/.shortcut-targets-by-id/1kCsF8rkm1yhpjh2_VMzf8ukSPf9d4tqO/MPA Network Assessment: Working Group Shared Folder/data/sync-data/mpa_traits/processed" # chris
 input_file <- "mpa_nearby_parks.Rds" 
 parks <- readRDS(file.path(data_path,input_file))
 
 #Biological
-data_path <- "/home/shares/ca-mpa/data/sync-data/processed_data"
+data_path <- "/home/shares/ca-mpa/data/sync-data/processed_data" # josh
+data_path <- "/Volumes/GoogleDrive/.shortcut-targets-by-id/1kCsF8rkm1yhpjh2_VMzf8ukSPf9d4tqO/MPA Network Assessment: Working Group Shared Folder/data/sync-data/processed_data" # chris
 input_file <- "all_fish_diversity.csv" 
 fish_diversity <- read.csv(file.path(data_path, input_file))%>%
   filter(group == 'kelp forest-fish')%>%
@@ -58,8 +63,8 @@ bio_drivers <- left_join(fish_diversity,fish_biomass, by='affiliated_mpa')%>%
   dplyr::select(mpa=affiliated_mpa, H_fish, total_fish_biomass)
 
 #Social
-
-data_path <- "/home/shares/ca-mpa/data/sync-data/census_data/processed"
+data_path <- "/home/shares/ca-mpa/data/sync-data/census_data/processed" # josh
+data_path <- "/Volumes/GoogleDrive/.shortcut-targets-by-id/1kCsF8rkm1yhpjh2_VMzf8ukSPf9d4tqO/MPA Network Assessment: Working Group Shared Folder/data/sync-data/census_data/processed"
 input_file <- "social_vulnerability_index_by_mpa.Rds" 
 social_dat <- readRDS(file.path(data_path,input_file))
 
@@ -253,7 +258,7 @@ pred_park_under <- ggpredict(under_step_mod,terms = "n_parking_lots[all]")%>%
 
 
 #plot all
-predicted_coef_plot <- ggarrange(pred_age_char, pred_beach_char, 
+predicted_coef_plot <- ggpubr::ggarrange(pred_age_char, pred_beach_char, 
                           pred_park_char, pred_distance_under, pred_beach_under, 
                           pred_park_under, nrow=2, ncol=3)
 
@@ -282,5 +287,203 @@ model_out <- sjPlot::tab_model(char_step_mod, under_step_mod, show.aic=T, show.r
 
 
 
+# Chris figure
+################################################################################
+
+# Charismatic
+#############################
+
+# MPA age (yr)
+x_age <- seq(0,20,0.5)
+y_age <- predict(char_step_mod, 
+        newdata = tibble(distance_to_port=mean(char_dat$distance_to_port, na.rm=T),
+                         size_km2=mean(char_dat$size_km2, na.rm=T),
+                         take="yes",
+                         sandy_beach_km=mean(char_dat$sandy_beach_km, na.rm=T),
+                         mpa_age=x_age, # mean(char_dat$mpa_age, na.rm=T),
+                         nparks=mean(char_dat$nparks, na.rm=T)),
+        type="response"
+)
+df_age <- tibble(variable="MPA age (yr)",
+                  x=x_age,
+                  y=y_age)  
+
+# Sandy beach (km)
+x_beach <- seq(0,20,0.5)
+y_beach <- predict(char_step_mod, 
+                 newdata = tibble(distance_to_port=mean(char_dat$distance_to_port, na.rm=T),
+                                  size_km2=mean(char_dat$size_km2, na.rm=T),
+                                  take="yes",
+                                  sandy_beach_km=x_beach, # mean(char_dat$sandy_beach_km, na.rm=T),
+                                  mpa_age=mean(char_dat$mpa_age, na.rm=T),
+                                  nparks=mean(char_dat$nparks, na.rm=T)),
+                 type="response"
+)
+df_beach <- tibble(variable="Sandy beach (km)",
+                   x=x_beach,
+                   y=y_beach) 
+
+# Parks
+x_parks <- seq(0,15,0.5)
+y_parks <- predict(char_step_mod, 
+                   newdata = tibble(distance_to_port=mean(char_dat$distance_to_port, na.rm=T),
+                                    size_km2=mean(char_dat$size_km2, na.rm=T),
+                                    take="yes",
+                                    sandy_beach_km=mean(char_dat$sandy_beach_km, na.rm=T),
+                                    mpa_age=mean(char_dat$mpa_age, na.rm=T),
+                                    nparks=x_parks), #mean(char_dat$nparks, na.rm=T)),
+                   type="response"
+)
+df_parks <- tibble(variable="Number of parks",
+                   x=x_parks,
+                   y=y_parks) 
+
+
+# Underutilized
+#############################
+
+# Distance to port
+x_ports <- seq(0, 80, 0.5) * 1000
+y_ports <- predict(under_step_mod, 
+                 newdata = tibble(distance_to_port=x_ports, #mean(under_dat$distance_to_port, na.rm=T),
+                                  sandy_beach_km=mean(under_dat$sandy_beach_km, na.rm=T),
+                                  rocky_inter_km=mean(under_dat$rocky_inter_km, na.rm=T),
+                                  n_parking_lots=mean(under_dat$n_parking_lots, na.rm=T)),
+                 type="response"
+)
+df_ports <- tibble(variable="Distance to port (km)",
+                 x=x_ports,
+                 y=y_ports)  
+
+# Sandy beach (km)
+x_beach <- seq(0,20,0.5)
+y_beach2 <- predict(under_step_mod, 
+                    newdata = tibble(distance_to_port=mean(under_dat$distance_to_port, na.rm=T),
+                                     sandy_beach_km=x_beach, # mean(under_dat$sandy_beach_km, na.rm=T),
+                                     rocky_inter_km=mean(under_dat$rocky_inter_km, na.rm=T),
+                                     n_parking_lots=mean(under_dat$n_parking_lots, na.rm=T)),
+                   type="response"
+)
+df_beach2 <- tibble(variable="Sandy beach (km)",
+                   x=x_beach,
+                   y=y_beach2) 
+
+# Park lots
+x_lots <- seq(0,20,0.5)
+y_lots <- predict(under_step_mod, 
+                   newdata = tibble(distance_to_port=mean(under_dat$distance_to_port, na.rm=T),
+                                    sandy_beach_km=mean(under_dat$sandy_beach_km, na.rm=T),
+                                    rocky_inter_km=mean(under_dat$rocky_inter_km, na.rm=T),
+                                    n_parking_lots=x_lots), # mean(under_dat$n_parking_lots, na.rm=T)),
+                   type="response"
+)
+df_lots <- tibble(variable="Number of parking lots",
+                   x=x_lots,
+                   y=y_lots) 
+
+
+# Build plot
+#############################
+
+# Theme
+my_theme <-  theme(axis.text=element_text(size=7),
+                   axis.text.y = element_text(angle = 90, hjust = 0.5),
+                   axis.title=element_text(size=8),
+                   plot.title=element_blank(),
+                   legend.text=element_text(size=6),
+                   legend.title=element_text(size=8),
+                   plot.tag=element_text(size=9),
+                   # Gridlines
+                   panel.grid.major = element_blank(), 
+                   panel.grid.minor = element_blank(),
+                   panel.background = element_blank(), 
+                   axis.line = element_line(colour = "black"),
+                   # Legend
+                   legend.key = element_blank(),
+                   legend.background = element_rect(fill=alpha('blue', 0)))
+
+# Plot
+g1 <- ggplot(df_age, mapping=aes(x=x, y=y)) +
+  # Median
+  geom_line() +
+  # Labels
+  labs(x="MPA age (yr)\n", y="P(charismatic)", tag="A") +
+  # Scale
+  scale_y_continuous(lim=c(0,1)) +
+  # Theme
+  theme_bw() + my_theme
+g1
+
+# Plot
+g2 <- ggplot(df_beach, mapping=aes(x=x, y=y)) +
+  # Median
+  geom_line() +
+  # Labels
+  labs(x="Sandy beach (km)\n", y="P(charismatic)", tag="B") +
+  # Scale
+  scale_y_continuous(lim=c(0,1)) +
+  # Theme
+  theme_bw() + my_theme
+g2
+
+# Plot
+g3 <- ggplot(df_parks, mapping=aes(x=x, y=y)) +
+  # Median
+  geom_line() +
+  # Labels
+  labs(x="Number of parks\nwithin 1 km", y="P(charismatic)", tag="C") +
+  # Scale
+  scale_y_continuous(lim=c(0,1)) +
+  # Theme
+  theme_bw() + my_theme
+g3
+
+# Plot
+g4 <- ggplot(df_ports, mapping=aes(x=x/1000, y=y)) +
+  # Median
+  geom_line() +
+  # Labels
+  labs(x="Distance to port (km)\n", 
+       y="P(underutilized)", tag="D") +
+  # Scale
+  scale_y_continuous(lim=c(0,1)) +
+  # Theme
+  theme_bw() + my_theme
+g4
+
+# Plot
+g5 <- ggplot(df_beach2, mapping=aes(x=x, y=y)) +
+  # Median
+  geom_line() +
+  # Labels
+  labs(x="Sandy beach (km)\n", 
+       y="P(underutilized)", tag="E") +
+  # Scale
+  scale_y_continuous(lim=c(0,1)) +
+  # Theme
+  theme_bw() + my_theme
+g5
+
+# Plot
+g6 <- ggplot(df_lots, mapping=aes(x=x, y=y)) +
+  # Median
+  geom_line() +
+  # Labels
+  labs(x="Number of parking lots\nwithin 1 km", 
+       y="P(underutilized)", tag="F") +
+  # Scale
+  scale_y_continuous(lim=c(0,1)) +
+  # Theme
+  theme_bw() + my_theme
+g6
+
+# Merge plots
+g <- gridExtra::grid.arrange(g1, g2, g3, 
+                             g4, g5, g6, nrow=2)
+g
+
+# Export
+ggsave(g, filename=file.path(plotdir, "FigX_engagement_drivers.png"), 
+       width=6.5, height=4, units="in", dpi=600)
 
 
