@@ -62,6 +62,8 @@ write.csv(data1, file=file.path(datadir, "CA_MPA_charisma_key.csv"), row.names =
 lmfit2 <- lm(inat_observers_n ~ npeople_50km, data1 %>% filter(category=="Typical"))
 summary(lmfit2)
 
+table(data1$category)
+
 # Plot data 
 ################################################################################
 
