@@ -1,6 +1,8 @@
 rm(list=ls())
 
 require(tidyverse)
+require(janitor)
+
 
 #input_path <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/ecological_community_data/year_level_with_envr_vars"
 input_path <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data"
@@ -53,7 +55,7 @@ ccfrp_taxon$species_definition <- tolower(ccfrp_taxon$species_definition)
 data_path <- "/home/shares/ca-mpa/data/sync-data/monitoring/taxonomy_tables"
 input_file <- "DeepReef-ROV-Taxonomy.xlsx"  
 
-deep_reef_taxon <- read.xlsx(file.path(data_path,input_file),sheetIndex = 1)%>%
+deep_reef_taxon <- readxl::read_excel(file.path(data_path,input_file),sheet = 1)%>%
                     clean_names()
 
 deep_reef_taxon$common_name <- tolower(deep_reef_taxon$common_name)
@@ -223,7 +225,8 @@ ftab <- flextable::qflextable(all2) %>%
   #theme_tron_legacy()
   #theme_vader()%>%
   #theme_box()
-  theme_alafoli()
+  theme_alafoli()%>%
+  italic(j = 1:2, italic = TRUE, part = "body")
 
 
 
@@ -239,17 +242,10 @@ sect_properties <- prop_section(
 )
 
 save_as_docx(ftab,
-             path = "analyses/5community_climate_ecology/tables/simper_out.docx",
+             path = "analyses/5community_climate_ecology/tables/taxonomy_table.docx",
              pr_section = sect_properties)
 
 
-
-
-
-
-
-library(xlsx)
-write.xlsx(CCFRP_t, file.path(export_path, "species_table.xlsx"), sheetName="CCFRP", row.names=TRUE)
 
 
 
