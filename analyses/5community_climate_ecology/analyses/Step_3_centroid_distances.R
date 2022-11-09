@@ -13,6 +13,7 @@ require(ggplot2)
 require(metafor)
 require(reshape2)
 require(ggfittext)
+require(pairwiseAdonis)
 
 
 
@@ -76,48 +77,53 @@ F <- plot(rocky_disper, main="rocky", col=c('red','blue'))
 eig_fun <- function(disper_mat) {
   
   x = melt(as.matrix(sqrt(dist(disper_mat$centroids[,disper_mat$eig>0]^2)-
-         dist(disper_mat$centroids[,disper_mat$eig<0]^2))))
+                            dist(disper_mat$centroids[,disper_mat$eig<0]^2))))
   tibble::rownames_to_column(x, "distance")
-
+  
   x2 <- x %>% filter(Var1 == "ref before" & Var2 == "ref after" |
-                 Var1 == "smr before" & Var2 == "smr after") %>%
-        mutate(MPA = gsub( " .*$", "", Var1)) # %>%
-        #select(MPA, value)%>%
-        #pivot_wider(names_from="MPA")%>%
-        #mutate(logRR = log(smr/ref))
+                       Var1 == "ref before" & Var2 == "ref during" |
+                       Var1 == "smr before" & Var2 == "smr after"|
+                       Var1 == "smr before" & Var2 == "smr during") %>%
+    mutate(MPA = gsub( " .*$", "", Var1)) # %>%
+  #select(MPA, value)%>%
+  #pivot_wider(names_from="MPA")%>%
+  #mutate(logRR = log(smr/ref))
   
   sd = melt(as.matrix(tapply(disper_mat$distances, disper_mat$group, sd)))%>%
     tibble::rownames_to_column() %>% mutate(s_d = value)%>%
-    select(Var1, s_d) %>%
-    filter(Var1 == 'ref before' | Var1 =='ref after'|
-             Var1=='smr before' | Var1 == 'smr after') 
+    dplyr::select(Var1, s_d)
   
   n = melt(table(disper_mat$group))%>%
     tibble::rownames_to_column() %>% mutate(n = value)%>%
-    select(Var1, n) %>%
-    filter(Var1 == 'ref before' | Var1 =='ref after'|
-             Var1=='smr before' | Var1 == 'smr after') 
+    dplyr::select(Var1, n) 
   
   e_hat <- left_join(sd, n, by='Var1') %>%
     pivot_wider(names_from='Var1', values_from = c('s_d','n'))%>%
-    mutate(sd_ref_pooled = sqrt(
+    mutate(sd_ref_pooled_before_after = sqrt(
       ((`n_ref before`-1)*`s_d_ref before`^2 + (`n_ref after`-1)*`s_d_ref after`^2)/
         (`n_ref before`+`n_ref after`-2)
     ),
-    sd_smr_pooled = sqrt(
+    sd_smr_pooled_before_after = sqrt(
       ((`n_smr before`-1)*`s_d_smr before`^2 + (`n_smr after`-1)*`s_d_smr after`^2)/
         (`n_smr before`+`n_smr after`-2)
+    ),
+    sd_ref_pooled_before_during = sqrt(
+      ((`n_ref before`-1)*`s_d_ref before`^2 + (`n_ref during`-1)*`s_d_ref during`^2)/
+        (`n_ref before`+`n_ref during`-2)
+    ),
+    sd_smr_pooled_before_during = sqrt(
+      ((`n_smr before`-1)*`s_d_smr before`^2 + (`n_smr during`-1)*`s_d_smr during`^2)/
+        (`n_smr before`+`n_smr during`-2)
     )
     ) %>%
-    select(`sd_ref_pooled`,`sd_smr_pooled`)%>%
-    pivot_longer(cols=c(`sd_ref_pooled`,`sd_smr_pooled`), values_to ="sd_pooled")
-  
-  #sd = as.matrix(tapply(CCFRP_disper$distances, CCFRP_disper$group, sd)) %>% 
-    #select(
-    #'ref before','ref after','smr before','smr after')
-  
+    dplyr::select(`sd_ref_pooled_before_after`,`sd_ref_pooled_before_during`,
+                  `sd_smr_pooled_before_after`,`sd_smr_pooled_before_during`)%>%
+    pivot_longer(cols=c(`sd_ref_pooled_before_after`,`sd_ref_pooled_before_during`,
+                        `sd_smr_pooled_before_after`,`sd_smr_pooled_before_during`),
+                 values_to ="sd_pooled")
   cbind(x2, e_hat)
 }
+
 
 ccfrp_travel <- eig_fun(CCFRP_disper) %>% mutate(group = "CCFRP")
 kelp_invalg_travel <- eig_fun(kelp_invalg_disper) %>% mutate(group = "kelp inverts and algae")
@@ -128,51 +134,142 @@ rocky_travel <- eig_fun(rocky_disper) %>% mutate(group = "rocky intertidal")
 travel_distance <- as.data.frame(rbind(ccfrp_travel, kelp_invalg_travel, kelp_fish_travel,
                          deep_reef_travel, rocky_travel))
 
-travel_distance$MPA <- recode_factor(travel_distance$MPA, 'smr'='SMR')
+travel_distance$MPA <- recode_factor(travel_distance$MPA, 'smr'='MPA')
 travel_distance$MPA <- recode_factor(travel_distance$MPA, 'ref'='Reference')
 
-dist_smr <- travel_distance %>% filter(MPA=='smr')
-mean_smr <- mean(dist_smr$value)
+dist_mpa <- travel_distance %>% filter(MPA=='MPA')
+mean_mpa <- mean(dist_mpa$value)
 
-dist_ref <- travel_distance %>% filter(MPA=='ref')
+dist_ref <- travel_distance %>% filter(MPA=='Reference')
 mean_ref <- mean(dist_ref$value)
 
-betadisp_plot <- travel_distance%>%
-ggplot(aes(x=reorder(group,value), y=value, color=MPA))+
-  geom_point(position = position_dodge(width=0.5))+
+
+
+################################################################################
+#pairwise PERMANOVA to test for sig differences
+
+
+#pariwise permanova
+ccfrp_pair_perm <- pairwise.adonis2(CCFRP_distmat ~ desig_state, 
+                                    data = CCFRP_group_vars, permutations = 999)
+dr_pair_perm <- pairwise.adonis2(deep_reef_distmat ~ desig_state, 
+                                 data = deep_reef_group_vars, permutations = 999) 
+kelp_fish_pair_perm <- pairwise.adonis2(kelp_fish_distmat ~ desig_state, 
+                                        data = kelp_fish_group_vars,permutations = 999) 
+kelp_invalg_pair_perm <- pairwise.adonis2(kelp_invalg_distmat ~ desig_state, 
+                                          data = kelp_invalg_group_vars, permutations = 999) 
+rocky_pair_perm <- pairwise.adonis2(rocky_distmat ~ desig_state,
+                                    data = rocky_group_vars, permutations = 999) 
+
+#create helper function to collect pairwise output
+
+perm_fun <- function(perm_table, group_name){
+  ref_after = (as.data.frame(perm_table[["ref before_vs_ref after"]])%>%
+              mutate(group = group_name,
+                     MPA_type = 'REF',
+                     period = 'before-to-after') %>%
+              filter(row_number()==1) %>%
+              dplyr::select(group, MPA_type, period, Df, SumOfSqs, R2, `F`,`Pr(>F)`))
+  ref_during = (as.data.frame(perm_table[["ref before_vs_ref during"]])%>%
+              mutate(group = group_name,
+                     MPA_type = 'REF',
+                     period = 'before-to-during') %>%
+              filter(row_number()==1) %>%
+              dplyr::select(group, MPA_type,period, Df, SumOfSqs, R2, `F`,`Pr(>F)`))
+  
+  smr_after = (as.data.frame(perm_table[["smr before_vs_smr after"]])%>%
+                 mutate(group = group_name,
+                        MPA_type = 'MPA',
+                        period = 'before-to-after') %>%
+                 filter(row_number()==1) %>%
+                 dplyr::select(group, MPA_type,period, Df, SumOfSqs, R2, `F`,`Pr(>F)`))
+  smr_during = (as.data.frame(perm_table[["smr before_vs_smr during"]])%>%
+                  mutate(group = group_name,
+                         MPA_type = 'MPA',
+                         period = 'before-to-during') %>%
+                  filter(row_number()==1) %>%
+                  dplyr::select(group, MPA_type, period, Df, SumOfSqs, R2, `F`,`Pr(>F)`))
+
+  rbind(ref_after, ref_during, smr_after, smr_during)
+}
+
+
+#collect output
+ccfrp_op <- perm_fun(ccfrp_pair_perm, group="CCFRP")
+kelp_fish_op <- perm_fun(kelp_fish_pair_perm, group='Kelp forest fish')
+kelp_invalg_perm <- perm_fun(kelp_invalg_pair_perm, group = "kelp forest inverts and algae")
+rocky_op <- perm_fun(rocky_pair_perm, group="Rocky intertidal")
+deep_reef_op <- perm_fun(dr_pair_perm, group = "Deep reef")
+
+perm_output <- rbind(ccfrp_op, kelp_fish_op, deep_reef_op,
+                     kelp_invalg_perm, rocky_op)
+
+rownames(perm_output) <- NULL
+
+
+#write.csv(perm_output, "/home/joshsmith/CA_MPA_Project/ca-mpa/analyses/5community_climate_ecology/tables/pairwise_permanova_table.csv")       # Export PDF
+#grid.table(perm_output)
+#dev.off()
+
+
+################################################################################
+#plot betadisper distance between centroids
+
+#join distance and PERMANOVA tables
+distance1 <- travel_distance%>%
+  mutate(period = ifelse(Var1 == "ref before" & Var2== "ref during" |
+                           Var1== "smr before" & Var2== "smr during","before-to-during",
+                         ifelse(Var1 == "ref before" & Var2== "ref after" |
+                                  Var1== "smr before" & Var2== "smr after","before-to-after","")),
+         period=fct_relevel(period, c("before-to-during","before-to-after")),
+         MPA = tidytext::reorder_within(MPA, value, period),
+         MPA_type = toupper(gsub( " .*$", "", Var1)))
+
+distance1$MPA_type <- recode_factor(distance1$MPA_type, "SMR"="MPA")
+
+perm_output$group <- recode_factor(perm_output$group, 	
+                                   "kelp forest inverts and algae" = "kelp inverts and algae")
+perm_output$group <- recode_factor(perm_output$group, 	
+                                   "Kelp forest fish" = "kelp fish")
+perm_output$group <- recode_factor(perm_output$group, 	
+                                   "Deep reef" = "deep reef")
+perm_output$group <- recode_factor(perm_output$group, 	
+                                   "Rocky intertidal" = "rocky intertidal")
+
+sig_distance <- left_join(distance1, perm_output, 
+                          by=c("group","MPA_type","period"))%>%
+                mutate(sig = ifelse(`Pr(>F)`<0.05, "*",""))%>%
+                rename("p-val" = `Pr(>F)`)
+
+
+betadisp_plot <- 
+  sig_distance %>%
+  ggplot(aes(x=reorder(group,value), y=value, shape=period, color=MPA_type))+
+  geom_point(position = position_dodge(width=0.8),
+             size=3)+
   geom_errorbar(aes(ymin=value-sd_pooled,
                     ymax = value+sd_pooled), stat="identity",
-                position = position_dodge(width=0.5), size=0.3, width=.3)+
-  #geom_hline(yintercept = mean_smr, linetype="dashed", color='#EB6977')+
-  #geom_hline(yintercept = mean_ref, linetype="dashed", color='#13A0DD')+
+                position = position_dodge(width=0.8), size=0.3, width=.3)+
   scale_color_manual(name='MPA type',
-                    breaks=c('SMR', 'Reference'),
-                    values=c('SMR'='#EB6977', 'Reference'='#13A0DD'))+
-  theme_minimal(base_size=12) +
+                     breaks=c('MPA', 'REF'),
+                     values=c('MPA'='#EB6977', 'REF'='#13A0DD'))+
+  #add significance level
+  geom_text(aes(label=sig), size=5, vjust=-0.01,
+            position = position_dodge(width=0.8),
+            show.legend = FALSE)+
   ylab("Distance (Bray-Curtis)")+
   xlab("Community")+
-  coord_flip()
+  geom_vline(xintercept=c(1.5, 2.5,3.5,4.5), color="grey",alpha=.4)+
+  coord_flip()+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        panel.background = element_blank(), axis.line = element_line(colour = "black"),
+        legend.key=element_blank())
 
 #ggsave(here::here("analyses", "5community_climate_ecology", "figures", "betadisp_plot.png"), betadisp_plot, height=6, width = 8, units = "in", 
 #   dpi = 600, bg="white")
 
 
 
-
-
-
-
-
-
-
-#CCFRP
-
-ccfrp_centroids <- sqrt(dist(CCFRP_disper$centroids[,CCFRP_disper$eig>0]^2)-
-                          dist(CCFRP_disper$centroids[,CCFRP_disper$eig<0]^2)
-                        )
-
-
-tapply(CCFRP_disper$centroids, CCFRP_disper$group, sd)
 
 
 # step 2 calculate dist between centroids inside and outide of MPAs-------------
@@ -267,71 +364,6 @@ kelp_invalg_perm <- adonis2(formula = kelp_invalg_distmat ~ MHW+desig_state, dat
 kelp_upc_perm <- adonis2(formula = kelp_upc_distmat ~ MHW+desig_state, data = kelp_upc_group_vars, permutations = 99) 
 CCFRP_perm <- adonis2(formula = CCFRP_distmat ~ MHW+desig_state, data = CCFRP_group_vars, permutations = 99) 
 
-#pariwise permanova
-ccfrp_pair_perm <- pairwise.adonis2(CCFRP_distmat ~ desig_state, data = CCFRP_group_vars, permutations = 999)
-dr_pair_perm <- pairwise.adonis2(deep_reef_distmat ~ desig_state, data = deep_reef_group_vars, permutations = 999) 
-kelp_fish_pair_perm <- pairwise.adonis2(kelp_fish_distmat ~ desig_state, data = kelp_fish_group_vars,permutations = 999) 
-kelp_invalg_pair_perm <- pairwise.adonis2(kelp_invalg_distmat ~ desig_state, data = kelp_invalg_group_vars, permutations = 999) 
-rocky_pair_perm <- pairwise.adonis2(rocky_distmat ~ desig_state, data = rocky_group_vars, permutations = 999) 
-
-#create helper function to collect pairwise output
-
-perm_fun <- function(perm_table, group_name){
-  before = (as.data.frame(perm_table[["ref before_vs_smr before"]])%>%
-            mutate(group = group_name,
-                   heatwave_period = 'before') %>%
-              filter(row_number()==1) %>%
-              select(group, heatwave_period, Df, SumOfSqs, R2, `F`,`Pr(>F)`))
-  during = (as.data.frame(perm_table[["ref during_vs_smr during"]])%>%
-              mutate(group = group_name,
-                     heatwave_period = 'during') %>%
-              filter(row_number()==1) %>%
-              select(group, heatwave_period, Df, SumOfSqs, R2, `F`,`Pr(>F)`))
-  after = (as.data.frame(perm_table[["ref after_vs_smr after"]])%>%
-              mutate(group = group_name,
-                     heatwave_period = 'after') %>%
-              filter(row_number()==1) %>%
-              select(group, heatwave_period, Df, SumOfSqs, R2, `F`,`Pr(>F)`))
-  rbind(before, during, after)
-}
-
-perm_fun2 <- function(perm_table, group_name){
-  before = (as.data.frame(perm_table[["smr before_vs_ref before"]])%>%
-              mutate(group = group_name,
-                     heatwave_period = 'before') %>%
-              filter(row_number()==1) %>%
-              select(group, heatwave_period, Df, SumOfSqs, R2, `F`,`Pr(>F)`))
-  during = (as.data.frame(perm_table[["smr during_vs_ref during"]])%>%
-              mutate(group = group_name,
-                     heatwave_period = 'during') %>%
-              filter(row_number()==1) %>%
-              select(group, heatwave_period, Df, SumOfSqs, R2, `F`,`Pr(>F)`))
-  after = (as.data.frame(perm_table[["smr after_vs_ref after"]])%>%
-             mutate(group = group_name,
-                    heatwave_period = 'after') %>%
-             filter(row_number()==1) %>%
-             select(group, heatwave_period, Df, SumOfSqs, R2, `F`,`Pr(>F)`))
-  rbind(before, during, after)
-}
-
-
-
-#collect output
-ccfrp_op <- perm_fun(ccfrp_pair_perm, group="CCFRP")
-kelp_fish_op <- perm_fun(kelp_fish_pair_perm, group='Kelp forest fish')
-kelp_invalg_perm <- perm_fun(kelp_invalg_pair_perm, group = "kelp forest inverts and algae")
-rocky_op <- perm_fun2(rocky_pair_perm, group="Rocky intertidal")
-deep_reef_op <- perm_fun2(dr_pair_perm, group = "Deep reef")
-
-perm_output <- rbind(ccfrp_op, kelp_fish_op, deep_reef_op,
-                     kelp_invalg_perm, rocky_op)
-
-rownames(perm_output) <- NULL
-
-
-#write.csv(perm_output, "/home/joshsmith/CA_MPA_Project/ca-mpa/analyses/5community_climate_ecology/tables/pairwise_permanova_table.csv")       # Export PDF
-#grid.table(perm_output)
-#dev.off()
 
 
 

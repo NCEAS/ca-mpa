@@ -21,7 +21,7 @@ rocky_dat <- cbind(rocky_group_vars, rocky_ord_data)
 
 rocky_taxon <- readxl::read_excel(
   file.path("/home/shares/ca-mpa/data/sync-data/monitoring/taxonomy_tables","RockyIntertidal-LongTerm-Taxonomy.xlsx"), sheet=1, skip = 0, na="NA")%>%
-  dplyr::select(marine_species_code, marine_species_name)
+  dplyr::select(marine_species_code, marine_species_name, Genus, Species)
 rocky_taxon$marine_species_code <- tolower(rocky_taxon$marine_species_code)
 
 
@@ -50,6 +50,14 @@ ccfrp_taxon$common_name <- tolower(ccfrp_taxon$common_name)
 ccfrp_taxon$species_definition <- tolower(ccfrp_taxon$species_definition)
 
 
+data_path <- "/home/shares/ca-mpa/data/sync-data/monitoring/taxonomy_tables"
+input_file <- "DeepReef-ROV-Taxonomy.xlsx"  
+
+deep_reef_taxon <- read.xlsx(file.path(data_path,input_file),sheetIndex = 1)%>%
+                    clean_names()
+
+deep_reef_taxon$common_name <- tolower(deep_reef_taxon$common_name)
+deep_reef_taxon$scientific_name <- tolower(deep_reef_taxon$scientific_name)
 
 
 
@@ -105,6 +113,10 @@ rocky <- rocky_dat %>%
 
 #kelp invalg corrections
 kelp_invalg1 <- anti_join(kelp_invalg, kelp_taxon, by=c("Species"="species_definition"))
+kelp_invalg$Species <- recode_factor(kelp_invalg$Species, "loxorhynchus crispatus scyra acutifrons" = "loxorhynchus crispatus/scyra acutifrons")
+kelp_invalg$Species <- recode_factor(kelp_invalg$Species, "diopatra chaetopterus spp" = "diopatra/chaetopterus spp")
+kelp_invalg$Species <- recode_factor(kelp_invalg$Species, "dictyoneurum californicum reticulatum" = "dictyoneurum californicum/reticulatum")
+kelp_invalg$Species <- recode_factor(kelp_invalg$Species, "thylacodes squamigerus petaloconchus montereyensis" = "thylacodes squamigerus/petaloconchus montereyensis")
 
 #kelp fish corrections
 kelp_fish1 <-  anti_join(kelp_fish, kelp_taxon, by=c("Species"="species_definition"))
@@ -125,43 +137,120 @@ CCFRP_spp$Species <- recode_factor(CCFRP_spp$Species, "yellowtail rockfish" = "o
 #deep reef corrections
 deep_reef1 <-  anti_join(deep_reef, kelp_taxon, by=c("Species"="species_definition"))
 
-
 ####do first join
-kelp_invalg1 <- left_join(kelp_invalg, kelp_taxon, by=c("Species"="species_definition"))
-kelp_fish1 <-  left_join(kelp_fish, kelp_taxon, by=c("Species"="species_definition"))
+kelp_invalg1 <- left_join(kelp_invalg, kelp_taxon, by=c("Species"="species_definition"))%>%
+                mutate(group = "kelp inverts and algae")%>%
+                dplyr::select(group, genus, species, common_name)%>%
+                filter(!(is.na(common_name)))%>%
+                distinct(group, genus, species, common_name)
+
+kelp_fish1 <-  left_join(kelp_fish, kelp_taxon, by=c("Species"="species_definition"))%>%
+                mutate(group = "kelp forest fish")%>%
+                dplyr::select(group, genus, species, common_name)
+
 CCFRP1 <-  left_join(CCFRP_spp, kelp_taxon, by=c("Species"="common_name"))
 deep_reef1 <-  left_join(deep_reef, kelp_taxon, by=c("Species"="species_definition"))
 
 
 ###finish joins using habitat-specific tables
+
+#CCFRP
 CCFRP2 <- CCFRP1 %>%
            filter_all(any_vars(is.na(.))) %>%
             dplyr::select(Species, group)
+
 CCFRP3 <- left_join(CCFRP2, ccfrp_taxon, by=c("Species"="common_name"))
 
-CCFRP_list <- merge(CCFRP1, CCFRP3)
+CCFRP4 <- CCFRP1 %>% filter(!(is.na(species_definition)))
+
+CCFRP_final <- plyr::rbind.fill(CCFRP4, CCFRP3)%>%
+              mutate(group="CCFRP")%>%
+              dplyr::select(group, genus, species, common_name=Species)%>%
+              distinct(group, genus, species, common_name)
+
+#Deep reef
+deep_reef2 <- deep_reef1 %>%
+            filter_all(any_vars(is.na(.))) %>%
+            dplyr::select(Species, group)
+
+
+deep_reef3 <- left_join(deep_reef2, deep_reef_taxon, by=c("Species"="scientific_name"))%>%
+              dplyr::select(Species, genus, species, common_name)
+
+deep_reef4 <- deep_reef1 %>% filter(!(is.na(common_name)))
+
+deep_reef_final <- plyr::rbind.fill(deep_reef4, deep_reef3)%>%
+  mutate(group="deep reef")%>%
+  dplyr::select(group, genus, species, common_name)
+
+
+#rocky intertidal
+
+rocky1 <- left_join(rocky, rocky_taxon, by=c("Species"="marine_species_code"))%>%
+          mutate(species_drop = gsub(".*?\\s", "", Species.y))%>%
+          dplyr::select(group, "genus"=Genus, "species"=species_drop, "common_name"=marine_species_name)
+          
+  
 
 
 
-anti_join(CCFRP1, ccfrp_taxon, by=c("Species"="common_name"))
+
+all <- rbind(kelp_invalg1, kelp_fish1, CCFRP_final, deep_reef_final, rocky1)
+      
+all[all == "NULL"] <- NA
+all[all == "NA"] <- NA
+
+all1 <- all %>% mutate(dummy_var = as.numeric(1))%>%
+        pivot_wider(names_from=group, values_from=dummy_var)
+
+all1[all1 == "NULL"] <- NA
+
+all2 <- all1 %>% mutate(across(where(is.numeric), as.character))%>%
+        rename("Genus" = genus,
+               "Species" = species,
+               "Common Name" = common_name)
+
+all2[all2 == "1"] <- "X"
+
+
+################################################################################
+#Convert to table
+
+library(flextable)
+
+ftab <- flextable::qflextable(all2) %>%
+  #theme_zebra()
+  #theme_tron_legacy()
+  #theme_vader()%>%
+  #theme_box()
+  theme_alafoli()
 
 
 
 
+library(officer)
+sect_properties <- prop_section(
+  page_size = page_size(
+    orient = "landscape",
+    width = 8.3, height = 11
+  ),
+  type = "continuous",
+  page_margins = page_mar()
+)
+
+save_as_docx(ftab,
+             path = "analyses/5community_climate_ecology/tables/simper_out.docx",
+             pr_section = sect_properties)
 
 
 
 
-rocky_final <- left_join(rownames_to_column(rocky_t), rocky_taxon, by=c("rowname" = "marine_species_code"))
 
 
 
 library(xlsx)
 write.xlsx(CCFRP_t, file.path(export_path, "species_table.xlsx"), sheetName="CCFRP", row.names=TRUE)
-write.xlsx(kelp_invalg_t, file.path(export_path, "species_table.xlsx"), sheetName="kelp_invalg", append=TRUE, row.names=TRUE) 
-write.xlsx(kelp_fish_t, file.path(export_path, "species_table.xlsx"), sheetName="kelp_fish", append=TRUE, row.names=TRUE) 
-write.xlsx(deep_reef_t, file.path(export_path, "species_table.xlsx"), sheetName="deep_reef", append=TRUE, row.names=TRUE)  
-write.xlsx(rocky_final, file.path(export_path, "species_table.xlsx"), sheetName="rocky_intertidal", append=TRUE, row.names=TRUE)  
+
 
 
 
