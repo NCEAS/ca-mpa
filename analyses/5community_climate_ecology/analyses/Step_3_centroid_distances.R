@@ -272,15 +272,6 @@ betadisp_plot <-
 
 
 
-
-
-
-
-
-
-
-
-
 # step 2 calculate dist between centroids inside and outide of MPAs-------------
 
 #create helper function to calculate centroid distance
