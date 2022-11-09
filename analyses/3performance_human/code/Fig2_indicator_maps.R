@@ -128,7 +128,8 @@ g3 <- ggplot() +
   geom_point(data=data, mapping=aes(x=long_dd, y=lat_dd, 
                                      size=inat_observers_n, fill=inat_observations_n), pch=21, inherit.aes = F) +
   # Plot zero MPAs
-  # geom_point(data=mpas_zero, mapping=aes(x=long_dd, y=lat_dd), pch="x", size=2.3) +
+  geom_point(data=data %>% filter(is.na(inat_observers_n)), 
+             mapping=aes(x=long_dd, y=lat_dd), pch="x", size=2.3) +
   # Labels
   labs(x="", y="", title="iNaturalist", tag="C") +
   # Axes
@@ -156,7 +157,8 @@ g4 <- ggplot() +
              mapping=aes(x=long_dd, y=lat_dd, size=ebird_observers_n, fill=ebird_surveys_n), # change to surveys
              pch=21, inherit.aes = F) +
   # Plot zero MPAs
-  # geom_point(data=mpas_zero, mapping=aes(x=long_dd, y=lat_dd), pch="x", size=2.3) +
+  geom_point(data=data %>% filter(is.na(ebird_observers_n)), 
+             mapping=aes(x=long_dd, y=lat_dd), pch="x", size=2.3) +  
   # Labels
   labs(x="", y="", title="eBird", tag="D") +
   # Axes
@@ -181,6 +183,9 @@ g5 <- ggplot() +
   geom_sf(data=usa, fill="grey80", color="white", lwd=0.3) +
   # Plot MPAs
   geom_point(data=data, mapping=aes(x=long_dd, y=lat_dd, size=permits_n, fill=permits_nyr), pch=21) +
+  # Plot zero MPAs
+  geom_point(data=data %>% filter(is.na(permits_n)), 
+             mapping=aes(x=long_dd, y=lat_dd), pch="x", size=2.3) +  
   # Labels
   labs(x="", y="", title="Scientific permits", tag="E") +
   # Axes
@@ -207,7 +212,8 @@ g6 <- ggplot() +
   geom_point(data=data, 
              mapping=aes(x=long_dd, y=lat_dd, size=citations_n, fill=citations_nyr), pch=21) +
   # Plot zero MPAs
-  # geom_point(data=mpas_zero, mapping=aes(x=long_dd, y=lat_dd), pch="x", size=2.3) +
+  geom_point(data=data %>% filter(is.na(citations_n)), 
+             mapping=aes(x=long_dd, y=lat_dd), pch="x", size=2.3) +  
   # Labels
   labs(x="", y="", title="Regulatory citations", tag="F") +
   # Axes
