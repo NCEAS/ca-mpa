@@ -28,22 +28,22 @@ mpas_orig <- readRDS(file.path(basedir, "mpa_traits/processed", "CA_mpa_metadata
 data_orig <- readRDS(file.path(datadir, "MPA_Watch_2011_2022_surveys_ca_programs_wide.Rds"))
 col_key <- readxl::read_excel(file.path(datadir, "column_key_ca_programs.xlsx"))
 
-# MPA types
-types_use <- c("SMR", "SMCA (No-Take)", "SMCA", "SMP")
-
 
 # Build data
 ################################################################################
+
+# MPA types
+types_use <- c("SMR", "SMCA (No-Take)", "SMCA", "SMRMA")
 
 # Build data
 data_wide <- data_orig %>% 
   # Reduce to MPAs
   filter(site_type=="MPA") %>% 
   # Add MPA metadata
-  left_join(mpas_orig %>% select(mpa, region, type), by=c("site"="mpa")) %>% 
+  left_join(mpas_orig %>% select(mpa, region, mlpa, type), by=c("site"="mpa")) %>% 
   rename(mpa=site) %>% 
   # Reduce to MPAs of interest
-  filter(type %in% types_use) %>% 
+  filter(mlpa=="MLPA") %>% 
   # Order MPA types
   mutate(type=factor(type, levels=types_use)) %>% 
   rename(mpa_type=type) %>% 
@@ -90,8 +90,6 @@ data_long_act <- data_long %>%
 # Reduce and format
 data_long_act_reduced <- data_long_act %>% 
   rename(type=mpa_type) %>% 
-  # Reduce to MPAs of interest
-  filter(type %in% types_use) %>% 
   # Order MPA types
   mutate(type=recode(type, "SMP"="SMCA"),
          type=factor(type, levels=types_use))
@@ -123,8 +121,10 @@ saveRDS(stats_full, file=file.path(outputdir, "mpa_watch_consumptive_indicators.
 
 # Reduce and format
 stats <- stats_full %>% 
-  # Reduce to MPAs of interest
-  filter(type %in% types_use) %>% 
+  # Add MPA meda data
+  left_join(mpas_orig %>% select(mpa, mlpa)) %>% 
+  # Reduce to MPA of interest
+  filter(mlpa=="MLPA") %>% 
   # Order MPA types
   mutate(type=recode(type, "SMP"="SMCA"),
          type=factor(type, levels=types_use))
@@ -252,7 +252,7 @@ g <- gridExtra::grid.arrange(g1, g2, g3, ncol=3, widths=c(0.35, 0.65*0.6, 0.65*0
 g 
 
 # Export
-ggsave(g, filename=file.path(plotdir, "Fig4_mpa_watch_data_consump.png"), 
+ggsave(g, filename=file.path(plotdir, "FigS4_mpa_watch_data_consump.png"), 
        width=6.5, height=3.5, units="in", dpi=600)
 
 

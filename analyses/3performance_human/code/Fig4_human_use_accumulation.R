@@ -128,7 +128,7 @@ g <- ggplot(data_ind, aes(x=rank, y=value_cum_prop, color=indicator)) +
 g
 
 # Export figure
-ggsave(g, filename=file.path(plotdir, "Fig12_human_use_accumulation.png"), 
+ggsave(g, filename=file.path(plotdir, "Fig4_human_use_accumulation.png"), 
        width=4.5, height=4.5, units="in", dpi=600)
 
 

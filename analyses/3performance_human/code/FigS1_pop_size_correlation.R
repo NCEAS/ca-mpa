@@ -89,7 +89,7 @@ g <- ggplot(data %>% filter(buffer_km>=10), aes(x=buffer_km, y=r2)) +
 g
 
 # Export
-ggsave(g, filename=file.path(plotdir, "FigSX_pop_size_correlation.png"), 
+ggsave(g, filename=file.path(plotdir, "FigS1_pop_size_correlation.png"), 
        width=4, height=4, units="in", dpi=600)
 
 
