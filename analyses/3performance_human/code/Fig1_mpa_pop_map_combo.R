@@ -94,6 +94,8 @@ region_labels <- tibble(long_dd=c(-123.9, -122.9, -121.8, -121, -118, -119.5),
 my_theme <-  theme(axis.text=element_text(size=6),
                    axis.text.y = element_text(angle = 90, hjust = 0.5),
                    axis.title=element_blank(),
+                   plot.tag = element_text(size=10, face="bold"),
+                   plot.tag.position = c(0.08, 0.98),
                    legend.text=element_text(size=6),
                    legend.title=element_text(size=8),
                    # Gridlines
@@ -129,7 +131,7 @@ g1 <- ggplot() +
   # Plot region labels
   geom_text(data=region_labels, mapping=aes(x=long_dd, y=lat_dd, label=label), hjust=0, size=2.3) +
   # Labels
-  labs(x="", y="") +
+  labs(x="", y="", tag="A") +
   # Legend
   scale_fill_manual(name="Designation", values=type_colors) +
   scale_size_continuous(name="Area (sqkm)") +
@@ -157,7 +159,7 @@ g2 <- ggplot() +
   # Plot city labels
   geom_text(data=cities, aes(x=long, y=lat, label=city, hjust=hjust), size=2.5) +
   # Labels
-  labs(x="", y="") +
+  labs(x="", y="", tag="B") +
   # Axes
   scale_y_continuous(breaks=32:42) +
   scale_size_continuous(name="Millions of people\nwithin 50 km") +
@@ -171,7 +173,7 @@ g2 <- ggplot() +
   coord_sf(xlim = c(-124.5, -117), ylim = c(32.5, 42)) +
   # Theme
   theme_bw() + my_theme
-g2
+#g2
 
 # Merge
 g <- gridExtra::grid.arrange(g1, g2,nrow=1)
