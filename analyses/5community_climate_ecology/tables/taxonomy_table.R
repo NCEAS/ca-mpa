@@ -226,6 +226,8 @@ ftab <- flextable::qflextable(all2) %>%
   theme_alafoli()
 
 
+
+
 library(officer)
 sect_properties <- prop_section(
   page_size = page_size(
