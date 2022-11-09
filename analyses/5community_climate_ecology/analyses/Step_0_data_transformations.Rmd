@@ -11,7 +11,7 @@ rm(list=ls())
 require(dplyr)
 ```
 
-**Part 1 - central coast analyses**
+**Part 1 - central coast processing for ordination**
 #step 0: load data
 #step 1: filter by region4=='central'
 #step 2: drop species that were never observed (or only found in other regions).
@@ -456,6 +456,382 @@ message("Done processing rocky_ord")
 #save(CCFRP_en, kelp_invalg_en, kelp_fish_en, deep_reef_en, rocky_en, file = file.path(output_path, "env_fit_scores.rda"))
 
 ```
+
+
+
+
+
+
+**Part 2 - central coast processing for model based comparisons**
+#step 0: load processed central coast data
+#step 1: reshape to long format
+#step 2: add species affinities and target status
+
+
+
+#============================ Step 0 =========================================#
+
+```{r}
+rm(list=ls())
+
+dat_dir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data" 
+
+
+CCFRP <- read.csv(file.path(dat_dir, "CCFRP_mpa_year.csv"))
+kelp_swath <- read.csv(file.path(dat_dir, "kelp_swath_mpa_year.csv"))
+kelp_upc <- read.csv(file.path(dat_dir, "kelp_upc_mpa_year.csv"))
+kelp_combined <- read.csv(file.path(dat_dir, "kelp_swath_upc_mpa_year.csv"))
+kelp_fish <- read.csv(file.path(dat_dir, "kelp_fish_mpa_year.csv"))
+deep_reef <- read.csv(file.path(dat_dir, "deep_reef_mpa_year.csv"))
+rocky <- read.csv(file.path(dat_dir, "rocky_mpa_year.csv"))
+
+```
+
+
+#============================ Step 1 =========================================#
+
+```{r}
+CCFRP_long <- CCFRP %>%
+              pivot_longer(cols=25:ncol(.), names_to="species",
+                           values_to = "counts")
+
+kelp_combined_long <- kelp_combined %>%
+              pivot_longer(cols=25:ncol(.), names_to="species",
+                           values_to = "counts")
+
+kelp_swath_long <- kelp_swath %>%
+              pivot_longer(cols=25:ncol(.), names_to="species",
+                           values_to = "counts")
+
+kelp_upc_long <- kelp_upc %>%
+              pivot_longer(cols=25:ncol(.), names_to="species",
+                           values_to = "counts")
+
+kelp_fish_long <- kelp_fish %>%
+              pivot_longer(cols=25:ncol(.), names_to="species",
+                           values_to = "counts")
+
+deep_reef_long <- deep_reef %>%
+              pivot_longer(cols=26:ncol(.), names_to="species",
+                           values_to = "counts")
+
+rocky_long <- rocky %>%
+              pivot_longer(cols=24:ncol(.), names_to="species",
+                           values_to = "counts")
+```
+
+
+#============================ Step 1 =========================================#
+
+#load affinity table
+```{r}
+
+affinity_dat <- read.csv("/home/shares/ca-mpa/data/sync-data/species_traits/processed/thermal_affinities_and_target_status.csv")
+
+affinity_dat$common_name <- tolower(affinity_dat$common_name)
+affinity_dat$genusspecies <- tolower(affinity_dat$genusspecies)
+
+```
+
+#join affinities
+
+```{r}
+
+affinity_select1 <- affinity_dat %>% 
+                   select(common_name, thermal_affinity, targeted)%>%
+                   mutate(common_name = gsub(" ", "_", common_name))
+
+affinity_select2 <- affinity_dat %>% 
+                   select(scientific_name=genusspecies, thermal_affinity, targeted)%>%
+                   mutate(scientific_name = gsub(" ", "_", scientific_name))
+
+################################################################################
+#CCFRP 
+
+#check unmatched species
+CCFRP1 <- anti_join(CCFRP_long, affinity_select1, by=c("species"="common_name"))%>%
+          distinct(species)
+
+#fix unmatched names
+CCFRP_long$species <- recode_factor(CCFRP_long$species, 
+                                    "striped_seaperch"="striped_surfperch")
+CCFRP_long$species <- recode_factor(CCFRP_long$species, 
+                                    "pacific_bonito"="eastern_pacific_bonito")
+CCFRP_long$species <- recode_factor(CCFRP_long$species, 
+                                    "jack_smelt"="jacksmelt")
+CCFRP_long$species <- recode_factor(CCFRP_long$species, 
+                                    "mackerel_family"="pacific_mackerel,_greenback_mackerel")
+
+#join dat
+CCFRP_join1 <- left_join(CCFRP_long, affinity_select1, by=c("species"="common_name"))
+
+################################################################################
+#kelp fish
+
+#check unmatched species
+kelp_fish1 <- anti_join(kelp_fish_long, affinity_select2, by=c("species"="scientific_name"))%>%
+          distinct(species)
+
+#fix unmatched names
+kelp_fish_long$species <- recode_factor(kelp_fish_long$species, 
+                                    "bathymasteridae"="bathymasteridae_spp")
+kelp_fish_long$species <- recode_factor(kelp_fish_long$species, 
+                                    "citharichthys"="citharichthys_spp")
+kelp_fish_long$species <- recode_factor(kelp_fish_long$species, 
+                                    "platyrhinoidis_triseriata"="platyrhinoides_triseriata")
+kelp_fish_long$species <- recode_factor(kelp_fish_long$species, 
+                                    "sebastes_chrysomelas_carnatus"="sebastes_chrysomelas/carnatus")
+kelp_fish_long$species <- recode_factor(kelp_fish_long$species, 
+                                    "sebastes_dallii"="sebastes_dalli")
+kelp_fish_long$species <- recode_factor(kelp_fish_long$species, 
+                                    "sebastes_serranoides_flavidus"="sebastes_serranoides,flavidus")
+kelp_fish_long$species <- recode_factor(kelp_fish_long$species, 
+                                    "sebastes_serranoides_flavidus_melanops"="sebastes_serranoides,flavidus,melanops")
+
+
+kelp_fish_join1 <- left_join(kelp_fish_long, affinity_select2, by=c("species"="scientific_name"))
+
+
+################################################################################
+#kelp inverts and algae
+#check unmatched species
+kelp_combined1 <- anti_join(kelp_combined_long, affinity_select2, by=c("species"="scientific_name"))%>%
+          distinct(species)
+
+#fix unmatched names
+kelp_combined_long$species <- recode_factor(kelp_combined_long$species, 
+                                    "balanus_nubilus"="balanus_nubilis")
+kelp_combined_long$species <- recode_factor(kelp_combined_long$species, 
+                                    "crassadoma_gigantea"="crassedoma_giganteum")
+kelp_combined_long$species <- recode_factor(kelp_combined_long$species, 
+                                    "cryptolithodes_sitchensis"="cryptolithoides_sitchensis")
+kelp_combined_long$species <- recode_factor(kelp_combined_long$species, 
+                                    "haliotis_walallensis"="haliotis_wallalensis")
+kelp_combined_long$species <- recode_factor(kelp_combined_long$species, 
+                                    "loxorhynchus_crispatus_scyra_acutifrons"="loxorhynchus_scyra_spp")
+kelp_combined_long$species <- recode_factor(kelp_combined_long$species, 
+                                    "metridium"="metridium_spp")
+kelp_combined_long$species <- recode_factor(kelp_combined_long$species, 
+                                    "pachycerianthus_fimbriatus"="pachycerianthus_fimbratus")
+kelp_combined_long$species <- recode_factor(kelp_combined_long$species, 
+                                    "pisaster_ochraceus"="pisaster_ochraceous")
+kelp_combined_long$species <- recode_factor(kelp_combined_long$species, 
+                                    "urticina"="urticina_spp")
+kelp_combined_long$species <- recode_factor(kelp_combined_long$species, 
+                                    "bryozoa"="bryozoan")
+kelp_combined_long$species <- recode_factor(kelp_combined_long$species, 
+                                    "coralline_algae_crustose"="coralline_algae_-crustose")
+kelp_combined_long$species <- recode_factor(kelp_combined_long$species, 
+                                    "coralline_algae_erect_articulated"="coralline_algae_-erect/articulated")
+kelp_combined_long$species <- recode_factor(kelp_combined_long$species, 
+                                    "desmarestia"="desmarestia_spp")
+kelp_combined_long$species <- recode_factor(kelp_combined_long$species, 
+                                    "diopatra_chaetopterus_spp"="diopatra/chaetopterus_spp")
+kelp_combined_long$species <- recode_factor(kelp_combined_long$species, 
+                                    "tunicate_colonial_compund_social"="tunicate_-colonial,compund,social")
+kelp_combined_long$species <- recode_factor(kelp_combined_long$species, 
+                                    "dictyoneurum_californicum_reticulatum"="dictyoneurum_californicum/reticulatum")
+kelp_combined_long$species <- recode_factor(kelp_combined_long$species, 
+                                    "phyllospadix"="phyllospadix_spp")
+kelp_combined_long$species <- recode_factor(kelp_combined_long$species, 
+                                    "red_algae_branching_flat_blade"="red_algae_(branching_flat_blade)")
+kelp_combined_long$species <- recode_factor(kelp_combined_long$species, 
+              "thylacodes_squamigerus_petaloconchus_montereyensis"="thylacodes_squamigerus/petaloconchus_montereyensis")
+kelp_combined_long$species <- recode_factor(kelp_combined_long$species, 
+              "tunicate_solitary"="tunicate_-solitary")
+kelp_combined_long$species <- recode_factor(kelp_combined_long$species, 
+              "cucumaria"="cucumaria_spp")
+kelp_combined_long$species <- recode_factor(kelp_combined_long$species, 
+              "dictyotales"="dictyotales_spp")
+kelp_combined_long$species <- recode_factor(kelp_combined_long$species, 
+              "red_algae_leaf_like"="red_algae_(leaf-like)")
+kelp_combined_long$species <- recode_factor(kelp_combined_long$species, 
+              "red_algae_encrusting"="red_algae_-encrusting")
+kelp_combined_long$species <- recode_factor(kelp_combined_long$species, 
+              "red_algae_cylindrical_branches"="red_algae_(cylindrical_branches)")
+kelp_combined_long$species <- recode_factor(kelp_combined_long$species, 
+              "red_algae_lacy_branching"="red_algae_(lacy_branching)")
+kelp_combined_long$species <- recode_factor(kelp_combined_long$species, 
+              "tubeworm_mat"="tubeworm_mat.")
+kelp_combined_long$species <- recode_factor(kelp_combined_long$species, 
+              "mytilus_spp"="mussel")
+
+#join
+kelp_combined_join1 <- left_join(kelp_combined_long, affinity_select2, by=c("species"="scientific_name"))
+
+
+################################################################################
+#kelp upc
+#check unmatched species
+kelp_upc1 <- anti_join(kelp_upc_long, affinity_select2, by=c("species"="scientific_name"))%>%
+          distinct(species)
+
+
+
+#fix unmatched names
+kelp_upc_long$species <- recode_factor(kelp_upc_long$species, 
+                                    "balanus_nubilus"="balanus_nubilis")
+kelp_upc_long$species <- recode_factor(kelp_upc_long$species, 
+                                    "crassadoma_gigantea"="crassedoma_giganteum")
+kelp_upc_long$species <- recode_factor(kelp_upc_long$species, 
+                                    "cryptolithodes_sitchensis"="cryptolithoides_sitchensis")
+kelp_upc_long$species <- recode_factor(kelp_upc_long$species, 
+                                    "haliotis_walallensis"="haliotis_wallalensis")
+kelp_upc_long$species <- recode_factor(kelp_upc_long$species, 
+                                    "loxorhynchus_crispatus_scyra_acutifrons"="loxorhynchus_scyra_spp")
+kelp_upc_long$species <- recode_factor(kelp_upc_long$species, 
+                                    "metridium"="metridium_spp")
+kelp_upc_long$species <- recode_factor(kelp_upc_long$species, 
+                                    "pachycerianthus_fimbriatus"="pachycerianthus_fimbratus")
+kelp_upc_long$species <- recode_factor(kelp_upc_long$species, 
+                                    "pisaster_ochraceus"="pisaster_ochraceous")
+kelp_upc_long$species <- recode_factor(kelp_upc_long$species, 
+                                    "urticina"="urticina_spp")
+kelp_upc_long$species <- recode_factor(kelp_upc_long$species, 
+                                    "bryozoa"="bryozoan")
+kelp_upc_long$species <- recode_factor(kelp_upc_long$species, 
+                                    "coralline_algae_crustose"="coralline_algae_-crustose")
+kelp_upc_long$species <- recode_factor(kelp_upc_long$species, 
+                                    "coralline_algae_erect_articulated"="coralline_algae_-erect/articulated")
+kelp_upc_long$species <- recode_factor(kelp_upc_long$species, 
+                                    "desmarestia"="desmarestia_spp")
+kelp_upc_long$species <- recode_factor(kelp_upc_long$species, 
+                                    "diopatra_chaetopterus_spp"="diopatra/chaetopterus_spp")
+kelp_upc_long$species <- recode_factor(kelp_upc_long$species, 
+                                    "tunicate_colonial_compund_social"="tunicate_-colonial,compund,social")
+kelp_upc_long$species <- recode_factor(kelp_upc_long$species, 
+                                    "dictyoneurum_californicum_reticulatum"="dictyoneurum_californicum/reticulatum")
+kelp_upc_long$species <- recode_factor(kelp_upc_long$species, 
+                                    "phyllospadix"="phyllospadix_spp")
+kelp_upc_long$species <- recode_factor(kelp_upc_long$species, 
+                                    "red_algae_branching_flat_blade"="red_algae_(branching_flat_blade)")
+kelp_upc_long$species <- recode_factor(kelp_upc_long$species, 
+              "thylacodes_squamigerus_petaloconchus_montereyensis"="thylacodes_squamigerus/petaloconchus_montereyensis")
+kelp_upc_long$species <- recode_factor(kelp_upc_long$species, 
+              "tunicate_solitary"="tunicate_-solitary")
+kelp_upc_long$species <- recode_factor(kelp_upc_long$species, 
+              "cucumaria"="cucumaria_spp")
+kelp_upc_long$species <- recode_factor(kelp_upc_long$species, 
+              "dictyotales"="dictyotales_spp")
+kelp_upc_long$species <- recode_factor(kelp_upc_long$species, 
+              "red_algae_leaf_like"="red_algae_(leaf-like)")
+kelp_upc_long$species <- recode_factor(kelp_upc_long$species, 
+              "red_algae_encrusting"="red_algae_-encrusting")
+kelp_upc_long$species <- recode_factor(kelp_upc_long$species, 
+              "red_algae_cylindrical_branches"="red_algae_(cylindrical_branches)")
+kelp_upc_long$species <- recode_factor(kelp_upc_long$species, 
+              "red_algae_lacy_branching"="red_algae_(lacy_branching)")
+kelp_upc_long$species <- recode_factor(kelp_upc_long$species, 
+              "tubeworm_mat"="tubeworm_mat.")
+kelp_upc_long$species <- recode_factor(kelp_upc_long$species, 
+              "mytilus_spp"="mussel")
+kelp_upc_long$species <- recode_factor(kelp_upc_long$species, 
+              "tunicate_colonial_compund_social"="tunicate_-colonial,compund,social")
+
+#join
+kelp_upc_join1 <- left_join(kelp_upc_long, affinity_select2, by=c("species"="scientific_name"))
+
+
+
+
+################################################################################
+#kelp swath
+#check unmatched species
+kelp_swath1 <- anti_join(kelp_swath_long, affinity_select2, by=c("species"="scientific_name"))%>%
+          distinct(species)
+
+
+
+#fix unmatched names
+kelp_swath_long$species <- recode_factor(kelp_swath_long$species, 
+                                    "balanus_nubilus"="balanus_nubilis")
+kelp_swath_long$species <- recode_factor(kelp_swath_long$species, 
+                                    "crassadoma_gigantea"="crassedoma_giganteum")
+kelp_swath_long$species <- recode_factor(kelp_swath_long$species, 
+                                    "cryptolithodes_sitchensis"="cryptolithoides_sitchensis")
+kelp_swath_long$species <- recode_factor(kelp_swath_long$species, 
+                                    "haliotis_walallensis"="haliotis_wallalensis")
+kelp_swath_long$species <- recode_factor(kelp_swath_long$species, 
+                                    "loxorhynchus_crispatus_scyra_acutifrons"="loxorhynchus_scyra_spp")
+kelp_swath_long$species <- recode_factor(kelp_swath_long$species, 
+                                    "metridium"="metridium_spp")
+kelp_swath_long$species <- recode_factor(kelp_swath_long$species, 
+                                    "pachycerianthus_fimbriatus"="pachycerianthus_fimbratus")
+kelp_swath_long$species <- recode_factor(kelp_swath_long$species, 
+                                    "pisaster_ochraceus"="pisaster_ochraceous")
+kelp_swath_long$species <- recode_factor(kelp_swath_long$species, 
+                                    "urticina"="urticina_spp")
+kelp_swath_long$species <- recode_factor(kelp_swath_long$species, 
+                                    "bryozoa"="bryozoan")
+kelp_swath_long$species <- recode_factor(kelp_swath_long$species, 
+                                    "coralline_algae_crustose"="coralline_algae_-crustose")
+kelp_swath_long$species <- recode_factor(kelp_swath_long$species, 
+                                    "coralline_algae_erect_articulated"="coralline_algae_-erect/articulated")
+kelp_swath_long$species <- recode_factor(kelp_swath_long$species, 
+                                    "desmarestia"="desmarestia_spp")
+kelp_swath_long$species <- recode_factor(kelp_swath_long$species, 
+                                    "diopatra_chaetopterus_spp"="diopatra/chaetopterus_spp")
+kelp_swath_long$species <- recode_factor(kelp_swath_long$species, 
+                                    "tunicate_colonial_compund_social"="tunicate_-colonial,compund,social")
+kelp_swath_long$species <- recode_factor(kelp_swath_long$species, 
+                                    "dictyoneurum_californicum_reticulatum"="dictyoneurum_californicum/reticulatum")
+kelp_swath_long$species <- recode_factor(kelp_swath_long$species, 
+                                    "phyllospadix"="phyllospadix_spp")
+kelp_swath_long$species <- recode_factor(kelp_swath_long$species, 
+                                    "red_algae_branching_flat_blade"="red_algae_(branching_flat_blade)")
+kelp_swath_long$species <- recode_factor(kelp_swath_long$species, 
+              "thylacodes_squamigerus_petaloconchus_montereyensis"="thylacodes_squamigerus/petaloconchus_montereyensis")
+kelp_swath_long$species <- recode_factor(kelp_swath_long$species, 
+              "tunicate_solitary"="tunicate_-solitary")
+kelp_swath_long$species <- recode_factor(kelp_swath_long$species, 
+              "cucumaria"="cucumaria_spp")
+kelp_swath_long$species <- recode_factor(kelp_swath_long$species, 
+              "dictyotales"="dictyotales_spp")
+kelp_swath_long$species <- recode_factor(kelp_swath_long$species, 
+              "red_algae_leaf_like"="red_algae_(leaf-like)")
+kelp_swath_long$species <- recode_factor(kelp_swath_long$species, 
+              "red_algae_encrusting"="red_algae_-encrusting")
+kelp_swath_long$species <- recode_factor(kelp_swath_long$species, 
+              "red_algae_cylindrical_branches"="red_algae_(cylindrical_branches)")
+kelp_swath_long$species <- recode_factor(kelp_swath_long$species, 
+              "red_algae_lacy_branching"="red_algae_(lacy_branching)")
+kelp_swath_long$species <- recode_factor(kelp_swath_long$species, 
+              "tubeworm_mat"="tubeworm_mat.")
+kelp_swath_long$species <- recode_factor(kelp_swath_long$species, 
+              "mytilus_spp"="mussel")
+kelp_swath_long$species <- recode_factor(kelp_swath_long$species, 
+              "tunicate_colonial_compund_social"="tunicate_-colonial,compund,social")
+
+#join
+kelp_swath_join1 <- left_join(kelp_swath_long, affinity_select2, by=c("species"="scientific_name"))
+
+
+
+
+################################################################################
+#deep reef
+#check unmatched species
+deep_reef1 <- anti_join(deep_reef_long, affinity_select2, by=c("species"="scientific_name"))%>%
+          distinct(species)
+
+#fix unmatched names
+deep_reef_long$species <- recode_factor(deep_reef_long$species, 
+                                    "sebastes_dallii"="sebastes_dalli")
+deep_reef_long$species <- recode_factor(deep_reef_long$species, 
+                                    "sebastes_mystinus_or_diaconus"="sebastes_mystinus")
+
+#join
+deep_reef_join1 <- left_join(deep_reef_long, affinity_select2, by=c("species"="scientific_name"))
+
+```
+
+
+
+
+
+
+
+
 
 
 
