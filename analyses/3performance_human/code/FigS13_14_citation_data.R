@@ -85,7 +85,7 @@ g <- ggplot(coverage, aes(x=year, y=mpa %>% factor(., levels=mpa_order$mpa), fil
 g  
 
 # Export plot
-ggsave(g, filename=file.path(plotdir, "FigS6_citation_coverage.png"), 
+ggsave(g, filename=file.path(plotdir, "FigS13_citation_coverage.png"), 
        width=6.5, height=7.75, units="in", dpi=600)
 
 
@@ -274,7 +274,7 @@ layout_matrix <- matrix(c(1,2,
 g <- gridExtra::grid.arrange(g1, g2, g3, g4, layout_matrix=layout_matrix, widths=c(0.62, 0.38))
 
 # Export
-ggsave(g, filename=file.path(plotdir, "Fig9_citation_data.png"), 
+ggsave(g, filename=file.path(plotdir, "FigS14_citation_data.png"), 
        width=6.5, height=6.5, units="in", dpi=600)
 
 

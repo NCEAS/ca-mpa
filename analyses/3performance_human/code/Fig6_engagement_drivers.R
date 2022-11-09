@@ -289,7 +289,7 @@ g <- gridExtra::grid.arrange(g1, g2, g3,
 g
 
 # Export
-ggsave(g, filename=file.path(plotdir, "FigX_engagement_drivers.png"), 
+ggsave(g, filename=file.path(plotdir, "Fig6_engagement_drivers.png"), 
        width=6.5, height=4.5, units="in", dpi=600)
 
 

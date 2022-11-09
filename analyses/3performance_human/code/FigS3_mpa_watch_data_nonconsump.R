@@ -143,7 +143,10 @@ saveRDS(stats_full, file=file.path(outputdir, "mpa_watch_nonconsumptive_indicato
 
 # Reduce
 stats <- stats_full %>% 
-  filter(type %in% types_use)
+  # Add MPA meda data
+  left_join(mpas_orig %>% select(mpa, mlpa)) %>% 
+  # Reduce to MPA of interest
+  filter(mlpa=="MLPA")
 
 # Build network wide stats
 # % of surveys with different activities
@@ -181,9 +184,9 @@ coverage <- data_wide %>%
   summarize(nsurveys=n_distinct(survey_id)) %>% 
   ungroup() %>% 
   # Add MPA meda data
-  left_join(mpas_orig %>% select(mpa, region, type)) %>% 
+  left_join(mpas_orig %>% select(mpa, region, mlpa)) %>% 
   # Reduce to MPA of interest
-  filter(type %in% types_use) %>% 
+  filter(mlpa=="MLPA") %>% 
   # Recode region
   mutate(region=recode(region, "San Francisco Bay"="North Central Coast"))
 
@@ -269,7 +272,7 @@ g <- gridExtra::grid.arrange(g1, g2, g3, layout_matrix=layout_matrix, heights=c(
 g
 
 # Export plot
-ggsave(g, filename=file.path(plotdir, "FigS1_mpa_watch_survey_coverage.png"), 
+ggsave(g, filename=file.path(plotdir, "FigS2_mpa_watch_survey_coverage.png"), 
        width=6.5, height=7, units="in", dpi=600)
 
 
@@ -364,7 +367,7 @@ g <- gridExtra::grid.arrange(g1, g2, g3, ncol=3, widths=c(0.35, 0.65*0.6, 0.65*0
 g 
 
 # Export
-ggsave(g, filename=file.path(plotdir, "Fig3_mpa_watch_data_nonconsum.png"), 
+ggsave(g, filename=file.path(plotdir, "FigS3_mpa_watch_data_nonconsum.png"), 
        width=6.5, height=3.5, units="in", dpi=600)
 
 
