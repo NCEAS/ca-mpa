@@ -120,9 +120,10 @@ g <- ggplot(data_ind, aes(x=rank, y=value_cum_prop, color=indicator)) +
   scale_x_continuous(breaks=c(1, seq(20,100,20), max(data_ind$rank))) +
   scale_y_continuous(labels=scales::percent) +
   # Legend
-  scale_color_discrete(name="Human use indicator\n(in order of decreasing selectivity)") +
+  scale_color_discrete(name="Human engagement indicator\n(in order of decreasing selectivity)") +
   scale_linetype_manual(name="Reference indicator", values=c("dashed", "dotted")) +
   scale_size_manual(name="", guide="none", values=c(0.8, 1.0)) +
+  guides(linetype=guide_legend(order=1)) +
   # Theme
   theme_bw() + my_theme
 g
