@@ -229,6 +229,10 @@ deep_reef_ls <- emmeans(deep_reef_mixed, list(pairwise ~ MHW*thermal_affinity), 
 #collect ls means
 
 
+# https://aosmith.rbind.io/2019/03/25/getting-started-with-emmeans/
+
+deep_reef_contrast <- deep_reef_ls$`pairwise differences of MHW, thermal_affinity` %>%
+                        summary(infer = TRUE)
 
 testfun <- summary(deep_reef_ls)
 
