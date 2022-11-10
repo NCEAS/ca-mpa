@@ -7,6 +7,9 @@ rm(list=ls())
 require(dplyr)
 require(vegan)
 require(mvabund)
+require(lme4)
+require(lmerTest)
+require(emmeans)
 
 #set directories
 datadir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data"
@@ -159,16 +162,20 @@ ggsave(g, filename=file.path(figdir, "spp_affinities_perc.png"),
 #prep data for mixed model
 
 CCFRP_mod <- CCFRP_join1 %>% mutate(site = as.factor(paste(affiliated_mpa,mpa_designation)),
-                                    year = as.numeric(year))%>%
+                                    year = as.numeric(year),
+                                    MHW = factor(MHW, levels=c("before","during","after")))%>% #set reference level
                             filter(!(is.na(thermal_affinity)))
 kelp_fish_mod <- kelp_fish_join1 %>% mutate(site = as.factor(paste(affiliated_mpa,mpa_defacto_designation)),
-                                            year = as.numeric(year))%>%
+                                            year = as.numeric(year),
+                                            MHW = factor(MHW, levels=c("before","during","after")))%>% #set reference level
                             filter(!(is.na(thermal_affinity)))
 kelp_invalg_mod <- kelp_combined_join1 %>% mutate(site = as.factor(paste(affiliated_mpa,mpa_defacto_designation)),
-                                            year = as.numeric(year))%>%
+                                            year = as.numeric(year),
+                                            MHW = factor(MHW, levels=c("before","during","after")))%>% #set reference level
                             filter(!(is.na(thermal_affinity)))
 deep_reef_mod <- deep_reef_join1 %>% mutate(site = as.factor(paste(affiliated_mpa,mpa_defacto_designation)),
-                                            year = as.numeric(year))%>%
+                                            year = as.numeric(year),
+                                            MHW = factor(MHW, levels=c("before","during","after")))%>% #set reference level
                             filter(!(is.na(thermal_affinity)))
 
 
@@ -186,8 +193,7 @@ ccfrp_mixed <- lmer(counts ~ year+MHW+thermal_affinity+MHW*thermal_affinity + (1
 ccfrp_sig<- anova(mpa_mixed)
 
 #examine least square means
-library(emmeans)
-ccfrp_ls <- emmeans(ccfrp_mixed, list(pairwise ~ MHW*thermal_affinity), adjust = "tukey")
+ccfrp_ls <- emmeans(ccfrp_mixed, specs = pairwise ~ MHW|thermal_affinity, adjust = "tukey") 
 
 
 ########### kelp fish
@@ -197,8 +203,7 @@ kelp_fish_mixed <- lmer(counts ~ year+MHW+thermal_affinity+MHW*thermal_affinity 
 kelp_fish_sig<- anova(kelp_fish_mixed)
 
 #examine least square means
-library(emmeans)
-kelp_fish_ls <- emmeans(kelp_fish_mixed, list(pairwise ~ MHW*thermal_affinity), adjust = "tukey")
+kelp_fish_ls <- emmeans(kelp_fish_mixed, specs = pairwise ~ MHW|thermal_affinity, adjust = "tukey") 
 
 
 ########### kelp inverts and algae
@@ -208,21 +213,23 @@ kelp_invalg_mixed <- lmer(counts ~ year+MHW+thermal_affinity+MHW*thermal_affinit
 kelp_invalg_sig<- anova(kelp_invalg_mixed)
 
 #examine least square means
-library(emmeans)
-kelp_invalg_ls <- emmeans(kelp_invalg_mixed, list(pairwise ~ MHW*thermal_affinity), adjust = "tukey")
-
+kelp_invalg_ls <- emmeans(kelp_invalg_mixed, specs = pairwise ~ MHW|thermal_affinity, adjust = "tukey")
 
 
 ########### deep reef
 
 #build model
-deep_reef_mixed <- lmer(counts ~ year+MHW+thermal_affinity+MHW*thermal_affinity + (1 | site), data = deep_reef_mod)
+
+deep_reef_mixed <- lmer(counts ~ year+MHW+thermal_affinity+MHW*thermal_affinity + (1 | site), 
+                        data = deep_reef_mod)
+
 deep_reef_sig<- anova(deep_reef_mixed)
 
 #examine least square means
 library(emmeans)
-deep_reef_ls <- emmeans(deep_reef_mixed, list(pairwise ~ MHW*thermal_affinity), adjust = "tukey")
 
+#deep_reef_ls <- emmeans(deep_reef_mixed, specs = pairwise ~ MHW:thermal_affinity, adjust = "tukey") #pairwise across
+deep_reef_ls <- emmeans(deep_reef_mixed, specs = pairwise ~ MHW|thermal_affinity, adjust = "tukey") #compare within heatwave period
 
 
 ################################################################################
@@ -231,16 +238,93 @@ deep_reef_ls <- emmeans(deep_reef_mixed, list(pairwise ~ MHW*thermal_affinity), 
 
 # https://aosmith.rbind.io/2019/03/25/getting-started-with-emmeans/
 
-deep_reef_contrast <- deep_reef_ls$`pairwise differences of MHW, thermal_affinity` %>%
-                        summary(infer = TRUE)
+collect_fun <- function(contrast_dat, group){
+                contrast_dat$contrasts %>%
+                summary(infer = TRUE)%>%
+                filter(contrast == 'before - during'|
+                  contrast == 'before - after'|
+                    contrast == 'during - after')%>%
+                mutate(group = group)
+}
 
-testfun <- summary(deep_reef_ls)
+ccfrp_constrast <- collect_fun(ccfrp_ls, "Rocky reef fish")
+kelp_fish_contrast <- collect_fun(kelp_fish_ls, "Kelp forest fish")
+kelp_invalg_contrast <- collect_fun(kelp_invalg_ls, "Kelp forest inverts and algae")
+deep_reef_contrast <- collect_fun(deep_reef_ls, "Deep reef fish") %>%
+                        rename("asymp.LCL"=lower.CL,
+                               "asymp.UCL"=upper.CL,
+                               "z.ratio"=t.ratio)
 
-test2 <- as.matrix(testfun[["pairwise differences of MHW, thermal_affinity"]])
+
+contrast_results <- rbind(ccfrp_constrast, kelp_fish_contrast, kelp_invalg_contrast,
+                          deep_reef_contrast)%>%
+                    mutate(sig_level = ifelse(p.value <= 0.05, "*",
+                                          ifelse(p.value <=0.01,"**",
+                                                 ifelse(p.value <= 0.001,"*",""))),
+                           thermal_affinity = factor(thermal_affinity, 
+                                                     levels = c("cold temperate",
+                                                                "warm temperate",
+                                                                "subtropical",
+                                                                "tropical",
+                                                                "cosmopolitan")),
+                           group = factor(group, level=c(
+                             "Rocky reef fish", "Deep reef fish",
+                             "Kelp forest fish","Kelp forest inverts and algae"
+                           )))
 
 
 
+################################################################################
+#plot
 
+
+my_theme <-  theme(axis.text=element_text(size=6),
+                   axis.text.y = element_text(angle = 90, hjust = 0.5),
+                   axis.title=element_text(size=8),
+                   plot.tag=element_blank(), #element_text(size=8),
+                   plot.title =element_text(size=6, face="bold"),
+                   # Gridlines
+                   panel.grid.major = element_blank(), 
+                   panel.grid.minor = element_blank(),
+                   panel.background = element_blank(), 
+                   axis.line = element_line(colour = "black"),
+                   # Legend
+                   legend.key = element_blank(),
+                   legend.text=element_text(size=5),
+                   legend.title=element_text(size=7),
+                   legend.background = element_rect(fill=alpha('blue', 0)),
+                   #facets
+                   strip.text = element_text(size=6)
+                   )
+
+
+color_set <- c("cold temperate" = "#80B1D3","cosmopolitan" = "#BEBADA",
+               "subtropical" ="#FDB462", 
+               "tropical" = "#FB8072",
+               "warm temperate"= "#8DD3C7")
+library(stringr)
+
+
+g2 <- ggplot(contrast_results, aes(x = thermal_affinity, y = estimate, color=contrast)) + 
+  geom_point(position = position_dodge(width=0.7), 
+             stat="identity", size=1) +
+  geom_errorbar(aes(ymin=asymp.LCL, ymax=asymp.UCL),
+                position = position_dodge(width=0.7), width=0, size=0.3
+  ) +
+  geom_hline(yintercept = 0, linetype = "dotted")+
+  facet_wrap(~group, scales="free")+
+  geom_text(aes(label=sig_level), size=4, hjust=-0.4, vjust=0.8,
+            position = position_dodge(width=0.7),
+            show.legend = FALSE)+
+  theme_bw()+my_theme+
+  labs(x="Thermal affinity", 
+       y="Estimated marginal mean", tag="F", title="",
+       color = "Contrast") +
+  scale_x_discrete(labels = function(x) str_wrap(x, width=10))+
+  scale_color_brewer(palette = "Dark2")
+
+ggsave(g2, filename=file.path(figdir, "spp_affinities_emms.png"), 
+       width=6, height=4.5, units="in", dpi=600, bg="white")
 
 
 
