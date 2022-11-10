@@ -33,7 +33,7 @@ col_key <- readxl::read_excel(file.path(datadir, "column_key_ca_programs.xlsx"))
 ################################################################################
 
 # MPA types
-types_use <- c("SMR", "SMCA (No-Take)", "SMCA", "SMRMA")
+types_use <- c("SMR", "SMCA (No-Take)", "SMCA") # coding SMRMAs into SMCAs
 
 # Build data
 data_wide <- data_orig %>% 
@@ -45,7 +45,8 @@ data_wide <- data_orig %>%
   # Reduce to MPAs of interest
   filter(mlpa=="MLPA") %>% 
   # Order MPA types
-  mutate(type=factor(type, levels=types_use)) %>% 
+  mutate(type=recode(type, "SMRMA"="SMCA"),
+         type=factor(type, levels=types_use)) %>% 
   rename(mpa_type=type) %>% 
   # Simplify
   select(region, mpa_type, mpa, survey_id, site_type,
@@ -91,8 +92,7 @@ data_long_act <- data_long %>%
 data_long_act_reduced <- data_long_act %>% 
   rename(type=mpa_type) %>% 
   # Order MPA types
-  mutate(type=recode(type, "SMP"="SMCA"),
-         type=factor(type, levels=types_use))
+  mutate(type=factor(type, levels=types_use))
   
 
 # Inspect (should be complete!)
@@ -126,7 +126,7 @@ stats <- stats_full %>%
   # Reduce to MPA of interest
   filter(mlpa=="MLPA") %>% 
   # Order MPA types
-  mutate(type=recode(type, "SMP"="SMCA"),
+  mutate(type=recode(type, "SMRMA"="SMCA"),
          type=factor(type, levels=types_use))
 
 # Build network wide stats
@@ -140,8 +140,7 @@ stats_network <- data_long_act %>%
   # Reduce to MPAs of interest
   filter(type %in% types_use) %>% 
   # Order MPA types
-  mutate(type=recode(type, "SMP"="SMCA"),
-         type=factor(type, levels=types_use)) %>% 
+  mutate(type=factor(type, levels=types_use)) %>% 
   # Summarize
   group_by(type, activity_type2, activity_type3) %>% 
   summarize(nsurveys=sum(activity_n>0), 
@@ -157,6 +156,16 @@ stats_network <- data_long_act %>%
   mutate(activity_type3=factor(activity_type3, 
                                levels=c("Recreational", "Commercial", "CPFV", "Unknown")))
 
+
+# Stats for manuscript
+################################################################################
+
+# % of surveys in no-take with consump
+stats %>% 
+  filter(type %in% c("SMR", "SMCA (No-Take")) %>% 
+  summarize(nsurveys=sum(nsurveys),
+            nsurveys_act=sum(nsurveys_act)) %>% 
+  mutate(p=nsurveys_act/nsurveys*100) %>% pull(p)
 
 # Plot data
 ################################################################################
