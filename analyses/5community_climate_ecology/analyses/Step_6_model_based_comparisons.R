@@ -101,8 +101,8 @@ g1 <- ggplot(CCFRP_affin_mean_total, aes(x = factor(year), y = group_total, fill
   scale_y_continuous(labels = scales::percent_format())+
   scale_fill_manual(values=color_set)+
   theme_bw()+my_theme+
-  labs(x="Year", 
-       y="Perc. total abundance", tag="F", title="CCFRP") +
+  labs(x="", 
+       y="", tag="F", title="Rocky reef fish") +
   guides(fill=guide_legend(title="Thermal affinity"))+
   scale_x_discrete(breaks=every_nth(n = 2))
 
@@ -114,8 +114,8 @@ g2 <- ggplot(kelp_fish_affin_mean_total, aes(x = factor(year), y = group_total, 
   scale_y_continuous(labels = scales::percent_format())+
   scale_fill_manual(values=color_set)+
   theme_bw()+my_theme+
-  labs(x="Year", 
-       y="Perc. total abundance", tag="F", title="Kelp forest fish")+
+  labs(x="", 
+       y="", tag="F", title="Kelp forest fish")+
   guides(fill=guide_legend(title="Thermal affinity"))+
   scale_x_discrete(breaks=every_nth(n = 2))
 
@@ -126,8 +126,8 @@ g3 <- ggplot(kelp_combined_affin_mean_total, aes(x = factor(year), y = group_tot
   scale_y_continuous(labels = scales::percent_format())+
   scale_fill_manual(values=color_set)+
   theme_bw()+my_theme+
-  labs(x="Year", 
-       y="Perc. total abundance", tag="F", title="Kelp forest inverts and algae")+
+  labs(x="", 
+       y="", tag="F", title="Kelp forest inverts and algae")+
   guides(fill=guide_legend(title="Thermal affinity"))+
   scale_x_discrete(breaks=every_nth(n = 2))
 
@@ -138,8 +138,8 @@ g4 <- ggplot(deep_reef_mean_total, aes(x = factor(year), y = group_total, fill =
   scale_y_continuous(labels = scales::percent_format())+
   scale_fill_manual(values=color_set)+
   theme_bw()+my_theme+
-  labs(x="Year", 
-       y="Perc. total abundance", tag="F", title="Deep reef")+
+  labs(x="", 
+       y="", tag="F", title="Deep reef fish")+
   guides(fill=guide_legend(title="Thermal affinity"))
 
 
@@ -150,9 +150,13 @@ g <- ggpubr::ggarrange(g1, g2, g3, g4, nrow=2,ncol=2,common.legend=TRUE,
                        legend="right")
 g
 
+g_title<- ggpubr::annotate_figure(g, left = textGrob("Perc. of total abundance", 
+                                                     rot = 90, vjust = 2, gp = gpar(cex = 0.7)),
+                                  bottom = textGrob("Year", hjust=2, vjust=-2, gp = gpar(cex = 0.7)))
+
 # Export
-#ggsave(g, filename=file.path(figdir, "spp_affinities_perc.png"), 
-#      width=6.5, height=4.5, units="in", dpi=600, bg="white")
+#ggsave(g_title, filename=file.path(figdir, "spp_affinities_perc.png"), 
+#     width=6.5, height=4.5, units="in", dpi=600, bg="white")
 
 
 
@@ -438,7 +442,7 @@ g_title<- ggpubr::annotate_figure(g, left = textGrob("Standardzied estimated mar
 
 
 #ggsave(g_title, filename=file.path(figdir, "spp_affinities_emms_es.png"), 
-#       width=6, height=4.5, units="in", dpi=600, bg="white")
+#       width=6.5, height=4.5, units="in", dpi=600, bg="white")
 
 
 
