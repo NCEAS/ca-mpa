@@ -81,9 +81,10 @@ my_theme <-  theme(axis.text=element_text(size=7),
                    legend.background = element_rect(fill=alpha('blue', 0)))
 
 
-color_set <- c("cold temperate" = "#80B1D3", "warm temperate"= "#8DD3C7",
-               "subtropical" ="#FDB462", "cosmopolitan" = "#BEBADA",
-               "tropical" = "#FB8072")
+color_set <- c("cold temperate" = "#80B1D3","cosmopolitan" = "#BEBADA",
+               "subtropical" ="#FDB462", 
+               "tropical" = "#FB8072",
+               "warm temperate"= "#8DD3C7")
 
 every_nth = function(n) {
   return(function(x) {x[c(TRUE, rep(FALSE, n - 1))]})
@@ -149,6 +150,91 @@ g
 # Export
 ggsave(g, filename=file.path(figdir, "spp_affinities_perc.png"), 
       width=6.5, height=4.5, units="in", dpi=600, bg="white")
+
+
+
+
+
+################################################################################
+#prep data for mixed model
+
+CCFRP_mod <- CCFRP_join1 %>% mutate(site = as.factor(paste(affiliated_mpa,mpa_designation)),
+                                    year = as.numeric(year))%>%
+                            filter(!(is.na(thermal_affinity)))
+kelp_fish_mod <- kelp_fish_join1 %>% mutate(site = as.factor(paste(affiliated_mpa,mpa_defacto_designation)),
+                                            year = as.numeric(year))%>%
+                            filter(!(is.na(thermal_affinity)))
+kelp_invalg_mod <- kelp_combined_join1 %>% mutate(site = as.factor(paste(affiliated_mpa,mpa_defacto_designation)),
+                                            year = as.numeric(year))%>%
+                            filter(!(is.na(thermal_affinity)))
+deep_reef_mod <- deep_reef_join1 %>% mutate(site = as.factor(paste(affiliated_mpa,mpa_defacto_designation)),
+                                            year = as.numeric(year))%>%
+                            filter(!(is.na(thermal_affinity)))
+
+
+################################################################################
+#build mixed models
+
+#build linear mixed model
+library("lme4")
+library("lmerTest")
+
+########### CCFRP
+
+#build model
+ccfrp_mixed <- lmer(counts ~ year+MHW+thermal_affinity+MHW*thermal_affinity + (1 | site), data = CCFRP_mod)
+ccfrp_sig<- anova(mpa_mixed)
+
+#examine least square means
+library(emmeans)
+ccfrp_ls <- emmeans(ccfrp_mixed, list(pairwise ~ MHW*thermal_affinity), adjust = "tukey")
+
+
+########### kelp fish
+
+#build model
+kelp_fish_mixed <- lmer(counts ~ year+MHW+thermal_affinity+MHW*thermal_affinity + (1 | site), data = kelp_fish_mod)
+kelp_fish_sig<- anova(kelp_fish_mixed)
+
+#examine least square means
+library(emmeans)
+kelp_fish_ls <- emmeans(kelp_fish_mixed, list(pairwise ~ MHW*thermal_affinity), adjust = "tukey")
+
+
+########### kelp inverts and algae
+
+#build model
+kelp_invalg_mixed <- lmer(counts ~ year+MHW+thermal_affinity+MHW*thermal_affinity + (1 | site), data = kelp_invalg_mod)
+kelp_invalg_sig<- anova(kelp_invalg_mixed)
+
+#examine least square means
+library(emmeans)
+kelp_invalg_ls <- emmeans(kelp_invalg_mixed, list(pairwise ~ MHW*thermal_affinity), adjust = "tukey")
+
+
+
+########### deep reef
+
+#build model
+deep_reef_mixed <- lmer(counts ~ year+MHW+thermal_affinity+MHW*thermal_affinity + (1 | site), data = deep_reef_mod)
+deep_reef_sig<- anova(deep_reef_mixed)
+
+#examine least square means
+library(emmeans)
+deep_reef_ls <- emmeans(deep_reef_mixed, list(pairwise ~ MHW*thermal_affinity), adjust = "tukey")
+
+
+
+################################################################################
+#collect ls means
+
+
+
+testfun <- summary(deep_reef_ls)
+
+test2 <- as.matrix(testfun[["pairwise differences of MHW, thermal_affinity"]])
+
+
 
 
 
