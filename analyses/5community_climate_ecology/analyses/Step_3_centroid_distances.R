@@ -206,6 +206,9 @@ perm_output <- rbind(ccfrp_op, kelp_fish_op, deep_reef_op,
 
 rownames(perm_output) <- NULL
 
+perm_output$MPA_type <- recode_factor(perm_output$MPA_type, "MPA"="In")
+perm_output$MPA_type <- recode_factor(perm_output$MPA_type, "REF"="Out")
+
 
 #write.csv(perm_output, "/home/joshsmith/CA_MPA_Project/ca-mpa/analyses/5community_climate_ecology/tables/pairwise_permanova_table.csv")       # Export PDF
 #grid.table(perm_output)
@@ -225,7 +228,8 @@ distance1 <- travel_distance%>%
          MPA = tidytext::reorder_within(MPA, value, period),
          MPA_type = toupper(gsub( " .*$", "", Var1)))
 
-distance1$MPA_type <- recode_factor(distance1$MPA_type, "SMR"="MPA")
+distance1$MPA_type <- recode_factor(distance1$MPA_type, "SMR"="In")
+distance1$MPA_type <- recode_factor(distance1$MPA_type, "REF"="Out")
 
 #perm_output$group <- recode_factor(perm_output$group, 	
 #                                   "Kelp forest inverts and algae" = "kelp inverts and algae")
@@ -253,9 +257,9 @@ betadisp_plot <-
   geom_errorbar(aes(ymin=value-sd_pooled,
                     ymax = value+sd_pooled), stat="identity",
                 position = position_dodge(width=0.8), size=0.3, width=.3)+
-  scale_color_manual(name='MPA type',
-                     breaks=c('MPA', 'REF'),
-                     values=c('MPA'='#EB6977', 'REF'='#13A0DD'))+
+  scale_color_manual(name='MPA',
+                     breaks=c('In', 'Out'),
+                     values=c('In'='#EB6977', 'Out'='#13A0DD'))+
   #add significance level
   geom_text(aes(label=sig), size=5, vjust=-0.01,
             position = position_dodge(width=0.8),
@@ -268,8 +272,8 @@ betadisp_plot <-
         panel.background = element_blank(), axis.line = element_line(colour = "black"),
         legend.key=element_blank())
 
-ggsave(here::here("analyses", "5community_climate_ecology", "figures", "betadisp_plot.png"), betadisp_plot, height=6, width = 8, units = "in", 
-   dpi = 600, bg="white")
+#ggsave(here::here("analyses", "5community_climate_ecology", "figures", "betadisp_plot.png"), betadisp_plot, height=6, width = 8, units = "in", 
+ #  dpi = 600, bg="white")
 
 
 
