@@ -115,6 +115,11 @@ print(matched)
 matches <- get_matches(matched, data = data_use)
 
 
+# Export matches
+################################################################################
+
+# Save
+save(matched, matches, data_use)
 
 
 
