@@ -90,7 +90,7 @@ g <- ggplot(data, aes(y=metric, x=lrr)) +
 g
 
 # Export figure
-ggsave(g, filename=file.path(plotdir, "Fig13_mpa_nonmpa_comparison.png"), 
+ggsave(g, filename=file.path(plotdir, "Fig7_mpa_nonmpa_comparison.png"), 
        width=5.5, height=2.5, units="in", dpi=600)
 
 
