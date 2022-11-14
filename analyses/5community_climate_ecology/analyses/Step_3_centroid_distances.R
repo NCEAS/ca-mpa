@@ -125,11 +125,11 @@ eig_fun <- function(disper_mat) {
 }
 
 
-ccfrp_travel <- eig_fun(CCFRP_disper) %>% mutate(group = "CCFRP")
-kelp_invalg_travel <- eig_fun(kelp_invalg_disper) %>% mutate(group = "kelp inverts and algae")
-kelp_fish_travel <- eig_fun(kelp_fish_disper) %>% mutate(group = "kelp fish")
-deep_reef_travel <- eig_fun(deep_reef_disper) %>% mutate(group = "deep reef")
-rocky_travel <- eig_fun(rocky_disper) %>% mutate(group = "rocky intertidal")
+ccfrp_travel <- eig_fun(CCFRP_disper) %>% mutate(group = "Rocky reef fish")
+kelp_invalg_travel <- eig_fun(kelp_invalg_disper) %>% mutate(group = "Kelp forest inverts and algae")
+kelp_fish_travel <- eig_fun(kelp_fish_disper) %>% mutate(group = "Kelp forest fish")
+deep_reef_travel <- eig_fun(deep_reef_disper) %>% mutate(group = "Deep reef fish")
+rocky_travel <- eig_fun(rocky_disper) %>% mutate(group = "Rocky intertidal")
 
 travel_distance <- as.data.frame(rbind(ccfrp_travel, kelp_invalg_travel, kelp_fish_travel,
                          deep_reef_travel, rocky_travel))
@@ -195,16 +195,19 @@ perm_fun <- function(perm_table, group_name){
 
 
 #collect output
-ccfrp_op <- perm_fun(ccfrp_pair_perm, group="CCFRP")
+ccfrp_op <- perm_fun(ccfrp_pair_perm, group="Rocky reef fish")
 kelp_fish_op <- perm_fun(kelp_fish_pair_perm, group='Kelp forest fish')
-kelp_invalg_perm <- perm_fun(kelp_invalg_pair_perm, group = "kelp forest inverts and algae")
+kelp_invalg_perm <- perm_fun(kelp_invalg_pair_perm, group = "Kelp forest inverts and algae")
 rocky_op <- perm_fun(rocky_pair_perm, group="Rocky intertidal")
-deep_reef_op <- perm_fun(dr_pair_perm, group = "Deep reef")
+deep_reef_op <- perm_fun(dr_pair_perm, group = "Deep reef fish")
 
 perm_output <- rbind(ccfrp_op, kelp_fish_op, deep_reef_op,
                      kelp_invalg_perm, rocky_op)
 
 rownames(perm_output) <- NULL
+
+perm_output$MPA_type <- recode_factor(perm_output$MPA_type, "MPA"="In")
+perm_output$MPA_type <- recode_factor(perm_output$MPA_type, "REF"="Out")
 
 
 #write.csv(perm_output, "/home/joshsmith/CA_MPA_Project/ca-mpa/analyses/5community_climate_ecology/tables/pairwise_permanova_table.csv")       # Export PDF
@@ -225,34 +228,38 @@ distance1 <- travel_distance%>%
          MPA = tidytext::reorder_within(MPA, value, period),
          MPA_type = toupper(gsub( " .*$", "", Var1)))
 
-distance1$MPA_type <- recode_factor(distance1$MPA_type, "SMR"="MPA")
+distance1$MPA_type <- recode_factor(distance1$MPA_type, "SMR"="In")
+distance1$MPA_type <- recode_factor(distance1$MPA_type, "REF"="Out")
 
-perm_output$group <- recode_factor(perm_output$group, 	
-                                   "kelp forest inverts and algae" = "kelp inverts and algae")
-perm_output$group <- recode_factor(perm_output$group, 	
-                                   "Kelp forest fish" = "kelp fish")
-perm_output$group <- recode_factor(perm_output$group, 	
-                                   "Deep reef" = "deep reef")
-perm_output$group <- recode_factor(perm_output$group, 	
-                                   "Rocky intertidal" = "rocky intertidal")
+#perm_output$group <- recode_factor(perm_output$group, 	
+#                                   "Kelp forest inverts and algae" = "kelp inverts and algae")
+#perm_output$group <- recode_factor(perm_output$group, 	
+#                                   "Kelp forest fish" = "kelp fish")
+#perm_output$group <- recode_factor(perm_output$group, 	
+#                                   "Deep reef" = "deep reef")
+#perm_output$group <- recode_factor(perm_output$group, 	
+#                                   "Rocky intertidal" = "rocky intertidal")
 
 sig_distance <- left_join(distance1, perm_output, 
                           by=c("group","MPA_type","period"))%>%
                 mutate(sig = ifelse(`Pr(>F)`<0.05, "*",""))%>%
-                rename("p-val" = `Pr(>F)`)
+                rename("p-val" = `Pr(>F)`) %>%
+                mutate(period = factor(period, levels=c("before-to-during",
+                                                        "before-to-after")))
 
 
 betadisp_plot <- 
   sig_distance %>%
-  ggplot(aes(x=reorder(group,value), y=value, shape=period, color=MPA_type))+
+  rename("Period"=period)%>%
+  ggplot(aes(x=reorder(group,value), y=value, shape=Period, color=MPA_type))+
   geom_point(position = position_dodge(width=0.8),
              size=3)+
   geom_errorbar(aes(ymin=value-sd_pooled,
                     ymax = value+sd_pooled), stat="identity",
                 position = position_dodge(width=0.8), size=0.3, width=.3)+
-  scale_color_manual(name='MPA type',
-                     breaks=c('MPA', 'REF'),
-                     values=c('MPA'='#EB6977', 'REF'='#13A0DD'))+
+  scale_color_manual(name='MPA',
+                     breaks=c('In', 'Out'),
+                     values=c('In'='#EB6977', 'Out'='#13A0DD'))+
   #add significance level
   geom_text(aes(label=sig), size=5, vjust=-0.01,
             position = position_dodge(width=0.8),
@@ -266,7 +273,7 @@ betadisp_plot <-
         legend.key=element_blank())
 
 #ggsave(here::here("analyses", "5community_climate_ecology", "figures", "betadisp_plot.png"), betadisp_plot, height=6, width = 8, units = "in", 
-#   dpi = 600, bg="white")
+ #  dpi = 600, bg="white")
 
 
 
