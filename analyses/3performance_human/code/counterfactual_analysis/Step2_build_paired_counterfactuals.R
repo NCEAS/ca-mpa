@@ -119,7 +119,7 @@ matches <- get_matches(matched, data = data_use)
 ################################################################################
 
 # Save
-save(matched, matches, data_use)
+save(matched, matches, data_use, file=file.path(outputdir, "counterfactual_output.Rds"))
 
 
 
