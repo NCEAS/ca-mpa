@@ -109,40 +109,78 @@ df_ell <- df_ell %>%
 cent$mpa_designation <- factor(cent$mpa_designation, level=c("smr","ref"))
 cent$MHW <- factor(cent$MHW, level=c("before","during","after"))
 
-cent$mpa_designation <- recode_factor(cent$mpa_designation, "smr"="Inside MPA")
-cent$mpa_designation <- recode_factor(cent$mpa_designation, "ref"="Outside MPA")
 
+cent$mpa_designation <- recode_factor(cent$mpa_designation, "smr"="In")
+cent$mpa_designation <- recode_factor(cent$mpa_designation, "ref"="Out")
 
 ccfrp_stress <- as.data.frame(CCFRP_ord[["stress"]]) %>% 
   rename("stress" = 1) %>%
   mutate_at(1, round, 3)
 
+df_ell$mpa_type <- factor(df_ell$mpa_type, level=c("smr","ref"))
+df_ell$MHW <- recode_factor(df_ell$MHW, "before"="Before")
+df_ell$MHW <- recode_factor(df_ell$MHW, "during"="During")
+df_ell$MHW <- recode_factor(df_ell$MHW, "after"="After")
+
+cent$MHW <- recode_factor(cent$MHW, "before"="Before")
+cent$MHW <- recode_factor(cent$MHW, "during"="During")
+cent$MHW <- recode_factor(cent$MHW, "after"="After")
+
+
+
+my_theme <-  theme(axis.text=element_text(size=8),
+                   axis.text.y = element_text(angle = 90, hjust = 0.5),
+                   axis.title=element_text(size=10),
+                   plot.tag=element_blank(), #element_text(size=8),
+                   plot.title =element_text(size=9, face="bold"),
+                   # Gridlines
+                   panel.grid.major = element_blank(), 
+                   panel.grid.minor = element_blank(),
+                   panel.background = element_blank(), 
+                   axis.line = element_line(colour = "black"),
+                   # Legend
+                   legend.key = element_blank(),
+                   legend.text=element_text(size=8),
+                   legend.title=element_text(size=10),
+                   legend.background = element_rect(fill=alpha('blue', 0)),
+                   #facets
+                   strip.text = element_text(size=6),
+                   #margins
+                   #plot.margin=unit(c(0.01,0.01,0.01,0.01),"cm")
+)
+
+#theme_classic()+
+##  theme(strip.text = element_text(size=8, face="bold"),
+  #      axis.title = element_text(size=8),
+   #     plot.title = element_text(size=10),
+    #    legend.key = element_rect(size = 2, color="white"),
+     #   legend.key.size = unit(0.8, "cm")
+      #  )
+
+
+
+
 CCFRP<- ggplot(data=cent, aes(NMDS1, NMDS2)) +
   geom_point(aes(shape=mpa_designation, color=MHW), size=2) +                           #centroids
   geom_path(data = df_ell, aes(NMDS1, NMDS2, colour=MHW, 
-                               group=group), size = 0.4, linetype=2, 
+                               group=group, linetype=mpa_type),show.legend=FALSE, size = 0.4#, linetype=2, 
             )+           #line connecting groups (years)
    geom_segment(aes(x = 0, y = 0, xend = (NMDS1), yend = (NMDS2)), 
        data = en_coord_cont, size =0.5, alpha = 0.5,
        arrow = arrow(length = unit(0.25, "cm")), colour = "grey50", lwd=0.5)+
      geom_text(data = en_coord_cont, aes(x = (NMDS1), y = (NMDS2)), colour = "black", 
        fontface = "bold", label = row.names(en_coord_cont), position=position_jitter(width=0.02,height=0.02), size=2) + 
-  ggtitle("CCFRP")+
-  scale_color_manual(values=c('#44b89d','#f56969','#4c78b5'))+
-  labs(shape="MPA type",color='Heatwave period') +
+  ggtitle("Rocky reef fishes")+
+  scale_color_manual(values=c('#44b89d','#f56969','#4c78b5',
+                              '#44b89d','#f56969','#4c78b5'))+
+  labs(shape="MPA",color='Heatwave period') +
   annotate(geom="text", 
            x=0.12, 
            y=0.2, 
            col="black", 
            label= paste("Stress: ",ccfrp_stress$stress), parse=T,
            size=3)+
-  theme_classic()+
-  theme(strip.text = element_text(size=8, face="bold"),
-        axis.title = element_text(size=8),
-        plot.title = element_text(size=10),
-        legend.key = element_rect(size = 2, color="white"),
-        legend.key.size = unit(0.8, "cm")
-        )
+  theme_bw()+my_theme
 
   
   
@@ -199,33 +237,31 @@ kelp_invalg_stress <- as.data.frame(kelp_invalg_ord[["stress"]]) %>%
   rename("stress" = 1) %>%
   mutate_at(1, round, 3)
 
+cent$mpa_designation <- recode_factor(cent$mpa_designation, "smr"="In")
+cent$mpa_designation <- recode_factor(cent$mpa_designation, "ref"="Out")
+
+df_ell$mpa_type <- factor(df_ell$mpa_type, level=c("smr","ref"))
 
 kelp_invalg<- ggplot(data=cent, aes(NMDS1, NMDS2)) +
   geom_point(aes(shape=mpa_designation, color=MHW), size=2) +                           #centroids
   geom_path(data = df_ell, aes(NMDS1, NMDS2, colour=MHW, 
-                               group=group), size = 0.4, linetype=2, 
+                               group=group, linetype=mpa_type), show.legend=FALSE, size = 0.4
             )+           #line connecting groups (years)
    geom_segment(aes(x = 0, y = 0, xend = (NMDS1), yend = (NMDS2)), 
        data = en_coord_cont, size =0.5, alpha = 0.5,
        arrow = arrow(length = unit(0.25, "cm")), colour = "grey50", lwd=0.5)+
      geom_text(data = en_coord_cont, aes(x = (NMDS1), y = (NMDS2)), colour = "black", 
        fontface = "bold", label = row.names(en_coord_cont), position=position_jitter(width=0.02,height=0.02), size=2) + 
-  ggtitle("kelp invertebrates and algae")+
+  ggtitle("Kelp invertebrates and algae")+
   scale_color_manual(values=c('#44b89d','#f56969','#4c78b5'))+
   labs(shape="site type",color='heatwave period') +
   annotate(geom="text", 
-           x=0.29, 
+           x=0.3, 
            y=0.2, 
            col="black", 
            label= paste("Stress: ",kelp_invalg_stress$stress), parse=T,
            size=3)+
- theme_classic()+
-  theme(strip.text = element_text(size=8, face="bold"),
-        axis.title = element_text(size=8),
-        plot.title = element_text(size=10),
-        legend.key = element_rect(size = 2, color="white"),
-        legend.key.size = unit(0.8, "cm")
-        )
+ theme_bw() + my_theme
 
 print(kelp_invalg)
 
@@ -276,32 +312,31 @@ kelp_fish_stress <- as.data.frame(kelp_fish_ord[["stress"]]) %>%
   rename("stress" = 1) %>%
   mutate_at(1, round, 3)
 
+cent$mpa_designation <- recode_factor(cent$mpa_designation, "smr"="In")
+cent$mpa_designation <- recode_factor(cent$mpa_designation, "ref"="Out")
+
+df_ell$mpa_type <- factor(df_ell$mpa_type, level=c("smr","ref"))
+
 kelp_fish<- ggplot(data=cent, aes(NMDS1, NMDS2)) +
   geom_point(aes(shape=mpa_designation, color=MHW), size=2) +                           #centroids
   geom_path(data = df_ell, aes(NMDS1, NMDS2, colour=MHW, 
-                               group=group), size = 0.4, linetype=2, 
+                               group=group, linetype=mpa_type), size = 0.4, show.legend=FALSE
             )+           #line connecting groups (years)
    geom_segment(aes(x = 0, y = 0, xend = (NMDS1), yend = (NMDS2)), 
        data = en_coord_cont, size =0.5, alpha = 0.5,
        arrow = arrow(length = unit(0.25, "cm")), colour = "grey50", lwd=0.5)+
      geom_text(data = en_coord_cont, aes(x = (NMDS1), y = (NMDS2)), colour = "black", 
        fontface = "bold", label = row.names(en_coord_cont), position=position_jitter(width=0.01,height=0.01), size=2) + 
-  ggtitle("kelp fish")+
+  ggtitle("Kelp forest fishes")+
   scale_color_manual(values=c('#44b89d','#f56969','#4c78b5'))+
   labs(shape="site type",color='heatwave period') +
   annotate(geom="text", 
-           x=0.1, 
+           x=0.05, 
            y=0.12, 
            col="black", 
            label= paste("Stress: ",kelp_fish_stress$stress), parse=T,
            size=3)+
-theme_classic()+
-  theme(strip.text = element_text(size=8, face="bold"),
-        axis.title = element_text(size=8),
-        plot.title = element_text(size=10),
-        legend.key = element_rect(size = 2, color="white"),
-        legend.key.size = unit(0.8, "cm")
-        )
+theme_bw()+ my_theme
 
 
 print(kelp_fish)
@@ -352,33 +387,32 @@ deep_reef_stress <- as.data.frame(deep_reef_ord[["stress"]]) %>%
   rename("stress" = 1) %>%
   mutate_at(1, round, 3)
 
+cent$mpa_designation <- recode_factor(cent$mpa_designation, "smr"="In")
+cent$mpa_designation <- recode_factor(cent$mpa_designation, "ref"="Out")
+
+df_ell$mpa_type <- factor(df_ell$mpa_type, level=c("smr","ref"))
+
 deep_reef<- ggplot(data=cent, aes(NMDS1, NMDS2)) +
   geom_point(aes(shape=mpa_designation, color=MHW), size=2) +                           #centroids
   geom_path(data = df_ell, aes(NMDS1, NMDS2, colour=MHW, 
-                               group=group), size = 0.4, linetype=2, 
+                               group=group, linetype=mpa_type), size = 0.4, show.legend=FALSE
             )+           #line connecting groups (years)
    geom_segment(aes(x = 0, y = 0, xend = (NMDS1), yend = (NMDS2)), 
        data = en_coord_cont, size =0.5, alpha = 0.5,
        arrow = arrow(length = unit(0.25, "cm")), colour = "grey50", lwd=0.5)+
      geom_text(data = en_coord_cont, aes(x = (NMDS1), y = (NMDS2)), colour = "black", 
        fontface = "bold", label = row.names(en_coord_cont), position=position_jitter(width=0.01,height=0.01), size=2) + 
-  ggtitle("deep reef")+
+  ggtitle("Deep reef fishes")+
   scale_color_manual(values=c('#44b89d','#f56969','#4c78b5'))+
   labs(shape="site type",color='heatwave period') +
   #theme(text = element_text(12))+
   annotate(geom="text", 
-           x=0.17, 
+           x=0.248, 
            y=0.3, 
            col="black", 
            label= paste("Stress: ",deep_reef_stress$stress), parse=T,
            size=3)+
-theme_classic()+
-  theme(strip.text = element_text(size=8, face="bold"),
-        axis.title = element_text(size=8),
-        plot.title = element_text(size=10),
-        legend.key = element_rect(size = 2, color="white"),
-        legend.key.size = unit(0.8, "cm")
-        )
+theme_bw()+ my_theme
 
 
 print(deep_reef)
@@ -430,18 +464,23 @@ rocky_stress <- as.data.frame(rocky_ord[["stress"]]) %>%
   rename("stress" = 1) %>%
   mutate_at(1, round, 3)
 
+cent$mpa_designation <- recode_factor(cent$mpa_designation, "smr"="In")
+cent$mpa_designation <- recode_factor(cent$mpa_designation, "ref"="Out")
+
+df_ell$mpa_type <- factor(df_ell$mpa_type, level=c("smr","ref"))
+
 
 rocky<- ggplot(data=cent, aes(NMDS1, NMDS2)) +
   geom_point(aes(shape=mpa_designation, color=MHW), size=2) +                           #centroids
   geom_path(data = df_ell, aes(NMDS1, NMDS2, colour=MHW, 
-                               group=group), size = 0.4, linetype=2, 
+                               group=group, linetype=mpa_type), size = 0.4, show.legend = FALSE
             )+           #line connecting groups (years)
    geom_segment(aes(x = 0, y = 0, xend = (NMDS1), yend = (NMDS2)), 
        data = en_coord_cont, size =0.5, alpha = 0.5,
        arrow = arrow(length = unit(0.25, "cm")), colour = "grey50", lwd=0.5)+
      geom_text(data = en_coord_cont, aes(x = (NMDS1), y = (NMDS2)), colour = "black", 
        fontface = "bold", label = row.names(en_coord_cont), position=position_jitter(width=0.01,height=0.01), size=2) + 
-  ggtitle("rocky intertidal")+
+  ggtitle("Rocky intertidal")+
   scale_color_manual(values=c('#44b89d','#f56969','#4c78b5'))+
   labs(shape="site type",color='heatwave period') +
   #theme(text = element_text(12))+
@@ -451,13 +490,7 @@ rocky<- ggplot(data=cent, aes(NMDS1, NMDS2)) +
            col="black", 
            label= paste("Stress: ",rocky_stress$stress), parse=T,
            size=3)+
-theme_classic()+
-  theme(strip.text = element_text(size=8, face="bold"),
-        axis.title = element_text(size=8),
-        plot.title = element_text(size=10),
-        legend.key = element_rect(size = 2, color="white"),
-        legend.key.size = unit(0.8, "cm")
-        )
+theme_bw() + my_theme
 
 
 print(rocky)
@@ -567,24 +600,7 @@ with(CCFRP_envr_vars, ordihull(p2, CCFRP_group_vars$MHW, col= 1:4, draw="poly"))
 
 ```
 
-```{r, setup}
 
-library(rgl)
-knitr::knit_hooks$set(webgl = hook_webgl)
-```
-
-```{r, test-rgl, webgl=TRUE}
-
-ordirgl(cent1[,4:6], display = "sites", choices = 1:3, type = "t", col = cent1$MHW,
-ax.col = "red", arr.col = "purple", envfit=ef, alpha=0.1)
-orgltext(cent1[,4:6], display = "sites", col=c("black"))
-with(CCFRP_envr_vars, orglellipse(CCFRP_ord, CCFRP_group_vars$desig_state, col = 1:3, kind = "se", conf = 0.95,
-scaling = "sites"))
-rgl.bg(color="grey")
-rglwidget()
-
-
-```
 
 
 **PART 1.2 COMMUNITY TRAJECTORY OVER TIME**

@@ -60,9 +60,10 @@ inat <- inaturalist_orig %>%
 # eBird data
 head(ebird_orig)
 ebird <- ebird_orig %>%
-  select(mpa, n_observers,  n_observations) %>% # n_surveys, n_species
+  select(mpa, n_observers,  n_observations, n_surveys) %>% # n_species
   rename(ebird_observers_n=n_observers, 
-         ebird_observations_n=n_observations)
+         ebird_observations_n=n_observations,
+         ebird_surveys_n=n_surveys)
   
 # REEF data
 head(reef_orig)
