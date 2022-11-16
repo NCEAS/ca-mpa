@@ -33,7 +33,7 @@ deep_reef_join1[deep_reef_join1 == ""]<- NA
 
 
 CCFRP_affin_mean_total <- CCFRP_join1 %>% 
-               filter(year >= 2010)%>%
+               filter(year >= 2007)%>%
                filter(!(is.na(thermal_affinity)))%>%
                group_by(year, species, thermal_affinity)%>%
                dplyr::summarize(mean = mean(counts, na.rm = TRUE))%>%
@@ -41,7 +41,7 @@ CCFRP_affin_mean_total <- CCFRP_join1 %>%
                dplyr::summarize(group_total = sum(mean))
 
 kelp_fish_affin_mean_total <- kelp_fish_join1 %>% 
-  filter(year >= 2010)%>%
+  filter(year >= 2007)%>%
   filter(!(is.na(thermal_affinity)))%>%
   group_by(year, species, thermal_affinity)%>%
   dplyr::summarize(mean = mean(counts, na.rm = TRUE))%>%
@@ -49,7 +49,7 @@ kelp_fish_affin_mean_total <- kelp_fish_join1 %>%
   dplyr::summarize(group_total = sum(mean))
 
 kelp_combined_affin_mean_total <- kelp_combined_join1 %>% 
-  filter(year >= 2010)%>%
+  filter(year >= 2007)%>%
   filter(!(is.na(thermal_affinity)))%>%
   group_by(year, species, thermal_affinity)%>%
   dplyr::summarize(mean = mean(counts, na.rm = TRUE))%>%
@@ -57,7 +57,7 @@ kelp_combined_affin_mean_total <- kelp_combined_join1 %>%
   dplyr::summarize(group_total = sum(mean))
 
 deep_reef_mean_total <- deep_reef_join1 %>% 
-  filter(year >= 2010)%>%
+  filter(year >= 2007)%>%
   filter(!(is.na(thermal_affinity)))%>%
   group_by(year, species, thermal_affinity)%>%
   dplyr::summarize(mean = mean(counts, na.rm = TRUE))%>%
@@ -155,8 +155,8 @@ g_title<- ggpubr::annotate_figure(g, left = textGrob("Perc. of total abundance",
                                   bottom = textGrob("Year", hjust=2, vjust=-2, gp = gpar(cex = 0.7)))
 
 # Export
-#ggsave(g_title, filename=file.path(figdir, "spp_affinities_perc.png"), 
-#     width=6.5, height=4.5, units="in", dpi=600, bg="white")
+ggsave(g_title, filename=file.path(figdir, "spp_affinities_perc.png"), 
+     width=6.5, height=4.5, units="in", dpi=600, bg="white")
 
 
 

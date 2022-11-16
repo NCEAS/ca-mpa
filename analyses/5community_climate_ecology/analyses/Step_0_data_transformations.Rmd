@@ -49,17 +49,23 @@ rocky <- read.csv(file.path(dat_dir, "rocky_mpa_year.csv"))
 #should be included at this stage. 
 
 CCFRP_cen <- CCFRP %>% filter(region4=='central') %>%
-  select(where(~ any(. != 0)))
+  select(where(~ any(. != 0)))%>%
+  filter(year>=2007)
 kelp_swath_cen <- kelp_swath %>% filter(region4=='central') %>%
-  select(where(~ any(. != 0)))
+  select(where(~ any(. != 0)))%>%
+  filter(year>=2007)
 kelp_upc_cen <- kelp_upc %>% filter(region4=='central') %>%
-  select(where(~ any(. != 0)))
+  select(where(~ any(. != 0)))%>%
+  filter(year>=2007)
 kelp_fish_cen <- kelp_fish %>% filter(region4=='central') %>%
-  select(where(~ any(. != 0)))
+  select(where(~ any(. != 0)))%>%
+  filter(year>=2007)
 deep_reef_cen <- deep_reef %>% filter(region4=='central') %>%
-  select(where(~ any(. != 0)))
+  select(where(~ any(. != 0)))%>%
+  filter(year>=2007)
 rocky_cen <- rocky %>% filter(region4=='central') %>%
-  select(where(~ any(. != 0)))
+  select(where(~ any(. != 0)))%>%
+  filter(year>=2007)
 
 ```
 
@@ -493,31 +499,38 @@ rocky <- read.csv(file.path(dat_dir, "rocky_mpa_year.csv"))
 ```{r}
 CCFRP_long <- CCFRP %>%
               pivot_longer(cols=25:ncol(.), names_to="species",
-                           values_to = "counts")
+                           values_to = "counts")%>%
+              filter(year >= 2007)
 
 kelp_combined_long <- kelp_combined %>%
               pivot_longer(cols=25:ncol(.), names_to="species",
-                           values_to = "counts")
+                           values_to = "counts")%>%
+              filter(year >= 2007)
 
 kelp_swath_long <- kelp_swath %>%
               pivot_longer(cols=25:ncol(.), names_to="species",
-                           values_to = "counts")
+                           values_to = "counts")%>%
+              filter(year >= 2007)
 
 kelp_upc_long <- kelp_upc %>%
               pivot_longer(cols=25:ncol(.), names_to="species",
-                           values_to = "counts")
+                           values_to = "counts")%>%
+              filter(year >= 2007)
 
 kelp_fish_long <- kelp_fish %>%
               pivot_longer(cols=25:ncol(.), names_to="species",
-                           values_to = "counts")
+                           values_to = "counts")%>%
+              filter(year >= 2007)
 
 deep_reef_long <- deep_reef %>%
               pivot_longer(cols=26:ncol(.), names_to="species",
-                           values_to = "counts")
+                           values_to = "counts")%>%
+              filter(year >= 2007)
 
 rocky_long <- rocky %>%
               pivot_longer(cols=24:ncol(.), names_to="species",
-                           values_to = "counts")
+                           values_to = "counts")%>%
+              filter(year >= 2007)
 ```
 
 
@@ -539,10 +552,12 @@ affinity_dat$genusspecies <- tolower(affinity_dat$genusspecies)
 
 affinity_select1 <- affinity_dat %>% 
                    select(common_name, thermal_affinity, targeted)%>%
+                   distinct(common_name, .keep_all=TRUE)%>%
                    mutate(common_name = gsub(" ", "_", common_name))
 
 affinity_select2 <- affinity_dat %>% 
                    select(scientific_name=genusspecies, thermal_affinity, targeted)%>%
+                   distinct(scientific_name, .keep_all=TRUE)%>%
                    mutate(scientific_name = gsub(" ", "_", scientific_name))
 
 ################################################################################
@@ -826,6 +841,18 @@ deep_reef_join1 <- left_join(deep_reef_long, affinity_select2, by=c("species"="s
 ```
 
 
+#export data
+```{r}
+datalist <- list(CCFRP = CCFRP_join1, kelp_combined = kelp_combined_join1, 
+                 kelp_swath = kelp_swath_join1, kelp_upc = kelp_upc_join1,
+        deep_reef = deep_reef_join1)
+
+save(CCFRP_join1, kelp_combined_join1, 
+                 kelp_swath_join1, kelp_upc_join1,
+     kelp_fish_join1,
+        deep_reef_join1, file= file.path("/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data","all_groups_mpa_level_means_long.rda"))
+
+```
 
 
 
