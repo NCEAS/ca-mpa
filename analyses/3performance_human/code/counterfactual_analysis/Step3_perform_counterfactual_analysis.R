@@ -41,6 +41,8 @@ check <- match_key %>%
   spread(key="cell_type", value="n") %>% 
   mutate(check=MPA==Counterfactual)
 
+# Clean environment
+rm(matches, matched, data_use)
 
 # Summarize indicators by the cell id
 ################################################################################
@@ -54,7 +56,7 @@ data_orig <- readRDS(file.path(datadir, "counterfactual_layers_shallow_epsg3309.
 # Build raster template
 ras_temp <- data_orig %>% 
   select(x_epsg3309, y_epsg3309, cell) %>% 
-  raster::rasterFromXYZ(crs = crs("+init=epsg:3309"))
+  raster::rasterFromXYZ(crs = raster::crs("+init=epsg:3309"))
 
 
 # iNaturalist (fix so that n observers)
@@ -71,28 +73,56 @@ inat <- inat_orig %>%
   sf::st_as_sf(coords=c("long_dd", "lat_dd"), crs=sf::st_crs("+proj=longlat +datum=WGS84")) %>% 
   # Reproject
   sf::st_transform(crs="+init=epsg:3309")
+rm(inat_orig)
 
-# Rasterize
-inat_ras <- raster::rasterize(x=inat, y= ras_temp, field="user_name", fun = "count")
+# Convert to sp
+inat_sp <- inat %>% 
+  sf::as_Spatial()
 
-# Convert to df
-inat_ras_df <- inat_ras %>% 
-  # Convert to df
-  raster::as.data.frame(xy=T) %>% 
-  # Redcue to cells with data
-  filter(!is.na(layer)) %>% 
-  # Add cell id
-  left_join(data_orig %>% select(x_epsg3309, y_epsg3309, cell), by=c("x"="x_epsg3309", "y"="y_epsg3309")) %>% 
-  # Rename
-  rename(inat_n=layer, cell_id=cell)
+# Extract cell id for each point
+cell_ids <- raster::extract(x=ras_temp, y=inat_sp)
+
+# Summarize
+inat_df <- inat %>% 
+  sf::st_drop_geometry() %>% 
+  mutate(cell_id=cell_ids) %>% 
+  group_by(cell_id) %>% 
+  summarize(nobservers=n_distinct(user_id)) %>% 
+  ungroup()
 
 
 # eBird
 #################################
 
 # Read data
-# ebird_orig <- readRDS(file=file.path(basedir, "ebird/processed", "CA_ebird_data.Rds"))
+ebird_orig <- readRDS(file=file.path(basedir, "ebird/processed", "CA_ebird_data_inside_state_water_buffer.Rds"))
 
+# Format data
+ebird <- ebird_orig %>% 
+  # Reduce to dates of interest
+  filter(survey_date>=lubridate::ymd("2012-01-01") & survey_date<=lubridate::ymd("2021-12-31")) %>% 
+  # Must have coordinates
+  filter(!is.na(lat_dd) & !is.na(long_dd)) %>% 
+  # Convert to sf
+  sf::st_as_sf(coords=c("long_dd", "lat_dd"), crs=sf::st_crs("+proj=longlat +datum=WGS84")) %>% 
+  # Reproject
+  sf::st_transform(crs="+init=epsg:3309")
+rm(ebird_orig)
+
+# Convert to sp
+ebird_sp <- ebird %>% 
+  sf::as_Spatial()
+
+# Extract cell id for each point
+cell_ids <- raster::extract(x=ras_temp, y=ebird_sp)
+
+# Summarize
+ebird_df <- ebird %>% 
+  sf::st_drop_geometry() %>% 
+  mutate(cell_id=cell_ids) %>% 
+  group_by(cell_id) %>% 
+  summarize(nobservers=n_distinct(observer_id)) %>% 
+  ungroup()
 
 # REEF
 #################################
@@ -123,7 +153,7 @@ reef_ras_df <- reef_ras %>%
   # Add cell id
   left_join(data_orig %>% select(x_epsg3309, y_epsg3309, cell), by=c("x"="x_epsg3309", "y"="y_epsg3309")) %>% 
   # Rename
-  rename(reef_n=layer, cell_id=cell)
+  rename(reef_surveys_n=layer, cell_id=cell)
 
 
 # Build data
@@ -132,15 +162,20 @@ reef_ras_df <- reef_ras %>%
 # Build data
 data <- match_key %>% 
   # Add iNat stats
-  left_join(inat_ras_df %>% select(cell_id, inat_n), by="cell_id") %>% 
+  left_join(inat_df, by="cell_id") %>% 
+  rename(inat_observers_n=nobservers) %>% 
+  # eBird stats
+  left_join(ebird_df, by="cell_id") %>% 
+  rename(ebird_observers_n=nobservers) %>% 
   # Add REEF stats
-  left_join(reef_ras_df %>% select(cell_id, reef_n), by="cell_id")
+  left_join(reef_ras_df %>% select(cell_id, reef_surveys_n), by="cell_id")
 
 # Build stats
 stats <- data %>% 
   group_by(mpa, cell_type) %>% 
-  summarize(inat_n=sum(inat_n, na.rm=T),
-            reef_n=sum(reef_n, na.rm=T))
+  summarize(inat_observers_n=sum(inat_observers_n, na.rm=T),
+            ebird_observers_n=sum(ebird_observers_n, na.rm=T),
+            reef_surveys_n=sum(reef_surveys_n, na.rm=T))
 
 # Build ratios
 ratios <- stats %>% 
@@ -148,8 +183,9 @@ ratios <- stats %>%
   gather(key="indicator", value="value", 3:ncol(.)) %>% 
   # Format indicator
   mutate(indicator=recode(indicator,
-                          "reef_n"="REEF",
-                          "inat_n"="iNaturalist")) %>% 
+                          "reef_surveys_n"="REEF",
+                          "ebird_observers_n"="eBird",
+                          "inat_observers_n"="iNaturalist")) %>% 
   # Spread 
   rename(mpa_name=mpa) %>% 
   spread(key="cell_type", value="value") %>% 
@@ -159,7 +195,7 @@ ratios <- stats %>%
 
 # Plot
 g <- ggplot(ratios, aes(y=indicator, x=ratio)) +
-  geom_boxplot(fill="grey90", draw_quantiles=0.5) +
+  geom_boxplot(fill="grey90") +
   # geom_violin(fill="grey90", draw_quantiles=0.5) +
   # Reference line
   geom_vline(xintercept=0) +
@@ -169,7 +205,8 @@ g <- ggplot(ratios, aes(y=indicator, x=ratio)) +
   theme_bw()
 g
 
-
+# Export data
+saveRDS(data, file.path(outputdir, "counterfactual_results.Rds"))
 
 
 

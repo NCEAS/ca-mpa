@@ -53,7 +53,10 @@ data1 <- data %>%
          re_perc=re_perc,
          category=cut(re_perc, 
                       breaks=c(-Inf, -75, 75, Inf), 
-                      labels=c("Underutilized", "Typical", "Charismatic"))) 
+                      labels=c("Underutilized", "Typical", "Charismatic"))) %>% 
+  # Build MPA label
+  mutate(mpa_label=mpa_short,
+         mpa_label=ifelse(mpa_short=="South La Jolla", mpa, mpa_label))
 
 # Export charisma key
 write.csv(data1, file=file.path(datadir, "CA_MPA_charisma_key.csv"), row.names = F)
@@ -98,11 +101,11 @@ g <- ggplot() +
              pch=21, size=1.9) +
   # Plot all charisma labels
   ggrepel::geom_text_repel(data1 %>% filter(category=="Charismatic"),
-                           mapping=aes(x=npeople_50km/1e6, y=inat_observers_n, label=mpa_short), 
+                           mapping=aes(x=npeople_50km/1e6, y=inat_observers_n, label=mpa_label), 
                            inherit.aes = F, size=2, max.overlaps = 1000, color="grey60") +
   # Plot select inaccessible labels
   ggrepel::geom_text_repel(data1 %>% filter(category=="Underutilized" & npeople_50km/1e6>1),
-                           mapping=aes(x=npeople_50km/1e6, y=inat_observers_n, label=mpa_short), 
+                           mapping=aes(x=npeople_50km/1e6, y=inat_observers_n, label=mpa_label), 
                            inherit.aes = F, size=2, max.overlaps = 1000, color="grey60") +
   # Labels
   labs(x="Human population size\n(millions of people within 50 km)", 

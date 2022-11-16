@@ -65,18 +65,24 @@ state_waters_sp <- state_waters_sf %>%
 # Files to merge
 files2merge <- list.files(indir)
 
+# Setup parallel
+library(doParallel)
+ncores <- detectCores()
+registerDoParallel(cores=ncores)
+
 # Loop through files
 x <- files2merge[1]
 # data <- purrr::map_df(files2merge, function(x){
-for(x in files2merge){
-  
+# for(x in files2merge){
+foreach(x = files2merge[c(17:19, 28, 33:36, 39:63)]) %dopar% {
+    
   # Read data
   data_orig <- readRDS(file=file.path(indir, x))
   
   # Convert to sf
   data_sf <- data_orig %>%
     filter(!is.na(lat_dd) & !is.na(long_dd)) %>% 
-    sf::st_as_sf(coords=c("long_dd", "lat_dd"), crs=sf::st_crs("+proj=longlat +datum=WGS84")) 
+    sf::st_as_sf(coords=c("long_dd", "lat_dd"), crs=sf::st_crs("+proj=longlat +datum=WGS84"), remove=F) 
   
   # Convert to sp
   data_sp <- data_sf %>% 
@@ -114,7 +120,7 @@ for(x in files2merge){
 
 
 # Export data
-saveRDS(data, file.path(outdir, "CA_ebird_data_inside_state_waters_5km.Rds"))
+# saveRDS(data, file.path(outdir, "CA_ebird_data_inside_state_waters_5km.Rds"))
 
 
 
