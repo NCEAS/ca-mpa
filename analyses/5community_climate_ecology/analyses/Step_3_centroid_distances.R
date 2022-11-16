@@ -125,10 +125,10 @@ eig_fun <- function(disper_mat) {
 }
 
 
-ccfrp_travel <- eig_fun(CCFRP_disper) %>% mutate(group = "Rocky reef fish")
+ccfrp_travel <- eig_fun(CCFRP_disper) %>% mutate(group = "Rocky reef fishes")
 kelp_invalg_travel <- eig_fun(kelp_invalg_disper) %>% mutate(group = "Kelp forest inverts and algae")
-kelp_fish_travel <- eig_fun(kelp_fish_disper) %>% mutate(group = "Kelp forest fish")
-deep_reef_travel <- eig_fun(deep_reef_disper) %>% mutate(group = "Deep reef fish")
+kelp_fish_travel <- eig_fun(kelp_fish_disper) %>% mutate(group = "Kelp forest fishes")
+deep_reef_travel <- eig_fun(deep_reef_disper) %>% mutate(group = "Deep reef fishes")
 rocky_travel <- eig_fun(rocky_disper) %>% mutate(group = "Rocky intertidal")
 
 travel_distance <- as.data.frame(rbind(ccfrp_travel, kelp_invalg_travel, kelp_fish_travel,
@@ -195,11 +195,11 @@ perm_fun <- function(perm_table, group_name){
 
 
 #collect output
-ccfrp_op <- perm_fun(ccfrp_pair_perm, group="Rocky reef fish")
-kelp_fish_op <- perm_fun(kelp_fish_pair_perm, group='Kelp forest fish')
+ccfrp_op <- perm_fun(ccfrp_pair_perm, group="Rocky reef fishes")
+kelp_fish_op <- perm_fun(kelp_fish_pair_perm, group='Kelp forest fishes')
 kelp_invalg_perm <- perm_fun(kelp_invalg_pair_perm, group = "Kelp forest inverts and algae")
 rocky_op <- perm_fun(rocky_pair_perm, group="Rocky intertidal")
-deep_reef_op <- perm_fun(dr_pair_perm, group = "Deep reef fish")
+deep_reef_op <- perm_fun(dr_pair_perm, group = "Deep reef fishes")
 
 perm_output <- rbind(ccfrp_op, kelp_fish_op, deep_reef_op,
                      kelp_invalg_perm, rocky_op)
@@ -272,8 +272,8 @@ betadisp_plot <-
         panel.background = element_blank(), axis.line = element_line(colour = "black"),
         legend.key=element_blank())
 
-#ggsave(here::here("analyses", "5community_climate_ecology", "figures", "betadisp_plot.png"), betadisp_plot, height=6, width = 8, units = "in", 
- #  dpi = 600, bg="white")
+ggsave(here::here("analyses", "5community_climate_ecology", "figures", "betadisp_plot.png"), betadisp_plot, height=6, width = 8, units = "in", 
+   dpi = 600, bg="white")
 
 
 
