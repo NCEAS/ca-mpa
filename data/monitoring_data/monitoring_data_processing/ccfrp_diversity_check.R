@@ -1,6 +1,9 @@
 
 rm(list=ls())
 
+require(tidyverse)
+require(vegan)
+
 ################################################################################
 #load raw data
 data_path <- "/home/shares/ca-mpa/data/sync-data/monitoring/monitoring_ccfrp/CCFRP_derived_data_tables_DataONE"
