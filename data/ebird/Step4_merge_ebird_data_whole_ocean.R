@@ -29,7 +29,7 @@ data <- purrr::map_df(files2merge, function(x){
   
   # Read data
   fdata <- readRDS(file.path(indir, x)) %>% 
-    select(record_id, survey_id, survey_date, observer_id)
+    select(record_id, survey_id, survey_date, observer_id, lat_dd, long_dd)
   
 })
 

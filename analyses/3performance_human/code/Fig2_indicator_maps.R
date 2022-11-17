@@ -181,6 +181,33 @@ g5 <- ggplot() +
   # Plot land
   geom_sf(data=foreign, fill="grey80", color="white", lwd=0.3) +
   geom_sf(data=usa, fill="grey80", color="white", lwd=0.3) +
+  # Plot REEF sites
+  geom_point(data=data, mapping=aes(x=long_dd, y=lat_dd, size=reef_n, fill=reef_nyr), pch=21) +
+  # Plot zero MPAs
+  geom_point(data=data %>% filter(is.na(reef_n)), 
+             mapping=aes(x=long_dd, y=lat_dd), pch="x", size=2.3) +    # Labels
+  labs(x="", y="", title="REEF", tag="E") +
+  # Axes
+  scale_y_continuous(breaks=32:42) +
+  scale_x_continuous(breaks=seq(-124, -116, 2)) +
+  # Legend
+  scale_size_continuous(name="# of surveys", trans="log10") +
+  # scale_fill_discrete(name="Site type") +
+  scale_fill_gradientn(name="# of years", colors=RColorBrewer::brewer.pal(9, "Blues"), breaks=seq(0,10,2)) +
+  guides(fill = guide_colorbar(ticks.colour = "black", frame.colour = "black")) +
+  # Crop
+  coord_sf(xlim = c(-124.5, -117), ylim = c(32.5, 42)) +
+  # Theme
+  theme_bw() + theme1
+g5
+
+# Plot data
+g6 <- ggplot() +
+  # Plot regions
+  geom_hline(mapping=aes(yintercept=region_lats)) +
+  # Plot land
+  geom_sf(data=foreign, fill="grey80", color="white", lwd=0.3) +
+  geom_sf(data=usa, fill="grey80", color="white", lwd=0.3) +
   # Plot MPAs
   geom_point(data=data, mapping=aes(x=long_dd, y=lat_dd, size=permits_n, fill=permits_nyr), pch=21) +
   # Plot zero MPAs
@@ -199,10 +226,10 @@ g5 <- ggplot() +
   coord_sf(xlim = c(-124.5, -117), ylim = c(32.5, 42)) +
   # Theme
   theme_bw() + theme1
-g5
+g6
 
 # Plot data
-g6 <- ggplot() +
+g7 <- ggplot() +
   # Plot regions
   geom_hline(mapping=aes(yintercept=region_lats)) +
   # Plot land
@@ -227,7 +254,7 @@ g6 <- ggplot() +
   coord_sf(xlim = c(-124.5, -117), ylim = c(32.5, 42)) +
   # Theme
   theme_bw() + theme1
-g6
+g7
 
 # Merge plots
 g <- gridExtra::grid.arrange(g1, g3, g5, 
