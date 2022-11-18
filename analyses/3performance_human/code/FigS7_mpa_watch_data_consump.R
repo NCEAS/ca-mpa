@@ -261,7 +261,7 @@ g <- gridExtra::grid.arrange(g1, g2, g3, ncol=3, widths=c(0.35, 0.65*0.6, 0.65*0
 g 
 
 # Export
-ggsave(g, filename=file.path(plotdir, "FigS4_mpa_watch_data_consump.png"), 
+ggsave(g, filename=file.path(plotdir, "FigS7_mpa_watch_data_consump.png"), 
        width=6.5, height=3.5, units="in", dpi=600)
 
 

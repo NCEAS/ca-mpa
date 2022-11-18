@@ -272,7 +272,7 @@ g <- gridExtra::grid.arrange(g1, g2, g3, layout_matrix=layout_matrix, heights=c(
 g
 
 # Export plot
-ggsave(g, filename=file.path(plotdir, "FigS2_mpa_watch_survey_coverage.png"), 
+ggsave(g, filename=file.path(plotdir, "FigS5_mpa_watch_survey_coverage.png"), 
        width=6.5, height=7, units="in", dpi=600)
 
 
@@ -367,7 +367,7 @@ g <- gridExtra::grid.arrange(g1, g2, g3, ncol=3, widths=c(0.35, 0.65*0.6, 0.65*0
 g 
 
 # Export
-ggsave(g, filename=file.path(plotdir, "FigS3_mpa_watch_data_nonconsum.png"), 
+ggsave(g, filename=file.path(plotdir, "FigS6_mpa_watch_data_nonconsum.png"), 
        width=6.5, height=3.5, units="in", dpi=600)
 
 
