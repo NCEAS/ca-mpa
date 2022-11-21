@@ -45,7 +45,6 @@ area_habitats <- c("hard_substrate_0_30m_km2_comb",
                    "max_kelp_canopy_cdfw_km2")
 ```
 
-
 ## Create habitat and metadata dataframes
 
 ```{r}
@@ -53,7 +52,7 @@ nmds_meta <- att_raw %>%
   select(name, bioregion, four_region_north_ci, mpa_habitat_type) 
 
 nmds_data <- att_raw %>% 
-  filter((mpa_habitat_type == "Coastal")) %>% 
+  #filter((mpa_habitat_type == "Coastal")) %>% 
   select(name, 
          #size_km2, 
          all_of(area_habitats), all_of(linear_habitats)) %>% 

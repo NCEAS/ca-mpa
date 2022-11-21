@@ -111,7 +111,7 @@ plot_df <- data3
 # Theme ------------------------------------------------------------------------
 
 ## Habitat colors ----
-hab_area_colors <- c("wheat", "wheat1", "wheat2", "wheat3", # soft
+hab_area_colors <- c("wheat1", "wheat", "wheat2", "wheat3", # soft
                      "tan1", "tan2", "tan3", "tan4", # hard
                      "seagreen4", # kelp
                      "white") # incomplete
@@ -143,7 +143,8 @@ hab_theme_wide <- theme(axis.text=element_text(size=6),
                         axis.text.y = element_text(angle = 90, hjust = 0.5),
                         legend.text=element_text(size=6),
                         legend.title=element_text(size=7),
-                        strip.text=element_text(size=4.5),
+                        strip.text=element_text(size=5),
+                        strip.background = element_rect(fill = "grey90"),
                         plot.title=element_blank(),
                         panel.spacing=unit(0.1,"lines"),
                         # Gridlines
@@ -343,14 +344,14 @@ ggsave(hs3, filename=file.path(plot.dir, "hard_soft_amount.png"),
 ggsave(hsk1, filename=file.path(plot.dir, "hard_soft_kelp_size.png"),
        width=8, height=4, units="in", dpi=600)
 ggsave(hsk2, filename=file.path(plot.dir, "hard_soft_kelp_calc.png"),
-       width=10, height=4, units="in", dpi=600)
+       width=9, height=4, units="in", dpi=900)
 ggsave(hsk3, filename=file.path(plot.dir, "hard_soft_kelp_amount.png"),
        width=8, height=4, units="in", dpi=600)
 
 ggsave(s2, filename=file.path(plot.dir, "shoreline_calc.png"),
-       width=8, height=4, units="in", dpi=600)
+       width=9, height=4, units="in", dpi=300)
 ggsave(s3, filename=file.path(plot.dir, "shoreline_amount.png"),
-       width=8, height=4, units="in", dpi=600)
+       width=8, height=4, units="in", dpi=900)
 
 # Generate Statewide/Regional Totals -------------------------------------------
 # Try again

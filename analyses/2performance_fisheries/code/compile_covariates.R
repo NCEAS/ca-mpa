@@ -9,6 +9,7 @@
 # 4. Distance from Port
 # 5. Area
 # 6. Buffered MPA Density (not necessarily included in matching)
+# 7. Historical Fishing Intensity 
 
 
 # Setup --------------------------------------------------------------------------
@@ -38,6 +39,7 @@ block_stats <- readRDS(file.path(gis.dir,"block_mpa_coverage_reduced_types.Rds")
 depth <- readRDS(file.path(gis.dir, "block_mean_depth.Rds")) 
 shore <- readRDS(file.path(gis.dir, "block_distance_to_shore.Rds"))
 port <- readRDS(file.path(gis.dir, "block_distance_to_port.Rds"))
+effort <- ###h
 
 # Add lat/lon for proximity
 block_latlon <- blocks_simple %>% 
