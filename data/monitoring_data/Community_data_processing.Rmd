@@ -131,15 +131,15 @@ CCFRP_CPUE <- CCFRP_CPUE %>%
 CCFRP_zero_drop <- CCFRP_CPUE %>% filter(region3=='central') %>%
                     select(!(where(~ any(. != 0))))
 
-CCFRP_cen <- CCFRP_zero_drop <- CCFRP_CPUE %>% filter(region3=='central') %>%
+CCFRP_cen <- CCFRP_CPUE %>% filter(region3=='central') %>%
                     select(where(~ any(. != 0)))
 
 #Export
 #path_aurora <- "/home/shares/ca-mpa/data/sync-data/processed_data/ecological_community_data" 
 #write.csv(CCFRP_CPUE,file.path(path_aurora, "CCFRP_species_counts.csv"), row.names = FALSE)
 
-CCFRP_mpa_year_step1 <- CCFRP_CPUE %>%
-                  pivot_longer(cols=10:81, names_to="species",values_to="CPUE")%>%
+CCFRP_mpa_year_step1 <- CCFRP_cen %>%
+                  pivot_longer(cols=10:46, names_to="species",values_to="CPUE")%>%
                   group_by(year, group, region3, region4, MHW, affiliated_mpa, mpa_class, mpa_designation, species)%>%
                   dplyr::summarize(mean_CPUE = mean(CPUE))%>%
                   ungroup()%>%
@@ -150,12 +150,12 @@ CCFRP_mpa_year <- left_join(CCFRP_mpa_year_step1, envr_dat, by=c("year","group",
                                                        "mpa_class"="mpa_defacto_class",
                                                        "mpa_designation"="mpa_defacto_designation",
                                                        "affiliated_mpa"="mpa_name"))%>%
-                  filter(!(affiliated_mpa=="trinidad smr"))%>% #not a real MPA per PI
+                  #filter(!(affiliated_mpa=="trinidad smr"))%>% #not a real MPA per PI
                   dplyr::select(!(c("mpa_class.y","mpa_designation.y")))%>%
-                  dplyr::select(1:8,81:96,9:80)
+                  dplyr::select(1:8,46:61,9:45)
 
 #Export
-#path_aurora <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/ecological_community_data/year_level_with_envr_vars" 
+#path_aurora <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data" 
 #write.csv(CCFRP_mpa_year,file.path(path_aurora, "CCFRP_mpa_year.csv"), row.names = FALSE)
 ```
 
@@ -204,7 +204,8 @@ kelp_fish_counts <- left_join(kelp_fish_counts, kelp_sites, by="site")
 
 kelp_fish_counts <- kelp_fish_counts %>%
                     ungroup() %>%
-                    dplyr::select(year, affiliated_mpa=ca_mpa_name_short,mpa_class, mpa_designation, zone, level, transect, species, total_count) %>%
+                    dplyr::select(year, affiliated_mpa=ca_mpa_name_short,mpa_class, mpa_designation, zone, level, transect, species,
+                                  total_count) %>%
                     mutate(mpa_designation = ifelse(mpa_designation=="reference","ref",mpa_class))
 
 
@@ -319,12 +320,14 @@ kelp_fish_mpa_year <- left_join(kelp_fish_mpa_year_step1, envr_dat, by=c("year",
                                                        "affiliated_mpa"="mpa_name"))%>%
                   dplyr::select(1:7,119:137,8:118) %>%
                   dplyr::select(!c("mpa_class","mpa_designation")) %>%
+                  mutate(group="kelp_fish") %>%
                   dplyr::select(group, everything()) %>%
-                  mutate(group=recode(group,kelp="kelp_fish"))
+                  filter(region3 == 'central') %>%
+                  select(where(~ any(. != 0)))
 
 
 #Export year                     
-#path_aurora <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/ecological_community_data/year_level_with_envr_vars" 
+#path_aurora <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data" 
 #write.csv(kelp_fish_mpa_year,file.path(path_aurora, "kelp_fish_mpa_year.csv"), row.names = FALSE)
 ```
 
@@ -441,6 +444,7 @@ kelp_swath_counts2 <- as.data.frame(kelp_swath_counts1) %>%
                                                           'urticina_coriacea', 'urticina_crassicornis', 'urticina_piscivora'))) %>%
                   #drop species
                   select(!(c('anthopleura',
+                             'apostichopus',
                              'asteroidea',
                              'haliotis',
                              'laminaria',
@@ -468,7 +472,7 @@ kelp_swath_counts3 <- kelp_swath_counts2 %>% filter(region3=='central') %>%
 #write.csv(kelp_swath_mpa_year, file.path(path_aurora, "kelp_swath_mpa_year_counts.csv"), row.names = FALSE)
 
 kelp_swath_mpa_year_step1 <- kelp_swath_counts3 %>%
-                        pivot_longer(cols=10:163, names_to="species",values_to="counts")%>%
+                        pivot_longer(cols=10:72, names_to="species",values_to="counts")%>%
                         group_by(year, region3, region4, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation, MHW, species)%>%
                         dplyr::summarize(total_counts = sum(counts))%>%
                         ungroup()%>%
@@ -482,14 +486,16 @@ kelp_swath_mpa_year <- left_join(kelp_swath_mpa_year_step1, envr_dat,
                                                        "mpa_defacto_class",
                                                        "mpa_defacto_designation",
                                                        "affiliated_mpa"="mpa_name"))%>%
-                  dplyr::select(1:7,162:180,8:161) %>%
+                  dplyr::select(1:7,71:89,8:70) %>%
                   dplyr::select(!c("mpa_class","mpa_designation")) %>%
+                  mutate(group = "kelp_swath")%>%
                   dplyr::select(group, everything()) %>%
-                  mutate(group=recode(group,kelp="kelp_swath"))
+                  filter(region3 == 'central') %>%
+                  select(where(~ any(. != 0)))
 
 
 #Export year level
-#path_aurora <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/ecological_community_data/year_level_with_envr_vars" 
+#path_aurora <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data" 
 #write.csv(kelp_swath_mpa_year, file.path(path_aurora, "kelp_swath_mpa_year.csv"), row.names = FALSE)
 
 ```
@@ -540,7 +546,10 @@ kelp_upc_counts4 <- kelp_upc_counts3 %>%
                                species=="Unidentified Fish"|
                                species=="Actiniaria"|
                                species=="Shell Debris"|
-                               species=="Sediment/Mud"))
+                               species=="Sediment/Mud"|
+                               species=="Stylantheca papillosa"|
+                               species=="Diaperoforma californica"|
+                               species==""))
 
 
 #recalculate percent cov
@@ -637,14 +646,16 @@ kelp_upc_mpa_year <- left_join(kelp_upc_mpa_year_step1, envr_dat,
                                                        "mpa_defacto_class",
                                                        "mpa_defacto_designation",
                                                        "affiliated_mpa"="mpa_name"))%>%
-                  dplyr::select(1:7,80:98,8:79) %>%
+                  dplyr::select(1:7,64:82,8:63) %>%
+                  mutate(group="kelp_upc")%>%
                   dplyr::select(!c("mpa_class","mpa_designation")) %>%
                   dplyr::select(group, everything()) %>%
-                  mutate(group=recode(group,kelp="kelp_upc")) %>%
-                  mutate_at(c(25:96), ~replace_na(.,0))
+                  mutate_at(c(25:80), ~replace_na(.,0))%>%
+                  filter(region3 == 'central') %>%
+                  select(where(~ any(. != 0)))
 
 #Export
-#path_aurora <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/ecological_community_data/year_level_with_envr_vars" 
+#path_aurora <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data" 
 #write.csv(kelp_upc_mpa_year,file.path(path_aurora, "kelp_upc_mpa_year.csv"), row.names = FALSE)
 
 
@@ -899,13 +910,15 @@ deep_reef_counts_envr <- left_join(deep_reef_merge, envr_dat,
                                                     "mpa_class"="mpa_class",
                                                     "mpa_defacto_designation"="mpa_designation",
                                                   "affiliated_mpa"="mpa_name")) %>%
-                  dplyr::select(1:8,114:132,9:113) %>%
+                  dplyr::select(1:8,67:84,9:66) %>%
                   dplyr::select(!c("mpa_defacto_class.y","mpa_defacto_designation.y"),
                                 mpa_defacto_class="mpa_defacto_class.x") %>%
-                  dplyr::select(group, everything())
+                  dplyr::select(group, everything())%>%
+                  filter(region3 == 'central') %>%
+                  select(where(~ any(. != 0)))
 
 #Export
-#path_aurora <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/ecological_community_data/year_level_with_envr_vars" 
+#path_aurora <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data" 
 #write.csv(deep_reef_counts_envr,file.path(path_aurora, "deep_reef_mpa_year.csv"), row.names = FALSE)
 
 ```
@@ -935,15 +948,28 @@ rocky_counts_raw <- rocky_counts_raw %>%
 
 rocky_counts_raw$site <- tolower(rocky_counts_raw$site) 
 
+
+
 rocky_count_envr <- left_join(rocky_counts_raw, rocky_envr_vars, by=c("year","site"))%>%
   mutate(group="rocky")%>%
   select(year, group, region3, region4,site, mpa_designation, affiliated_mpa, 
-         mpa_designation,59:74, 8:56)
+         mpa_designation,59:74, 8:56) %>%
+        filter(region3 == 'central') %>%
+                  select(where(~ any(. != 0)))%>%
+        select(!(c(rock, sand, tar))) %>% 
+  mutate(row_sum = rowSums(.[24:65]))
+
+#convert to proportion after substrate drop (rock sand tar)
+
+rocky_count_prop <- rocky_count_envr %>%
+                    rowwise() %>%
+                    mutate(across(24:64)/row_sum)%>%
+                    select(!(row_sum))
 
 
 #export
-#path_aurora <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/ecological_community_data/year_level_with_envr_vars" 
-#write.csv(rocky_count_envr, file.path(path_aurora, "rocky_mpa_year.csv"), row.names = FALSE)
+#path_aurora <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data" 
+#write.csv(rocky_count_prop, file.path(path_aurora, "rocky_mpa_year.csv"), row.names = FALSE)
 
 ```
 
