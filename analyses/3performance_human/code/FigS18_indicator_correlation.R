@@ -64,7 +64,7 @@ g <- GGally::ggpairs(data, upper = list(continuous = GGally::wrap("cor", size=2.
 g
 
 # Export
-ggsave(g, filename=file.path(plotdir, "FigS15_indicator_correlation.png"), 
+ggsave(g, filename=file.path(plotdir, "FigS18_indicator_correlation.png"), 
        width=6.5, height=6.5, units="in", dpi=600)
 
 
