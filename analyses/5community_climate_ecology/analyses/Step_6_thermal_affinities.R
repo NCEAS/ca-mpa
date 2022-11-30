@@ -350,8 +350,19 @@ color_set <- c("cold temperate" = "#80B1D3","cosmopolitan" = "#BEBADA",
                "warm temperate"= "#8DD3C7")
 library(stringr)
 
+es_results_plot <- es_results %>%
+                   mutate(contrast = factor(contrast, levels = c(
+                     "before - during",
+                     "before - after",
+                     "during - after"
+                   )))
 
-g1 <- es_results %>% filter(group == "Rocky reef fish")%>%
+es_results_plot$contrast <- recode_factor(es_results_plot$contrast,
+                                          "before - during" = "Before-to-during",
+                                          "before - after" = "Before-to-after")
+
+g1 <- es_results_plot %>% filter(group == "Rocky reef fish",
+                                 !(contrast=="during - after"))%>%
   ggplot(aes(x = thermal_affinity, y = effect.size, color=contrast)) + 
   geom_point(position = position_dodge(width=0.7), 
              stat="identity", size=1) +
@@ -371,7 +382,8 @@ g1 <- es_results %>% filter(group == "Rocky reef fish")%>%
   scale_y_continuous(limits=c(-1,0.8))+
   scale_color_brewer(palette = "Dark2")
 
-g2 <- es_results %>% filter(group == "Deep reef fish")%>%
+g2 <- es_results_plot %>% filter(group == "Deep reef fish",
+                                 !(contrast=="during - after"))%>%
   ggplot(aes(x = thermal_affinity, y = effect.size, color=contrast)) + 
   geom_point(position = position_dodge(width=0.7), 
              stat="identity", size=1) +
@@ -391,7 +403,8 @@ g2 <- es_results %>% filter(group == "Deep reef fish")%>%
   scale_y_continuous(limits=c(-1,0.8))+
   scale_color_brewer(palette = "Dark2")
 
-g3 <- es_results %>% filter(group == "Kelp forest fish")%>%
+g3 <- es_results_plot %>% filter(group == "Kelp forest fish",
+                                 !(contrast=="during - after"))%>%
   ggplot(aes(x = thermal_affinity, y = effect.size, color=contrast)) + 
   geom_point(position = position_dodge(width=0.7), 
              stat="identity", size=1) +
@@ -412,7 +425,8 @@ g3 <- es_results %>% filter(group == "Kelp forest fish")%>%
   scale_color_brewer(palette = "Dark2")
 
 
-g4 <- es_results %>% filter(group == "Kelp forest inverts and algae")%>%
+g4 <- es_results_plot %>% filter(group == "Kelp forest inverts and algae",
+                                 !(contrast=="during - after"))%>%
   ggplot(aes(x = thermal_affinity, y = effect.size, color=contrast)) + 
   geom_point(position = position_dodge(width=0.7), 
              stat="identity", size=1) +
@@ -433,7 +447,7 @@ g4 <- es_results %>% filter(group == "Kelp forest inverts and algae")%>%
   scale_color_brewer(palette = "Dark2")
 
 library(grid)
-g <- ggpubr::ggarrange(g1, g2, g3, g4, nrow=2, ncol=2, 
+g <- ggpubr::ggarrange(g4, g3, g1, g2, nrow=2, ncol=2, 
                        common.legend = TRUE, legend = "right")
 
 g_title<- ggpubr::annotate_figure(g, left = textGrob("Standardzied estimated marginal means (Cohen)", 
