@@ -24,6 +24,7 @@ CCFRP_join1[CCFRP_join1 == ""] <- NA
 kelp_fish_join1[kelp_fish_join1 == ""] <- NA
 kelp_combined_join1[kelp_combined_join1 == ""] <- NA
 deep_reef_join1[deep_reef_join1 == ""]<- NA
+rocky_join1[rocky_join1 ==""]<- NA
 
 ################################################################################
 #calculate %abund by affinity for each year
@@ -38,7 +39,14 @@ CCFRP_affin_mean_total <- CCFRP_join1 %>%
                group_by(year, species, thermal_affinity)%>%
                dplyr::summarize(mean = mean(counts, na.rm = TRUE))%>%
                group_by(year, thermal_affinity)%>%
-               dplyr::summarize(group_total = sum(mean))
+               dplyr::summarize(group_total = sum(mean))%>%
+               mutate(thermal_affinity = factor(thermal_affinity,
+                                                levels = c("cosmopolitan",
+                                                           "tropical",
+                                                           "subtropical",
+                                                           "warm temperate",
+                                                           "cold temperate"
+                                                           )))
 
 kelp_fish_affin_mean_total <- kelp_fish_join1 %>% 
   filter(year >= 2007)%>%
@@ -46,7 +54,14 @@ kelp_fish_affin_mean_total <- kelp_fish_join1 %>%
   group_by(year, species, thermal_affinity)%>%
   dplyr::summarize(mean = mean(counts, na.rm = TRUE))%>%
   group_by(year, thermal_affinity)%>%
-  dplyr::summarize(group_total = sum(mean))
+  dplyr::summarize(group_total = sum(mean))%>%
+  mutate(thermal_affinity = factor(thermal_affinity,
+                                   levels = c("cosmopolitan",
+                                              "tropical",
+                                              "subtropical",
+                                              "warm temperate",
+                                              "cold temperate"
+                                   )))
 
 kelp_combined_affin_mean_total <- kelp_combined_join1 %>% 
   filter(year >= 2007)%>%
@@ -54,7 +69,14 @@ kelp_combined_affin_mean_total <- kelp_combined_join1 %>%
   group_by(year, species, thermal_affinity)%>%
   dplyr::summarize(mean = mean(counts, na.rm = TRUE))%>%
   group_by(year, thermal_affinity)%>%
-  dplyr::summarize(group_total = sum(mean))
+  dplyr::summarize(group_total = sum(mean))%>%
+  mutate(thermal_affinity = factor(thermal_affinity,
+                                   levels = c("cosmopolitan",
+                                              "tropical",
+                                              "subtropical",
+                                              "warm temperate",
+                                              "cold temperate"
+                                   )))
 
 deep_reef_mean_total <- deep_reef_join1 %>% 
   filter(year >= 2007)%>%
@@ -62,16 +84,39 @@ deep_reef_mean_total <- deep_reef_join1 %>%
   group_by(year, species, thermal_affinity)%>%
   dplyr::summarize(mean = mean(counts, na.rm = TRUE))%>%
   group_by(year, thermal_affinity)%>%
-  dplyr::summarize(group_total = sum(mean))
+  dplyr::summarize(group_total = sum(mean))%>%
+  mutate(thermal_affinity = factor(thermal_affinity,
+                                   levels = c("cosmopolitan",
+                                              "tropical",
+                                              "subtropical",
+                                              "warm temperate",
+                                              "cold temperate"
+                                   )))
+
+rocky_mean_total <- rocky_join1 %>%
+   filter(year >= 2007) %>%
+   filter(!(is.na(thermal_affinity)))%>%
+   group_by(year, species, thermal_affinity)%>%
+   dplyr::summarize(mean = mean(counts, na.rm = TRUE))%>%
+   group_by(year, thermal_affinity)%>%
+   dplyr::summarize(group_total = sum(mean))%>%
+  mutate(thermal_affinity = factor(thermal_affinity,
+                                   levels = c("cosmopolitan",
+                                              "tropical",
+                                              "subtropical",
+                                              "warm temperate",
+                                              "cold temperate"
+                                   )))
+
 
 ################################################################################
 #plot
 
-my_theme <-  theme(axis.text=element_text(size=7),
+my_theme <-  theme(axis.text=element_text(size=6),
                    axis.text.y = element_text(angle = 90, hjust = 0.5),
-                   axis.title=element_text(size=8),
+                   axis.title=element_text(size=7),
                    plot.tag=element_blank(), #element_text(size=8),
-                   plot.title =element_text(size=8, face="bold"),
+                   plot.title =element_text(size=7, face="bold"),
                    # Gridlines
                    panel.grid.major = element_blank(), 
                    panel.grid.minor = element_blank(),
@@ -95,32 +140,32 @@ every_nth = function(n) {
 
 
 g1 <- ggplot(CCFRP_affin_mean_total, aes(x = factor(year), y = group_total, fill = thermal_affinity)) + 
-  geom_bar(position = "fill",stat = "identity") +
+  geom_bar(position = "fill",stat = "identity", show.legend=FALSE) +
   # or:
   # geom_bar(position = position_fill(), stat = "identity") 
   scale_y_continuous(labels = scales::percent_format())+
   scale_fill_manual(values=color_set)+
   theme_bw()+my_theme+
   labs(x="", 
-       y="", tag="F", title="Rocky reef fish") +
+       y="", tag="F", title="Rocky reef fishes") +
   guides(fill=guide_legend(title="Thermal affinity"))+
   scale_x_discrete(breaks=every_nth(n = 2))
 
 
 g2 <- ggplot(kelp_fish_affin_mean_total, aes(x = factor(year), y = group_total, fill = thermal_affinity)) + 
-  geom_bar(position = "fill",stat = "identity") +
+  geom_bar(position = "fill",stat = "identity", show.legend = FALSE) +
   # or:
   # geom_bar(position = position_fill(), stat = "identity") 
   scale_y_continuous(labels = scales::percent_format())+
   scale_fill_manual(values=color_set)+
   theme_bw()+my_theme+
   labs(x="", 
-       y="", tag="F", title="Kelp forest fish")+
+       y="", tag="F", title="Kelp forest fishes")+
   guides(fill=guide_legend(title="Thermal affinity"))+
   scale_x_discrete(breaks=every_nth(n = 2))
 
 g3 <- ggplot(kelp_combined_affin_mean_total, aes(x = factor(year), y = group_total, fill = thermal_affinity)) + 
-  geom_bar(position = "fill",stat = "identity") +
+  geom_bar(position = "fill",stat = "identity", show.legend = FALSE) +
   # or:
   # geom_bar(position = position_fill(), stat = "identity") 
   scale_y_continuous(labels = scales::percent_format())+
@@ -132,31 +177,65 @@ g3 <- ggplot(kelp_combined_affin_mean_total, aes(x = factor(year), y = group_tot
   scale_x_discrete(breaks=every_nth(n = 2))
 
 g4 <- ggplot(deep_reef_mean_total, aes(x = factor(year), y = group_total, fill = thermal_affinity)) + 
-  geom_bar(position = "fill",stat = "identity") +
+  geom_bar(position = "fill",stat = "identity", show.legend = FALSE) +
   # or:
   # geom_bar(position = position_fill(), stat = "identity") 
   scale_y_continuous(labels = scales::percent_format())+
   scale_fill_manual(values=color_set)+
   theme_bw()+my_theme+
   labs(x="", 
-       y="", tag="F", title="Deep reef fish")+
-  guides(fill=guide_legend(title="Thermal affinity"))
+       y="", tag="F", title="Deep reef fishes")+
+  guides(fill=guide_legend(title="Thermal affinity"))+
+  scale_x_discrete(breaks=every_nth(n = 2))
+
+g5 <- ggplot(rocky_mean_total, aes(x = factor(year), y = group_total, fill = thermal_affinity)) + 
+  geom_bar(position = "fill",stat = "identity", show.legend = FALSE) +
+  # or:
+  # geom_bar(position = position_fill(), stat = "identity") 
+  scale_y_continuous(labels = scales::percent_format())+
+  scale_fill_manual(values=color_set)+
+  theme_bw()+my_theme+
+  labs(x="", 
+       y="", tag="F", title="Rocky intertidal")+
+  guides(fill=guide_legend(title="Thermal affinity"))+
+  scale_x_discrete(breaks=every_nth(n = 2))
 
 
+#create dummy legend as last panel
+year <- c(2013, 2016, 2020, 2021, 2022)
+height <- c(1,2,3,4,5)
+thermal_affinity <- c('cosmopolitan','tropical','subtropical','warm temperate','cold temperate')
+legend <- data.frame(year, height, thermal_affinity)
+legend$thermal_affinity <- factor(legend$thermal_affinity, levels=c('cosmopolitan','tropical','subtropical','warm temperate','cold temperate')) 
+
+g6 <- ggplot(legend, aes(x = year, y = height, color = thermal_affinity))+
+  geom_point(shape = 15)+
+  lims(x = c(0,0), y = c(0,0))+
+  theme_void()+
+  theme(legend.position = c(0.5,0.5),
+        legend.key.size = unit(0.1, "cm"),
+        legend.text = element_text(size =  4),
+        legend.title = element_text(size = 6, face = "bold"))+
+  guides(colour = guide_legend(override.aes = list(size=4))
+  )+
+  scale_color_manual(values=color_set)
+
+g6$labels$colour <- "Thermal affinity"  
 
 
 # Merge plots
-g <- ggpubr::ggarrange(g1, g2, g3, g4, nrow=2,ncol=2,common.legend=TRUE,
-                       legend="right")
+g <- ggpubr::ggarrange(g5, g3, g2, g1, g4,g6, nrow=3,ncol=3#,common.legend=TRUE,
+                       #legend="right"
+                       )
 g
 
 g_title<- ggpubr::annotate_figure(g, left = textGrob("Perc. of total abundance", 
-                                                     rot = 90, vjust = 2, gp = gpar(cex = 0.7)),
-                                  bottom = textGrob("Year", hjust=2, vjust=-2, gp = gpar(cex = 0.7)))
+                                                     rot = 90, vjust = 2, hjust = 0, gp = gpar(cex = 0.7)),
+                                  bottom = textGrob("Year", hjust=0, vjust=-26, gp = gpar(cex = 0.7)))
 
 # Export
 ggsave(g_title, filename=file.path(figdir, "spp_affinities_perc.png"), 
-     width=6.5, height=4.5, units="in", dpi=600, bg="white")
+     width=6.5, height=6.5, units="in", dpi=600, bg="white")
 
 
 
