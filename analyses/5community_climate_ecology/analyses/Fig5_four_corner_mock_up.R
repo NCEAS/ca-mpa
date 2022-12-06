@@ -11,7 +11,8 @@ library(tidyverse)
 library(patchwork)
 
 # Directories
-basedir <- "/Volumes/GoogleDrive/.shortcut-targets-by-id/1kCsF8rkm1yhpjh2_VMzf8ukSPf9d4tqO/MPA Network Assessment: Working Group Shared Folder/data/sync-data"
+#basedir <- "/Volumes/GoogleDrive/.shortcut-targets-by-id/1kCsF8rkm1yhpjh2_VMzf8ukSPf9d4tqO/MPA Network Assessment: Working Group Shared Folder/data/sync-data"
+basedir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data/"
 gisdir <- file.path(basedir, "gis_data/processed")
 plotdir <- "analyses/5community_climate_ecology/figures"
 
@@ -44,7 +45,9 @@ comp_data <- expand.grid(year=2007:2020,
   ungroup() %>% 
   arrange(habitat, year, guild)
 
-
+#load real data
+corner_dat <- load(file.path(basedir,"four_corner_output.rda"))
+comp_dat1 <- load(file.path(basedir,"comp_data.rda"))
 
 # Plot data
 ################################################################################
@@ -67,8 +70,8 @@ base_theme <-  theme(axis.text=element_text(size=7),
 
 
 # Plot data
-g <- ggplot(data, aes(x=indicator, y=guild, fill=beta)) +
-  facet_wrap(~habitat, nrow=1) +
+g <- ggplot(coef_out, aes(x=`Environmental Variables`, y=`Thermal affinity`, fill=Beta)) +
+  facet_wrap(~Group, nrow=1) +
   geom_raster() +
   # Legend
   scale_fill_gradient2(name="Coefficient",
@@ -86,16 +89,16 @@ g <- ggplot(data, aes(x=indicator, y=guild, fill=beta)) +
 g
   
 # Export
-ggsave(g, filename=file.path(plotdir, "Fig5_four_corner_mockup.png"), 
-       width=6.5, height=2.25, units="in", dpi=600)
+#ggsave(g, filename=file.path(plotdir, "Fig5_four_corner_mockup.png"), 
+#       width=6.5, height=2.25, units="in", dpi=600)
 
 
 # Plot data
 ################################################################################
 
 # Plot composition
-g1 <- ggplot(comp_data, aes(x=year, y=perc, fill=guild)) +
-  facet_wrap(~habitat, ncol=1) +
+g1 <- ggplot(comp_data, aes(x=year, y=group_total, fill=thermal_affinity)) +
+  facet_wrap(~group, ncol=1) +
   geom_bar(stat="identity", position = position_fill(reverse = TRUE)) +
   # Refence lines
   geom_vline(xintercept = c(2013.5, 2016.5), linetype="dashed") +
@@ -115,8 +118,8 @@ g1 <- ggplot(comp_data, aes(x=year, y=perc, fill=guild)) +
 g1
 
 # Plot four corner
-g2 <- ggplot(data2, aes(x=indicator, y=guild, fill=beta)) +
-  facet_wrap(~habitat, ncol=1) +
+g2 <- ggplot(coef_out, aes(x=`Environmental Variables`, y=`Thermal affinity`, fill=Beta)) +
+  facet_wrap(~Group, ncol=1) +
   geom_raster() +
   # Labels
   labs(x="Indicator", y="Thermal affinity", tag="B") +
@@ -139,8 +142,8 @@ g <- gridExtra::grid.arrange(g1, g2, ncol=2, widths=c(0.66,  0.34))
 g
 
 # Export
-ggsave(g, filename=file.path(plotdir, "Fig5_species_composition_mockup.png"), 
-       width=6.5, height=6.5, units="in", dpi=600)
+#ggsave(g, filename=file.path(plotdir, "Fig5_species_composition_mockup.png"), 
+#       width=6.5, height=6.5, units="in", dpi=600)
 
 
 
