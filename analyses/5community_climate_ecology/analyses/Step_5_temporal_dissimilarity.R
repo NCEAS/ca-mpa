@@ -834,11 +834,13 @@ sim_rocky <- with(rocky_group_vars, simper(rocky_ord_data, MHW))
 # Cluster analysis --------------------------------------------------------
 
 #Filter 2010 and beyond
-CCFRP_10_dist <- meandist(CCFRP_distmat, grouping = CCFRP_group_vars$year)[4:14,4:14]
-kelp_invalg_10_dist <- meandist(kelp_invalg_distmat, grouping = kelp_invalg_group_vars$year)[12:22,12:22]
-kelp_fish_10_dist <- meandist(kelp_fish_distmat, grouping = kelp_fish_group_vars$year)[12:22,12:22]
-deep_reef_10_dist <- meandist(deep_reef_distmat, grouping = deep_reef_group_vars$year)[4:8,4:8]
-rocky_10_dist <- meandist(rocky_distmat, grouping = rocky_group_vars$year)[9:19,9:19]
+CCFRP_10_dist <- meandist(CCFRP_distmat, grouping = CCFRP_group_vars$year)[1:14,1:14]
+kelp_invalg_10_dist <- meandist(kelp_invalg_distmat, grouping = kelp_invalg_group_vars$year)[9:22,9:22]
+kelp_fish_10_dist <- meandist(kelp_fish_distmat, grouping = kelp_fish_group_vars$year)[9:22,9:22]
+deep_reef_10_dist <- meandist(deep_reef_distmat, grouping = deep_reef_group_vars$year)[2:8,2:8]
+rocky_10_dist <- meandist(rocky_distmat, grouping = rocky_group_vars$year)[6:19,6:19]
+
+#rocky_dist_un2 <- meandist(rocky_dist_un, grouping = rocky_group_vars$year)[1:14,1:14]
 
 #run cluster analysis and format for plotting
 ccfrp_clust <- hclust(as.dist(CCFRP_10_dist),
@@ -851,8 +853,9 @@ deep_reef_clust <- hclust(as.dist(deep_reef_10_dist),
                                   method="average")
 rocky_clust <- hclust(as.dist(rocky_10_dist),
                             method="average")
+plot(rocky_clust)
 
-
+rocky_clust_un <- hclust(as.dist(rocky_dist_un2), method="average")
 
 #helper function for k clustering
 dendro_data_k <- function(hc, k) {
@@ -894,10 +897,10 @@ den_rocky <- dendro_data_k(rocky_clust, 2)
 
 #CCFRP
 ccfrp_seg <- segment(den_ccfrp) %>%
-  mutate(yend = ifelse(yend < 0.01, 0.2, yend))
+  mutate(yend = ifelse(yend < 0.01, 0.21, yend))
 
 ccfrp_text <- label(den_ccfrp) %>%
-  mutate(y = 0.2,
+  mutate(y = 0.21,
          MHW = ifelse(as.numeric(label) < 2014, "before",
                       ifelse(as.numeric(label) > 2016, "after","during")))
 ccfrp_text$MHW <- factor(ccfrp_text$MHW, levels=c('before', 'during', 'after'))
@@ -915,7 +918,7 @@ CCFRP <- ggplot() +
   theme(axis.line.y = element_line(),
         axis.ticks.y = element_line(),
         axis.text.y = element_text(size=6)) +
-  scale_y_continuous(limits = c(0.15, 0.4),
+  scale_y_continuous(limits = c(0.18, 0.4),
                      breaks = seq(0.2, 0.6, by = 0.05)) +
   geom_text(aes(x = x,
                 y = y,
@@ -923,13 +926,13 @@ CCFRP <- ggplot() +
                 color = MHW),
             angle = 90, hjust = 1.1, vjust = 0.5,
             data = ccfrp_text,
-            size=3,
+            size=2,
             key_glyph = "point")+
   scale_color_manual(values=c('#C0C0C0', '#444444','#4c78b5','#44b89d','#f56969'))+
   labs(color='heatwave period')+
   guides(color="none")+
-  ggtitle("CCFRP")+
-  theme(plot.title = element_text(size = 8, face = "bold"))
+  ggtitle("Rocky reef fishes")+
+  theme(plot.title = element_text(size = 7, face = "bold"))
 
 
 #kelp invalg
@@ -955,7 +958,7 @@ invalg <- ggplot() +
   theme(axis.line.y = element_line(),
         axis.ticks.y = element_line(),
         axis.text.y = element_text(size=6)) +
-  scale_y_continuous(limits = c(0.36, 0.55),
+  scale_y_continuous(limits = c(0.38, 0.55),
                      breaks = seq(0.4, 0.6, by = 0.05)) +
   geom_text(aes(x = x,
                 y = y,
@@ -963,23 +966,23 @@ invalg <- ggplot() +
                 color = MHW),
             angle = 90, hjust = 1.1, vjust = 0.5,
             data = invalg_text,
-            size=3,
+            size=2,
             key_glyph = "point")+
   scale_color_manual(values=c('#C0C0C0', '#444444','#4c78b5','#44b89d','#f56969'))+
   labs(color='heatwave period')+
   guides(color="none")+
-  ggtitle("kelp inverts and algae")+
-  theme(plot.title = element_text(size = 8, face = "bold"))
+  ggtitle("Kelp invertebrates and algae")+
+  theme(plot.title = element_text(size = 7, face = "bold"))
 
 
 
 
 #kelp fish
 fish_seg <- segment(den_kelp_fish) %>%
-  mutate(yend = ifelse(yend < 0.01, 0.2, yend))
+  mutate(yend = ifelse(yend < 0.01, 0.22, yend))
 
 fish_text <- label(den_kelp_fish) %>%
-  mutate(y = 0.2,
+  mutate(y = 0.22,
          MHW = ifelse(as.numeric(label) < 2014, "before",
                       ifelse(as.numeric(label) > 2016, "after","during")))
 fish_text$MHW <- factor(fish_text$MHW, levels=c('before', 'during', 'after'))
@@ -997,31 +1000,31 @@ kelp_fish <- ggplot() +
   theme(axis.line.y = element_line(),
         axis.ticks.y = element_line(),
         axis.text.y = element_text(size=6)) +
-  scale_y_continuous(limits = c(0.14, 0.45),
-                     breaks = seq(0.2, 0.45, by = 0.05)) +
+  scale_y_continuous(limits = c(0.185, 0.48),
+                     breaks = seq(0.2, 0.48, by = 0.05)) +
   geom_text(aes(x = x,
                 y = y,
                 label = label,
                 color = MHW),
             angle = 90, hjust = 1.1, vjust = 0.5,
             data = fish_text,
-            size=3,
+            size=2,
             key_glyph = "point")+
   scale_color_manual(values=c('#C0C0C0', '#444444','#4c78b5','#44b89d','#f56969'))+
   labs(color='heatwave period')+
   guides(color="none") +
-  ggtitle("kelp forest fish")+
-  theme(plot.title = element_text(size = 8, face = "bold"))
+  ggtitle("Kelp forest fishes")+
+  theme(plot.title = element_text(size = 7, face = "bold"))
 
 
 
 
 #deep reef
 deep_seg <- segment(den_deep_reef) %>%
-  mutate(yend = ifelse(yend < 0.01, 0.4, yend))
+  mutate(yend = ifelse(yend < 0.01, 0.227, yend))
 
 deep_text <- label(den_deep_reef) %>%
-  mutate(y = 0.4,
+  mutate(y = 0.217,
          MHW = ifelse(as.numeric(label) < 2014, "before",
                       ifelse(as.numeric(label) > 2016, "after","during")))
 deep_text$MHW <- factor(deep_text$MHW, levels=c('before', 'during', 'after'))
@@ -1039,31 +1042,31 @@ deep_reef <- ggplot() +
   theme(axis.line.y = element_line(),
         axis.ticks.y = element_line(),
         axis.text.y = element_text(size=6)) +
-  scale_y_continuous(limits = c(0.365, 0.55),
+  scale_y_continuous(limits = c(0.18, 0.55),
                      breaks = seq(0.2, 0.55, by = 0.05)) +
   geom_text(aes(x = x,
                 y = y,
                 label = label,
                 color = MHW),
-            angle = 90, hjust = 1.1, vjust = 0.5,
+            angle = 90, hjust = 0.9, vjust = 0.5,
             data = deep_text,
-            size=3,
+            size=2,
             key_glyph = "point")+
   scale_color_manual(values=c('#C0C0C0', '#444444','#4c78b5','#44b89d','#f56969'))+
   labs(color='heatwave period')+
   guides(color="none")+
-  ggtitle("deep reef")+
-  theme(plot.title = element_text(size = 8, face = "bold"))
+  ggtitle("Deep reef fishes")+
+  theme(plot.title = element_text(size = 7, face = "bold"))
 
 
 
 
 #rocky
 rocky_seg <- segment(den_rocky) %>%
-  mutate(yend = ifelse(yend < 0.01, 0.3, yend))
+  mutate(yend = ifelse(yend < 0.01, 0.295, yend))
 
 rocky_text <- label(den_rocky) %>%
-  mutate(y = 0.3,
+  mutate(y = 0.295,
          MHW = ifelse(as.numeric(label) < 2014, "before",
                       ifelse(as.numeric(label) > 2016, "after","during")))
 rocky_text$MHW <- factor(rocky_text$MHW, levels=c('before', 'during', 'after'))
@@ -1081,7 +1084,7 @@ rocky <- ggplot() +
   theme(axis.line.y = element_line(),
         axis.ticks.y = element_line(),
         axis.text.y = element_text(size=6)) +
-  scale_y_continuous(limits = c(0.276, 0.4),
+  scale_y_continuous(limits = c(0.28, 0.4),
                      breaks = seq(0.3, 0.4, by = 0.05)) +
   geom_text(aes(x = x,
                 y = y,
@@ -1089,13 +1092,13 @@ rocky <- ggplot() +
                 color = MHW),
             angle = 90, hjust = 1.1, vjust = 0.5,
             data = rocky_text,
-            size=3,
+            size=2,
             key_glyph = "point")+
   scale_color_manual(values=c('#C0C0C0', '#444444','#4c78b5','#44b89d','#f56969'))+
   labs(color='heatwave period')+
   guides(color="none")+
-  ggtitle("rocky intertidal")+
-  theme(plot.title = element_text(size = 8, face = "bold"))
+  ggtitle("Rocky intertidal")+
+  theme(plot.title = element_text(size = 7, face = "bold"))
 
 
 
@@ -1122,9 +1125,9 @@ p3 <- ggplot(legend, aes(x = year, y = height, color = heatwave_period))+
          )+
   scale_color_manual(values=c('#44b89d','#f56969','#4c78b5'))
 
-p3$labels$colour <- "heatwave period"  
+p3$labels$colour <- "Heatwave period"  
 
-dendro_fig <- ggarrange(CCFRP, kelp_fish, deep_reef, invalg, rocky,
+dendro_fig <- ggarrange(rocky, invalg, kelp_fish, CCFRP, deep_reef, 
           p3,
           align='h'
           ) #labels=c('A', 'B','C','D', 'E'),
@@ -1137,7 +1140,7 @@ dendro_fig2<- annotate_figure(dendro_fig,
                 left = text_grob("Dissimilarity", rot=90, size=8)
 )
 
-#ggsave(here::here("analyses", "5community_climate_ecology", "figures", "dendro_cluster.png"), dendro_fig2, width=6,height=4, bg="white", dpi = 600, units = "in")
+ggsave(here::here("analyses", "5community_climate_ecology", "figures", "dendro_cluster2.png"), dendro_fig2, width=6,height=4, bg="white", dpi = 600, units = "in")
 
 
 

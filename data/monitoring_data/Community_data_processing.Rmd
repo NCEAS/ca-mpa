@@ -974,7 +974,36 @@ rocky_count_prop <- rocky_count_envr %>%
 ```
 
 
+```{r}
 
+
+prop <- rocky_count_envr[,24:66]
+
+group <- rocky_count_envr[,1:2]
+
+rocky_distmat <- 
+    vegan::vegdist(prop, method = "bray", na.rm=T)
+
+rocky_10_dist <- meandist(rocky_distmat, grouping = group$year)
+
+rocky_clust <- hclust(as.dist(rocky_10_dist),
+                            method="complete")
+plot(rocky_clust)
+
+
+betadisp <- betadisper(rocky_distmat, group = group$year, type="centroid")
+
+beta_clust <- hclust(as.dist(betadisp$centroids),
+                     method="average")
+
+plot(beta_clust)
+
+
+rocky_clust2 <- hclust(rocky_distmat)
+
+plot(rocky_clust2)
+
+```
 
 
 

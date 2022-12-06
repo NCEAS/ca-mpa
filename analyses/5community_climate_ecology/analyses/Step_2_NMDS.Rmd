@@ -171,8 +171,8 @@ CCFRP<- ggplot(data=cent, aes(NMDS1, NMDS2)) +
      geom_text(data = en_coord_cont, aes(x = (NMDS1), y = (NMDS2)), colour = "black", 
        fontface = "bold", label = row.names(en_coord_cont), position=position_jitter(width=0.02,height=0.02), size=2) + 
   ggtitle("Rocky reef fishes")+
-  scale_color_manual(values=c('#44b89d','#f56969','#4c78b5',
-                              '#44b89d','#f56969','#4c78b5'))+
+  scale_color_manual(values=c('#004D40','#D81B60','#1E88E5',
+                              '#004D40','#D81B60','#1E88E5'))+
   labs(shape="MPA",color='Heatwave period') +
   annotate(geom="text", 
            x=0.12, 
@@ -253,7 +253,8 @@ kelp_invalg<- ggplot(data=cent, aes(NMDS1, NMDS2)) +
      geom_text(data = en_coord_cont, aes(x = (NMDS1), y = (NMDS2)), colour = "black", 
        fontface = "bold", label = row.names(en_coord_cont), position=position_jitter(width=0.02,height=0.02), size=2) + 
   ggtitle("Kelp invertebrates and algae")+
-  scale_color_manual(values=c('#44b89d','#f56969','#4c78b5'))+
+  scale_color_manual(values=c('#004D40','#D81B60','#1E88E5',
+                              '#004D40','#D81B60','#1E88E5'))+
   labs(shape="site type",color='heatwave period') +
   annotate(geom="text", 
            x=0.3, 
@@ -328,7 +329,8 @@ kelp_fish<- ggplot(data=cent, aes(NMDS1, NMDS2)) +
      geom_text(data = en_coord_cont, aes(x = (NMDS1), y = (NMDS2)), colour = "black", 
        fontface = "bold", label = row.names(en_coord_cont), position=position_jitter(width=0.01,height=0.01), size=2) + 
   ggtitle("Kelp forest fishes")+
-  scale_color_manual(values=c('#44b89d','#f56969','#4c78b5'))+
+ scale_color_manual(values=c('#004D40','#D81B60','#1E88E5',
+                              '#004D40','#D81B60','#1E88E5'))+
   labs(shape="site type",color='heatwave period') +
   annotate(geom="text", 
            x=0.05, 
@@ -403,7 +405,7 @@ deep_reef<- ggplot(data=cent, aes(NMDS1, NMDS2)) +
      geom_text(data = en_coord_cont, aes(x = (NMDS1), y = (NMDS2)), colour = "black", 
        fontface = "bold", label = row.names(en_coord_cont), position=position_jitter(width=0.01,height=0.01), size=2) + 
   ggtitle("Deep reef fishes")+
-  scale_color_manual(values=c('#44b89d','#f56969','#4c78b5'))+
+  scale_color_manual(values=c('#004D40','#D81B60','#1E88E5'))+
   labs(shape="site type",color='heatwave period') +
   #theme(text = element_text(12))+
   annotate(geom="text", 
@@ -481,7 +483,7 @@ rocky<- ggplot(data=cent, aes(NMDS1, NMDS2)) +
      geom_text(data = en_coord_cont, aes(x = (NMDS1), y = (NMDS2)), colour = "black", 
        fontface = "bold", label = row.names(en_coord_cont), position=position_jitter(width=0.01,height=0.01), size=2) + 
   ggtitle("Rocky intertidal")+
-  scale_color_manual(values=c('#44b89d','#f56969','#4c78b5'))+
+  scale_color_manual(values=c('#004D40','#D81B60','#1E88E5'))+
   labs(shape="site type",color='heatwave period') +
   #theme(text = element_text(12))+
     annotate(geom="text", 
@@ -507,11 +509,11 @@ legend <- get_legend(
 )
 
 cplot <- cowplot::plot_grid(
-  CCFRP + theme(legend.position="none"),
-  kelp_fish + theme(legend.position="none"),
-  deep_reef + theme(legend.position="none"),
-  kelp_invalg + theme(legend.position="none"),
   rocky + theme(legend.position="none"),
+  kelp_invalg + theme(legend.position="none"),
+  kelp_fish + theme(legend.position="none"),
+  CCFRP + theme(legend.position="none"),
+  deep_reef + theme(legend.position="none"),
   legend
   )
 print(cplot)

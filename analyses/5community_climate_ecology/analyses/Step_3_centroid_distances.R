@@ -246,34 +246,119 @@ sig_distance <- left_join(distance1, perm_output,
                 rename("p-val" = `Pr(>F)`) %>%
                 mutate(period = factor(period, levels=c("before-to-during",
                                                         "before-to-after")))
+sig_distance$period <- recode_factor(sig_distance$period, "before-to-during"="Before-to-during")
+sig_distance$period <- recode_factor(sig_distance$period, "before-to-after"="Before-to-after")
 
 
-betadisp_plot <- 
+
+my_theme <-  theme(axis.text=element_text(size=8),
+                   axis.text.y = element_text(angle = 90, hjust = 0.5),
+                   axis.title=element_text(size=10),
+                   plot.tag=element_blank(), #element_text(size=8),
+                   plot.title =element_text(size=9, face="bold"),
+                   # Gridlines
+                   panel.grid.major = element_blank(), 
+                   panel.grid.minor = element_blank(),
+                   panel.background = element_blank(), 
+                   axis.line = element_line(colour = "black"),
+                   # Legend
+                   legend.key = element_blank(),
+                   legend.text=element_text(size=6),
+                   legend.title=element_text(size=8),
+                   legend.background = element_rect(fill=alpha('blue', 0)),
+                   #facets
+                   strip.text = element_text(size=6),
+                   #margins
+                   #plot.margin=unit(c(0.01,0.01,0.01,0.01),"cm")
+)
+
+
+p1 <- 
   sig_distance %>%
   rename("Period"=period)%>%
-  ggplot(aes(x=reorder(group,value), y=value, shape=Period, color=MPA_type))+
+  filter(Period == "Before-to-during")%>%
+  mutate(group = factor(group, levels = c("Rocky intertidal","Kelp forest inverts and algae",
+                                          "Kelp forest fishes","Rocky reef fishes","Deep reef fishes")))%>%
+  arrange(MPA_type, -value, group)%>%
+  mutate(mpa_ordered = fct_inorder(paste(MPA_type, group, sep = "."))) |> 
+  ggplot(aes(x = MPA_type, y = value, color = group, group = mpa_ordered)) +
   geom_point(position = position_dodge(width=0.8),
              size=3)+
   geom_errorbar(aes(ymin=value-sd_pooled,
                     ymax = value+sd_pooled), stat="identity",
                 position = position_dodge(width=0.8), size=0.3, width=.3)+
-  scale_color_manual(name='MPA',
-                     breaks=c('In', 'Out'),
-                     values=c('In'='#EB6977', 'Out'='#13A0DD'))+
+  #scale_color_manual(name='MPA',
+   #                  breaks=c('In', 'Out'),
+    #                 values=c('In'='#EB6977', 'Out'='#13A0DD'))+
   #add significance level
-  geom_text(aes(label=sig), size=5, vjust=-0.01,
+  geom_text(aes(label=sig), size=5, hjust=-1, vjust=0.8,
             position = position_dodge(width=0.8),
             show.legend = FALSE)+
-  ylab("Distance (Bray-Curtis)")+
-  xlab("Community")+
-  geom_vline(xintercept=c(1.5, 2.5,3.5,4.5), color="grey",alpha=.4)+
-  coord_flip()+
+  ylab("")+
+  xlab("")+
+  scale_y_continuous(limits=c(-0.04,0.3))+
+ labs(color = "Community")+
+  scale_color_brewer(palette="Dark2") +
+  #geom_vline(xintercept=c(1.5, 2.5,3.5,4.5), color="grey",alpha=.4)+
+  #coord_flip()+
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
         panel.background = element_blank(), axis.line = element_line(colour = "black"),
-        legend.key=element_blank())
+        legend.key=element_blank())+
+  ggtitle("Before-to-during")+
+  my_theme
 
-ggsave(here::here("analyses", "5community_climate_ecology", "figures", "betadisp_plot.png"), betadisp_plot, height=6, width = 8, units = "in", 
-   dpi = 600, bg="white")
+
+
+p2 <- 
+  sig_distance %>%
+  rename("Period"=period)%>%
+  filter(Period == "Before-to-after")%>%
+  mutate(group = factor(group, levels = c("Rocky intertidal","Kelp forest inverts and algae",
+                                          "Kelp forest fishes","Rocky reef fishes","Deep reef fishes")))%>%
+  arrange(MPA_type, -value, group)%>%
+  mutate(mpa_ordered = fct_inorder(paste(MPA_type, group, sep = "."))) |> 
+  ggplot(aes(x = MPA_type, y = value, color = group, group = mpa_ordered)) +
+  geom_point(position = position_dodge(width=0.8),
+             size=3)+
+  geom_errorbar(aes(ymin=value-sd_pooled,
+                    ymax = value+sd_pooled), stat="identity",
+                position = position_dodge(width=0.8), size=0.3, width=.3)+
+  #scale_color_manual(name='MPA',
+  #                  breaks=c('In', 'Out'),
+  #                 values=c('In'='#EB6977', 'Out'='#13A0DD'))+
+  #add significance level
+  geom_text(aes(label=sig), size=5, hjust=-1, vjust=0.8,
+            position = position_dodge(width=0.8),
+            show.legend = FALSE)+
+  ylab("")+
+  xlab("")+
+  labs(color = "Community")+
+  scale_y_continuous(limits=c(-0.04,0.3))+
+  scale_color_brewer(palette="Dark2") +
+  #geom_vline(xintercept=c(1.5, 2.5,3.5,4.5), color="grey",alpha=.4)+
+  #coord_flip()+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        panel.background = element_blank(), axis.line = element_line(colour = "black"),
+        legend.key=element_blank())+
+  ggtitle("Before-to-after")+
+  my_theme
+
+
+
+library(grid)
+g <- ggpubr::ggarrange(p1, p2, nrow=1, ncol=2, 
+                       common.legend = TRUE, legend = "right")
+
+
+
+g_title<- ggpubr::annotate_figure(g, left = textGrob("Distance (Bray-Curtis)", 
+                                                     rot = 90, vjust = 2, gp = gpar(cex = 0.8)),
+                                  bottom = textGrob("MPA", hjust=2.5, vjust=-2, gp = gpar(cex = 0.8)))
+
+
+
+#ggsave(here::here("analyses", "5community_climate_ecology", "figures", "betadisp_plot2.png"), g_title, height=6, width = 8, units = "in", 
+#   dpi = 600, bg="white")
 
 
 

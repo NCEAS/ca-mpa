@@ -24,6 +24,7 @@ CCFRP_join1[CCFRP_join1 == ""] <- NA
 kelp_fish_join1[kelp_fish_join1 == ""] <- NA
 kelp_combined_join1[kelp_combined_join1 == ""] <- NA
 deep_reef_join1[deep_reef_join1 == ""]<- NA
+rocky_join1[rocky_join1 ==""]<- NA
 
 ################################################################################
 #calculate %abund by affinity for each year
@@ -38,7 +39,14 @@ CCFRP_affin_mean_total <- CCFRP_join1 %>%
                group_by(year, species, thermal_affinity)%>%
                dplyr::summarize(mean = mean(counts, na.rm = TRUE))%>%
                group_by(year, thermal_affinity)%>%
-               dplyr::summarize(group_total = sum(mean))
+               dplyr::summarize(group_total = sum(mean))%>%
+               mutate(thermal_affinity = factor(thermal_affinity,
+                                                levels = c("cosmopolitan",
+                                                           "tropical",
+                                                           "subtropical",
+                                                           "warm temperate",
+                                                           "cold temperate"
+                                                           )))
 
 kelp_fish_affin_mean_total <- kelp_fish_join1 %>% 
   filter(year >= 2007)%>%
@@ -46,7 +54,14 @@ kelp_fish_affin_mean_total <- kelp_fish_join1 %>%
   group_by(year, species, thermal_affinity)%>%
   dplyr::summarize(mean = mean(counts, na.rm = TRUE))%>%
   group_by(year, thermal_affinity)%>%
-  dplyr::summarize(group_total = sum(mean))
+  dplyr::summarize(group_total = sum(mean))%>%
+  mutate(thermal_affinity = factor(thermal_affinity,
+                                   levels = c("cosmopolitan",
+                                              "tropical",
+                                              "subtropical",
+                                              "warm temperate",
+                                              "cold temperate"
+                                   )))
 
 kelp_combined_affin_mean_total <- kelp_combined_join1 %>% 
   filter(year >= 2007)%>%
@@ -54,7 +69,14 @@ kelp_combined_affin_mean_total <- kelp_combined_join1 %>%
   group_by(year, species, thermal_affinity)%>%
   dplyr::summarize(mean = mean(counts, na.rm = TRUE))%>%
   group_by(year, thermal_affinity)%>%
-  dplyr::summarize(group_total = sum(mean))
+  dplyr::summarize(group_total = sum(mean))%>%
+  mutate(thermal_affinity = factor(thermal_affinity,
+                                   levels = c("cosmopolitan",
+                                              "tropical",
+                                              "subtropical",
+                                              "warm temperate",
+                                              "cold temperate"
+                                   )))
 
 deep_reef_mean_total <- deep_reef_join1 %>% 
   filter(year >= 2007)%>%
@@ -62,16 +84,39 @@ deep_reef_mean_total <- deep_reef_join1 %>%
   group_by(year, species, thermal_affinity)%>%
   dplyr::summarize(mean = mean(counts, na.rm = TRUE))%>%
   group_by(year, thermal_affinity)%>%
-  dplyr::summarize(group_total = sum(mean))
+  dplyr::summarize(group_total = sum(mean))%>%
+  mutate(thermal_affinity = factor(thermal_affinity,
+                                   levels = c("cosmopolitan",
+                                              "tropical",
+                                              "subtropical",
+                                              "warm temperate",
+                                              "cold temperate"
+                                   )))
+
+rocky_mean_total <- rocky_join1 %>%
+   filter(year >= 2007) %>%
+   filter(!(is.na(thermal_affinity)))%>%
+   group_by(year, species, thermal_affinity)%>%
+   dplyr::summarize(mean = mean(counts, na.rm = TRUE))%>%
+   group_by(year, thermal_affinity)%>%
+   dplyr::summarize(group_total = sum(mean))%>%
+  mutate(thermal_affinity = factor(thermal_affinity,
+                                   levels = c("cosmopolitan",
+                                              "tropical",
+                                              "subtropical",
+                                              "warm temperate",
+                                              "cold temperate"
+                                   )))
+
 
 ################################################################################
 #plot
 
-my_theme <-  theme(axis.text=element_text(size=7),
+my_theme <-  theme(axis.text=element_text(size=6),
                    axis.text.y = element_text(angle = 90, hjust = 0.5),
-                   axis.title=element_text(size=8),
+                   axis.title=element_text(size=7),
                    plot.tag=element_blank(), #element_text(size=8),
-                   plot.title =element_text(size=8, face="bold"),
+                   plot.title =element_text(size=7, face="bold"),
                    # Gridlines
                    panel.grid.major = element_blank(), 
                    panel.grid.minor = element_blank(),
@@ -95,32 +140,32 @@ every_nth = function(n) {
 
 
 g1 <- ggplot(CCFRP_affin_mean_total, aes(x = factor(year), y = group_total, fill = thermal_affinity)) + 
-  geom_bar(position = "fill",stat = "identity") +
+  geom_bar(position = "fill",stat = "identity", show.legend=FALSE) +
   # or:
   # geom_bar(position = position_fill(), stat = "identity") 
   scale_y_continuous(labels = scales::percent_format())+
   scale_fill_manual(values=color_set)+
   theme_bw()+my_theme+
   labs(x="", 
-       y="", tag="F", title="Rocky reef fish") +
+       y="", tag="F", title="Rocky reef fishes") +
   guides(fill=guide_legend(title="Thermal affinity"))+
   scale_x_discrete(breaks=every_nth(n = 2))
 
 
 g2 <- ggplot(kelp_fish_affin_mean_total, aes(x = factor(year), y = group_total, fill = thermal_affinity)) + 
-  geom_bar(position = "fill",stat = "identity") +
+  geom_bar(position = "fill",stat = "identity", show.legend = FALSE) +
   # or:
   # geom_bar(position = position_fill(), stat = "identity") 
   scale_y_continuous(labels = scales::percent_format())+
   scale_fill_manual(values=color_set)+
   theme_bw()+my_theme+
   labs(x="", 
-       y="", tag="F", title="Kelp forest fish")+
+       y="", tag="F", title="Kelp forest fishes")+
   guides(fill=guide_legend(title="Thermal affinity"))+
   scale_x_discrete(breaks=every_nth(n = 2))
 
 g3 <- ggplot(kelp_combined_affin_mean_total, aes(x = factor(year), y = group_total, fill = thermal_affinity)) + 
-  geom_bar(position = "fill",stat = "identity") +
+  geom_bar(position = "fill",stat = "identity", show.legend = FALSE) +
   # or:
   # geom_bar(position = position_fill(), stat = "identity") 
   scale_y_continuous(labels = scales::percent_format())+
@@ -132,31 +177,65 @@ g3 <- ggplot(kelp_combined_affin_mean_total, aes(x = factor(year), y = group_tot
   scale_x_discrete(breaks=every_nth(n = 2))
 
 g4 <- ggplot(deep_reef_mean_total, aes(x = factor(year), y = group_total, fill = thermal_affinity)) + 
-  geom_bar(position = "fill",stat = "identity") +
+  geom_bar(position = "fill",stat = "identity", show.legend = FALSE) +
   # or:
   # geom_bar(position = position_fill(), stat = "identity") 
   scale_y_continuous(labels = scales::percent_format())+
   scale_fill_manual(values=color_set)+
   theme_bw()+my_theme+
   labs(x="", 
-       y="", tag="F", title="Deep reef fish")+
-  guides(fill=guide_legend(title="Thermal affinity"))
+       y="", tag="F", title="Deep reef fishes")+
+  guides(fill=guide_legend(title="Thermal affinity"))+
+  scale_x_discrete(breaks=every_nth(n = 2))
+
+g5 <- ggplot(rocky_mean_total, aes(x = factor(year), y = group_total, fill = thermal_affinity)) + 
+  geom_bar(position = "fill",stat = "identity", show.legend = FALSE) +
+  # or:
+  # geom_bar(position = position_fill(), stat = "identity") 
+  scale_y_continuous(labels = scales::percent_format())+
+  scale_fill_manual(values=color_set)+
+  theme_bw()+my_theme+
+  labs(x="", 
+       y="", tag="F", title="Rocky intertidal")+
+  guides(fill=guide_legend(title="Thermal affinity"))+
+  scale_x_discrete(breaks=every_nth(n = 2))
 
 
+#create dummy legend as last panel
+year <- c(2013, 2016, 2020, 2021, 2022)
+height <- c(1,2,3,4,5)
+thermal_affinity <- c('cosmopolitan','tropical','subtropical','warm temperate','cold temperate')
+legend <- data.frame(year, height, thermal_affinity)
+legend$thermal_affinity <- factor(legend$thermal_affinity, levels=c('cosmopolitan','tropical','subtropical','warm temperate','cold temperate')) 
+
+g6 <- ggplot(legend, aes(x = year, y = height, color = thermal_affinity))+
+  geom_point(shape = 15)+
+  lims(x = c(0,0), y = c(0,0))+
+  theme_void()+
+  theme(legend.position = c(0.5,0.5),
+        legend.key.size = unit(0.1, "cm"),
+        legend.text = element_text(size =  4),
+        legend.title = element_text(size = 6, face = "bold"))+
+  guides(colour = guide_legend(override.aes = list(size=4))
+  )+
+  scale_color_manual(values=color_set)
+
+g6$labels$colour <- "Thermal affinity"  
 
 
 # Merge plots
-g <- ggpubr::ggarrange(g1, g2, g3, g4, nrow=2,ncol=2,common.legend=TRUE,
-                       legend="right")
+g <- ggpubr::ggarrange(g5, g3, g2, g1, g4,g6, nrow=3,ncol=3#,common.legend=TRUE,
+                       #legend="right"
+                       )
 g
 
 g_title<- ggpubr::annotate_figure(g, left = textGrob("Perc. of total abundance", 
-                                                     rot = 90, vjust = 2, gp = gpar(cex = 0.7)),
-                                  bottom = textGrob("Year", hjust=2, vjust=-2, gp = gpar(cex = 0.7)))
+                                                     rot = 90, vjust = 2, hjust = 0, gp = gpar(cex = 0.7)),
+                                  bottom = textGrob("Year", hjust=0, vjust=-26, gp = gpar(cex = 0.7)))
 
 # Export
 ggsave(g_title, filename=file.path(figdir, "spp_affinities_perc.png"), 
-     width=6.5, height=4.5, units="in", dpi=600, bg="white")
+     width=6.5, height=6.5, units="in", dpi=600, bg="white")
 
 
 
@@ -181,7 +260,12 @@ deep_reef_mod <- deep_reef_join1 %>% mutate(site = as.factor(paste(affiliated_mp
                                             year = as.numeric(year),
                                             MHW = factor(MHW, levels=c("before","during","after")))%>% #set reference level
                             filter(!(is.na(thermal_affinity)))
-
+rocky_mod <- rocky_join1 %>% mutate(site = as.factor(paste(affiliated_mpa,mpa_designation)),
+                                            year = as.numeric(year),
+                                    MHW = ifelse(year < 2014, "before",
+                                                 ifelse(year > 2016, "after","during")),
+                                            MHW = factor(MHW, levels=c("before","during","after")))%>% #set reference level
+  filter(!(is.na(thermal_affinity)))
 
 ################################################################################
 #build mixed models
@@ -237,6 +321,19 @@ deep_reef_ls <- emmeans(deep_reef_mixed, specs = pairwise ~ MHW|thermal_affinity
 
 deep_reef_ef <- eff_size(deep_reef_ls, sigma = sigma(deep_reef_mixed), edf = Inf, method="identity")
 
+
+########### rocky intertidal
+rocky_mixed <- lmer(counts ~ year+MHW+thermal_affinity+MHW*thermal_affinity + (1 | site),
+                  data = rocky_mod)
+
+rocky_sig<- anova(rocky_mixed)
+
+#examine least square means
+rocky_ls <- emmeans(rocky_mixed, specs = pairwise ~ MHW|thermal_affinity, adjust = "tukey")
+rocky_ef <- eff_size(rocky_ls, sigma = sigma(rocky_mixed), edf = Inf, method="identity")
+
+
+
 ################################################################################
 #collect ls means
 
@@ -259,10 +356,11 @@ deep_reef_contrast <- collect_fun(deep_reef_ls, "Deep reef fish") %>%
                         rename("asymp.LCL"=lower.CL,
                                "asymp.UCL"=upper.CL,
                                "z.ratio"=t.ratio)
+rocky_contrast <- collect_fun(rocky_ls, "Rocky intertidal")
 
 
 contrast_results <- rbind(ccfrp_constrast, kelp_fish_contrast, kelp_invalg_contrast,
-                          deep_reef_contrast)%>%
+                          deep_reef_contrast, rocky_contrast)%>%
   mutate(sig_level = ifelse(p.value <= 0.05, "*",
                             ifelse(p.value <=0.01,"**",
                                    ifelse(p.value <= 0.001,"*",""))),
@@ -273,7 +371,7 @@ contrast_results <- rbind(ccfrp_constrast, kelp_fish_contrast, kelp_invalg_contr
                                               "tropical",
                                               "cosmopolitan")),
          group = factor(group, level=c(
-           "Rocky reef fish", "Deep reef fish",
+           "Rocky intertidal","Rocky reef fish", "Deep reef fish",
            "Kelp forest fish","Kelp forest inverts and algae"
          )))
 
@@ -291,6 +389,7 @@ es_fun <- function(contrast_dat, group){
     mutate(group = group)
 }
 
+rocky_es <- es_fun(rocky_ef, "Rocky intertidal")
 ccfrp_es <- es_fun(ccfrp_ef, "Rocky reef fish")
 kelp_fish_es <- es_fun(kelp_fish_ef, "Kelp forest fish")
 kelp_invalg_es <- es_fun(kelp_invalg_ef, "Kelp forest inverts and algae")
@@ -299,7 +398,7 @@ deep_reef_es <- es_fun(deep_reef_ef, "Deep reef fish") %>%
          "asymp.UCL"=upper.CL,
          "z.ratio"=t.ratio)
 
-es_results <- rbind(ccfrp_es, kelp_fish_es, kelp_invalg_es,
+es_results <- rbind(rocky_es, ccfrp_es, kelp_fish_es, kelp_invalg_es,
                           deep_reef_es)%>%
   mutate(sig_level = ifelse(p.value <= 0.05, "*",
                             ifelse(p.value <=0.01,"**",
@@ -311,7 +410,7 @@ es_results <- rbind(ccfrp_es, kelp_fish_es, kelp_invalg_es,
                                               "tropical",
                                               "cosmopolitan")),
          group = factor(group, level=c(
-           "Rocky reef fish", "Deep reef fish",
+           "Rocky intertidal","Rocky reef fish", "Deep reef fish",
            "Kelp forest fish","Kelp forest inverts and algae"
          )),
          contrast = gsub("[()]", "", contrast))
@@ -324,7 +423,7 @@ es_results <- rbind(ccfrp_es, kelp_fish_es, kelp_invalg_es,
 #plot
 
 
-my_theme <-  theme(axis.text=element_text(size=6),
+my_theme <-  theme(axis.text=element_text(size=5),
                    axis.text.y = element_text(angle = 90, hjust = 0.5),
                    axis.title=element_text(size=8),
                    plot.tag=element_blank(), #element_text(size=8),
@@ -350,13 +449,49 @@ color_set <- c("cold temperate" = "#80B1D3","cosmopolitan" = "#BEBADA",
                "warm temperate"= "#8DD3C7")
 library(stringr)
 
+es_results_plot <- es_results %>%
+                   mutate(contrast = factor(contrast, levels = c(
+                     "before - during",
+                     "before - after",
+                     "during - after"
+                   )))
 
-g1 <- es_results %>% filter(group == "Rocky reef fish")%>%
+es_results_plot$contrast <- recode_factor(es_results_plot$contrast,
+                                          "before - during" = "Before-to-during",
+                                          "before - after" = "Before-to-after")
+
+g0 <- es_results_plot %>% filter(group == "Rocky intertidal",
+                                 !(contrast=="during - after"))%>%
   ggplot(aes(x = thermal_affinity, y = effect.size, color=contrast)) + 
   geom_point(position = position_dodge(width=0.7), 
-             stat="identity", size=1) +
+             stat="identity", size=1,
+             show.legend=FALSE) +
   geom_errorbar(aes(ymin=asymp.LCL, ymax=asymp.UCL),
-                position = position_dodge(width=0.7), width=0, size=0.3
+                position = position_dodge(width=0.7), width=0, size=0.3,
+                show.legend=FALSE
+  ) +
+  geom_hline(yintercept = 0, linetype = "dotted")+
+  geom_text(aes(label=sig_level), size=4, hjust=-0.4, vjust=0.8,
+            position = position_dodge(width=0.7),
+            show.legend = FALSE)+
+  theme_bw()+my_theme+
+  labs(x="", 
+       y="", tag="F", 
+       title="Rock intertidal",
+       color = "Contrast") +
+  scale_x_discrete(labels = function(x) str_wrap(x, width=10))+
+  scale_y_continuous(limits=c(-1,0.8))+
+  scale_color_brewer(palette = "Dark2")
+
+g1 <- es_results_plot %>% filter(group == "Rocky reef fishes",
+                                 !(contrast=="during - after"))%>%
+  ggplot(aes(x = thermal_affinity, y = effect.size, color=contrast)) + 
+  geom_point(position = position_dodge(width=0.7), 
+             stat="identity", size=1,
+             show.legend=FALSE) +
+  geom_errorbar(aes(ymin=asymp.LCL, ymax=asymp.UCL),
+                position = position_dodge(width=0.7), width=0, size=0.3,
+                show.legend=FALSE
   ) +
   geom_hline(yintercept = 0, linetype = "dotted")+
   geom_text(aes(label=sig_level), size=4, hjust=-0.4, vjust=0.8,
@@ -371,12 +506,14 @@ g1 <- es_results %>% filter(group == "Rocky reef fish")%>%
   scale_y_continuous(limits=c(-1,0.8))+
   scale_color_brewer(palette = "Dark2")
 
-g2 <- es_results %>% filter(group == "Deep reef fish")%>%
+g2 <- es_results_plot %>% filter(group == "Deep reef fish",
+                                 !(contrast=="during - after"))%>%
   ggplot(aes(x = thermal_affinity, y = effect.size, color=contrast)) + 
   geom_point(position = position_dodge(width=0.7), 
-             stat="identity", size=1) +
+             stat="identity", size=1,show.legend=FALSE) +
   geom_errorbar(aes(ymin=asymp.LCL, ymax=asymp.UCL),
-                position = position_dodge(width=0.7), width=0, size=0.3
+                position = position_dodge(width=0.7), width=0, size=0.3,
+                show.legend=FALSE
   ) +
   geom_hline(yintercept = 0, linetype = "dotted")+
   geom_text(aes(label=sig_level), size=4, hjust=-0.4, vjust=0.8,
@@ -391,12 +528,16 @@ g2 <- es_results %>% filter(group == "Deep reef fish")%>%
   scale_y_continuous(limits=c(-1,0.8))+
   scale_color_brewer(palette = "Dark2")
 
-g3 <- es_results %>% filter(group == "Kelp forest fish")%>%
-  ggplot(aes(x = thermal_affinity, y = effect.size, color=contrast)) + 
+g3 <- es_results_plot %>% filter(group == "Kelp forest fish",
+                                 !(contrast=="during - after"))%>%
+  ggplot(aes(x = thermal_affinity, y = effect.size, color=contrast
+             )) + 
   geom_point(position = position_dodge(width=0.7), 
-             stat="identity", size=1) +
+             stat="identity", size=1,
+             show.legend = FALSE) +
   geom_errorbar(aes(ymin=asymp.LCL, ymax=asymp.UCL),
-                position = position_dodge(width=0.7), width=0, size=0.3
+                position = position_dodge(width=0.7), width=0, size=0.3,
+                show.legend=FALSE
   ) +
   geom_hline(yintercept = 0, linetype = "dotted")+
   geom_text(aes(label=sig_level), size=4, hjust=-0.4, vjust=0.8,
@@ -412,12 +553,15 @@ g3 <- es_results %>% filter(group == "Kelp forest fish")%>%
   scale_color_brewer(palette = "Dark2")
 
 
-g4 <- es_results %>% filter(group == "Kelp forest inverts and algae")%>%
+g4 <- es_results_plot %>% filter(group == "Kelp forest inverts and algae",
+                                 !(contrast=="during - after"))%>%
   ggplot(aes(x = thermal_affinity, y = effect.size, color=contrast)) + 
   geom_point(position = position_dodge(width=0.7), 
-             stat="identity", size=1) +
+             stat="identity", size=1,
+             show.legend=FALSE) +
   geom_errorbar(aes(ymin=asymp.LCL, ymax=asymp.UCL),
-                position = position_dodge(width=0.7), width=0, size=0.3
+                position = position_dodge(width=0.7), width=0, size=0.3,
+                show.legend=FALSE
   ) +
   geom_hline(yintercept = 0, linetype = "dotted")+
   geom_text(aes(label=sig_level), size=4, hjust=-0.4, vjust=0.8,
@@ -432,17 +576,44 @@ g4 <- es_results %>% filter(group == "Kelp forest inverts and algae")%>%
   scale_y_continuous(limits=c(-1,0.8))+
   scale_color_brewer(palette = "Dark2")
 
+
+
+#create dummy legend as last panel
+year <- c(2013, 2016)
+height <- c(1,2)
+Contrast <- c('Before-to-during','Before-to-after')
+legend <- data.frame(year, height, Contrast)
+legend$Contrast <- factor(legend$Contrast, levels=c('Before-to-during','Before-to-after')) 
+
+g5 <- ggplot(legend, aes(x = year, y = height, color = Contrast))+
+  geom_point()+
+  #geom_errorbar(aes(ymin=height-1, ymax=height+1))+
+  lims(x = c(0,0), y = c(0,0))+
+  theme_void()+
+  theme(legend.position = c(0.5,0.5),
+        legend.key.size = unit(0.1, "cm"),
+        legend.text = element_text(size =  6),
+        legend.title = element_text(size = 8, face = "bold"))+
+  guides(colour = guide_legend(override.aes = list(size=4))
+  )+
+  scale_color_brewer(palette = "Dark2")
+
+g5$labels$colour <- "Contrast" 
+
+
+
 library(grid)
-g <- ggpubr::ggarrange(g1, g2, g3, g4, nrow=2, ncol=2, 
-                       common.legend = TRUE, legend = "right")
+g <- ggpubr::ggarrange(g0, g4, g3, g1, g2,g5, nrow=2, ncol=3
+                       #common.legend = TRUE, legend = "right"
+                       )
 
-g_title<- ggpubr::annotate_figure(g, left = textGrob("Standardzied estimated marginal means (Cohen)", 
+g_title<- ggpubr::annotate_figure(g, left = textGrob("Standardzied estimated marginal means (Cohen's d)", 
                                                      rot = 90, vjust = 2, gp = gpar(cex = 0.6)),
-                bottom = textGrob("Thermal affinity", hjust=1, vjust=-2, gp = gpar(cex = 0.6)))
+                bottom = textGrob("Thermal affinity", hjust=0.3, vjust=-2, gp = gpar(cex = 0.6)))
 
 
-#ggsave(g_title, filename=file.path(figdir, "spp_affinities_emms_es.png"), 
-#       width=6.5, height=4.5, units="in", dpi=600, bg="white")
+ggsave(g_title, filename=file.path(figdir, "spp_affinities_emms_es.png"), 
+       width=7, height=5, units="in", dpi=600, bg="white")
 
 
 
