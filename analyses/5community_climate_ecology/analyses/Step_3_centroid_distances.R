@@ -19,7 +19,8 @@ require(pairwiseAdonis)
 
 # #load data --------------------------------------------------------------
 
-data_path <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/ecological_community_data/year_level_with_envr_vars"
+#data_path <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/ecological_community_data/year_level_with_envr_vars"
+data_path <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data"
 
 nmds_scores <- load(file.path(data_path, "bray_nmds_scores.rda"))
 group_vars <- load(file.path(data_path, "group_vars.rda"))
@@ -152,6 +153,7 @@ mean_ref <- mean(dist_ref$value)
 #pariwise permanova
 ccfrp_pair_perm <- pairwise.adonis2(CCFRP_distmat ~ desig_state, 
                                     data = CCFRP_group_vars, permutations = 999)
+
 dr_pair_perm <- pairwise.adonis2(deep_reef_distmat ~ desig_state, 
                                  data = deep_reef_group_vars, permutations = 999) 
 kelp_fish_pair_perm <- pairwise.adonis2(kelp_fish_distmat ~ desig_state, 
@@ -161,7 +163,7 @@ kelp_invalg_pair_perm <- pairwise.adonis2(kelp_invalg_distmat ~ desig_state,
 rocky_pair_perm <- pairwise.adonis2(rocky_distmat ~ desig_state,
                                     data = rocky_group_vars, permutations = 999) 
 
-#create helper function to collect pairwise output
+#create helper function to collect pairwise output 
 
 perm_fun <- function(perm_table, group_name){
   ref_after = (as.data.frame(perm_table[["ref before_vs_ref after"]])%>%
@@ -206,8 +208,40 @@ perm_output <- rbind(ccfrp_op, kelp_fish_op, deep_reef_op,
 
 rownames(perm_output) <- NULL
 
-perm_output$MPA_type <- recode_factor(perm_output$MPA_type, "MPA"="In")
-perm_output$MPA_type <- recode_factor(perm_output$MPA_type, "REF"="Out")
+perm_output$MPA_type <- recode_factor(perm_output$MPA_type, "REF"="Reference")
+
+
+#create helper function to collect MPA vs REF output
+perm_fun <- function(perm_table, group_name){
+  ref_after = (as.data.frame(perm_table[["ref before_vs_smr before"]])%>%
+                 mutate(group = group_name,
+                        MPA_type = 'REF',
+                        period = 'before-to-after') %>%
+                 filter(row_number()==1) %>%
+                 dplyr::select(group, MPA_type, period, Df, SumOfSqs, R2, `F`,`Pr(>F)`))
+  ref_during = (as.data.frame(perm_table[["ref before_vs_ref during"]])%>%
+                  mutate(group = group_name,
+                         MPA_type = 'REF',
+                         period = 'before-to-during') %>%
+                  filter(row_number()==1) %>%
+                  dplyr::select(group, MPA_type,period, Df, SumOfSqs, R2, `F`,`Pr(>F)`))
+  
+  smr_after = (as.data.frame(perm_table[["smr before_vs_smr after"]])%>%
+                 mutate(group = group_name,
+                        MPA_type = 'MPA',
+                        period = 'before-to-after') %>%
+                 filter(row_number()==1) %>%
+                 dplyr::select(group, MPA_type,period, Df, SumOfSqs, R2, `F`,`Pr(>F)`))
+  smr_during = (as.data.frame(perm_table[["smr before_vs_smr during"]])%>%
+                  mutate(group = group_name,
+                         MPA_type = 'MPA',
+                         period = 'before-to-during') %>%
+                  filter(row_number()==1) %>%
+                  dplyr::select(group, MPA_type, period, Df, SumOfSqs, R2, `F`,`Pr(>F)`))
+  
+  rbind(ref_after, ref_during, smr_after, smr_during)
+}
+
 
 
 #write.csv(perm_output, "/home/joshsmith/CA_MPA_Project/ca-mpa/analyses/5community_climate_ecology/tables/pairwise_permanova_table.csv")       # Export PDF
@@ -228,8 +262,8 @@ distance1 <- travel_distance%>%
          MPA = tidytext::reorder_within(MPA, value, period),
          MPA_type = toupper(gsub( " .*$", "", Var1)))
 
-distance1$MPA_type <- recode_factor(distance1$MPA_type, "SMR"="In")
-distance1$MPA_type <- recode_factor(distance1$MPA_type, "REF"="Out")
+distance1$MPA_type <- recode_factor(distance1$MPA_type, "In"="MPA")
+distance1$MPA_type <- recode_factor(distance1$MPA_type, "Out"="Reference")
 
 #perm_output$group <- recode_factor(perm_output$group, 	
 #                                   "Kelp forest inverts and algae" = "kelp inverts and algae")
@@ -299,7 +333,7 @@ p1 <-
             show.legend = FALSE)+
   ylab("")+
   xlab("")+
-  scale_y_continuous(limits=c(-0.04,0.3))+
+  scale_y_continuous(limits=c(-0.05,0.3))+
   scale_x_discrete(labels = function(x) 
     stringr::str_wrap(x, width = 15)
     )+
@@ -340,7 +374,7 @@ p2 <-
   ylab("")+
   xlab("")+
   labs(color = "Site type")+
-  scale_y_continuous(limits=c(-0.04,0.3))+
+  scale_y_continuous(limits=c(-0.05,0.3))+
   scale_x_discrete(labels = function(x) 
     stringr::str_wrap(x, width = 15)
   )+
