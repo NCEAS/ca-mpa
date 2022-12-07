@@ -110,8 +110,8 @@ cent$mpa_designation <- factor(cent$mpa_designation, level=c("smr","ref"))
 cent$MHW <- factor(cent$MHW, level=c("before","during","after"))
 
 
-cent$mpa_designation <- recode_factor(cent$mpa_designation, "smr"="In")
-cent$mpa_designation <- recode_factor(cent$mpa_designation, "ref"="Out")
+cent$mpa_designation <- recode_factor(cent$mpa_designation, "smr"="MPA")
+cent$mpa_designation <- recode_factor(cent$mpa_designation, "ref"="Reference")
 
 ccfrp_stress <- as.data.frame(CCFRP_ord[["stress"]]) %>% 
   rename("stress" = 1) %>%
@@ -121,10 +121,12 @@ df_ell$mpa_type <- factor(df_ell$mpa_type, level=c("smr","ref"))
 df_ell$MHW <- recode_factor(df_ell$MHW, "before"="Before")
 df_ell$MHW <- recode_factor(df_ell$MHW, "during"="During")
 df_ell$MHW <- recode_factor(df_ell$MHW, "after"="After")
+df_ell$MHW <- factor(df_ell$MHW, level=c("Before","During","After"))
 
 cent$MHW <- recode_factor(cent$MHW, "before"="Before")
 cent$MHW <- recode_factor(cent$MHW, "during"="During")
 cent$MHW <- recode_factor(cent$MHW, "after"="After")
+cent$MHW <- factor(cent$MHW, level=c("Before","During","After"))
 
 
 
@@ -158,8 +160,6 @@ my_theme <-  theme(axis.text=element_text(size=8),
       #  )
 
 
-
-
 CCFRP<- ggplot(data=cent, aes(NMDS1, NMDS2)) +
   geom_point(aes(shape=mpa_designation, color=MHW), size=2) +                           #centroids
   geom_path(data = df_ell, aes(NMDS1, NMDS2, colour=MHW, 
@@ -173,9 +173,9 @@ CCFRP<- ggplot(data=cent, aes(NMDS1, NMDS2)) +
   ggtitle("Rocky reef fishes")+
   scale_color_manual(values=c('#004D40','#D81B60','#1E88E5',
                               '#004D40','#D81B60','#1E88E5'))+
-  labs(shape="MPA",color='Heatwave period') +
+  labs(shape="Site type",color='Heatwave period') +
   annotate(geom="text", 
-           x=0.12, 
+           x=0.115, 
            y=0.2, 
            col="black", 
            label= paste("Stress: ",ccfrp_stress$stress), parse=T,
@@ -257,7 +257,7 @@ kelp_invalg<- ggplot(data=cent, aes(NMDS1, NMDS2)) +
                               '#004D40','#D81B60','#1E88E5'))+
   labs(shape="site type",color='heatwave period') +
   annotate(geom="text", 
-           x=0.3, 
+           x=0.293, 
            y=0.2, 
            col="black", 
            label= paste("Stress: ",kelp_invalg_stress$stress), parse=T,
