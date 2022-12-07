@@ -127,7 +127,7 @@ cent$MHW <- recode_factor(cent$MHW, "before"="Before")
 cent$MHW <- recode_factor(cent$MHW, "during"="During")
 cent$MHW <- recode_factor(cent$MHW, "after"="After")
 cent$MHW <- factor(cent$MHW, level=c("Before","During","After"))
-
+cent$mpa_designation <- factor(cent$mpa_designation, level=c("MPA","Reference"))
 
 
 my_theme <-  theme(axis.text=element_text(size=8),
@@ -409,7 +409,7 @@ deep_reef<- ggplot(data=cent, aes(NMDS1, NMDS2)) +
   labs(shape="site type",color='heatwave period') +
   #theme(text = element_text(12))+
   annotate(geom="text", 
-           x=0.248, 
+           x=0.249, 
            y=0.3, 
            col="black", 
            label= paste("Stress: ",deep_reef_stress$stress), parse=T,
