@@ -272,16 +272,19 @@ my_theme <-  theme(axis.text=element_text(size=8),
                    #plot.margin=unit(c(0.01,0.01,0.01,0.01),"cm")
 )
 
+sig_distance$MPA_type <- recode_factor(sig_distance$MPA_type, "In"="MPA")
+sig_distance$MPA_type <- recode_factor(sig_distance$MPA_type, "Out"="Reference")
 
 p1 <- 
   sig_distance %>%
   rename("Period"=period)%>%
   filter(Period == "Before-to-during")%>%
   mutate(group = factor(group, levels = c("Rocky intertidal","Kelp forest inverts and algae",
-                                          "Kelp forest fishes","Rocky reef fishes","Deep reef fishes")))%>%
+                                          "Kelp forest fishes","Rocky reef fishes","Deep reef fishes")),
+         MPA_type = factor(MPA_type, levels = c("MPA","Reference")))%>%
   arrange(MPA_type, -value, group)%>%
   mutate(mpa_ordered = fct_inorder(paste(MPA_type, group, sep = "."))) |> 
-  ggplot(aes(x = MPA_type, y = value, color = group, group = mpa_ordered)) +
+  ggplot(aes(x = group, y = value, color = MPA_type, group = mpa_ordered)) +
   geom_point(position = position_dodge(width=0.8),
              size=3)+
   geom_errorbar(aes(ymin=value-sd_pooled,
@@ -297,15 +300,19 @@ p1 <-
   ylab("")+
   xlab("")+
   scale_y_continuous(limits=c(-0.04,0.3))+
- labs(color = "Community")+
-  scale_color_brewer(palette="Dark2") +
+  scale_x_discrete(labels = function(x) 
+    stringr::str_wrap(x, width = 15)
+    )+
+ labs(color = "Site type")+
+  scale_color_brewer(palette="Set1") +
   #geom_vline(xintercept=c(1.5, 2.5,3.5,4.5), color="grey",alpha=.4)+
   #coord_flip()+
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
         panel.background = element_blank(), axis.line = element_line(colour = "black"),
         legend.key=element_blank())+
-  ggtitle("Before-to-during")+
-  my_theme
+  ggtitle("Resistance \n(Before-to-during)")+
+  my_theme+
+  theme(aspect.ratio=1)
 
 
 
@@ -317,7 +324,7 @@ p2 <-
                                           "Kelp forest fishes","Rocky reef fishes","Deep reef fishes")))%>%
   arrange(MPA_type, -value, group)%>%
   mutate(mpa_ordered = fct_inorder(paste(MPA_type, group, sep = "."))) |> 
-  ggplot(aes(x = MPA_type, y = value, color = group, group = mpa_ordered)) +
+  ggplot(aes(x = group, y = value, color = MPA_type, group = mpa_ordered)) +
   geom_point(position = position_dodge(width=0.8),
              size=3)+
   geom_errorbar(aes(ymin=value-sd_pooled,
@@ -332,16 +339,20 @@ p2 <-
             show.legend = FALSE)+
   ylab("")+
   xlab("")+
-  labs(color = "Community")+
+  labs(color = "Site type")+
   scale_y_continuous(limits=c(-0.04,0.3))+
-  scale_color_brewer(palette="Dark2") +
+  scale_x_discrete(labels = function(x) 
+    stringr::str_wrap(x, width = 15)
+  )+
+  scale_color_brewer(palette="Set1") +
   #geom_vline(xintercept=c(1.5, 2.5,3.5,4.5), color="grey",alpha=.4)+
   #coord_flip()+
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
         panel.background = element_blank(), axis.line = element_line(colour = "black"),
         legend.key=element_blank())+
-  ggtitle("Before-to-after")+
-  my_theme
+  ggtitle("Resilience \n(Before-to-after)")+
+  my_theme+
+  theme(aspect.ratio=1)
 
 
 
@@ -351,13 +362,13 @@ g <- ggpubr::ggarrange(p1, p2, nrow=1, ncol=2,
 
 
 
-g_title<- ggpubr::annotate_figure(g, left = textGrob("Distance (Bray-Curtis)", 
-                                                     rot = 90, vjust = 2, gp = gpar(cex = 0.8)),
-                                  bottom = textGrob("MPA", hjust=2.5, vjust=-2, gp = gpar(cex = 0.8)))
+g_title <- ggpubr::annotate_figure(g, left = textGrob("Distance (Bray-Curtis)", 
+                                                     rot = 90, vjust = 2, hjust=0.3, gp = gpar(cex = 0.8)),
+                                  bottom = textGrob("Habitat", hjust=1, vjust=-11, gp = gpar(cex = 0.8)))
 
 
 
-#ggsave(here::here("analyses", "5community_climate_ecology", "figures", "betadisp_plot2.png"), g_title, height=6, width = 8, units = "in", 
+#ggsave(here::here("analyses", "5community_climate_ecology", "figures", "betadisp_plot3.png"), g_title, height=6, width = 8, units = "in", 
 #   dpi = 600, bg="white")
 
 

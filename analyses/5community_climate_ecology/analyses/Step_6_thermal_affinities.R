@@ -25,6 +25,8 @@ kelp_fish_join1[kelp_fish_join1 == ""] <- NA
 kelp_combined_join1[kelp_combined_join1 == ""] <- NA
 deep_reef_join1[deep_reef_join1 == ""]<- NA
 rocky_join1[rocky_join1 ==""]<- NA
+kelp_swath_join1[kelp_swath_join1 == ""]<-NA
+kelp_upc_join1[kelp_upc_join1==""]<- NA
 
 ################################################################################
 #calculate %abund by affinity for each year
@@ -40,7 +42,8 @@ CCFRP_affin_mean_total <- CCFRP_join1 %>%
                dplyr::summarize(mean = mean(counts, na.rm = TRUE))%>%
                group_by(year, thermal_affinity)%>%
                dplyr::summarize(group_total = sum(mean))%>%
-               mutate(thermal_affinity = factor(thermal_affinity,
+               mutate(group="Rocky reef fishes",
+                      thermal_affinity = factor(thermal_affinity,
                                                 levels = c("cosmopolitan",
                                                            "tropical",
                                                            "subtropical",
@@ -55,7 +58,8 @@ kelp_fish_affin_mean_total <- kelp_fish_join1 %>%
   dplyr::summarize(mean = mean(counts, na.rm = TRUE))%>%
   group_by(year, thermal_affinity)%>%
   dplyr::summarize(group_total = sum(mean))%>%
-  mutate(thermal_affinity = factor(thermal_affinity,
+  mutate(group = "kelp forest fishes",
+    thermal_affinity = factor(thermal_affinity,
                                    levels = c("cosmopolitan",
                                               "tropical",
                                               "subtropical",
@@ -70,13 +74,47 @@ kelp_combined_affin_mean_total <- kelp_combined_join1 %>%
   dplyr::summarize(mean = mean(counts, na.rm = TRUE))%>%
   group_by(year, thermal_affinity)%>%
   dplyr::summarize(group_total = sum(mean))%>%
-  mutate(thermal_affinity = factor(thermal_affinity,
+  mutate(group = "Kelp forest inverts and algae",
+    thermal_affinity = factor(thermal_affinity,
                                    levels = c("cosmopolitan",
                                               "tropical",
                                               "subtropical",
                                               "warm temperate",
                                               "cold temperate"
                                    )))
+
+kelp_swath_total <- kelp_swath_join1 %>% 
+  filter(year >= 2007)%>%
+  filter(!(is.na(thermal_affinity)))%>%
+  group_by(year, species, thermal_affinity)%>%
+  dplyr::summarize(mean = mean(counts, na.rm = TRUE))%>%
+  group_by(year, thermal_affinity)%>%
+  dplyr::summarize(group_total = sum(mean))%>%
+  mutate(group = "Kelp forest inverts and algae (swath)",
+         thermal_affinity = factor(thermal_affinity,
+                                   levels = c("cosmopolitan",
+                                              "tropical",
+                                              "subtropical",
+                                              "warm temperate",
+                                              "cold temperate"
+                                   )))
+
+kelp_upc_total <- kelp_upc_join1 %>% 
+  filter(year >= 2007)%>%
+  filter(!(is.na(thermal_affinity)))%>%
+  group_by(year, species, thermal_affinity)%>%
+  dplyr::summarize(mean = mean(counts, na.rm = TRUE))%>%
+  group_by(year, thermal_affinity)%>%
+  dplyr::summarize(group_total = sum(mean))%>%
+  mutate(group = "Kelp forest inverts and algae (upc)",
+         thermal_affinity = factor(thermal_affinity,
+                                   levels = c("cosmopolitan",
+                                              "tropical",
+                                              "subtropical",
+                                              "warm temperate",
+                                              "cold temperate"
+                                   )))
+
 
 deep_reef_mean_total <- deep_reef_join1 %>% 
   filter(year >= 2007)%>%
@@ -85,7 +123,8 @@ deep_reef_mean_total <- deep_reef_join1 %>%
   dplyr::summarize(mean = mean(counts, na.rm = TRUE))%>%
   group_by(year, thermal_affinity)%>%
   dplyr::summarize(group_total = sum(mean))%>%
-  mutate(thermal_affinity = factor(thermal_affinity,
+  mutate(group = "Deep reef fishes",
+    thermal_affinity = factor(thermal_affinity,
                                    levels = c("cosmopolitan",
                                               "tropical",
                                               "subtropical",
@@ -100,7 +139,8 @@ rocky_mean_total <- rocky_join1 %>%
    dplyr::summarize(mean = mean(counts, na.rm = TRUE))%>%
    group_by(year, thermal_affinity)%>%
    dplyr::summarize(group_total = sum(mean))%>%
-  mutate(thermal_affinity = factor(thermal_affinity,
+  mutate(group = "Rocky intertidal",
+    thermal_affinity = factor(thermal_affinity,
                                    levels = c("cosmopolitan",
                                               "tropical",
                                               "subtropical",
@@ -108,6 +148,14 @@ rocky_mean_total <- rocky_join1 %>%
                                               "cold temperate"
                                    )))
 
+
+#export data
+comp_data <- rbind(CCFRP_affin_mean_total, kelp_fish_affin_mean_total,
+                   #kelp_combined_affin_mean_total,
+                   kelp_upc_total, kelp_swath_total,
+                   deep_reef_mean_total, rocky_mean_total)
+
+save(comp_data, file = "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data/comp_data.rda")
 
 ################################################################################
 #plot
@@ -234,8 +282,8 @@ g_title<- ggpubr::annotate_figure(g, left = textGrob("Perc. of total abundance",
                                   bottom = textGrob("Year", hjust=0, vjust=-26, gp = gpar(cex = 0.7)))
 
 # Export
-ggsave(g_title, filename=file.path(figdir, "spp_affinities_perc.png"), 
-     width=6.5, height=6.5, units="in", dpi=600, bg="white")
+#ggsave(g_title, filename=file.path(figdir, "spp_affinities_perc.png"), 
+#     width=6.5, height=6.5, units="in", dpi=600, bg="white")
 
 
 
