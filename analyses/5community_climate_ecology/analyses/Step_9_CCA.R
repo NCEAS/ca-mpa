@@ -248,8 +248,8 @@ corr_df <- tibble(
   group = replicate(length(CCA_data_list), "a"),
   site = replicate(length(CCA_data_list), "b"),
   corr_max = replicate(length(CCA_data_list), 0),
-  corr_min = replicate(length(CCA_data_list), 0),
   lag_max = replicate(length(CCA_data_list), 0),
+  corr_min = replicate(length(CCA_data_list), 0),
   lag_min = replicate(length(CCA_data_list), 0)
 )
 
