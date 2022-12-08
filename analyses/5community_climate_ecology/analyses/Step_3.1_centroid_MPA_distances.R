@@ -10,7 +10,6 @@ require(tidyr)
 require(gridExtra)
 require(usedist)
 require(ggplot2)
-require(metafor)
 require(reshape2)
 require(ggfittext)
 require(pairwiseAdonis)
@@ -27,7 +26,7 @@ envr_vars <- load(file.path(data_path, "envr_vars.rda"))
 eco_dist <- load(file.path(data_path, "distance_matrices_BC.rda"))
 
 
-# define levels ----------------------------------------------------------------
+# define test centroids  -------------------------------------------------------
 
 rocky_group_vars1 <- rocky_group_vars %>%
                       mutate(affiliated_mpa2 = ifelse(affiliated_mpa == "none",
@@ -63,7 +62,7 @@ kelp_invalg_disper <- betadisper(kelp_invalg_distmat, type = "centroid",
 deep_reef_disper <- betadisper(deep_reef_distmat, type="centroid",
                                group=deep_reef_group_vars1$site_yr_ID)
 
-# Step 2 - calculate distance -----------------------------------
+# Step 2 - calculate distances and pooled s.d.----------------------------------
 
 #create helper function
 
@@ -123,15 +122,21 @@ eig_fun <- function(disper_mat) {
 }
 
 
-CCFRP <- eig_fun(CCFRP_disper) %>% mutate(group = "Rocky reef fishes")
-rocky <- eig_fun(rocky_disper) %>% mutate(group = "Rocky intertidal")
-kelp_fish <- eig_fun(kelp_fish_disper) %>% mutate(group = "Kelp forest fishes")
-kelp_invalg <- eig_fun(kelp_invalg_disper) %>% mutate(group = "Kelp forest inverts and algae")
+CCFRP <- eig_fun(CCFRP_disper) %>% 
+                mutate(group = "Rocky reef fishes")
+rocky <- eig_fun(rocky_disper) %>% 
+                mutate(group = "Rocky intertidal")
+kelp_fish <- eig_fun(kelp_fish_disper) %>% 
+                mutate(group = "Kelp forest fishes")
+kelp_invalg <- eig_fun(kelp_invalg_disper) %>% 
+                mutate(group = "Kelp forest inverts and algae")
 
-#problem with deep reef
+
+####problem with deep reef --- need to figure this out before continuing
 deep_reef <- eig_fun(deep_reef_disper)
 
 
+#combine into df
 travel_distance <- as.data.frame(rbind(CCFRP, rocky, kelp_fish,
                                        kelp_invalg))
 
@@ -143,31 +148,31 @@ travel_distance <- as.data.frame(rbind(CCFRP, rocky, kelp_fish,
 
 #pariwise permanova
 ccfrp_pair_perm <- pairwise.adonis2(CCFRP_distmat ~ site_yr_ID, 
-                                    data = CCFRP_group_vars1, permutations = 999)
-
-
-results <- lapply(colnames(ccfrp_pair_perm), function(x){
-  form <- as.formula(paste("ccfrp", x, sep="~")) 
-  z <- adonis(form, data = dune.env, permutations=99)
-  return(as.data.frame(z$aov.tab)) #convert anova table to a data frame
-}
-)
-
-
+                                   data = CCFRP_group_vars1, permutations = 999)
 
 rocky_pair_perm <- pairwise.adonis2(rocky_distmat ~ site_yr_ID, 
-                                    data = rocky_group_vars1, permutations = 999)
+                                   data = rocky_group_vars1, permutations = 999)
 
 kelp_fish_pairs_perm <- pairwise.adonis2(kelp_fish_distmat ~ site_yr_ID, 
-                                         data = kelp_fish_group_vars1, permutations = 999)
+                               data = kelp_fish_group_vars1, permutations = 999)
 
 
 kelp_invalg_pair_perm <- pairwise.adonis2(kelp_invalg_distmat ~ site_yr_ID, 
-                                          data = kelp_invalg_group_vars1, permutations = 999)
+                             data = kelp_invalg_group_vars1, permutations = 999)
+
+
+##### EXTRACT OUTPUT
 
 
 
-#create helper function to collect pairwise output 
+
+
+
+
+
+
+
+#OLD helper function to collect pairwise output 
 
 perm_fun <- function(perm_table, group_name){
   ref_after = (as.data.frame(perm_table[["ref before_vs_ref after"]])%>%
