@@ -3,7 +3,9 @@
 
 rm(list=ls())
 
-require(dplyr)
+library(reshape2)
+library(tidyverse)
+library(vegan)
 
 #set directories
 data_path <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data"
@@ -214,15 +216,76 @@ CCA_data <- con_dat1 %>%
 ################################################################################
 # step 3 - build contrast test
   
+# # Test
+# contrast_test_dat <- CCA_data %>% filter(group =="Rocky reef fishes")
+# ccf_test <- ccf(contrast_test_dat$dissim, contrast_test_dat$SST,
+#     lag.max=6)
+
+
+# creating groups from group and sites
+CCA_data_grouped <- CCA_data %>%
+  na.omit() %>%
+  group_by(group, site)
+
+# Get the group names
+CCA_data_names <- CCA_data_grouped %>%
+  group_keys() %>%
+  unite(group_name, group:site, sep = "-") %>%
+  pull()
+
+# Split data frame into a list of groups 
+CCA_data_list <- CCA_data_grouped %>%
+  group_split() %>%
+  setNames(CCA_data_names)
+
+# Applying the correlation function using map
+# tt <- CCA_data_list %>%
+  # map(~ccf(.$dissim, .$SST, lag.max=6, na.action = na.pass))
+
+
+# Initialize data frame to sotre outputs
+corr_df <- tibble(
+  group = replicate(length(CCA_data_list), "a"),
+  site = replicate(length(CCA_data_list), "b"),
+  corr_max = replicate(length(CCA_data_list), 0),
+  corr_min = replicate(length(CCA_data_list), 0),
+  lag_max = replicate(length(CCA_data_list), 0),
+  lag_min = replicate(length(CCA_data_list), 0)
+)
+
+
+# Loop through the groups and sites
+for (i in 1:length(CCA_data_list)) {
+  print(i)
+  data_group_name <- names(CCA_data_list[i])
+  data_group <- CCA_data_list[[i]]
+  print(sprintf("Processing: %s", data_group_name))
   
-contrast_test_dat <- CCA_data %>% filter(group =="Rocky reef fishes")
+  # Compute the cross-correlation
+  ccf_group <- ccf(data_group$dissim, data_group$SST, lag.max=6, na.action = na.pass, plot=FALSE)
+  
+  # plot it
+  plot(ccf_group, main = data_group_name)
+  
+  # Extract the cross-correlation information
+  lag0_ind <-  which(ccf_group$lag == 0)
+  positive_lag <- ccf_group$acf[lag0_ind:(lag0_ind*2-1)]
+  max_ccf <- max(positive_lag)
+  lag_max <- which(ccf_group$acf == max_ccf) - lag0_ind  # removing negative lag
+  min_ccf <- min(positive_lag)
+  lag_min <- which(ccf_group$acf == min_ccf) - lag0_ind   # removing negative lag
+  
+  # Add it to the data frame
+  corr_df[i, "group"] <- str_split(data_group_name, "-")[[1]][1]
+  corr_df[i, "site"] <- str_split(data_group_name, "-")[[1]][2]
+  corr_df[i, "corr_max"] <- max_ccf
+  corr_df[i, "lag_max"] <- lag_max
+  corr_df[i, "corr_min"] <- min_ccf
+  corr_df[i, "lag_min"] <- lag_min
+}
 
-ccf<- ccf(contrast_test_dat$dissim, contrast_test_dat$SST,
-    lag.max=6)
-
-
-
-
+# Write output file
+write_csv(corr_df, file.path(data_path,"cross_correlation_groups.csv"))
 
 
 
