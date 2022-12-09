@@ -164,21 +164,26 @@ mlabfun <- function(text, y) {
 
 cols <- c("red", "blue")[match(dat$target_status, c("targeted", "nontargeted"))]
 
+dat$group <- recode_factor(dat$group, "surf" = "Surf zone")
+dat$group <- recode_factor(dat$group, "kelp" = "Kelp forest")
+dat$group <- recode_factor(dat$group, "deep reef" = "Deep reef")
+dat$group <- recode_factor(dat$group, "ccfrp" = "Rocky reef")
 
-#png("/home/joshsmith/CA_MPA_Project/ca-mpa/analyses/1performance_eco/figures/fish_biomass_forestplot.png", width = 2400, height = 2400, res=300)
+
+png("/home/joshsmith/CA_MPA_Project/ca-mpa/analyses/1performance_eco/figures/fish_biomass_forestplot.png", width = 2400, height = 2400, res=300)
 
 
 forest(dat$yi, dat$vi, xlim=c(-8, 6), #at=log(c(0.05, 0.25, 1, 4)), #atransf=exp,
        #ilab=cbind(dat$tpos, dat$tneg, dat$cpos, dat$cneg),
        #ilab.xpos=c(-9.5,-8,-6,-4.5), 
-       cex=0.75, 
+       cex=0.7, 
        ylim=c(-3, 51),
        order=order(factor(dat$region4, level=c("south","north islands", "central","north"))), 
        rows=c(3:9,16:20,27:33,40:45),
        mlab=mlabfun("biomass overall", res.overall),
        slab=paste(dat$group),
        ilab = dat$target_status,
-       ilab.xpos=-6,
+       ilab.xpos=-5.8,
        #col=cols,
        #showweights = TRUE,
        #psize=1.3, 
@@ -280,13 +285,13 @@ res.target <- rma(yi,vi, method="REML", data=dat_target, slab=paste(group))
 res.nontarget <- rma(yi,vi, method="REML", data=dat_nontarget, slab=paste(group))
 
 addpoly(res.target, row= -3,cex=0.75, mlab=mlabfun("RE Model for Subgroup", y=res.target))
-text(-8, -3, pos=4, cex=0.7, mlabfun("targeted biomass", y=res.target))
+text(-8, -3, pos=4, cex=0.7, mlabfun("Targeted biomass", y=res.target))
 
 addpoly(res.nontarget, row= -4,cex=0.75, mlab=mlabfun("RE Model for Subgroup", y=res.nontarget))
-text(-8, -4, pos=4, cex=0.7, mlabfun("nontargeted biomass", y=res.nontarget))
+text(-8, -4, pos=4, cex=0.7, mlabfun("Nontargeted biomass", y=res.nontarget))
 
 addpoly(res.overall, row=-2, cex=0.75, mlab=mlabfun("RE Model for Subgroup", y=res.overall))
-text(-8, -2, pos=4, cex=0.7, mlabfun("biomass overall", y=res.overall))
+text(-8, -2, pos=4, cex=0.7, mlabfun("Biomass overall", y=res.overall))
 
 abline(h=-1)
 abline(h=12, lty=1, col='#D3D3D3')
@@ -295,9 +300,9 @@ abline(h=36, lty=1, col='#D3D3D3')
 
 
 
-text(x =-0.2, y = 50, "REF",  pos=2, font=2)
-text(x =1.1, y = 50, "SMR",  pos=2, font=2)
-text(x =-1.2, y = 52, "targeted and nontargeted fish biomass 2019-20",  cex=1, pos=2, font=3)
+#text(x =-0.2, y = 50, "REF",  pos=2, font=2)
+#text(x =1.1, y = 50, "SMR",  pos=2, font=2)
+text(x =-1.2, y = 52, "Targeted and nontargeted fish biomass 2019-20",  cex=1, pos=2, font=3)
 
 
 
@@ -360,6 +365,12 @@ dat <- escalc(measure="ROM", m1i=yr.mean_smr, m2i=yr.mean_ref, sd1i=sd_mpa_smr, 
 dat <- dat %>%
   filter(!is.na(vi))    
 
+dat$group <- recode_factor(dat$group, "surf" = "Surf zone")
+dat$group <- recode_factor(dat$group, "kelp" = "Kelp forest")
+dat$group <- recode_factor(dat$group, "deep reef" = "Deep reef")
+dat$group <- recode_factor(dat$group, "ccfrp" = "Rocky reef")
+
+
 #dat <- escalc(measure="SMD", m1i=group.avg_smr, m2i=group.avg_ref, sd1i=sd_smr, sd2i=sd_ref, n1i=n_smr, n2i=n_ref, data=smd.final, slab=paste(group)) 
 
 #fit random effects model
@@ -388,7 +399,7 @@ png("/home/joshsmith/CA_MPA_Project/ca-mpa/analyses/CDFW_modules/figures/module_
 ### set up forest plot (with 2x2 table counts added; the 'rows' argument is
 ### used to specify in which rows the outcomes will be plotted)
 
-forest(dat$yi, dat$vi, xlim=c(-3, 4), #at=log(c(0.05, 0.25, 1, 4)), #atransf=exp,
+forest(dat$yi, dat$vi, xlim=c(-4, 4), #at=log(c(0.05, 0.25, 1, 4)), #atransf=exp,
        #ilab=cbind(dat$tpos, dat$tneg, dat$cpos, dat$cneg),
        #ilab.xpos=c(-9.5,-8,-6,-4.5), 
        cex=0.75, 
@@ -412,7 +423,7 @@ op <- par(cex=0.75, font=2)
 ### add additional column headings to the plot
 
 ### add text for the subgroups
-text(-3, c(34.5,24.5,15.5,7.5), pos=4, c("North",
+text(-4, c(34.5,24.5,15.5,7.5), pos=4, c("North",
                                  "Central",
                                  "N. Islands",
                                  "South"))
@@ -434,21 +445,21 @@ res.i <- rma(yi, vi, method="REML", subset=(region4=="north islands"), verbose=T
 ### add summary polygons for the three subgroups
 
 addpoly(res.n, row=28.5, cex=0.75, mlab=mlabfun("RE Model", y=res.n)) #col='red'
-text(-3, 28.5, pos=4, cex=0.7, mlabfun("RE Model", y=res.n))
+text(-4, 28.5, pos=4, cex=0.7, mlabfun("RE Model", y=res.n))
 
 
 addpoly(res.c, row= 18.5,cex=0.75, mlab=mlabfun("RE Model", y=res.c)) #col='red'
-text(-3, 18.5, pos=4, cex=0.7, mlabfun("RE Model", y=res.c))
+text(-4, 18.5, pos=4, cex=0.7, mlabfun("RE Model", y=res.c))
 
 
 
 addpoly(res.i, row= 10.5,cex=0.75, mlab=mlabfun("RE Model", y=res.i)) #col='red'
-text(-3, 10.5, pos=4, cex=0.7, mlabfun("RE Model", y=res.i))
+text(-4, 10.5, pos=4, cex=0.7, mlabfun("RE Model", y=res.i))
 
 
 
 addpoly(res.s, row= 1,cex=0.75, mlab=mlabfun("RE Model", y=res.s)) #col='blue'
-text(-3, 1, pos=4, cex=0.7, mlabfun("RE Model", y=res.s))
+text(-4, 1, pos=4, cex=0.7, mlabfun("RE Model", y=res.s))
 
 
 ### add text for the test of subgroup differences
@@ -456,7 +467,7 @@ text(-3, 1, pos=4, cex=0.7, mlabfun("RE Model", y=res.s))
 res.overall <- rma(yi,vi, method="REML", data=dat, slab=paste(group))
 
 addpoly(res.overall, row=-1.5, cex=0.75, mlab=mlabfun("RE Model", y=res.overall))
-text(-3, -1.5, pos=4, cex=0.7, mlabfun("all fish biomass", y=res.overall))
+text(-4, -1.5, pos=4, cex=0.7, mlabfun("All fish biomass", y=res.overall))
 
 abline(h=0)
 abline(h=9, lty=1, col='#D3D3D3')
@@ -465,9 +476,9 @@ abline(h=27, lty=1, col='#D3D3D3')
 
 
 
-text(x =-0.2, y = 37, "REF",  pos=2, font=2)
-text(x =0.7, y = 37, "SMR",  pos=2, font=2)
-text(x =-1.15, y = 38, "all fish biomass 2019-20",  cex=1, pos=2, font=3)
+#text(x =-0.2, y = 37, "REF",  pos=2, font=2)
+#text(x =0.7, y = 37, "SMR",  pos=2, font=2)
+text(x =-1.85, y = 38, "All fish biomass 2019-20",  cex=1, pos=2, font=3)
 
 
 dev.off()
