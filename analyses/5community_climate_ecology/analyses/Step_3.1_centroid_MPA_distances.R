@@ -7,12 +7,15 @@ rm(list=ls())
 require(vegan)
 require(dplyr)
 require(tidyr)
+require(stringr)
 require(gridExtra)
 require(usedist)
 require(ggplot2)
 require(reshape2)
 require(ggfittext)
 require(pairwiseAdonis)
+require(purrr)
+require(broom)
 
 
 
@@ -162,9 +165,11 @@ kelp_invalg_pair_perm <- pairwise.adonis2(kelp_invalg_distmat ~ site_yr_ID,
 
 
 ##### EXTRACT OUTPUT
+# Remove the different list item
+ccfrp_pair_perm$parent_call <- NULL
 
-
-
+# make it a data frame
+ccfrp_pair_perm_df <- ccfrp_pair_perm %>% map_dfr(~tidy(.x), .id="name")
 
 
 
