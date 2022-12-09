@@ -156,7 +156,7 @@ ccfrp_pair_perm <- pairwise.adonis2(CCFRP_distmat ~ site_yr_ID,
 rocky_pair_perm <- pairwise.adonis2(rocky_distmat ~ site_yr_ID, 
                                    data = rocky_group_vars1, permutations = 999)
 
-kelp_fish_pairs_perm <- pairwise.adonis2(kelp_fish_distmat ~ site_yr_ID, 
+kelp_fish_pair_perm <- pairwise.adonis2(kelp_fish_distmat ~ site_yr_ID, 
                                data = kelp_fish_group_vars1, permutations = 999)
 
 
@@ -166,63 +166,64 @@ kelp_invalg_pair_perm <- pairwise.adonis2(kelp_invalg_distmat ~ site_yr_ID,
 
 ##### EXTRACT OUTPUT
 # Remove the different list item
-ccfrp_pair_perm$parent_call <- NULL
+rocky_pair_perm$parent_call <- NULL
+
 
 # make it a data frame
-ccfrp_pair_perm_df <- ccfrp_pair_perm %>% map_dfr(~tidy(.x), .id="name")
 
-
-
-
-
-
-
-#OLD helper function to collect pairwise output 
-
-perm_fun <- function(perm_table, group_name){
-  ref_after = (as.data.frame(perm_table[["ref before_vs_ref after"]])%>%
-                 mutate(group = group_name,
-                        MPA_type = 'REF',
-                        period = 'before-to-after') %>%
-                 filter(row_number()==1) %>%
-                 dplyr::select(group, MPA_type, period, Df, SumOfSqs, R2, `F`,`Pr(>F)`))
-  ref_during = (as.data.frame(perm_table[["ref before_vs_ref during"]])%>%
-                  mutate(group = group_name,
-                         MPA_type = 'REF',
-                         period = 'before-to-during') %>%
-                  filter(row_number()==1) %>%
-                  dplyr::select(group, MPA_type,period, Df, SumOfSqs, R2, `F`,`Pr(>F)`))
-  
-  smr_after = (as.data.frame(perm_table[["smr before_vs_smr after"]])%>%
-                 mutate(group = group_name,
-                        MPA_type = 'MPA',
-                        period = 'before-to-after') %>%
-                 filter(row_number()==1) %>%
-                 dplyr::select(group, MPA_type,period, Df, SumOfSqs, R2, `F`,`Pr(>F)`))
-  smr_during = (as.data.frame(perm_table[["smr before_vs_smr during"]])%>%
-                  mutate(group = group_name,
-                         MPA_type = 'MPA',
-                         period = 'before-to-during') %>%
-                  filter(row_number()==1) %>%
-                  dplyr::select(group, MPA_type, period, Df, SumOfSqs, R2, `F`,`Pr(>F)`))
-  
-  rbind(ref_after, ref_during, smr_after, smr_during)
+extract_fun <- function(mod, habitat) {
+  mod$parent_call <- NULL
+  mod %>% map_dfr(~tidy(.x), .id="name")%>%
+                      filter(term == "site_yr_ID")%>%
+                      mutate(group_1 = str_extract(name, "[^_]+"),
+                             group_2 = gsub(".*\\_", "", name),
+                             period_1 = gsub(".*\\ ", "", group_1),
+                             period_2 = gsub(".*\\ ", "", group_2),
+                             MPA_int_1 = word(group_1 , 1  , -2),
+                             MPA_1 = word(MPA_int_1, 1  , -2),
+                             MPA_int_2 = word(group_2 , 1  , -2),
+                             MPA_2 = word(MPA_int_2, 1  , -2),
+                             MPA_type_1 = word(MPA_int_1,-1),
+                             MPA_type_2 = word(MPA_int_1,-1),
+                             habitat = habitat
+                             )%>%
+                      filter(MPA_int_1 == MPA_int_2,
+                             period_1 == "before") %>%
+                     dplyr::select(habitat, "MPA" = MPA_1, "MPA_type" = MPA_type_1,
+                                   period_1, period_2,
+                                   SumOfSqs, R2, "F.stat"=statistic,
+                                   p.value)
 }
 
 
-#collect output
-ccfrp_op <- perm_fun(ccfrp_pair_perm, group="Rocky reef fishes")
-kelp_fish_op <- perm_fun(kelp_fish_pair_perm, group='Kelp forest fishes')
-kelp_invalg_perm <- perm_fun(kelp_invalg_pair_perm, group = "Kelp forest inverts and algae")
-rocky_op <- perm_fun(rocky_pair_perm, group="Rocky intertidal")
-deep_reef_op <- perm_fun(dr_pair_perm, group = "Deep reef fishes")
 
-perm_output <- rbind(ccfrp_op, kelp_fish_op, deep_reef_op,
-                     kelp_invalg_perm, rocky_op)
+CCFRP_fun <- extract_fun(ccfrp_pair_perm, "Rocky reef fishes")
+rocky_fun <- extract_fun(rocky_pair_perm, "Rocky intertidal")
+kelp_fish_fun <- extract_fun(kelp_fish_pair_perm, "Kelp forest fishes")
+kelp_invalg_fun <- extract_fun(kelp_invalg_pair_perm, "Kelp forest inverts and algae")
 
-rownames(perm_output) <- NULL
+mod_out <- rbind(CCFRP_fun, rocky_fun, kelp_fish_fun, kelp_invalg_fun)
 
-perm_output$MPA_type <- recode_factor(perm_output$MPA_type, "REF"="Reference")
+################################################################################
+##join distance with significance level
+
+#prep distance
+b_join <- travel_distance %>%
+          select(join_ID, group, "distance"=value, sd_pooled)
+
+#prep model
+a_join <- mod_out %>%
+          mutate(join_ID = paste(MPA, MPA_type, period_1, period_2))
+
+#join
+mpa_output <- left_join(a_join, b_join, by=c("habitat"="group","join_ID"))%>%
+              select(!(join_ID))
+
+
+#write.csv(mpa_output, 
+# "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data/mpa_betadisp_mod.csv",
+# row.names = FALSE)
+
 
 
 
