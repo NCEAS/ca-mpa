@@ -371,6 +371,12 @@ mlabfun <- function(text, y) {
   )}
 
 
+dat$group <- recode_factor(dat$group, "surf-bruv" = "Surf zone (bruv)")
+dat$group <- recode_factor(dat$group, "surf-seine" = "Surf zone (seine)")
+dat$group <- recode_factor(dat$group, "kelp forest-fish" = "Kelp forest")
+dat$group <- recode_factor(dat$group, "deep-reef" = "Deep reef")
+dat$group <- recode_factor(dat$group, "ccfrp" = "Rocky reef")
+
 
 
 png("/home/joshsmith/CA_MPA_Project/ca-mpa/analyses/CDFW_modules/figures/module_1_eco_perform/all_fish_diversity_forestplot.png", width = 2400, height = 2400, res=300)
@@ -447,7 +453,7 @@ text(-3, 1, pos=4, cex=0.7, mlabfun("RE Model", y=res.i))
 res.overall <- rma(yi,vi, method="REML", data=dat, slab=paste(group))
 
 addpoly(res.overall, row=-1.5, cex=0.75, mlab=mlabfun("RE Model", y=res.overall))
-text(-3, -1.5, pos=4, cex=0.7, mlabfun("all fish diversity", y=res.overall))
+text(-3, -1.5, pos=4, cex=0.7, mlabfun("All fish diversity", y=res.overall))
 
 abline(h=0)
 abline(h=9.5, lty=1, col='#D3D3D3')
@@ -456,9 +462,9 @@ abline(h=27.5, lty=1, col='#D3D3D3')
 
 
 
-text(x =-0.2, y = 37, "REF",  pos=2, font=2)
-text(x =0.7, y = 37, "SMR",  pos=2, font=2)
-text(x =-1.42, y = 38, "all fish diversity 2019-20",  cex=1, pos=2, font=3)
+#text(x =-0.2, y = 37, "REF",  pos=2, font=2)
+#text(x =0.7, y = 37, "SMR",  pos=2, font=2)
+text(x =-1.42, y = 38, "All fish diversity 2019-20",  cex=1, pos=2, font=3)
 
 
 dev.off()
