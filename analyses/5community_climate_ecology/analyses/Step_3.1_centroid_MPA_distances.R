@@ -7,19 +7,21 @@ rm(list=ls())
 require(vegan)
 require(dplyr)
 require(tidyr)
+require(stringr)
 require(gridExtra)
 require(usedist)
 require(ggplot2)
-require(metafor)
 require(reshape2)
 require(ggfittext)
 require(pairwiseAdonis)
+require(purrr)
+require(broom)
 
 
 
 #load data ---------------------------------------------------------------------
 
-data_path <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/ecological_community_data/year_level_with_envr_vars"
+data_path <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data"
 
 nmds_scores <- load(file.path(data_path, "bray_nmds_scores.rda"))
 group_vars <- load(file.path(data_path, "group_vars.rda"))
@@ -27,7 +29,7 @@ envr_vars <- load(file.path(data_path, "envr_vars.rda"))
 eco_dist <- load(file.path(data_path, "distance_matrices_BC.rda"))
 
 
-# define levels ----------------------------------------------------------------
+# define test centroids  -------------------------------------------------------
 
 rocky_group_vars1 <- rocky_group_vars %>%
                       mutate(affiliated_mpa2 = ifelse(affiliated_mpa == "none",
@@ -37,7 +39,14 @@ rocky_group_vars1 <- rocky_group_vars %>%
 CCFRP_group_vars1 <- CCFRP_group_vars %>%
                       mutate(site_yr_ID = paste(affiliated_mpa, desig_state))
 
+kelp_fish_group_vars1 <- kelp_fish_group_vars %>%
+                         mutate(site_yr_ID = paste(affiliated_mpa, desig_state))
 
+kelp_invalg_group_vars1 <- kelp_invalg_group_vars %>%
+                         mutate(site_yr_ID = paste(affiliated_mpa, desig_state))
+
+deep_reef_group_vars1 <- deep_reef_group_vars %>%
+                        mutate(site_yr_ID = paste(affiliated_mpa, desig_state))
 
 # Step 1 - examine hull shape and dispersion -----------------------------------
 
@@ -47,8 +56,16 @@ CCFRP_disper <- betadisper(CCFRP_distmat, type="centroid",
 rocky_disper <- betadisper(rocky_distmat, type = "centroid",
                            group = rocky_group_vars1$site_yr_ID)
 
+kelp_fish_disper <- betadisper(kelp_fish_distmat, type="centroid",
+                               group=kelp_fish_group_vars1$site_yr_ID)
 
-# Step 2 - calculate distance -----------------------------------
+kelp_invalg_disper <- betadisper(kelp_invalg_distmat, type = "centroid",
+                                 group = kelp_invalg_group_vars1$site_yr_ID)
+
+deep_reef_disper <- betadisper(deep_reef_distmat, type="centroid",
+                               group=deep_reef_group_vars1$site_yr_ID)
+
+# Step 2 - calculate distances and pooled s.d.----------------------------------
 
 #create helper function
 
@@ -108,8 +125,111 @@ eig_fun <- function(disper_mat) {
 }
 
 
-CCFRP <- eig_fun(CCFRP_disper)
-rocky <- eig_fun(rocky_disper)
+CCFRP <- eig_fun(CCFRP_disper) %>% 
+                mutate(group = "Rocky reef fishes")
+rocky <- eig_fun(rocky_disper) %>% 
+                mutate(group = "Rocky intertidal")
+kelp_fish <- eig_fun(kelp_fish_disper) %>% 
+                mutate(group = "Kelp forest fishes")
+kelp_invalg <- eig_fun(kelp_invalg_disper) %>% 
+                mutate(group = "Kelp forest inverts and algae")
+
+
+####problem with deep reef --- need to figure this out before continuing
+deep_reef <- eig_fun(deep_reef_disper)
+
+
+#combine into df
+travel_distance <- as.data.frame(rbind(CCFRP, rocky, kelp_fish,
+                                       kelp_invalg))
+
+
+
+
+################################################################################
+#Step 3 -- use permanova to test significance
+
+#pariwise permanova
+ccfrp_pair_perm <- pairwise.adonis2(CCFRP_distmat ~ site_yr_ID, 
+                                   data = CCFRP_group_vars1, permutations = 999)
+
+rocky_pair_perm <- pairwise.adonis2(rocky_distmat ~ site_yr_ID, 
+                                   data = rocky_group_vars1, permutations = 999)
+
+kelp_fish_pair_perm <- pairwise.adonis2(kelp_fish_distmat ~ site_yr_ID, 
+                               data = kelp_fish_group_vars1, permutations = 999)
+
+
+kelp_invalg_pair_perm <- pairwise.adonis2(kelp_invalg_distmat ~ site_yr_ID, 
+                             data = kelp_invalg_group_vars1, permutations = 999)
+
+
+##### EXTRACT OUTPUT
+# Remove the different list item
+rocky_pair_perm$parent_call <- NULL
+
+
+# make it a data frame
+
+extract_fun <- function(mod, habitat) {
+  mod$parent_call <- NULL
+  mod %>% map_dfr(~tidy(.x), .id="name")%>%
+                      filter(term == "site_yr_ID")%>%
+                      mutate(group_1 = str_extract(name, "[^_]+"),
+                             group_2 = gsub(".*\\_", "", name),
+                             period_1 = gsub(".*\\ ", "", group_1),
+                             period_2 = gsub(".*\\ ", "", group_2),
+                             MPA_int_1 = word(group_1 , 1  , -2),
+                             MPA_1 = word(MPA_int_1, 1  , -2),
+                             MPA_int_2 = word(group_2 , 1  , -2),
+                             MPA_2 = word(MPA_int_2, 1  , -2),
+                             MPA_type_1 = word(MPA_int_1,-1),
+                             MPA_type_2 = word(MPA_int_1,-1),
+                             habitat = habitat
+                             )%>%
+                      filter(MPA_int_1 == MPA_int_2,
+                             period_1 == "before") %>%
+                     dplyr::select(habitat, "MPA" = MPA_1, "MPA_type" = MPA_type_1,
+                                   period_1, period_2,
+                                   SumOfSqs, R2, "F.stat"=statistic,
+                                   p.value)
+}
+
+
+
+CCFRP_fun <- extract_fun(ccfrp_pair_perm, "Rocky reef fishes")
+rocky_fun <- extract_fun(rocky_pair_perm, "Rocky intertidal")
+kelp_fish_fun <- extract_fun(kelp_fish_pair_perm, "Kelp forest fishes")
+kelp_invalg_fun <- extract_fun(kelp_invalg_pair_perm, "Kelp forest inverts and algae")
+
+mod_out <- rbind(CCFRP_fun, rocky_fun, kelp_fish_fun, kelp_invalg_fun)
+
+################################################################################
+##join distance with significance level
+
+#prep distance
+b_join <- travel_distance %>%
+          select(join_ID, group, "distance"=value, sd_pooled)
+
+#prep model
+a_join <- mod_out %>%
+          mutate(join_ID = paste(MPA, MPA_type, period_1, period_2))
+
+#join
+mpa_output <- left_join(a_join, b_join, by=c("habitat"="group","join_ID"))%>%
+              select(!(join_ID))
+
+
+#write.csv(mpa_output, 
+# "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data/mpa_betadisp_mod.csv",
+# row.names = FALSE)
+
+
+
+
+
+
+
 
 
 
