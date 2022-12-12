@@ -36,7 +36,7 @@ data <- data_orig %>%
   left_join(mpas_orig %>% select(mpa, region), by="mpa") %>% 
   # Create type
   mutate(period=paste(period_1, period_2, sep="-"),
-         process=recode(period,
+         process=recode_factor(period,
                         "before-during"="Resistance",
                         "before-after"="Recovery")) %>% 
   # Arrange
@@ -44,8 +44,10 @@ data <- data_orig %>%
   # Spread
   spread(key="site_type", value="distance") %>% 
   rename(dist_ref=ref, dist_mpa=smr) %>% 
+  # Calculate proportion prevented
+  mutate(prop=(dist_ref-dist_mpa)/dist_ref) %>% 
   # Remove sites that aren't MPAs
-  filter(!is.na(region))
+  filter(!is.na(region) & !is.na(dist_mpa))
 
 # Check MPA names
 mpa_names <- sort(unique(data$mpa))
@@ -58,7 +60,7 @@ mpa_names[!mpa_names %in% mpas_orig$mpa]
 # Theme
 my_theme <-  theme(axis.text=element_text(size=6),
                    axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
-                   axis.title=element_text(size=8),
+                   axis.title=element_blank(),
                    legend.text=element_text(size=6),
                    legend.title=element_text(size=8),
                    strip.text=element_text(size=8),
@@ -69,31 +71,27 @@ my_theme <-  theme(axis.text=element_text(size=6),
                    panel.background = element_blank(), 
                    axis.line = element_line(colour = "black"),
                    # Legend
+                   legend.key.size = unit(0.3, "cm"),
                    legend.background = element_rect(fill=alpha('blue', 0)))
 
+
 # Plot data
-g <-ggplot(data %>% filter(process=="Resistance"), aes(x=habitat, y=mpa, size=dist_mpa)) +
-  facet_grid(region~., scales='free_y', space="free_y") +
-  geom_point() +
+g <-ggplot(data, aes(x=habitat, y=mpa, size=dist_mpa, fill=prop)) +
+  facet_grid(region~process, scales='free_y', space="free_y") +
+  geom_point(pch=21) +
   # Labels
-  labs(x="", y="", title="Resistance") +
+  labs(x="", y="", title="") +
   # Legend
-  scale_size_continuous(name="Distance\n(before-during)") +
+  scale_size_continuous(name="Shift distance\n(smaller=greater resilience)") +
+  scale_fill_gradient2(name="% of shift\nprevented (blue)\nor exacerbated (red)",
+                       label=scales::percent,
+                       midpoint=0, mid="white", low="darkred", high="navy",) +
+  guides(fill = guide_colorbar(ticks.colour = "black", frame.colour = "black")) +
   # Theme
   theme_bw() + my_theme
 g
 
-# Plot data
-g <-ggplot(data %>% filter(process=="Recovery"), aes(x=habitat, y=mpa, size=dist_mpa)) +
-  facet_grid(region~., scales='free_y', space="free_y") +
-  geom_point() +
-  # Labels
-  labs(x="", y="", title="Recovery") +
-  # Legend
-  scale_size_continuous(name="Distance\n(before-after)") +
-  # Theme
-  theme_bw() + my_theme
-g
-
-
+# Export
+ggsave(g, filename=file.path(plotdir, "Fig4_mpa_resist_recover.png"), 
+       width=4.75, height=3.5, units="in", dpi=600)
 
