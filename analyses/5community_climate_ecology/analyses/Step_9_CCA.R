@@ -61,7 +61,7 @@ CCFRP_mean_dist3 <- melt(CCFRP_mean_dist) %>% #melt to three column columns
          MPA_type1 = word(Var1,-1),
          MPA_type2 = word(Var2,-1),
          group="Rocky reef fishes") %>%
-  filter(year_1 == 2007 & year_2 >=2008 & MPA_1==MPA_2 &
+  filter(year_1 == 2013 & year_2 >=2014 & MPA_1==MPA_2 &
            MPA_type1 == MPA_type2) %>% #extract dissimilarities relative to 2007
   #distinct(year_2, .keep_all=TRUE)%>% #grab distinct disimilarities
   select(group, year = year_2, MPA = MPA_2, MPA_type = MPA_type2, 
@@ -80,7 +80,7 @@ kelp_invalg_mean_dist3 <- melt(kelp_invalg_mean_dist) %>% #melt to three column 
          MPA_type1 = word(Var1,-1),
          MPA_type2 = word(Var2,-1),
          group="Kelp forest inverts and algae") %>%
-  filter(year_1 == 2007 & year_2 >=2008 & MPA_1==MPA_2 &
+  filter(year_1 == 2013 & year_2 >=2014 & MPA_1==MPA_2 &
            MPA_type1 == MPA_type2) %>% #extract dissimilarities relative to 2007
   #distinct(year_2, .keep_all=TRUE)%>% #grab distinct disimilarities
   select(group, year = year_2, MPA = MPA_2, MPA_type = MPA_type2, 
@@ -99,7 +99,7 @@ kelp_fish_mean_dist3 <- melt(kelp_fish_mean_dist) %>% #melt to three column colu
          MPA_type1 = word(Var1,-1),
          MPA_type2 = word(Var2,-1),
          group="Kelp forest fishes") %>%
-  filter(year_1 == 2007 & year_2 >=2008 & MPA_1==MPA_2 &
+  filter(year_1 == 2013 & year_2 >=2014 & MPA_1==MPA_2 &
            MPA_type1 == MPA_type2) %>% #extract dissimilarities relative to 2007
   #distinct(year_2, .keep_all=TRUE)%>% #grab distinct disimilarities
   select(group, year = year_2, MPA = MPA_2, MPA_type = MPA_type2, 
@@ -118,7 +118,7 @@ deep_reef_mean_dist3 <- melt(deep_reef_mean_dist) %>% #melt to three column colu
          MPA_type1 = word(Var1,-1),
          MPA_type2 = word(Var2,-1),
          group="Deep reef fishes") %>%
-  filter(year_1 == 2008 & year_2 >=2009 & MPA_1==MPA_2 &
+  filter(year_1 == 2013 & year_2 >=2014 & MPA_1==MPA_2 &
            MPA_type1 == MPA_type2) %>% #extract dissimilarities relative to 2007
   #distinct(year_2, .keep_all=TRUE)%>% #grab distinct disimilarities
   select(group, year = year_2, MPA = MPA_2, MPA_type = MPA_type2, 
@@ -138,7 +138,7 @@ rocky_mean_dist3 <- melt(rocky_mean_dist) %>% #melt to three column columns
          MPA_type1 = word(Var1,-1),
          MPA_type2 = word(Var2,-1),
          group="Rocky intertidal") %>%
-  filter(year_1 == 2007 & year_2 >=2008 & MPA_1==MPA_2 &
+  filter(year_1 == 2013 & year_2 >=2014 & MPA_1==MPA_2 &
            MPA_type1 == MPA_type2) %>% #extract dissimilarities relative to 2007
   #distinct(year_2, .keep_all=TRUE)%>% #grab distinct disimilarities
   select(group, year = year_2, MPA = MPA_2, MPA_type = MPA_type2, 
@@ -210,7 +210,11 @@ CCA_data <- con_dat1 %>%
   dplyr::select(
   group, year = year.x, site ,dissim,
   SST,CUTI,BEUTI,MOCI
-)
+)%>%
+  mutate(MPA_type = word(site, -1))%>%
+    group_by(group, year, MPA_type)%>%
+    dplyr::summarize(dissim = mean(dissim),
+                     SST = mean(SST, na.rm=TRUE))
 
 
 ################################################################################
@@ -225,12 +229,14 @@ CCA_data <- con_dat1 %>%
 # creating groups from group and sites
 CCA_data_grouped <- CCA_data %>%
   na.omit() %>%
-  group_by(group, site)
+  group_by(group, MPA_type #site
+           )
 
 # Get the group names
 CCA_data_names <- CCA_data_grouped %>%
   group_keys() %>%
-  unite(group_name, group:site, sep = "-") %>%
+  unite(group_name, group:MPA_type, #:site
+        sep = "-") %>%
   pull()
 
 # Split data frame into a list of groups 
@@ -246,7 +252,8 @@ CCA_data_list <- CCA_data_grouped %>%
 # Initialize data frame to sotre outputs
 corr_df <- tibble(
   group = replicate(length(CCA_data_list), "a"),
-  site = replicate(length(CCA_data_list), "b"),
+  #site = replicate(length(CCA_data_list), "b"),
+  MPA_type = replicate(length(CCA_data_list), "b"),
   corr_max = replicate(length(CCA_data_list), 0),
   lag_max = replicate(length(CCA_data_list), 0),
   corr_min = replicate(length(CCA_data_list), 0),
@@ -262,7 +269,7 @@ for (i in 1:length(CCA_data_list)) {
   print(sprintf("Processing: %s", data_group_name))
   
   # Compute the cross-correlation
-  ccf_group <- ccf(data_group$dissim, data_group$SST, lag.max=6, na.action = na.pass, plot=FALSE)
+  ccf_group <- ccf(data_group$dissim, data_group$SST, lag.max=4, na.action = na.pass, plot=FALSE)
   
   # plot it
   plot(ccf_group, main = data_group_name)
@@ -277,16 +284,20 @@ for (i in 1:length(CCA_data_list)) {
   
   # Add it to the data frame
   corr_df[i, "group"] <- str_split(data_group_name, "-")[[1]][1]
-  corr_df[i, "site"] <- str_split(data_group_name, "-")[[1]][2]
+  #corr_df[i, "site"] <- str_split(data_group_name, "-")[[1]][2]
+  corr_df[i, "MPA_type"] <- str_split(data_group_name, "-")[[1]][2]
   corr_df[i, "corr_max"] <- max_ccf
   corr_df[i, "lag_max"] <- lag_max
   corr_df[i, "corr_min"] <- min_ccf
   corr_df[i, "lag_min"] <- lag_min
 }
 
-# Write output file
-write_csv(corr_df, file.path(data_path,"cross_correlation_groups.csv"))
 
+# Write output file
+#write_csv(corr_df, file.path(data_path,"cross_correlation_groups.csv"))
+
+
+#Plot
 
 
 
