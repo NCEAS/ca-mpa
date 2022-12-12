@@ -3,9 +3,7 @@
 
 rm(list=ls())
 
-library(reshape2)
-library(tidyverse)
-library(vegan)
+librarian::shelf(reshape2, tidyverse, vegan)
 
 #set directories
 data_path <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data"
@@ -249,11 +247,12 @@ CCA_data_list <- CCA_data_grouped %>%
   # map(~ccf(.$dissim, .$SST, lag.max=6, na.action = na.pass))
 
 
-# Initialize data frame to sotre outputs
+# Initialize data frame to store outputs
 corr_df <- tibble(
   group = replicate(length(CCA_data_list), "a"),
   #site = replicate(length(CCA_data_list), "b"),
   MPA_type = replicate(length(CCA_data_list), "b"),
+  acf_values = replicate(length(CCA_data_list), list(1:7)),
   corr_max = replicate(length(CCA_data_list), 0),
   lag_max = replicate(length(CCA_data_list), 0),
   corr_min = replicate(length(CCA_data_list), 0),
@@ -265,14 +264,12 @@ corr_df <- tibble(
 for (i in 1:length(CCA_data_list)) {
   print(i)
   data_group_name <- names(CCA_data_list[i])
-  data_group <- CCA_data_list[[i]]
+  data_group <- CCA_data_list[[i]] %>%
+    arrange(year)
   print(sprintf("Processing: %s", data_group_name))
   
   # Compute the cross-correlation
-  ccf_group <- ccf(data_group$dissim, data_group$SST, lag.max=4, na.action = na.pass, plot=FALSE)
-  
-  # plot it
-  plot(ccf_group, main = data_group_name)
+  ccf_group <- ccf(data_group$dissim, data_group$SST, lag.max=6, plot=FALSE)
   
   # Extract the cross-correlation information
   lag0_ind <-  which(ccf_group$lag == 0)
@@ -283,13 +280,20 @@ for (i in 1:length(CCA_data_list)) {
   lag_min <- which(ccf_group$acf == min_ccf) - lag0_ind   # removing negative lag
   
   # Add it to the data frame
-  corr_df[i, "group"] <- str_split(data_group_name, "-")[[1]][1]
+  corr_df[i, "group"] <- data_group_name
+  # corr_df[i, "group"] <- str_split(data_group_name, "-")[[1]][1] # when it was site specific
   #corr_df[i, "site"] <- str_split(data_group_name, "-")[[1]][2]
-  corr_df[i, "MPA_type"] <- str_split(data_group_name, "-")[[1]][2]
+  # corr_df[i, "MPA_type"] <- str_split(data_group_name, "-")[[1]][2]# when it was site specific
+  corr_df[i, "MPA_type"] <- data_group$MPA_type[[1]]
+  corr_df[i, "acf_values"][[1]][[1]] <- positive_lag
   corr_df[i, "corr_max"] <- max_ccf
   corr_df[i, "lag_max"] <- lag_max
   corr_df[i, "corr_min"] <- min_ccf
   corr_df[i, "lag_min"] <- lag_min
+  
+  
+  # plot it
+  plot(ccf_group, main = data_group_name, xlim = c(0, lag0_ind-1)) # positive only
 }
 
 
@@ -299,5 +303,8 @@ for (i in 1:length(CCA_data_list)) {
 
 #Plot
 
+# expand the data frame so there is one row per acf values (lag 0-6)
+corr_df_expanded <- unnest(corr_df)
 
+# any ggplot graph
 
