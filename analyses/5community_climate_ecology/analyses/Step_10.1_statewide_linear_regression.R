@@ -56,7 +56,7 @@ kf_fish_resist <- mpa_dat %>%
          habitat == 'Kelp forest fishes')%>%
   dplyr::select(!(process))
 
-kf__fish_resil <- mpa_dat %>%
+kf_fish_resil <- mpa_dat %>%
   drop_na()%>%
   dplyr::select(c(process, habitat, MPA,  size_km2, shore_span_km,
                   max_depth_m, depth_range, rel_age, lat, four_region, distance))%>%
@@ -112,4 +112,67 @@ kf_invalg_resil_mod <- glm(distance ~ size_km2 + shore_span_km +
                          family="gaussian", 
                          na.action = na.exclude)
 summary(kf_invalg_resil_mod)
+
+###############################################################################
+#build model for intertidal
+
+rocky_resist <- mpa_dat %>%
+  dplyr::select(c(process, habitat, MPA, size_km2, shore_span_km,
+                  max_depth_m, depth_range, rel_age, lat,
+                  four_region, distance))%>%
+  filter(process=="Resistance",
+         habitat == 'Rocky intertidal')%>%
+  dplyr::select(!(process))
+
+rocky_resil <- mpa_dat %>%
+  drop_na()%>%
+  dplyr::select(c(process, habitat, MPA,  size_km2, shore_span_km,
+                  max_depth_m, depth_range, rel_age, lat, four_region, distance))%>%
+  filter(process=="Resilience",
+         habitat == "Rocky intertidal")%>%
+  dplyr::select(!(process))
+
+#resistance 
+rocky_resist_mod <-glm(distance ~ size_km2 + shore_span_km +
+                             depth_range + lat, data = rocky_resist, 
+                           family="gaussian", 
+                           na.action = na.exclude)
+summary(rocky_resist_mod)
+
+#resilience
+rocky_resil_mod <- glm(distance ~ size_km2 + shore_span_km +
+                             depth_range + lat, data = rocky_resil, 
+                           family="gaussian", 
+                           na.action = na.exclude)
+summary(rocky_resil_mod)
+
+
+###############################################################################
+#create table of output
+kf_fish_tab <- sjPlot::tab_model(kf_fish_resist_mod,
+                                   kf_fish_resil_mod,
+                                   show.aic=F, show.r2=T, 
+                                   title="Kelp forest fishes",auto.label=T,
+               
+                                   #pred.labels = c("intercept","state parks (yes)","sandy beach","estuary","national marine sanctuary (yes)"),
+                                   dv.labels = c("Resistance", "Resilience"))
+
+kf_invalg_tab <- sjPlot::tab_model(kf_invalg_resist_mod,
+                                 kf_invalg_resil_mod,
+                                 show.aic=F, show.r2=T, 
+                                 title="Kelp forest inverts and algae",auto.label=T,
+                                 
+                                 #pred.labels = c("intercept","state parks (yes)","sandy beach","estuary","national marine sanctuary (yes)"),
+                                 dv.labels = c("Resistance", "Resilience"))
+
+
+rocky_tab <- sjPlot::tab_model(rocky_resist_mod,
+                                  rocky_resil_mod,
+                                   show.aic=F, show.r2=T, 
+                                   title="Rocky intertidal",auto.label=T,
+                                   
+                                   #pred.labels = c("intercept","state parks (yes)","sandy beach","estuary","national marine sanctuary (yes)"),
+                                   dv.labels = c("Resistance", "Resilience"))
+
+
 
