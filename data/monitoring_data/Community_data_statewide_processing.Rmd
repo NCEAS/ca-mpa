@@ -205,7 +205,7 @@ kelp_fish_mpa_year <- left_join(kelp_fish_mpa_year_step1, envr_dat, by=c("year",
 
 #Export year                     
 #path_aurora <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data" 
-#write.csv(kelp_fish_mpa_year,file.path(path_aurora, "kelp_fish_mpa_year.csv"), row.names = FALSE)
+#write.csv(kelp_fish_mpa_year,file.path(path_aurora, "kelp_fish_statewide.csv"), row.names = FALSE)
 ```
 
 
@@ -593,7 +593,7 @@ kelp_check <-  anti_join(kelp_swath_stan1, kelp_upc_stan2, by=c("year",
 
 
 #path_aurora <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data"
-#write.csv(kelp_stan, file.path(path_aurora, "kelp_swath_upc_mpa_year.csv"), row.names = FALSE)
+#write.csv(kelp_stan, file.path(path_aurora, "kelp_swath_upc_statewide.csv"), row.names = FALSE)
 ```
 
 
@@ -642,7 +642,7 @@ rocky_count_prop <- rocky_count_envr %>%
 
 #export
 #path_aurora <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data" 
-#write.csv(rocky_count_prop, file.path(path_aurora, "rocky_mpa_year.csv"), row.names = FALSE)
+#write.csv(rocky_count_prop, file.path(path_aurora, "rocky_statewide.csv"), row.names = FALSE)
 
 ```
 
