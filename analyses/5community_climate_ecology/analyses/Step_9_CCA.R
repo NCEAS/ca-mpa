@@ -308,3 +308,15 @@ corr_df_expanded <- unnest(corr_df)
 
 # any ggplot graph
 
+
+################################################################################
+#######test lag lm
+
+rocky_fish_lag <- CCA_data %>% filter(group=="Rocky reef fishes")%>%
+                  dplyr::select(dissim, SST)
+
+alldata=ts.intersect(rocky_fish_lag$dissim,reclag1=lag(rocky_fish_lag$dissim,-1), 
+                     reclag2=lag(rocky_fish_lag$dissim,-2), 
+                     reclag3 = lag(rocky_fish_lag$dissim, -3))
+
+
