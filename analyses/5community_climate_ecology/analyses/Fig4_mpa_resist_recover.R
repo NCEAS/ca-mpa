@@ -61,7 +61,16 @@ data <- data_orig %>%
   filter(!(habitat=="Kelp forest inverts and algae" &
              mpa == "Natural Bridges SMR"),
            !(habitat=="Kelp forest fishes" &
-             mpa == "Natural Bridges SMR"))
+             mpa == "Natural Bridges SMR")) %>%
+  #set habitat order 
+  mutate(habitat = factor(habitat, level=c(
+    "Rocky intertidal",
+    "Kelp forest inverts and algae",
+    "Kelp forest fishes",
+    "Rocky reef fishes",
+    "Deep reef"
+    
+  )))
 
 # Check MPA names
 mpa_names <- sort(unique(data$mpa))
@@ -93,11 +102,14 @@ my_theme <-  theme(axis.text=element_text(size=6),
 g <-ggplot(data, aes(x=habitat, y=mpa, size=dist_mpa, fill=prop
                      )) +
   facet_grid(region~process, scales='free_y', space="free_y") +
-  geom_point(aes(shape=sig_level)) +
+  geom_point(pch=21) +
   # Labels
   labs(x="", y="", title="") +
   #add sig level
-  
+  geom_text(aes(label=sig_level), size=3, #hjust=-1, 
+            vjust=0.8,
+            #position = position_dodge(width=0.8),
+            show.legend = FALSE)+
   # Legend
   scale_size_continuous(name="Shift distance\n(smaller=greater resilience)") +
   scale_fill_gradient2(name="% of shift\nprevented (blue)\nor exacerbated (red)",
@@ -109,6 +121,6 @@ g <-ggplot(data, aes(x=habitat, y=mpa, size=dist_mpa, fill=prop
 g
 
 # Export
-#ggsave(g, filename=file.path(plotdir, "Fig4_mpa_resist_recover.png"), 
-#       width=4.75, height=3.5, units="in", dpi=600)
+ggsave(g, filename=file.path(plotdir, "Fig4_mpa_resist_recover.png"), 
+       width=4.75, height=3.5, units="in", dpi=600)
 
