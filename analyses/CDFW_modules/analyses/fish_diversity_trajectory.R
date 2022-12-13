@@ -56,10 +56,15 @@ means_final <- means.final %>%
                 filter(!(logRR=='-Inf'|
                            logRR=='Inf'|
                            logRR=='NaN')) 
-              
-means_final$group <- recode_factor(means_final$group, "deep_reef"="deep reef")
-means_final$group <- recode_factor(means_final$group, "kelp-fish"="kelp forest")
 
+means.data$group <- recode_factor(means.data$group, "deep_reef"="Deep reef")
+means.data$group <- recode_factor(means.data$group, "kelp"="Kelp forest")
+means.data$group <- recode_factor(means.data$group, "ccfrp"="Rocky reef")
+
+means.data$region4 <- recode_factor(means.data$region4, "north"="North")
+means.data$region4 <- recode_factor(means.data$region4, "central"="Central")
+means.data$region4 <- recode_factor(means.data$region4, "north islands"="North islands")
+means.data$region4 <- recode_factor(means.data$region4, "south"="South")
 
 
 
@@ -247,15 +252,20 @@ means_final <- means.final %>%
              logRR=='Inf'|
              logRR=='NaN')) 
 
-means_final$group <- recode_factor(means_final$group, "deep-reef"="deep reef")
-means_final$group <- recode_factor(means_final$group, "kelp forest-fish"="kelp forest")
+means_final$group <- recode_factor(means_final$group, "deep-reef"="Deep reef")
+means_final$group <- recode_factor(means_final$group, "kelp forest-fish"="Kelp forest")
+means_final$group <- recode_factor(means_final$group, "ccfrp"="Rocky reef")
 
+means_final$region4 <- recode_factor(means_final$region4, "north"="North")
+means_final$region4 <- recode_factor(means_final$region4, "central"="Central")
+means_final$region4 <- recode_factor(means_final$region4, "north islands"="North islands")
+means_final$region4 <- recode_factor(means_final$region4, "south"="South")
 
-
+means_final$region4 <- factor(means_final$region4, levels = c("North", "Central","North islands","South"))
 
 
 diversity_all <- ggplot(means_final %>%
-                                  filter(group == 'ccfrp'|group == 'kelp forest'|group == 'deep reef',
+                                  filter(group == 'Rocky reef'|group == 'Kelp forest'|group == 'Deep reef',
                                          mpa_defacto_designation == 'smr'
                                          
                                   )
@@ -284,7 +294,7 @@ diversity_all <- ggplot(means_final %>%
   labs(colour = 'Difference', linetype = 'Slope') +
   facet_wrap(region4~group, scales="free_x", nrow=4)+
   scale_x_continuous()+
-  labs(colour = "fished status") +
+  labs(colour = "Fished status") +
   theme_classic(base_size = 8)+
   coord_cartesian(
     ylim = c(-0.3,0.4)
@@ -292,10 +302,10 @@ diversity_all <- ggplot(means_final %>%
 
 
 
-#ggsave(here::here("analyses","CDFW_modules", "figures","module_1_eco_perform",
-#                 "diversity_trajectory_all.png"), diversity_all, height=8, 
-#       width = 8, units = "in", 
-#     dpi = 600, bg="white")
+ggsave(here::here("analyses","CDFW_modules", "figures","module_1_eco_perform",
+                 "diversity_trajectory_all.png"), diversity_all, height=8, 
+       width = 8, units = "in", 
+     dpi = 600, bg="white")
 
 
 
