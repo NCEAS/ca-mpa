@@ -32,10 +32,6 @@ ccfrp_abund <- rowSums(CCFRP_ord_data[,1:37])
 ccfrp_alphadiv <- cbind(CCFRP_group_vars, ccfrp_richness, ccfrp_shannon, ccfrp_evenness, ccfrp_abund)%>%
   mutate(MHW = factor(MHW, levels=c("before","during","after")))
 
-# CL export added 2022-12-14
-#saveRDS(ccfrp_alphadiv, file.path("analyses", "7habitat", "intermediate_data", "ccfrp_alpha.Rds"))
-#
-
 
 #kelp fish
 kelp_fish_richness <- estimateR(kelp_fish_ord_data)
@@ -48,10 +44,6 @@ kelp_fish_alphadiv <- cbind(kelp_fish_group_vars, t(kelp_fish_richness), kelp_fi
   #drop outliers 
   filter(!(kelp_fish_abund > 10000))
 
-# CL export added 2022-12-14
-#saveRDS(kelp_fish_alphadiv, file.path("analyses", "7habitat", "intermediate_data", "kf_alpha.Rds"))
-#
-
 #deep reef
 deep_reef_richness <- data.frame(S.obs = apply(deep_reef_ord_data[,1:56]>0, 1, sum))
 deep_reef_evenness <- diversity(deep_reef_ord_data)/log(specnumber(deep_reef_ord_data))
@@ -61,11 +53,6 @@ deep_reef_abund <- rowSums(deep_reef_ord_data[,1:56])
 deep_reef_alphadiv <- cbind(deep_reef_group_vars, deep_reef_richness, 
                             deep_reef_shannon,deep_reef_abund, deep_reef_evenness)%>%
   mutate(MHW = factor(MHW, levels=c("before","during","after")))
-
-# CL export added 2022-12-14
-#saveRDS(deep_reef_alphadiv, file.path("analyses", "7habitat", "intermediate_data", "deep_alpha.Rds"))
-#
-
 
 #kelp swath
 kelp_swath_richness <- estimateR(kelp_swath_ord_data)
@@ -77,9 +64,7 @@ kelp_swath_alphadiv <- cbind(kelp_swath_group_vars, t(kelp_swath_richness),
                             kelp_swath_shannon, kelp_swath_abund, kelp_swath_evenness)%>%
   mutate(MHW = factor(MHW, levels=c("before","during","after")))
 
-# CL export added 2022-12-14
-#saveRDS(kelp_swath_alphadiv, file.path("analyses", "7habitat", "intermediate_data", "kf_swath_alpha.Rds"))
-#
+
 
 
 #rocky
@@ -92,9 +77,7 @@ rocky_alphadiv <- cbind(rocky_group_vars, rocky_richness,
                              rocky_shannon, rocky_abund, rocky_evenness)%>%
   mutate(MHW = factor(MHW, levels=c("before","during","after")))
 
-# CL export added 2022-12-14
-#saveRDS(rocky_alphadiv, file.path("analyses", "7habitat", "intermediate_data", "rocky_alpha.Rds"))
-#
+
 
 ################################################################################
 #plot
