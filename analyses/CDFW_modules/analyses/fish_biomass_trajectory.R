@@ -14,19 +14,26 @@ input_file <- "targeted_nontargeted_fish_biomass_logRRs.csv"
 means.data <- read.csv(file.path(data_path, input_file))
 
 
-means.data$group <- recode_factor(means.data$group, "deep_reef"="deep reef")
-means.data$group <- recode_factor(means.data$group, "kelp"="kelp forest")
+means.data$group <- recode_factor(means.data$group, "deep_reef"="Deep reef")
+means.data$group <- recode_factor(means.data$group, "kelp"="Kelp forest")
+means.data$group <- recode_factor(means.data$group, "ccfrp"="Rocky reef")
+
+means.data$region4 <- recode_factor(means.data$region4, "north"="North")
+means.data$region4 <- recode_factor(means.data$region4, "central"="Central")
+means.data$region4 <- recode_factor(means.data$region4, "north islands"="North islands")
+means.data$region4 <- recode_factor(means.data$region4, "south"="South")
 
 # Biomass trajectory ------------------------------------------------------
 
 
 means_plot <- means.data %>%
-  dplyr::filter(!(group=='ccfrp'&target_status=='nontargeted'))
+  mutate(group = factor(group, levels=c("Kelp forest",'Deep reef',"Rocky reef")))%>%
+  dplyr::filter(!(group=='Rocky reef'&target_status=='nontargeted'))
 
-means_plot$region4<-factor(means_plot$region4,levels=c("north","central","north islands","south"))
+means_plot$region4<-factor(means_plot$region4,levels=c("North","Central","North islands","South"))
 
 biomass_plot <- ggplot(means_plot %>%
-                         dplyr::filter(group == 'ccfrp'|group == 'kelp forest'| group == 'deep reef',
+                         dplyr::filter(group == 'Rocky reef'|group == 'Kelp forest'| group == 'Deep reef',
                                        mpa_class == 'smr')
                        , aes(x=year, y=logRR, color=target_status))+
   geom_hline(yintercept=0, linetype="dashed", color = "gray", size = 0.5) +
@@ -53,10 +60,10 @@ biomass_plot <- ggplot(means_plot %>%
   labs(colour = 'Difference', linetype = 'Slope') +
   facet_wrap(region4~group, scales="free_x", nrow=4)+
   scale_x_continuous()+
-  labs(colour = "fished status") +
+  labs(colour = "Fished status") +
   theme_classic(base_size = 8)+ #+ theme(aspect.ratio = 1/1.5)
   coord_cartesian(
-    ylim = c(-1,1.8)
+    ylim = c(-1,2.2)
   )
 
 
@@ -64,7 +71,7 @@ biomass_plot <- ggplot(means_plot %>%
 
 
 biomass_targeted <- ggplot(means_plot %>%
-                       dplyr::filter(group == 'ccfrp'|group == 'kelp forest'|group == 'deep reef',
+                       dplyr::filter(group == 'Kelp forest'|group == 'Rocky reef'|group == 'Deep reef',
                                        mpa_class == 'smr',
                                      target_status=='targeted')
                        , aes(x=year, y=logRR))+
@@ -92,7 +99,7 @@ biomass_targeted <- ggplot(means_plot %>%
   labs(colour = 'Difference', linetype = 'Slope') +
   facet_wrap(region4~group, scales="free_x", nrow=4)+
   scale_x_continuous()+
-  labs(colour = "fished status") +
+  labs(colour = "Fished status") +
   theme_classic(base_size = 8)+
   coord_cartesian(
     ylim = c(-1,1.8)
@@ -103,7 +110,7 @@ biomass_targeted <- ggplot(means_plot %>%
 
 
 biomass_nontargeted <- ggplot(means_plot %>%
-                             dplyr::filter(group == 'ccfrp'|group == 'kelp forest'|group == 'deep reef',
+                             dplyr::filter(group == 'Kelp forest'|group == 'Rocky reef'|group == 'Deep reef',
                                            mpa_class == 'smr',
                                            target_status=='nontargeted')
                            , aes(x=year, y=logRR))+
@@ -131,7 +138,7 @@ biomass_nontargeted <- ggplot(means_plot %>%
   labs(colour = 'Difference', linetype = 'Slope') +
   facet_wrap(region4~group, scales="free_x", nrow=4)+
   scale_x_continuous()+
-  labs(colour = "fished status") +
+  labs(colour = "Fished status") +
   theme_classic(base_size = 8) +
   coord_cartesian(
     ylim = c(-0.5,1)
@@ -149,7 +156,7 @@ biomass_nontargeted <- ggplot(means_plot %>%
 # dpi = 600, bg="white")
 
 #ggsave(here::here("analyses", "CDFW_modules", "figures","module_1_eco_perform", "biomass_nontargeted.png"), biomass_nontargeted, height=8, width = 8, units = "in", 
-#      dpi = 600, bg="white")
+   #   dpi = 600, bg="white")
 
 
 
@@ -165,7 +172,7 @@ total_biom <- means_plot %>%
 
 
 biomass_overall <- ggplot(total_biom %>%
-                                dplyr::filter(group == 'ccfrp'|group == 'kelp forest'|group == 'deep reef',
+                                dplyr::filter(group == 'Kelp forest'|group == 'Rocky reef'|group == 'Deep reef',
                                               mpa_class == 'smr')
                               , aes(x=year, y=logRR))+
   geom_hline(yintercept=0, linetype="dashed", color = "gray", size = 0.5) +
@@ -200,8 +207,8 @@ biomass_overall <- ggplot(total_biom %>%
 
 
 
-#ggsave(here::here("analyses", "CDFW_modules", "figures","module_1_eco_perform", "biomass_overall.png"), biomass_overall, height=8, width = 8, units = "in", 
-#       dpi = 600, bg="white")
+ggsave(here::here("analyses", "CDFW_modules", "figures","module_1_eco_perform", "biomass_overall.png"), biomass_overall, height=8, width = 8, units = "in", 
+       dpi = 600, bg="white")
 
 
 

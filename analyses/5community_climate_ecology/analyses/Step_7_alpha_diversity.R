@@ -6,6 +6,7 @@ rm(list=ls())
 require(vegan)
 require(tidyverse)
 require(patchwork)
+require(ggpubr)
 
 data_path <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data"
 figdir <- here::here("analyses", "5community_climate_ecology", "figures")
@@ -24,7 +25,7 @@ eco_dist <- load(file.path(data_path, "distance_matrices_BC.rda"))
 #CCFRP
 
 ccfrp_richness <- data.frame(S.obs = apply(CCFRP_ord_data[,1:37]>0, 1, sum))
-ccfrp_eveness <- diversity(CCFRP_ord_data)/log(specnumber(CCFRP_ord_data))
+ccfrp_evenness <- diversity(CCFRP_ord_data)/log(specnumber(CCFRP_ord_data))
 ccfrp_shannon <- diversity(CCFRP_ord_data, index="shannon")
 ccfrp_abund <- rowSums(CCFRP_ord_data[,1:37])
 
@@ -324,8 +325,8 @@ s5 <- ggplot(rocky_alphadiv, aes(x = mpa_designation, y=rocky_shannon))+
 
 
 
-s_plot <- ggarrange(s1, s2, s3, s4, s5, nrow=1, common.legend = TRUE)
-s_plot <- annotate_figure(s_plot, left = text_grob("Shannon", rot = 90, face = "bold"))
+#s_plot <- ggarrange(s1, s2, s3, s4, s5, nrow=1, common.legend = TRUE)
+#s_plot <- annotate_figure(s_plot, left = text_grob("Shannon", rot = 90, face = "bold"))
 
 
 #boxplots <- ggarrange(r_plot, a_plot, e_plot, s_plot, nrow=4)
@@ -336,8 +337,8 @@ boxplots<-
             e1,e2,e3,e4,e5,
             s1,s2,s3,s4,s5, nrow=3, ncol=5, common.legend=TRUE)
 
-#ggsave(boxplots, filename=file.path(figdir, "alpha_diversity.png"), 
-#       width=8, height=6.5, units="in", dpi=600, bg="white")
+ggsave(boxplots, filename=file.path(figdir, "alpha_diversity.png"), 
+       width=8, height=6.5, units="in", dpi=600, bg="white")
 
 
 
@@ -345,3 +346,105 @@ boxplots<-
 
 aov_test <- aov(kelp_fish_shannon ~ mpa_defacto_designation*MHW, data=kelp_fish_alphadiv)
 TukeyHSD(aov_test)
+
+
+
+
+
+
+
+
+
+
+################################################################################
+#check discrepancies -- delete later 
+
+ccfrp_diversity_check <- CCFRP_CPUE 
+
+ccfrp_diversity_check1 <- ccfrp_diversity_check %>%
+                          mutate(MHW = ifelse(year < 2014, "before",
+                                              ifelse(year > 2015, "after","during")))%>%
+                          select(MHW, everything()) 
+
+
+ccfrp_div <- diversity(ccfrp_diversity_check1[,8:101], index="shannon")
+
+ccfrp_div2 <- cbind(ccfrp_diversity_check1[,1:7], ccfrp_div)%>%
+  mutate(MHW = factor(MHW, levels=c("before","during","after")))%>%
+  mutate(mpa_designation = factor(mpa_designation, levels = c("smr","ref")))
+
+
+ccfrp_div3 <- ccfrp_div2 %>%
+              group_by(MHW, mpa_designation)%>%
+              dplyr::summarize(mean = mean(ccfrp_div),
+                               SE = sd(ccfrp_div) / sqrt(length(ccfrp_div)))
+
+raw_plot <-ggplot(ccfrp_div3, aes(x = MHW, y=mean, fill=mpa_designation))+
+  geom_bar(position=position_dodge(width=0.9), stat="identity") +
+  geom_errorbar( aes(ymin=mean-1.96*SE, ymax=mean+1.96*SE), width=0.4, colour="orange", alpha=0.9, size=1.3,
+                 position=position_dodge(width=0.9))+
+  #geom_boxplot(aes(x=MHW, fill=mpa_designation), show.legend = FALSE)+
+  #facet_wrap(~MHW)+
+  theme_bw()+
+  labs(x="", 
+       y="Shannon", 
+       title="Rock reef fish")
+
+
+
+
+
+
+
+
+ccfrp_diversity_check <- CCFRP_CPUE 
+
+ccfrp_diversity_check1 <- ccfrp_diversity_check %>%
+  mutate(MHW = ifelse(year < 2014, "before",
+                      ifelse(year > 2015, "after","during")))%>%
+  select(MHW, everything()) %>%
+  group_by(MHW, group, year, affiliated_mpa, mpa_designation)%>%
+  dplyr::summarise(across(8:96, list(mean)))
+
+
+ccfrp_div <- diversity(ccfrp_diversity_check1[,7:94], index="shannon")
+
+ccfrp_div2 <- cbind(ccfrp_diversity_check1[,1:5], ccfrp_div)%>%
+  mutate(MHW = factor(MHW, levels=c("before","during","after")))%>%
+  mutate(mpa_designation = factor(mpa_designation, levels = c("smr","ref")),
+         ccfrp_div = `...6`)
+
+
+ccfrp_div3 <- ccfrp_div2 %>%
+  group_by(MHW, mpa_designation)%>%
+  dplyr::summarize(mean = mean(ccfrp_div),
+                   SE = sd(ccfrp_div) / sqrt(length(ccfrp_div)))
+
+
+
+raw_plot <-ggplot(ccfrp_div3, aes(x = MHW, y=mean, fill=mpa_designation))+
+  geom_bar(position=position_dodge(width=0.9), stat="identity") +
+  geom_errorbar( aes(ymin=mean-1.96*SE, ymax=mean+1.96*SE), width=0.4, colour="orange", alpha=0.9, size=1.3,
+                 position=position_dodge(width=0.9))+
+  #geom_boxplot(aes(x=MHW, fill=mpa_designation), show.legend = FALSE)+
+  #facet_wrap(~MHW)+
+  theme_bw()+
+  labs(x="", 
+       y="Shannon", 
+       title="Rock reef fish")
+
+
+
+
+
+drop_total_plot <-ggplot(drop_total, aes(x = MHW, y=mean, fill=mpa_designation))+
+  geom_bar(position=position_dodge(width=0.9), stat="identity") +
+  geom_errorbar( aes(ymin=mean-1.96*SE, ymax=mean+1.96*SE), width=0.4, colour="orange", alpha=0.9, size=1.3,
+                 position=position_dodge(width=0.9))+
+  #geom_boxplot(aes(x=MHW, fill=mpa_designation), show.legend = FALSE)+
+  #facet_wrap(~MHW)+
+  theme_bw()+
+  labs(x="", 
+       y="Shannon", 
+       title="Rock reef fish")
+

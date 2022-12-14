@@ -11,40 +11,86 @@ library(tidyverse)
 library(patchwork)
 
 # Directories
-basedir <- "/Volumes/GoogleDrive/.shortcut-targets-by-id/1kCsF8rkm1yhpjh2_VMzf8ukSPf9d4tqO/MPA Network Assessment: Working Group Shared Folder/data/sync-data"
+basedir <- "/Volumes/GoogleDrive/.shortcut-targets-by-id/1kCsF8rkm1yhpjh2_VMzf8ukSPf9d4tqO/MPA Network Assessment: Working Group Shared Folder/data/sync-data/monitoring/processed_data"
+# basedir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data/"
 gisdir <- file.path(basedir, "gis_data/processed")
 plotdir <- "analyses/5community_climate_ecology/figures"
 
+# Read composition data
+load(file.path(basedir, "comp_data.rda"))
+comp_orig <- comp_data
+rm(comp_data)
 
-# Build fake data
+# Read four-corner data
+load(file.path(basedir,"four_corner_output.rda"))
+coef_orig <- coef_out
+rm(coef_out)
+
+
+# Format data
 ################################################################################
 
-# Build four-corner data
-habitats <- c("Rocky intertidal", "Kelp forest\nfishes", "Kelp forest\ninvertebrates/algae", "Rocky reef", "Deep reef")
-habitats_long <- c("Rocky intertidal", "Kelp forest fishes", "Kelp forest invertebrates/algae", "Rocky reef", "Deep reef")
-habitats_short <- c("Rocky intertidal", "Kelp forest fishes", "Kelp forest inv/alg", "Rocky reef", "Deep reef")
+# Parameters
 guilds <- c("Cold temperate", "Warm temperate", "Subtropical", "Tropical", "Cosmopolitan")
 indicators <- c("SST", "MOCI", "CUTI", "BEUTI")
-data <- expand.grid(habitat=habitats,
-                    guild=guilds, 
-                    indicator=indicators) %>% 
-  mutate(beta=(runif(n=n())-0.5) * 2)
-data2 <- expand.grid(habitat=habitats_short,
-                    guild=guilds, 
-                    indicator=indicators) %>% 
-  mutate(beta=(runif(n=n())-0.5) * 2)
 
-# Build composition data
-comp_data <- expand.grid(year=2007:2020,
-                         habitat=habitats_long,
-                         guild=guilds) %>% 
-  mutate(n=runif(n=n())) %>% 
+# Composition
+##########################################
+
+# Format data
+comp <- comp_orig %>% 
+  # Rename
+  rename(guild=thermal_affinity, 
+         habitat=group,
+         biomass=group_total) %>% 
+  # Format guild
+  mutate(guild=stringr::str_to_sentence(guild),
+         guild=factor(guild, levels=guilds)) %>% 
+  # Format habitat
+  mutate(habitat=recode_factor(habitat,
+                               "Rocky intertidal"="Rocky intertidal",        
+                               "kelp forest fishes"="Kelp forest fishes",
+                               "Kelp forest inverts and algae"="Kelp forest invertebrates/algae",
+                               "Rocky reef fishes"="Rocky reef",
+                               "Deep reef fishes"="Deep reef")) %>% 
+  # Calculate percentage
   group_by(habitat, year) %>% 
-  mutate(perc=n/sum(n)) %>% 
-  ungroup() %>% 
-  arrange(habitat, year, guild)
+  mutate(prop=biomass/sum(biomass)) %>% 
+  ungroup()
+
+# Inspect
+table(comp$guild)
+table(comp$habitat)
 
 
+# Four corner
+##########################################
+
+# Format data
+coef <- coef_orig %>% 
+  # Rename
+  janitor::clean_names("snake") %>% 
+  rename(guild=thermal_affinity, 
+         habitat=group, 
+         indicator=environmental_variables) %>% 
+  # Format indicator
+  mutate(indicator=factor(indicator, levels=indicators)) %>% 
+  # Format guild
+  mutate(guild=factor(guild, levels=guilds)) %>% 
+  # Format habitat
+  mutate(habitat=recode_factor(habitat,
+                               "Rocky intertidal"="Rocky intertidal",        
+                               "kelp forest fish"="Kelp forest fishes",
+                               "Kelp forest inverts and algae"="Kelp forest inv/alg",
+                               "Rocky reef fishes"="Rocky reef",
+                               "Deep reef fish"="Deep reef")) %>% 
+  # Cap beta
+  mutate(beta_cap=pmax(-1.5, beta))
+
+# Inspect
+table(coef$indicator)
+table(coef$guild)
+table(coef$habitat)
 
 # Plot data
 ################################################################################
@@ -65,36 +111,8 @@ base_theme <-  theme(axis.text=element_text(size=7),
                      legend.key = element_rect(fill=alpha('blue', 0)),
                      legend.background = element_rect(fill=alpha('blue', 0)))
 
-
-# Plot data
-g <- ggplot(data, aes(x=indicator, y=guild, fill=beta)) +
-  facet_wrap(~habitat, nrow=1) +
-  geom_raster() +
-  # Legend
-  scale_fill_gradient2(name="Coefficient",
-                       midpoint=0,
-                       low="darkred", high="navy", mid="white") +
-  guides(fill = guide_colorbar(ticks.colour = "black", frame.colour = "black")) +
-  # Theme
-  theme_bw() + base_theme +
-  theme(legend.position = "bottom",
-        legend.key.size = unit(0.4, "cm"),
-        strip.text = element_text(size=6, face="bold", vjust=0, hjust=0),
-        strip.background = element_rect(color=NA, fill=NA),
-        axis.title = element_blank(),
-        axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
-g
-  
-# Export
-ggsave(g, filename=file.path(plotdir, "Fig5_four_corner_mockup.png"), 
-       width=6.5, height=2.25, units="in", dpi=600)
-
-
-# Plot data
-################################################################################
-
 # Plot composition
-g1 <- ggplot(comp_data, aes(x=year, y=perc, fill=guild)) +
+g1 <- ggplot(comp, aes(x=year, y=prop, fill=guild)) +
   facet_wrap(~habitat, ncol=1) +
   geom_bar(stat="identity", position = position_fill(reverse = TRUE)) +
   # Refence lines
@@ -105,7 +123,7 @@ g1 <- ggplot(comp_data, aes(x=year, y=perc, fill=guild)) +
   scale_y_continuous(labels=scales::percent) +
   # Legend
   scale_fill_manual(name="",
-                    values=c(RColorBrewer::brewer.pal(4, "Spectral") %>% rev(), "grey70")) +
+                    values=c(RColorBrewer::brewer.pal(4, "Spectral") %>% rev(), "plum3")) +
   # Theme
   theme_bw() + base_theme +
   theme(legend.position = "bottom",
@@ -115,7 +133,7 @@ g1 <- ggplot(comp_data, aes(x=year, y=perc, fill=guild)) +
 g1
 
 # Plot four corner
-g2 <- ggplot(data2, aes(x=indicator, y=guild, fill=beta)) +
+g2 <- ggplot(coef, aes(x=indicator, y=guild, fill=beta_cap)) +
   facet_wrap(~habitat, ncol=1) +
   geom_raster() +
   # Labels
@@ -139,8 +157,8 @@ g <- gridExtra::grid.arrange(g1, g2, ncol=2, widths=c(0.66,  0.34))
 g
 
 # Export
-ggsave(g, filename=file.path(plotdir, "Fig5_species_composition_mockup.png"), 
-       width=6.5, height=6.5, units="in", dpi=600)
+ggsave(g, filename=file.path(plotdir, "Fig5_species_composition_mockup.png"),
+      width=6.5, height=6.5, units="in", dpi=600)
 
 
 
