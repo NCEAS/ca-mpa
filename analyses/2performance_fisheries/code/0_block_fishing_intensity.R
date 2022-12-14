@@ -33,6 +33,7 @@ data <- landings %>%
   # Correct NAs in total to zeroes
   mutate(total_lb = if_else(is.na(total_lb), 0, total_lb)) %>% 
   # Calculate pressure
-  mutate(total_lb_sqkm = total_lb/block_sqkm) 
+  mutate(total_lb = total_lb,
+         total_lb_sqkm = total_lb/block_sqkm) 
 
 saveRDS(data, file.path(outdir, "block_fishing_intensity.Rds"))  
