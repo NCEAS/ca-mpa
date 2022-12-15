@@ -54,7 +54,6 @@ deep_reef_alphadiv <- cbind(deep_reef_group_vars, deep_reef_richness,
                             deep_reef_shannon,deep_reef_abund, deep_reef_evenness)%>%
   mutate(MHW = factor(MHW, levels=c("before","during","after")))
 
-
 #kelp swath
 kelp_swath_richness <- estimateR(kelp_swath_ord_data)
 kelp_swath_evenness <- diversity(kelp_swath_ord_data)/log(specnumber(kelp_swath_ord_data))
@@ -67,6 +66,7 @@ kelp_swath_alphadiv <- cbind(kelp_swath_group_vars, t(kelp_swath_richness),
 
 
 
+
 #rocky
 rocky_richness <- data.frame(S.obs = apply(rocky_ord_data[,1:42]>0, 1, sum))
 rocky_evenness <- diversity(rocky_ord_data)/log(specnumber(rocky_ord_data))
@@ -76,6 +76,7 @@ rocky_abund <- rowSums(rocky_ord_data[,1:42])
 rocky_alphadiv <- cbind(rocky_group_vars, rocky_richness, 
                              rocky_shannon, rocky_abund, rocky_evenness)%>%
   mutate(MHW = factor(MHW, levels=c("before","during","after")))
+
 
 
 ################################################################################
