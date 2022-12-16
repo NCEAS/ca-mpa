@@ -12,7 +12,9 @@ require(here)
 #set directories
 data_path <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data"
 figdir <- here::here("analyses", "5community_climate_ecology", "figures")
+tabledir <- here::here("analyses", "5community_climate_ecology", "tables")
 mpa_traits <- read.csv("/home/shares/ca-mpa/data/sync-data/mpa_traits/processed/mpa_attributes_clean.csv")
+
 
 comm_data <- load(file.path(data_path, "comm_data.rda"))
 group_vars <- load(file.path(data_path, "group_vars.rda"))
