@@ -55,7 +55,7 @@ kelp_fish_join <- cbind(kelp_fish_group_vars, kelp_fish_ord_data)%>%
   filter(all(levels(year) %in% year))%>%
   dplyr::select(!(siteID))
 
-####probmlem with deep reef ... not sites were surveyed in all years###
+####probmlem with deep reef ... not a single site was surveyed in all years###
 deep_reef_join <- cbind(deep_reef_group_vars, deep_reef_ord_data)%>%
   mutate(siteID = factor(paste(affiliated_mpa, mpa_defacto_designation)),
          year = factor(year))%>%
