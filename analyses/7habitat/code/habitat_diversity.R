@@ -222,11 +222,26 @@ ggplot(habd_df) +
 ### Coastal MPAs only ----
 ggplot(coastd_df) +
   geom_point(aes(x = size_km2, y = value, color = bioregion)) +
+  geom_smooth(aes(x = size_km2, y= value), color = "grey20") +
   theme_bw() +
-  scale_x_continuous(limits = c(0, 90), expand = c(0,0))+
+  theme(legend.position = "top") +
+  scale_x_continuous(limits = c(0, 85.5), expand = c(0,0))+
   scale_y_continuous(limits = c(0, 2.15), expand = c(0,0))+
   labs(x = "MPA Size (sqkm)",
        y = "Habitat Diversity (Shannon)",
-       color = "Region")
+       color = NULL)
 
-#  Kelp Forest Species Diversity ----
+
+# Export ----
+all_div <- habr_df %>% 
+  rename(habitat_richness = value) %>% 
+  left_join(habd_df %>% select(name, habitat_diversity_sw = value), by = "name") %>% 
+  select(name, mpa_habitat_type, habitat_richness, habitat_diversity_sw)
+
+base.dir <- "/Volumes/GoogleDrive-105151121202188525604/Shared drives/NCEAS MPA network assessment/MPA Network Assessment: Working Group Shared Folder/data/sync-data" # Cori Local
+clean.dir <- file.path(base.dir, "mpa_traits", "processed")
+
+saveRDS(all_div, file.path(clean.dir, "mpa_attributes_habitat_diversity.Rds"))
+
+
+  
