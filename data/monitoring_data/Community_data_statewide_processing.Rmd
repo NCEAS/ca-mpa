@@ -371,7 +371,7 @@ kelp_swath_mpa_year <- left_join(kelp_swath_mpa_year_step1, envr_dat,
 
 #Export year level
 #path_aurora <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data" 
-#write.csv(kelp_swath_mpa_year, file.path(path_aurora, "kelp_swath_mpa_year.csv"), row.names = FALSE)
+#write.csv(kelp_swath_mpa_year, file.path(path_aurora, "kelp_swath_mpa_year_statewide.csv"), row.names = FALSE)
 
 ```
 
@@ -530,8 +530,8 @@ kelp_upc_mpa_year <- left_join(kelp_upc_mpa_year_step1, envr_dat,
                   select(where(~ any(. != 0)))
 
 #Export
-#path_aurora <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data" 
-#write.csv(kelp_upc_mpa_year,file.path(path_aurora, "kelp_upc_mpa_year.csv"), row.names = FALSE)
+path_aurora <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data" 
+write.csv(kelp_upc_mpa_year,file.path(path_aurora, "kelp_upc_mpa_year_statewide.csv"), row.names = FALSE)
 
 
 ```
