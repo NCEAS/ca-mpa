@@ -71,7 +71,7 @@ biomass_plot <- ggplot(means_plot %>%
 
 
 biomass_targeted <- ggplot(means_plot %>%
-                       dplyr::filter(group == 'ccfrp'|group == 'kelp forest'|group == 'deep reef',
+                       dplyr::filter(group == 'Kelp forest'|group == 'Rocky reef'|group == 'Deep reef',
                                        mpa_class == 'smr',
                                      target_status=='targeted')
                        , aes(x=year, y=logRR))+
@@ -110,7 +110,7 @@ biomass_targeted <- ggplot(means_plot %>%
 
 
 biomass_nontargeted <- ggplot(means_plot %>%
-                             dplyr::filter(group == 'ccfrp'|group == 'kelp forest'|group == 'deep reef',
+                             dplyr::filter(group == 'Kelp forest'|group == 'Rocky reef'|group == 'Deep reef',
                                            mpa_class == 'smr',
                                            target_status=='nontargeted')
                            , aes(x=year, y=logRR))+
@@ -156,7 +156,7 @@ biomass_nontargeted <- ggplot(means_plot %>%
 # dpi = 600, bg="white")
 
 #ggsave(here::here("analyses", "CDFW_modules", "figures","module_1_eco_perform", "biomass_nontargeted.png"), biomass_nontargeted, height=8, width = 8, units = "in", 
-#      dpi = 600, bg="white")
+   #   dpi = 600, bg="white")
 
 
 
@@ -172,7 +172,7 @@ total_biom <- means_plot %>%
 
 
 biomass_overall <- ggplot(total_biom %>%
-                                dplyr::filter(group == 'ccfrp'|group == 'kelp forest'|group == 'deep reef',
+                                dplyr::filter(group == 'Kelp forest'|group == 'Rocky reef'|group == 'Deep reef',
                                               mpa_class == 'smr')
                               , aes(x=year, y=logRR))+
   geom_hline(yintercept=0, linetype="dashed", color = "gray", size = 0.5) +
@@ -207,8 +207,8 @@ biomass_overall <- ggplot(total_biom %>%
 
 
 
-#ggsave(here::here("analyses", "CDFW_modules", "figures","module_1_eco_perform", "biomass_overall.png"), biomass_overall, height=8, width = 8, units = "in", 
-#       dpi = 600, bg="white")
+ggsave(here::here("analyses", "CDFW_modules", "figures","module_1_eco_perform", "biomass_overall.png"), biomass_overall, height=8, width = 8, units = "in", 
+       dpi = 600, bg="white")
 
 
 

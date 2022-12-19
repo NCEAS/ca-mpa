@@ -1,0 +1,199 @@
+---
+title: "Data transformations specific to statewide community analyses"
+author: "Joshua G. Smith"
+date: "2022-12-13"
+output: html_document
+---
+
+---
+title: "Data transformations specific to community analyses"
+author: "Joshua G. Smith"
+date: "2022-08-23"
+output: html_document
+---
+
+#required packages
+```{r}
+rm(list=ls())
+require(dplyr)
+require(vegan)
+```
+
+
+**Part 1 - central coast processing for ordination**
+#step 0: load data
+#step 1: filter by region and year
+#step 2: drop species that were never observed (or only found in other regions).
+#step 3: clean up data for ordination.
+#step 5: ordinate. 
+
+
+
+#============================ Step 0 =========================================#
+
+```{r}
+
+dat_dir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data" 
+
+kelp_combined <- read.csv(file.path(dat_dir, "kelp_swath_upc_statewide.csv"))
+kelp_fish <- read.csv(file.path(dat_dir, "kelp_fish_statewide.csv"))
+rocky <- read.csv(file.path(dat_dir, "rocky_statewide.csv"))
+
+
+```
+
+
+
+
+#========================== Step 1 & 2 ========================================#
+
+```{r}
+
+###NOTE:data drop thresholds
+#should be included at this stage. 
+
+kelp_invalg1 <- kelp_combined %>% #filter(region4=='central') %>%
+  select(where(~ any(. != 0)))%>%
+  filter(year>=2007)
+kelp_fish1 <- kelp_fish %>% #filter(region4=='central') %>%
+  select(where(~ any(. != 0)))%>%
+  filter(year>=2007)
+rocky1 <- rocky %>% #filter(region4=='central') %>%
+  select(where(~ any(. != 0)))%>%
+  filter(year>=2007)
+
+```
+
+
+#============================= Step 4 ========================================#
+
+
+```{r}
+
+#kelp invalg processing--------------------------------------------------
+
+kelp_invalg2 <- kelp_invalg1 %>%
+                  mutate(desig_state = paste(mpa_defacto_designation,MHW))%>%
+                  dplyr::select(desig_state, everything())%>%
+                  filter(mpa_defacto_designation=="smr" | mpa_defacto_designation=="ref") 
+
+#define grouping vars
+kelp_invalg_group_vars <- kelp_invalg2%>%
+                    dplyr::select(1:9)
+
+#define envr vars
+kelp_invalg_envr_vars <-  kelp_invalg2 %>%
+  dplyr::select(c(SST="sst_monthly_anom",CUTI="cuti_monthly_anom",BEUTI="beuti_monthly_anom",MOCI="annual_MOCI"))
+
+
+#define data for matrix
+kelp_invalg_mat_data <- kelp_invalg2%>%
+              ungroup()%>%
+              dplyr::select(26:ncol(.))
+
+
+# NOTE decstand(method = "max") already performed in standardization
+
+#generate a BC dissim matrix
+kelp_invalg_distmat <- 
+    vegdist(kelp_invalg_mat_data, method = "bray", na.rm=T) #generates a BC dissim matrix
+
+
+
+#kelp fish processing---------------------------------------------------------
+
+kelp_fish2 <- kelp_fish1 %>%
+                  rowwise() %>%
+                  dplyr::mutate(sum = sum(across(25:ncol(.), na.rm = T))) %>%
+                  filter(!(sum==0))%>% #remove rows containing only zeros
+                  dplyr::select(-sum) %>%
+                  mutate(desig_state = paste(mpa_defacto_designation,MHW))%>%
+                  dplyr::select(desig_state, everything())%>%
+                  filter(mpa_defacto_designation=="smr" | mpa_defacto_designation=="ref") #drop sum columns and non-species categories  
+         
+
+#define grouping vars
+kelp_fish_group_vars <- kelp_fish2 %>%
+                    dplyr::select(1:9)
+
+#define envr vars
+kelp_fish_envr_vars <-  kelp_fish2 %>%
+  dplyr::select(c(SST="sst_monthly_anom",CUTI="cuti_monthly_anom",BEUTI="beuti_monthly_anom",MOCI="annual_MOCI"))
+
+#define data for ordination
+kelp_fish_ord_data <- kelp_fish2 %>%
+              ungroup() %>%
+              dplyr::select(26:ncol(.))
+
+#calculate relative abundance
+kelp_fish_rel <- decostand(kelp_fish_ord_data, method = "hellinger")
+
+#kelp_fish_rel <- kelp_fish_rel %>% slice_sample(n=2000) # testing if work on smaller
+
+#generate a BC dissim matrix
+kelp_fish_distmat <- 
+    vegdist(kelp_fish_rel, method = "bray", na.rm=T) #generates a BC dissim matrix
+
+
+
+#Intertidal processing---------------------------------------------------------
+
+rocky1$year <- as.numeric(as.character(rocky1$year))
+
+rocky_counts <- #rocky_count_enr %>%
+                rocky1 %>%
+                  mutate(MHW = ifelse(year>=2014 & year<=2016, "during",ifelse(year<2014, "before","after")))%>%
+                  mutate(desig_state = paste(mpa_designation,MHW))%>%
+                  dplyr::select(desig_state, MHW, everything())
+                  #dplyr::filter(region4=='central')
+                
+
+rocky_counts1 <- rocky_counts %>% filter(mpa_designation == "smr" | mpa_designation == 'ref') %>% droplevels()
+
+#define grouping vars
+rocky_group_vars <- rocky_counts1%>%
+                    dplyr::select(1:9)
+
+#define envr vars
+rocky_envr_vars <-  rocky_counts1 %>%
+  dplyr::select(c(SST="sst_monthly_anom",CUTI="cuti_monthly_anom",BEUTI="beuti_monthly_anom",MOCI="annual_MOCI"))
+
+#define data for ordination
+rocky_ord_data <- rocky_counts1 %>%
+              ungroup() %>%
+              dplyr::select(26:ncol(.))
+
+#counts are already relative, so apply sqrt transform to match "hellinger
+rocky_rel <- rocky_ord_data %>%
+             mutate(across(1:ncol(.),  function(x) sqrt(x)))
+
+#generate a BC dissim matrix
+rocky_distmat <- 
+    vegan::vegdist(rocky_rel, method = "bray", na.rm=T) #generates a BC dissim matrix
+
+
+###save group vars
+#output_path <-  "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data/statewide_data" 
+#save(kelp_invalg_group_vars,kelp_fish_group_vars,
+#  rocky_group_vars,
+#    file = file.path(output_path, "group_vars_statewide.rda"))
+
+#save community matrices
+#save(kelp_invalg_ord_data,kelp_fish_ord_data,
+#  rocky_ord_data,
+#    file = file.path(output_path, "comm_data_statewide.rda"))
+
+
+#save envr vars 
+#save(kelp_invalg_envr_vars,kelp_fish_envr_vars,
+#  rocky_envr_vars,
+#    file = file.path(output_path, "envr_vars_statewide.rda"))
+
+#save distance matrices
+#save(kelp_invalg_distmat,kelp_fish_distmat,
+#     rocky_distmat,
+#    file = file.path(output_path, "distance_matrices_BC_statewide.rda"))
+```
+
+
+

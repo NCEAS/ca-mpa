@@ -10,20 +10,17 @@ rm(list = ls())
 library(tidyverse)
 library(patchwork)
 
-# Chris Directories
-#Chris
-#basedir <- "/Volumes/GoogleDrive/.shortcut-targets-by-id/1kCsF8rkm1yhpjh2_VMzf8ukSPf9d4tqO/MPA Network Assessment: Working Group Shared Folder/data/sync-data"
-#Josh
-basedir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data"
-
+# Directories
+basedir <- "/Volumes/GoogleDrive/.shortcut-targets-by-id/1kCsF8rkm1yhpjh2_VMzf8ukSPf9d4tqO/MPA Network Assessment: Working Group Shared Folder/data/sync-data" #Chris
+# basedir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data" #Josh
 plotdir <- "analyses/5community_climate_ecology/figures"
 
-
 # Read data
-data_orig <- read.csv("analyses/5community_climate_ecology/output/mpa_betadisp_mod.csv")
+data_orig <- read.csv("analyses/5community_climate_ecology/output/mpa_betadisp_mod_state.csv")
 
 # Read MPA meta-data
-mpas_orig <- readRDS("/home/shares/ca-mpa/data/sync-data/mpa_traits/processed/CA_mpa_metadata.Rds")
+mpas_orig <- readRDS(file.path(basedir, "mpa_traits/processed/CA_mpa_metadata.Rds"))
+
 
 # Format data
 ################################################################################
@@ -36,7 +33,10 @@ data <- data_orig %>%
   # Format MPA name
   mutate(mpa=stringr::str_to_title(mpa) %>% gsub("Smr", "SMR", .) %>% gsub("Smca", "SMCA", .)) %>% 
   mutate(mpa=recode(mpa, 
-                    "Ano Nuevo SMR"="Año Nuevo SMR")) %>% 
+                    "Ano Nuevo SMR"="Año Nuevo SMR",
+                    "Blue Cavern Onshore SMCA"="Blue Cavern Onshore SMCA (No-Take)",
+                    "Campus Point SMCA"="Campus Point SMCA (No-Take)",
+                    "Point Vicente SMCA"="Point Vicente SMCA (No-Take)")) %>% 
   # Add region
   left_join(mpas_orig %>% select(mpa, region), by="mpa") %>% 
   # Create type
@@ -44,33 +44,15 @@ data <- data_orig %>%
          process=recode_factor(period,
                         "before-during"="Resistance",
                         "before-after"="Resilience")) %>% 
-  #assign significance
-  mutate(sig_level = ifelse(p_value < 0.05,"*",
-                             ifelse(p_value < 0.01, "**",
-                                    ifelse(p_value < 0.001,"***",""))))%>%
   # Arrange
-  select(habitat, region, mpa, site_type, process, period, distance, sig_level) %>% 
+  select(habitat, region, mpa, site_type, process, period, distance) %>% 
   # Spread
   spread(key="site_type", value="distance") %>% 
   rename(dist_ref=ref, dist_mpa=smr) %>% 
   # Calculate proportion prevented
   mutate(prop=(dist_ref-dist_mpa)/dist_ref) %>% 
   # Remove sites that aren't MPAs
-  filter(!is.na(region) & !is.na(dist_mpa))%>%
-  #remove infrequently samples sites
-  filter(!(habitat=="Kelp forest inverts and algae" &
-             mpa == "Natural Bridges SMR"),
-           !(habitat=="Kelp forest fishes" &
-             mpa == "Natural Bridges SMR")) %>%
-  #set habitat order 
-  mutate(habitat = factor(habitat, level=c(
-    "Rocky intertidal",
-    "Kelp forest inverts and algae",
-    "Kelp forest fishes",
-    "Rocky reef fishes",
-    "Deep reef"
-    
-  )))
+  filter(!is.na(region) & !is.na(dist_mpa)) 
 
 # Check MPA names
 mpa_names <- sort(unique(data$mpa))
@@ -99,17 +81,11 @@ my_theme <-  theme(axis.text=element_text(size=6),
 
 
 # Plot data
-g <-ggplot(data, aes(x=habitat, y=mpa, size=dist_mpa, fill=prop
-                     )) +
+g <-ggplot(data, aes(x=habitat, y=mpa, size=dist_mpa, fill=prop)) +
   facet_grid(region~process, scales='free_y', space="free_y") +
   geom_point(pch=21) +
   # Labels
   labs(x="", y="", title="") +
-  #add sig level
-  geom_text(aes(label=sig_level), size=3, #hjust=-1, 
-            vjust=0.8,
-            #position = position_dodge(width=0.8),
-            show.legend = FALSE)+
   # Legend
   scale_size_continuous(name="Shift distance\n(smaller=greater resilience)") +
   scale_fill_gradient2(name="% of shift\nprevented (blue)\nor exacerbated (red)",
@@ -121,6 +97,6 @@ g <-ggplot(data, aes(x=habitat, y=mpa, size=dist_mpa, fill=prop
 g
 
 # Export
-ggsave(g, filename=file.path(plotdir, "Fig4_mpa_resist_recover.png"), 
-       width=4.75, height=3.5, units="in", dpi=600)
+ggsave(g, filename=file.path(plotdir, "Fig4_mpa_resist_recover_state.png"), 
+       width=4.75, height=6, units="in", dpi=600)
 
