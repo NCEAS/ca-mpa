@@ -10,7 +10,11 @@ rm(list = ls())
 library(tidyverse)
 
 # Directories
-basedir <- "/Volumes/GoogleDrive/.shortcut-targets-by-id/1kCsF8rkm1yhpjh2_VMzf8ukSPf9d4tqO/MPA Network Assessment: Working Group Shared Folder/data/sync-data"
+# Cori
+basedir <- "/Volumes/GoogleDrive-105151121202188525604/Shared drives/NCEAS MPA network assessment/MPA Network Assessment: Working Group Shared Folder/data/sync-data"
+
+# Chris
+#basedir <- "/Volumes/GoogleDrive/.shortcut-targets-by-id/1kCsF8rkm1yhpjh2_VMzf8ukSPf9d4tqO/MPA Network Assessment: Working Group Shared Folder/data/sync-data"
 gisdir <- file.path(basedir, "gis_data/processed")
 plotdir <- "analyses/2performance_fisheries/figures"
 
@@ -18,7 +22,7 @@ plotdir <- "analyses/2performance_fisheries/figures"
 state_waters_poly <- readRDS(file.path(gisdir, "CA_state_waters_polygons.Rds"))
 state_waters_line <- readRDS(file.path(gisdir, "CA_state_waters_polyline.Rds"))
 mpas_orig <- readRDS(file.path(gisdir, "CA_MPA_polygons.Rds"))
-block_mpa_key <- read.csv(file.path(gisdir, "CA_blocks_with_mpas.csv"), as.is=T)
+block_mpa_key <- read.csv(file.path(gisdir, "CA_blocks_with_mpas_all_mpa_types.csv"), as.is=T)
 
 # Get blocks
 blocks_orig <- wcfish::blocks

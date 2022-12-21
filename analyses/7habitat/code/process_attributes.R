@@ -56,6 +56,14 @@ mpa_age <- readxl::read_excel(file.path(raw.dir, "mpa-attributes-2021.xlsx"),
 mpa_class <- readxl::read_excel(file.path(raw.dir, "mpa-attributes-2021.xlsx"),
                                 sheet = 5) %>% janitor::clean_names()
 
+## MPA Distance to Port
+# Calculated from centroid of MPA polygon to centroid of nearest major port. 
+# Major ports identified as the ports contributing to the top 99% of landings 
+# from 2000-2020 via fish ticket data (CDFW). 
+mpa_port_dist <- readRDS(file.path(base.dir, "gis_data/processed/mpa_distance_to_port.Rds"))
+
+
+
 # Definitions ------------------------------------------------------------------
 # Identify Northern Channel Islands MPAs ----
 n_ci <- c("Anacapa Island SMCA", "Anacapa Island SMR",
