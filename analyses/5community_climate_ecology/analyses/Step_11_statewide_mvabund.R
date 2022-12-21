@@ -12,6 +12,7 @@ require(here)
 data_path <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data/statewide_data"
 figdir <- here::here("analyses", "5community_climate_ecology", "figures")
 tabledir <- here::here("analyses", "5community_climate_ecology", "tables")
+modout <- here::here("analyses", "5community_climate_ecology", "output")
 
 mpa_attributes_gen <- readRDS("/home/shares/ca-mpa/data/sync-data/mpa_traits/processed/mpa_attributes_general.Rds")
 mpa_attributes_hab <- readRDS("/home/shares/ca-mpa/data/sync-data/mpa_traits/processed/mpa_attributes_habitat.Rds")
@@ -79,41 +80,50 @@ rocky_join <- cbind(rocky_group_vars, rocky_ord_data)%>%
 #Step 1 -- select traits
 select_traits <- mpa_traits %>%
   dplyr::select(affiliated_mpa, size = size_km2.x,
-                level_of_protection, historical_protection_overlap,
+                level_of_protection, implementation_date, historical_protection_overlap,
                 21:34, habitat_richness, habitat_diversity_sw)%>%
   mutate(affiliated_mpa = recode(affiliated_mpa,
                                  "año nuevo smr" = "ano nuevo smr"))
 
 #Step 2 -- pair traits with comm data
 kelp_swath_traits <- left_join(kelp_swath_join, select_traits, by="affiliated_mpa")%>%
-  dplyr::select(1:9, 73:ncol(.), 10:72)%>%
   #set reference level
-  mutate(MHW = factor(MHW, levels = c("before","during","after")))
+  mutate(MHW = factor(MHW, levels = c("before","during","after")),
+         im_year = format(as.Date(implementation_date, format="%Y/%m/%d"),"%Y"),
+         age_at_survey = as.numeric(as.character(year))-as.numeric(im_year)) %>%
+  dplyr::select(1:9, 73:ncol(.), 10:72)
+  
 
 kelp_upc_traits <- left_join(kelp_upc_join, select_traits, by="affiliated_mpa")%>%
-  dplyr::select(1:9, 66:ncol(.), 10:65)%>%
   #set reference level
-  mutate(MHW = factor(MHW, levels = c("before","during","after")))
+  mutate(MHW = factor(MHW, levels = c("before","during","after")),
+         im_year = format(as.Date(implementation_date, format="%Y/%m/%d"),"%Y"),
+         age_at_survey = as.numeric(as.character(year))-as.numeric(im_year)) %>%
+  dplyr::select(1:9, 66:ncol(.), 10:65)
 
 kelp_fish_traits <- left_join(kelp_fish_join, select_traits, by="affiliated_mpa")%>%
-  dplyr::select(1:9, 120:ncol(.), 10:119)%>%
   #set reference level
-  mutate(MHW = factor(MHW, levels = c("before","during","after")))
+  mutate(MHW = factor(MHW, levels = c("before","during","after")),
+         im_year = format(as.Date(implementation_date, format="%Y/%m/%d"),"%Y"),
+         age_at_survey = as.numeric(as.character(year))-as.numeric(im_year)) %>%
+  dplyr::select(1:9, 120:ncol(.), 10:119)
   
 rocky_traits <- left_join(rocky_join, select_traits, by="affiliated_mpa")%>%
-  dplyr::select(1:9, 55:ncol(.), 10:54)%>%
   #set reference level
-  mutate(MHW = factor(MHW, levels = c("before","during","after")))
+  mutate(MHW = factor(MHW, levels = c("before","during","after")),
+         im_year = format(as.Date(implementation_date, format="%Y/%m/%d"),"%Y"),
+         age_at_survey = as.numeric(as.character(year))-as.numeric(im_year)) %>%
+  dplyr::select(1:9, 55:ncol(.), 10:54)
 
 
 ################################################################################
 #Format as mvabund objects
 
 #format as mvabund objects
-kelp_swath_mv <- mvabund(kelp_swath_traits[,29:91])
-kelp_upc_mv <- mvabund(kelp_upc_traits[,29:84])
-kelp_fish_mv <- mvabund(kelp_fish_traits[,29:138])
-rocky_mv <- mvabund(rocky_traits[,29:73])
+kelp_swath_mv <- mvabund(kelp_swath_traits[,32:91])
+kelp_upc_mv <- mvabund(kelp_upc_traits[,32:84])
+kelp_fish_mv <- mvabund(kelp_fish_traits[,32:138])
+rocky_mv <- mvabund(rocky_traits[,32:73])
 
 #check mean to variance relationships
 mvabund::meanvar.plot(kelp_swath_mv)
@@ -131,22 +141,30 @@ mvabund::meanvar.plot(rocky_mv)
 kelp_swath_glm <- manyglm(kelp_swath_mv ~ 
                             #kelp_swath_traits$MHW*kelp_swath_traits$habitat_diversity_sw+
                             #kelp_swath_traits$MHW*kelp_swath_traits$size,
-                            kelp_swath_traits$MHW*kelp_swath_traits$size*kelp_swath_traits$habitat_diversity_sw,
+                            kelp_swath_traits$MHW*kelp_swath_traits$habitat_diversity_sw +
+                          kelp_swath_traits$MHW*kelp_swath_traits$size,
                           show.coef=F,
+                          data=kelp_swath_traits,
                           composition = F)
+
+#best.r.sq(kelp_swath_mv ~  kelp_swath_traits$MHW*kelp_swath_traits$size*kelp_swath_traits$habitat_diversity_sw*kelp_swath_traits$age_at_survey)
+
 plot(kelp_swath_glm) #check fit
 coefplot(kelp_swath_glm, y.label = TRUE, #which.Xcoef = NULL,
          #which.Ys = NULL, 
          incl.intercept = FALSE, cex.ylab = 0.5, mfrow = NULL) #plot coefficients
 
-#is the interaction between habitat and MHW significant?
-glm_sum <- summary(kelp_swath_glm) #NOTE -- HEAVY COMP TIME
+# use a randomization test of equality of all species
+#  note: this is slow
+kelp_swath_compF_aov <- anova.manyglm(kelp_swath_glm, 
+                         block = kelp_swath_traits$year)
 
-#what species were impacted?
-kelp_swath_pairwise_MHW <- anova(kelp_swath_glm, p.uni="adjusted", 
+# which species changed?  Extract univariate p-values and adjust for multiple testing
+kelp_swath_compF_puni <- anova.manyglm(kelp_swath_glm, p.uni="adjusted", 
                                  pairwise.comp = ~kelp_swath_traits$MHW,
                                  block = kelp_swath_traits$year)
 
+# which species have adjusted p < 0.05?
 kelp_swath_out <- as.data.frame(kelp_swath_pairwise_MHW[["uni.p"]])
 
 kelp_swath_sig <- kelp_swath_out %>%
@@ -156,6 +174,28 @@ kelp_swath_sig <- kelp_swath_out %>%
   drop_na()%>%
   filter(value <= 0.05) %>%
   mutate(group="kelp_swath")
+
+
+# --------------
+#Analysis of proportional composition
+kelp_swath_glm <- manyglm(kelp_swath_mv ~ 
+                            #kelp_swath_traits$MHW*kelp_swath_traits$habitat_diversity_sw+
+                            #kelp_swath_traits$MHW*kelp_swath_traits$size,
+                            MHW*habitat_diversity_sw + 
+                            MHW*size,
+                          show.coef=F,
+                          data=kelp_swath_traits,
+                          composition = T)
+
+kelp_swath_compT_aov <- anova.manyglm(kelp_swath_glm,
+                                      #block = kelp_swath_traits$year
+                                      )
+
+
+
+save(kelp_swath_compF_aov, kelp_swath_compF_puni, 
+     kelp_swath_compT_aov, 
+     file = file.path(modout, "kelp_swath_mvabund"))
 
 
 
