@@ -45,6 +45,7 @@ CCFRP_join <- cbind(CCFRP_group_vars, CCFRP_ord_data)%>%
 kelp_swath_join <- cbind(kelp_swath_group_vars, kelp_swath_ord_data)%>%
   mutate(siteID = factor(paste(affiliated_mpa, mpa_defacto_designation)),
          year = factor(year))%>%
+  filter(mpa_defacto_designation=="smr")%>%
   group_by((siteID))%>%
   filter(all(levels(year) %in% year))%>%
   ungroup()%>%
@@ -224,35 +225,5 @@ aov_out <- rbind(CCFRP_sig, kelp_swath_sig, kelp_upc_sig, kelp_fish_sig,
 
 View(aov_out)
 
-
-
-
-
-################################################################################
-#fit glms to explore drivers of MPA performance
-
-#Step 1 -- select traits
-select_traits <- mpa_traits %>%
-                 dplyr::select(affiliated_mpa, size = size_km2.x,
-                               level_of_protection, historical_protection_overlap,
-                               21:34, habitat_richness, habitat_diversity_sw)%>%
-                 mutate(affiliated_mpa = recode(affiliated_mpa,
-                                                "año nuevo smr" = "ano nuevo smr"))
-
-#Step 2 -- pair traits with comm data
-CCFRP_traits <- left_join(CCFRP_join, select_traits, by="affiliated_mpa") %>%
-                #filter MPAs only, since traits for reference sites unknown
-                filter(mpa_designation == "smr")%>%
-                dplyr::select(1:9, 47:ncol(.), 10:46)
-
-kelp_swath_traits <- left_join(kelp_swath_join, select_traits, by="affiliated_mpa")%>%
-                #filter MPAs only, since traits for reference sites unknown
-                filter(mpa_defacto_designation == "smr")%>%
-                dplyr::select(1:9, 47:ncol(.), 10:46)
-  
-kelp_upc_traits <- left_join(kelp_upc_join, select_traits, by="affiliated_mpa")
-kelp_fish_traits <- left_join(kelp_fish_join, select_traits, by="affiliated_mpa")
-deep_reef_traits <- left_join(deep_reef_join, select_traits, by="affiliated_mpa")
-rocky_traits <- left_join(rocky_join, select_traits, by="affiliated_mpa")
 
 
