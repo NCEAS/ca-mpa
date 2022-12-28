@@ -84,7 +84,8 @@ summary(kf_fish_resist_mod)
 #build model for kelp forest inverts and algae
 
 kf_invalg_resist <- mpa_dat %>%
-  dplyr::select(c(process, habitat, MPA, size_km2, shore_span_km,
+  dplyr::select(c(process, habitat, MPA, 
+                  size_km2, shore_span_km,
                   max_depth_m, depth_range, rel_age, lat,
                   four_region, distance))%>%
   filter(process=="Resistance",
@@ -93,7 +94,9 @@ kf_invalg_resist <- mpa_dat %>%
 
 kf_invalg_resil <- mpa_dat %>%
   drop_na()%>%
-  dplyr::select(c(process, habitat, MPA,  size_km2, shore_span_km,
+  dplyr::select(c(process, habitat, MPA,  
+                  size_km2, 
+                  shore_span_km,
                   max_depth_m, depth_range, rel_age, lat, four_region, distance))%>%
   filter(process=="Resilience",
          habitat == "Kelp forest inverts and algae")%>%
@@ -107,11 +110,16 @@ kf_invalg_resist_mod <-glm(distance ~ size_km2 + shore_span_km +
 summary(kf_invalg_resist_mod)
 
 #resilience
-kf_invalg_resil_mod <- glm(distance ~ size_km2 + shore_span_km +
-                           depth_range + lat, data = kf_invalg_resil, 
-                         family="gaussian", 
+kf_invalg_resil_mod <- glm(distance ~ 
+                             size_km2 * 
+                             shore_span_km +
+                           depth_range + 
+                             lat, data = kf_invalg_resil, 
+                         family=quasipoisson(), 
                          na.action = na.exclude)
 summary(kf_invalg_resil_mod)
+
+boot::glm.diag.plots(kf_invalg_resil_mod)
 
 ###############################################################################
 #build model for intertidal
