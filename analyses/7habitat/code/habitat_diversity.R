@@ -57,7 +57,6 @@ habr_aov <- aov(habr ~ mpa_habitat_type, data = hab_type)
 summary(habr_aov)
 
 
-
 ggplot(habr_df, aes(x = mpa_habitat_type, y = value, fill = mpa_habitat_type)) +
   geom_boxplot() +
   scale_y_continuous(limits = c(0, 13.5), expand = c(0,0))+
