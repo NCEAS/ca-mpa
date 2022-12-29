@@ -12,6 +12,7 @@ library(patchwork)
 
 # Directories
 basedir <- "/Volumes/GoogleDrive/.shortcut-targets-by-id/1kCsF8rkm1yhpjh2_VMzf8ukSPf9d4tqO/MPA Network Assessment: Working Group Shared Folder/data/sync-data"
+#basedir <- "/home/shares/ca-mpa/data/sync-data/" #aurora 
 gisdir <- file.path(basedir, "gis_data/processed")
 plotdir <- "analyses/5community_climate_ecology/figures"
 
@@ -117,6 +118,7 @@ envi <- envi_orig %>%
   summarise(beuti_anom = mean(beuti_monthly_anom, na.rm=T),
             cuti_anom = mean(cuti_monthly_anom, na.rm=T),
             sst_anom = mean(sst_monthly_anom, na.rm=T),
+            bottomT_anom = mean(as.numeric(as.character(bottomT_monthly_anom)),na.rm=T),
             quarterly_MOCI = mean(quarterly_MOCI, na.rm=T))  %>% 
   ungroup() %>% 
   # Gather
@@ -126,6 +128,7 @@ envi <- envi_orig %>%
                           "beuti_anom"="BEUTI",
                           "cuti_anom"="CUTI",
                           "sst_anom"="SST",
+                          "bottomT_anom" = "Bottom temp",
                           "quarterly_MOCI"="MOCI")) %>% 
   # Summarize by year
   group_by(indicator, year) %>% 
@@ -275,9 +278,10 @@ g2 <- ggplot(data=envi %>% filter(indicator=="SST"), aes(x=year, y=value_avg)) +
         axis.text.y = element_text(angle = 90, hjust = 0.5))
 g2
 
-# MOCI
-ymax <- envi %>% filter(indicator=="MOCI") %>% pull(value_hi) %>% max() * 1.05
-g3 <- ggplot(data=envi %>% filter(indicator=="MOCI"), aes(x=year, y=value_avg)) + 
+
+# bottomT
+ymax <- envi %>% filter(indicator=="Bottom temp") %>% pull(value_hi) %>% max() * 1.05
+g3 <- ggplot(data=envi %>% filter(indicator=="Bottom temp"), aes(x=year, y=value_avg)) + 
   # Heatwave
   annotate(geom="rect", xmin=2013.5, xmax=2016.5, ymin=-Inf, ymax=Inf, fill="indianred1", alpha=0.5) +
   annotate(geom="text", label="MHW", x=2015, y=ymax , size=2.1) +
@@ -288,7 +292,7 @@ g3 <- ggplot(data=envi %>% filter(indicator=="MOCI"), aes(x=year, y=value_avg)) 
   # Reference line
   geom_hline(yintercept = 0, linetype="dashed", color="grey40") +
   # Labels
-  labs(x="", y="MOCI", tag="C") +
+  labs(x="", y="Bottom temp \nanamoly (°C)", tag="C") +
   scale_x_continuous(breaks=seq(2000, 2020, 5)) +
   # scale_y_continuous(breaks=seq(-1.5, 1.5, 0.5), lim=c(-1.5, 1.5)) +
   # Theme
@@ -297,9 +301,9 @@ g3 <- ggplot(data=envi %>% filter(indicator=="MOCI"), aes(x=year, y=value_avg)) 
         axis.text.y = element_text(angle = 90, hjust = 0.5))
 g3
 
-# BEUTI
-ymax <- envi %>% filter(indicator=="BEUTI") %>% pull(value_hi) %>% max() * 1.05
-g4 <- ggplot(data=envi %>% filter(indicator=="BEUTI"), aes(x=year, y=value_avg)) + 
+# MOCI
+ymax <- envi %>% filter(indicator=="MOCI") %>% pull(value_hi) %>% max() * 1.05
+g4 <- ggplot(data=envi %>% filter(indicator=="MOCI"), aes(x=year, y=value_avg)) + 
   # Heatwave
   annotate(geom="rect", xmin=2013.5, xmax=2016.5, ymin=-Inf, ymax=Inf, fill="indianred1", alpha=0.5) +
   annotate(geom="text", label="MHW", x=2015, y=ymax , size=2.1) +
@@ -310,7 +314,7 @@ g4 <- ggplot(data=envi %>% filter(indicator=="BEUTI"), aes(x=year, y=value_avg))
   # Reference line
   geom_hline(yintercept = 0, linetype="dashed", color="grey40") +
   # Labels
-  labs(x="", y="BEUTI anamoly", tag="D") +
+  labs(x="", y="MOCI", tag="D") +
   scale_x_continuous(breaks=seq(2000, 2020, 5)) +
   # scale_y_continuous(breaks=seq(-1.5, 1.5, 0.5), lim=c(-1.5, 1.5)) +
   # Theme
@@ -319,9 +323,9 @@ g4 <- ggplot(data=envi %>% filter(indicator=="BEUTI"), aes(x=year, y=value_avg))
         axis.text.y = element_text(angle = 90, hjust = 0.5))
 g4
 
-# CUTI
-ymax <- envi %>% filter(indicator=="CUTI") %>% pull(value_hi) %>% max() * 1.05
-g5 <- ggplot(data=envi %>% filter(indicator=="CUTI"), aes(x=year, y=value_avg)) + 
+# BEUTI
+ymax <- envi %>% filter(indicator=="BEUTI") %>% pull(value_hi) %>% max() * 1.05
+g5 <- ggplot(data=envi %>% filter(indicator=="BEUTI"), aes(x=year, y=value_avg)) + 
   # Heatwave
   annotate(geom="rect", xmin=2013.5, xmax=2016.5, ymin=-Inf, ymax=Inf, fill="indianred1", alpha=0.5) +
   annotate(geom="text", label="MHW", x=2015, y=ymax , size=2.1) +
@@ -332,7 +336,7 @@ g5 <- ggplot(data=envi %>% filter(indicator=="CUTI"), aes(x=year, y=value_avg)) 
   # Reference line
   geom_hline(yintercept = 0, linetype="dashed", color="grey40") +
   # Labels
-  labs(x="", y="CUTI anamoly", tag="E") +
+  labs(x="", y="BEUTI anamoly", tag="E") +
   scale_x_continuous(breaks=seq(2000, 2020, 5)) +
   # scale_y_continuous(breaks=seq(-1.5, 1.5, 0.5), lim=c(-1.5, 1.5)) +
   # Theme
@@ -340,6 +344,28 @@ g5 <- ggplot(data=envi %>% filter(indicator=="CUTI"), aes(x=year, y=value_avg)) 
   theme(axis.title.x=element_blank(),
         axis.text.y = element_text(angle = 90, hjust = 0.5))
 g5
+
+# CUTI
+ymax <- envi %>% filter(indicator=="CUTI") %>% pull(value_hi) %>% max() * 1.05
+g6 <- ggplot(data=envi %>% filter(indicator=="CUTI"), aes(x=year, y=value_avg)) + 
+  # Heatwave
+  annotate(geom="rect", xmin=2013.5, xmax=2016.5, ymin=-Inf, ymax=Inf, fill="indianred1", alpha=0.5) +
+  annotate(geom="text", label="MHW", x=2015, y=ymax , size=2.1) +
+  # Plot data
+  geom_ribbon(mapping=aes(x=year, ymin=value_lo, ymax=value_hi), 
+              fill="grey60", color=NA, alpha=0.8) +
+  geom_line() +
+  # Reference line
+  geom_hline(yintercept = 0, linetype="dashed", color="grey40") +
+  # Labels
+  labs(x="", y="CUTI anamoly", tag="F") +
+  scale_x_continuous(breaks=seq(2000, 2020, 5)) +
+  # scale_y_continuous(breaks=seq(-1.5, 1.5, 0.5), lim=c(-1.5, 1.5)) +
+  # Theme
+  theme_bw() + base_theme +
+  theme(axis.title.x=element_blank(),
+        axis.text.y = element_text(angle = 90, hjust = 0.5))
+g6
 
 # Merge
 layout_matrix <- matrix(data=c(1, 2,
