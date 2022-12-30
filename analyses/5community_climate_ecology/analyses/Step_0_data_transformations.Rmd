@@ -550,7 +550,7 @@ kelp_fish_long <- kelp_fish %>%
               filter(year >= 2007)
 
 deep_reef_long <- deep_reef %>%
-              pivot_longer(cols=30:ncol(.), names_to="species",
+              pivot_longer(cols=31:ncol(.), names_to="species",
                            values_to = "counts")%>%
               filter(year >= 2007)
 
