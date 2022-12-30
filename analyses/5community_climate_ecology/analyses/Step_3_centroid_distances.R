@@ -262,8 +262,8 @@ distance1 <- travel_distance%>%
          MPA = tidytext::reorder_within(MPA, value, period),
          MPA_type = toupper(gsub( " .*$", "", Var1)))
 
-distance1$MPA_type <- recode_factor(distance1$MPA_type, "In"="MPA")
-distance1$MPA_type <- recode_factor(distance1$MPA_type, "Out"="Reference")
+distance1$MPA_type <- recode_factor(distance1$MPA_type, "REF"="Reference")
+distance1$MPA_type <- recode_factor(distance1$MPA_type, "SMR"="MPA")
 
 #perm_output$group <- recode_factor(perm_output$group, 	
 #                                   "Kelp forest inverts and algae" = "kelp inverts and algae")

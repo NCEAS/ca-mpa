@@ -154,7 +154,11 @@ CCFRP_group_vars <- CCFRP_process %>%
 
 #define envr vars
 CCFRP_envr_vars <- CCFRP_process %>%
-  dplyr::select(c(SST="sst_monthly_anom",CUTI="cuti_monthly_anom",BEUTI="beuti_monthly_anom",MOCI="annual_MOCI"))
+    dplyr::select(c(SST="sst_monthly_anom",
+                  #CUTI="cuti_monthly_anom",
+                  BEUTI="beuti_monthly_anom",
+                  MOCI="annual_MOCI",
+                  BT = "bottomT_monthly_anom"))
       
 
 #define data for ordination
@@ -181,7 +185,11 @@ kelp_invalg_group_vars <- kelp_invalg%>%
 
 #define envr vars
 kelp_invalg_envr_vars <-  kelp_invalg %>%
-  dplyr::select(c(SST="sst_monthly_anom",CUTI="cuti_monthly_anom",BEUTI="beuti_monthly_anom",MOCI="annual_MOCI"))
+  dplyr::select(c(SST="sst_monthly_anom",
+                  #CUTI="cuti_monthly_anom",
+                  BEUTI="beuti_monthly_anom",
+                  MOCI="annual_MOCI",
+                  BT = "bottomT_monthly_anom"))
 
 
 #define data for ordination
@@ -218,7 +226,11 @@ kelp_fish_group_vars <- kelp_fish %>%
 
 #define envr vars
 kelp_fish_envr_vars <-  kelp_fish %>%
-  dplyr::select(c(SST="sst_monthly_anom",CUTI="cuti_monthly_anom",BEUTI="beuti_monthly_anom",MOCI="annual_MOCI"))
+    dplyr::select(c(SST="sst_monthly_anom",
+                  #CUTI="cuti_monthly_anom",
+                  BEUTI="beuti_monthly_anom",
+                  MOCI="annual_MOCI",
+                  BT = "bottomT_monthly_anom"))
 
 #define data for ordination
 kelp_fish_ord_data <- kelp_fish %>%
@@ -257,7 +269,11 @@ kelp_swath_group_vars <- kelp_swath %>%
 
 #define envr vars
 kelp_swath_envr_vars <-  kelp_swath %>%
-  dplyr::select(c(SST="sst_monthly_anom",CUTI="cuti_monthly_anom",BEUTI="beuti_monthly_anom",MOCI="annual_MOCI"))
+    dplyr::select(c(SST="sst_monthly_anom",
+                  #CUTI="cuti_monthly_anom",
+                  BEUTI="beuti_monthly_anom",
+                  MOCI="annual_MOCI",
+                  BT = "bottomT_monthly_anom"))
 
 #define data for ordination
 kelp_swath_ord_data <- kelp_swath %>%
@@ -293,7 +309,11 @@ kelp_upc_group_vars <- kelp_upc %>%
 
 #define envr vars
 kelp_upc_envr_vars <-  kelp_upc %>%
-  dplyr::select(c(SST="sst_monthly_anom",CUTI="cuti_monthly_anom",BEUTI="beuti_monthly_anom",MOCI="annual_MOCI"))
+    dplyr::select(c(SST="sst_monthly_anom",
+                  #CUTI="cuti_monthly_anom",
+                  BEUTI="beuti_monthly_anom",
+                  MOCI="annual_MOCI",
+                  BT = "bottomT_monthly_anom"))
 
 #define data for ordination
 kelp_upc_ord_data <- kelp_upc %>%
@@ -329,7 +349,11 @@ deep_reef_group_vars <- deep_reef%>%
 
 #define envr vars
 deep_reef_envr_vars <-  deep_reef %>%
-  dplyr::select(c(SST="sst_monthly_anom",CUTI="cuti_monthly_anom",BEUTI="beuti_monthly_anom",MOCI="annual_MOCI"))
+   dplyr::select(c(SST="sst_monthly_anom",
+                  #CUTI="cuti_monthly_anom",
+                  BEUTI="beuti_monthly_anom",
+                  MOCI="annual_MOCI",
+                  BT = "bottomT_monthly_anom"))
 
 #define data for ordination
 deep_reef_ord_data <- deep_reef%>%
@@ -365,7 +389,10 @@ rocky_group_vars <- rocky_counts%>%
 
 #define envr vars
 rocky_envr_vars <-  rocky_counts %>%
-  dplyr::select(c(SST="sst_monthly_anom",CUTI="cuti_monthly_anom",BEUTI="beuti_monthly_anom",MOCI="annual_MOCI"))
+  dplyr::select(c(SST="sst_monthly_anom",
+                  #CUTI="cuti_monthly_anom",
+                  BEUTI="beuti_monthly_anom",
+                  MOCI="annual_MOCI"))
 
 #define data for ordination
 rocky_ord_data <- rocky_counts %>%
@@ -392,7 +419,7 @@ rocky_distmat <-
 #save(CCFRP_ord_data,kelp_invalg_ord_data,kelp_fish_ord_data,
 #     kelp_swath_ord_data, kelp_upc_ord_data,
 #   deep_reef_ord_data,rocky_ord_data,
-#    file = file.path(output_path, "comm_data.rda"))
+#   file = file.path(output_path, "comm_data.rda"))
 
 
 #save envr vars 
