@@ -525,32 +525,32 @@ rocky <- read.csv(file.path(dat_dir, "rocky_mpa_year.csv"))
 
 ```{r}
 CCFRP_long <- CCFRP %>%
-              pivot_longer(cols=25:ncol(.), names_to="species",
+              pivot_longer(cols=30:ncol(.), names_to="species",
                            values_to = "counts")%>%
               filter(year >= 2007)
 
 kelp_combined_long <- kelp_combined %>%
-              pivot_longer(cols=25:ncol(.), names_to="species",
+              pivot_longer(cols=30:ncol(.), names_to="species",
                            values_to = "counts")%>%
               filter(year >= 2007)
 
 kelp_swath_long <- kelp_swath %>%
-              pivot_longer(cols=25:ncol(.), names_to="species",
+              pivot_longer(cols=30:ncol(.), names_to="species",
                            values_to = "counts")%>%
               filter(year >= 2007)
 
 kelp_upc_long <- kelp_upc %>%
-              pivot_longer(cols=25:ncol(.), names_to="species",
+              pivot_longer(cols=30:ncol(.), names_to="species",
                            values_to = "counts")%>%
               filter(year >= 2007)
 
 kelp_fish_long <- kelp_fish %>%
-              pivot_longer(cols=25:ncol(.), names_to="species",
+              pivot_longer(cols=30:ncol(.), names_to="species",
                            values_to = "counts")%>%
               filter(year >= 2007)
 
 deep_reef_long <- deep_reef %>%
-              pivot_longer(cols=26:ncol(.), names_to="species",
+              pivot_longer(cols=30:ncol(.), names_to="species",
                            values_to = "counts")%>%
               filter(year >= 2007)
 
@@ -570,6 +570,8 @@ affinity_dat <- read.csv("/home/shares/ca-mpa/data/sync-data/species_traits/proc
 
 affinity_dat$common_name <- tolower(affinity_dat$common_name)
 affinity_dat$genusspecies <- tolower(affinity_dat$genusspecies)
+
+rocky_dat <- read.csv("/home/shares/ca-mpa/data/sync-data/species_traits/processed/rocky_thermal_affin.csv")
 
 ```
 
@@ -865,6 +867,20 @@ deep_reef_long$species <- recode_factor(deep_reef_long$species,
 #join
 deep_reef_join1 <- left_join(deep_reef_long, affinity_select2, by=c("species"="scientific_name"))
 
+
+
+################################################################################
+#rocky intertidal 
+
+rocky_affin <- rocky_dat %>% dplyr::select(code, thermal_affinity)
+
+#check unmatched species
+rocky1 <- anti_join(rocky_long, rocky_affin, by=c("species" = "code"))%>%
+          distinct(species)
+
+#join
+rocky_join1 <- left_join(rocky_long, rocky_affin, by=c("species"="code"))
+
 ```
 
 
@@ -872,12 +888,14 @@ deep_reef_join1 <- left_join(deep_reef_long, affinity_select2, by=c("species"="s
 ```{r}
 datalist <- list(CCFRP = CCFRP_join1, kelp_combined = kelp_combined_join1, 
                  kelp_swath = kelp_swath_join1, kelp_upc = kelp_upc_join1,
-        deep_reef = deep_reef_join1)
+        deep_reef = deep_reef_join1, rocky = rocky_join1)
 
 save(CCFRP_join1, kelp_combined_join1, 
                  kelp_swath_join1, kelp_upc_join1,
      kelp_fish_join1,
-        deep_reef_join1, file= file.path("/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data","all_groups_mpa_level_means_long.rda"))
+        deep_reef_join1, 
+     rocky_join1,
+     file= file.path("/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data","all_groups_mpa_level_means_long.rda"))
 
 ```
 
