@@ -11,18 +11,18 @@ library(tidyverse)
 library(patchwork)
 
 # Directories
-basedir <- "/Volumes/GoogleDrive/.shortcut-targets-by-id/1kCsF8rkm1yhpjh2_VMzf8ukSPf9d4tqO/MPA Network Assessment: Working Group Shared Folder/data/sync-data/monitoring/processed_data"
-# basedir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data/"
+#basedir <- "/Volumes/GoogleDrive/.shortcut-targets-by-id/1kCsF8rkm1yhpjh2_VMzf8ukSPf9d4tqO/MPA Network Assessment: Working Group Shared Folder/data/sync-data/monitoring/processed_data" #Chris
+basedir <- "/home/shares/ca-mpa/data/sync-data/" #Josh
 gisdir <- file.path(basedir, "gis_data/processed")
 plotdir <- "analyses/5community_climate_ecology/figures"
 
 # Read composition data
-load(file.path(basedir, "comp_data.rda"))
+load(file.path(basedir, "monitoring/processed_data/community_climate_derived_data/comp_data.rda"))
 comp_orig <- comp_data
 rm(comp_data)
 
 # Read four-corner data
-load(file.path(basedir,"four_corner_output.rda"))
+load(file.path(basedir,"monitoring/processed_data/community_climate_derived_data/four_corner_output_anom.rda"))
 coef_orig <- coef_out
 rm(coef_out)
 
@@ -32,7 +32,7 @@ rm(coef_out)
 
 # Parameters
 guilds <- c("Cold temperate", "Warm temperate", "Subtropical", "Tropical", "Cosmopolitan")
-indicators <- c("SST", "MOCI", "CUTI", "BEUTI")
+indicators <- c("SST", "BT", "BEUTI", "MOCI")
 
 # Composition
 ##########################################
@@ -136,9 +136,9 @@ g1 <- ggplot(comp, aes(x=year, y=prop, fill=guild)) +
   # Theme
   theme_bw() + base_theme +
   theme(legend.position = "bottom",
-        legend.key.size = unit(0.3, "cm"),
+        legend.key.size = unit(0.2, "cm"),
         legend.margin = margin(-5,0,5,0), # 3 is to align x-axis of panels
-        axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+        axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=0))
 g1
 
 # Plot all four corner results
@@ -152,7 +152,7 @@ g_4corner <- ggplot(coef, aes(x=indicator, y=guild, fill=beta_sd)) +
   # Legend
   scale_fill_gradient2(name="Effect",
                        midpoint=0,
-                       breaks=c(-2, 0, 2), 
+                       breaks=c(-1.5, 0, 2), 
                        labels=c("-", "0", "+"),
                        low="darkred", high="navy", mid="white") +
   guides(fill = guide_colorbar(ticks.colour = "black", frame.colour = "black")) +
@@ -171,7 +171,7 @@ g_all1 <- gridExtra::grid.arrange(g1, g_4corner,
 g_all1
 
 # Export
-ggsave(g_all1, filename=file.path(plotdir, "Fig4_composition_and_4corner_results1.png"),
+ggsave(g_all1, filename=file.path(plotdir, "Fig4_composition_and_4corner_results3.png"),
        width=6.5, height=7.5, units="in", dpi=600)
 
 
