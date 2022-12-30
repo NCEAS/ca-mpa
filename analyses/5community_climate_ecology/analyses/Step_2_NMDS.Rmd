@@ -65,7 +65,7 @@ eco_dist <- load(file.path(data_path, "distance_matrices_BC.rda"))
 
 
 scrs <- as.data.frame(vegan::scores(CCFRP_ord, display="sites"))
-en_coord_cont = as.data.frame(vegan::scores(CCFRP_en, "vectors")) * ordiArrowMul(CCFRP_en, fill=0.2)
+en_coord_cont = as.data.frame(vegan::scores(CCFRP_en, "vectors")) * ordiArrowMul(CCFRP_en, fill=0.05)
 
 scrs <- cbind(as.data.frame(scrs), desig_state=CCFRP_group_vars$desig_state, year=CCFRP_group_vars$year, MHW=CCFRP_group_vars$MHW, region4=CCFRP_group_vars$region4, mpa_designation=CCFRP_group_vars$mpa_designation) #to facilitate computing centroids, add group var
 
@@ -169,7 +169,7 @@ CCFRP<- ggplot(data=cent, aes(NMDS1, NMDS2)) +
        data = en_coord_cont, size =0.5, alpha = 0.5,
        arrow = arrow(length = unit(0.25, "cm")), colour = "grey50", lwd=0.5)+
      geom_text(data = en_coord_cont, aes(x = (NMDS1), y = (NMDS2)), colour = "black", 
-       fontface = "bold", label = row.names(en_coord_cont), position=position_jitter(width=0.02,height=0.02), size=2) + 
+       fontface = "bold", label = row.names(en_coord_cont), position=position_jitter(width=0.04,height=0.04), size=2) + 
   ggtitle("Rocky reef fishes")+
   scale_color_manual(values=c('#004D40','#D81B60','#1E88E5',
                               '#004D40','#D81B60','#1E88E5'))+
@@ -198,7 +198,7 @@ print(CCFRP)
 
 #get NMDS scores
 scrs <- as.data.frame(vegan::scores(kelp_invalg_ord, display="site"))
-en_coord_cont = as.data.frame(vegan::scores(kelp_invalg_en, "vectors")) * ordiArrowMul(kelp_invalg_en, fill=0.35)
+en_coord_cont = as.data.frame(vegan::scores(kelp_invalg_en, "vectors")) * ordiArrowMul(kelp_invalg_en, fill=0.15)
 
 scrs <- cbind(as.data.frame(scrs), desig_state=kelp_invalg_group_vars$desig_state, year=kelp_invalg_group_vars$year, region4=kelp_invalg_group_vars$region4, mpa_designation=kelp_invalg_group_vars$mpa_defacto_designation, MHW=kelp_invalg_group_vars$MHW) #to facilitate computing centroids, add group var
 
@@ -257,7 +257,7 @@ kelp_invalg<- ggplot(data=cent, aes(NMDS1, NMDS2)) +
                               '#004D40','#D81B60','#1E88E5'))+
   labs(shape="site type",color='heatwave period') +
   annotate(geom="text", 
-           x=0.293, 
+           x=0.085, 
            y=0.2, 
            col="black", 
            label= paste("Stress: ",kelp_invalg_stress$stress), parse=T,
@@ -276,7 +276,7 @@ print(kelp_invalg)
 
 #get NMDS scores
 scrs <- as.data.frame(vegan::scores(kelp_fish_ord, display="site"))
-en_coord_cont = as.data.frame(vegan::scores(kelp_fish_en, "vectors")) * ordiArrowMul(kelp_fish_en, fill=0.1)
+en_coord_cont = as.data.frame(vegan::scores(kelp_fish_en, "vectors")) * ordiArrowMul(kelp_fish_en, fill=0.07)
 
 scrs <- cbind(as.data.frame(scrs), desig_state=kelp_fish_group_vars$desig_state, year=kelp_fish_group_vars$year, region4=kelp_fish_group_vars$region4, mpa_designation=kelp_fish_group_vars$mpa_defacto_designation, MHW=kelp_fish_group_vars$MHW) #to facilitate computing centroids, add group var
 
@@ -519,7 +519,7 @@ cplot <- cowplot::plot_grid(
 print(cplot)
 
 
-cowplot::save_plot(here::here("analyses", "5community_climate_ecology", "figures", "community_structure_central3.png"), cplot, bg="white",dpi = 600, units = "in", base_width=8.5, base_height = 6)
+cowplot::save_plot(here::here("analyses", "5community_climate_ecology", "figures", "community_structure_central4.png"), cplot, bg="white",dpi = 600, units = "in", base_width=8.5, base_height = 6)
 
 
 
