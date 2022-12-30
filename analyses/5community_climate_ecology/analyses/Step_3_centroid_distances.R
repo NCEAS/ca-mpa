@@ -285,7 +285,7 @@ sig_distance$period <- recode_factor(sig_distance$period, "before-to-after"="Bef
 
 
 
-my_theme <-  theme(axis.text=element_text(size=8),
+my_theme <-  theme(axis.text=element_text(size=7),
                    axis.text.y = element_text(angle = 90, hjust = 0.5),
                    axis.title=element_text(size=10),
                    plot.tag=element_blank(), #element_text(size=8),
@@ -331,6 +331,16 @@ p1 <-
   geom_text(aes(label=sig), size=5, hjust=-1, vjust=0.8,
             position = position_dodge(width=0.8),
             show.legend = FALSE)+
+  annotate("text", size=3,
+            x=4.5, y=-0.03,
+            label = "Greater resistance",
+           fontface = 'italic',
+           color = '#5A5A5A')+
+  annotate("text", size=3,
+           x=4.5, y=0.28,
+           label = "Less resistance",
+           fontface = 'italic',
+           color = '#5A5A5A')+
   ylab("")+
   xlab("")+
   scale_y_continuous(limits=c(-0.05,0.3))+
@@ -348,6 +358,7 @@ p1 <-
   my_theme+
   theme(aspect.ratio=1)
 
+p1
 
 
 p2 <- 
@@ -371,6 +382,16 @@ p2 <-
   geom_text(aes(label=sig), size=5, hjust=-1, vjust=0.8,
             position = position_dodge(width=0.8),
             show.legend = FALSE)+
+  annotate("text", size=3,
+           x=4.5, y=-0.03,
+           label = "Greater resilience",
+           fontface = 'italic',
+           color = '#5A5A5A')+
+  annotate("text", size=3,
+           x=4.5, y=0.28,
+           label = "Less resilience",
+           fontface = 'italic',
+           color = '#5A5A5A')+
   ylab("")+
   xlab("")+
   labs(color = "Site type")+
@@ -388,6 +409,7 @@ p2 <-
   my_theme+
   theme(aspect.ratio=1)
 
+p2
 
 
 library(grid)
@@ -402,8 +424,8 @@ g_title <- ggpubr::annotate_figure(g, left = textGrob("Distance (Bray-Curtis)",
 
 
 
-#ggsave(here::here("analyses", "5community_climate_ecology", "figures", "betadisp_plot3.png"), g_title, height=6, width = 8, units = "in", 
-#   dpi = 600, bg="white")
+ggsave(here::here("analyses", "5community_climate_ecology", "figures", "betadisp_plot3.png"), g_title, height=6, width = 8, units = "in", 
+   dpi = 600, bg="white")
 
 
 

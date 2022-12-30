@@ -217,12 +217,97 @@ a_join <- mod_out %>%
 
 #join
 mpa_output <- left_join(a_join, b_join, by=c("habitat"="group","join_ID"))%>%
-              select(!(join_ID))
+              select(!(join_ID)) %>%
+              mutate(transition = ifelse(period_2 == "during","resistance","resilience"),
+                     sig = ifelse(`p.value`<0.05, "*",""))
 
 
 #write.csv(mpa_output, 
 # "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data/mpa_betadisp_mod.csv",
 # row.names = FALSE)
+
+
+################################################################################
+#plot
+
+
+my_theme <-  theme(axis.text=element_text(size=8),
+                   axis.text.y = element_text(angle = 90, hjust = 0.5),
+                   axis.title=element_text(size=10),
+                   plot.tag=element_blank(), #element_text(size=8),
+                   plot.title =element_text(size=9, face="bold"),
+                   # Gridlines
+                   panel.grid.major = element_blank(), 
+                   panel.grid.minor = element_blank(),
+                   panel.background = element_blank(), 
+                   axis.line = element_line(colour = "black"),
+                   # Legend
+                   legend.key = element_blank(),
+                   legend.text=element_text(size=6),
+                   legend.title=element_text(size=8),
+                   legend.background = element_rect(fill=alpha('blue', 0)),
+                   #facets
+                   strip.text = element_text(size=6),
+                   #margins
+                   #plot.margin=unit(c(0.01,0.01,0.01,0.01),"cm")
+)
+
+mpa_output$MPA_type <- recode_factor(mpa_output$MPA_type, "ref"="Reference")
+mpa_output$MPA_type <- recode_factor(mpa_output$MPA_type, "smr"="MPA")
+
+p1 <- 
+  mpa_output %>%
+  filter(transition == "resistance")%>%
+  mutate(group = factor(habitat, levels = c("Rocky intertidal","Kelp forest inverts and algae",
+                                          "Kelp forest fishes","Rocky reef fishes")),
+         MPA_type = factor(MPA_type, levels = c("MPA","Reference")))%>%
+  arrange(MPA_type, -distance, habitat)%>%
+  mutate(mpa_ordered = fct_inorder(paste(MPA_type, habitat, sep = "."))) |> 
+  ggplot(aes(x = MPA, y = distance, color = MPA_type, group = mpa_ordered)) +
+  geom_point(position = position_dodge(width=0.8),
+             size=3)+
+  geom_errorbar(aes(ymin=distance-sd_pooled,
+                    ymax = distance+sd_pooled), stat="identity",
+                position = position_dodge(width=0.8), size=0.3, width=.3)+
+  #scale_color_manual(name='MPA',
+  #                  breaks=c('In', 'Out'),
+  #                 values=c('In'='#EB6977', 'Out'='#13A0DD'))+
+  #add significance level
+  geom_text(aes(label=sig), size=5, hjust=-1, vjust=0.8,
+            position = position_dodge(width=0.8),
+            show.legend = FALSE)+
+  ylab("")+
+  xlab("")+
+  scale_y_continuous(limits=c(-0.05,0.3))+
+  scale_x_discrete(labels = function(x) 
+    stringr::str_wrap(x, width = 15)
+  )+
+  labs(color = "Site type")+
+  scale_color_brewer(palette="Set1") +
+  facet_wrap(~habitat, scales = "free")+
+  #geom_vline(xintercept=c(1.5, 2.5,3.5,4.5), color="grey",alpha=.4)+
+  #coord_flip()+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        panel.background = element_blank(), axis.line = element_line(colour = "black"),
+        legend.key=element_blank())+
+  ggtitle("Resistance \n(Before-to-during)")+
+  my_theme+
+  theme(aspect.ratio=1)
+
+
+
+
+
+
+library(grid)
+g <- ggpubr::ggarrange(p1, p2, nrow=1, ncol=2, 
+                       common.legend = TRUE, legend = "right")
+
+
+
+g_title <- ggpubr::annotate_figure(g, left = textGrob("Distance (Bray-Curtis)", 
+                                                      rot = 90, vjust = 2, hjust=0.3, gp = gpar(cex = 0.8)),
+                                   bottom = textGrob("Habitat", hjust=1, vjust=-11, gp = gpar(cex = 0.8)))
 
 
 
