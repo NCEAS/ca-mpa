@@ -14,19 +14,19 @@ require(metafor)
 require(reshape2)
 require(ggfittext)
 require(pairwiseAdonis)
-
+require(here)
 
 
 # #load data --------------------------------------------------------------
 
 #data_path <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/ecological_community_data/year_level_with_envr_vars"
 data_path <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data"
+tab_out <- here::here("analyses","5community_climate_ecology","tables")
 
 nmds_scores <- load(file.path(data_path, "bray_nmds_scores.rda"))
 group_vars <- load(file.path(data_path, "group_vars.rda"))
 envr_vars <- load(file.path(data_path, "envr_vars.rda"))
 eco_dist <- load(file.path(data_path, "distance_matrices_BC.rda"))
-
 
 
 
@@ -163,6 +163,7 @@ kelp_invalg_pair_perm <- pairwise.adonis2(kelp_invalg_distmat ~ desig_state,
 rocky_pair_perm <- pairwise.adonis2(rocky_distmat ~ desig_state,
                                     data = rocky_group_vars, permutations = 999) 
 
+
 #create helper function to collect pairwise output 
 
 perm_fun <- function(perm_table, group_name){
@@ -258,7 +259,7 @@ distance1 <- travel_distance%>%
                            Var1== "smr before" & Var2== "smr during","before-to-during",
                          ifelse(Var1 == "ref before" & Var2== "ref after" |
                                   Var1== "smr before" & Var2== "smr after","before-to-after","")),
-         period=fct_relevel(period, c("before-to-during","before-to-after")),
+         period=forcats::fct_relevel(period, c("before-to-during","before-to-after")),
          MPA = tidytext::reorder_within(MPA, value, period),
          MPA_type = toupper(gsub( " .*$", "", Var1)))
 
@@ -424,10 +425,25 @@ g_title <- ggpubr::annotate_figure(g, left = textGrob("Distance (Bray-Curtis)",
 
 
 
-ggsave(here::here("analyses", "5community_climate_ecology", "figures", "betadisp_plot3.png"), g_title, height=6, width = 8, units = "in", 
-   dpi = 600, bg="white")
+#ggsave(here::here("analyses", "5community_climate_ecology", "figures", "betadisp_plot3.png"), g_title, height=6, width = 8, units = "in", 
+#   dpi = 600, bg="white")
 
 
+################################################################################
+#export table
+
+perm_tab <- sig_distance %>%
+            dplyr::select(habitat = group, MPA_type, period, distance  = value,
+                          Df, SumOfSqs, R2, `F`, `p-val`, sig) %>%
+            mutate(habitat = factor(habitat, levels = c("Rocky intertidal",
+                                                        "Kelp forest inverts and algae",
+                                                        "Kelp forest fishes",
+                                                        "Rocky reef fishes",
+                                                        "Deep reef fishes")),
+                   period = factor(period, levels = c("Before-to-during",
+                                                      "Before-to-after")))
+
+#write.csv(perm_tab, file.path(tab_out, "pairwise_permanova.csv"))
 
 
 
