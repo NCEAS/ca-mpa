@@ -53,7 +53,8 @@ envfit_scores <- rbind(rocky_int, CCFRP, kf_invalg, kf_fish, deep_reef)
 
 View(envfit_scores)
 
-write.csv(envfit_scores, file.path(tabdir, "env_fit_scores.csv"))
+write.csv(envfit_scores, file.path(tabdir, "env_fit_scores.csv"),
+          row.names=FALSE)
 
 
 
