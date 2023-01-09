@@ -11,8 +11,8 @@ library(tidyverse)
 library(patchwork)
 
 # Directories
-#basedir <- "/Volumes/GoogleDrive/.shortcut-targets-by-id/1kCsF8rkm1yhpjh2_VMzf8ukSPf9d4tqO/MPA Network Assessment: Working Group Shared Folder/data/sync-data/monitoring/processed_data" #Chris
-basedir <- "/home/shares/ca-mpa/data/sync-data/" #Josh
+basedir <- "/Volumes/GoogleDrive/.shortcut-targets-by-id/1kCsF8rkm1yhpjh2_VMzf8ukSPf9d4tqO/MPA Network Assessment: Working Group Shared Folder/data/sync-data" #Chris
+# basedir <- "/home/shares/ca-mpa/data/sync-data/" #Josh
 gisdir <- file.path(basedir, "gis_data/processed")
 plotdir <- "analyses/5community_climate_ecology/figures"
 
