@@ -254,6 +254,30 @@ hsk2 <- plot_df %>%
   hab_theme_wide
 hsk2 
 
+### 2b. No Names
+hsk2b <- plot_df %>% 
+  filter(habitat_type == "area") %>% 
+  #filter(!(mpa_habitat_type == "Estuary")) %>% 
+  ggplot(aes(x = name, y = habitat_prop_calc, fill = habitat)) +
+  # Facet
+  ggh4x::facet_nested(.~four_region_north_ci+mpa_habitat_type, 
+                      space="free_x", scales="free_x") +
+  # Bar Plot
+  geom_col(color="grey30", lwd=0.1, na.rm = F) +
+  #geom_hline(yintercept = 100) +
+  # Legend colors
+  scale_fill_manual(name = "Habitat Type", 
+                    values = hab_area_colors) +
+  scale_y_continuous(limits = c(0, 1.0001), expand = c(0,0)) +
+  labs(y="Proportion of total habitat area", x="") +
+  theme_bw() +
+  hab_theme_wide +
+  theme(axis.text.x = element_blank(),
+        legend.position = "top",
+        legend.text = element_text(size = 9),
+        strip.text=element_text(size=8))
+hsk2b
+
 ### 3. Actual Amount ----
 hsk3 <- plot_df %>% 
   filter(habitat_type == "area") %>% 
@@ -312,6 +336,31 @@ s2 <- plot_df %>%
   theme_bw() +
   hab_theme_wide
 s2
+
+### 2b. No names
+s2b <- plot_df %>% 
+  filter(habitat_type == "linear") %>% 
+  #filter(!(mpa_habitat_type == "Offshore")) %>% 
+  ggplot(aes(x = name, y = habitat_prop_calc, fill = habitat)) +
+  # Facet
+  ggh4x::facet_nested(.~four_region_north_ci+mpa_habitat_type, 
+                      space="free_x", scales="free_x") +
+  # Bar Plot
+  geom_col(color="grey30", lwd=0.1, na.rm = F) +
+  geom_hline(yintercept = 100) +
+  # Legend colors
+  scale_fill_manual(name = "Habitat Type", 
+                    values = hab_linear_colors) +
+  scale_y_continuous(limits = c(0, 1.001), expand = c(0,0)) +
+  labs(y="Proportion of total MPA shoreline habitat", x="") +
+  theme_bw() +
+  hab_theme_wide +
+  theme(axis.text.x = element_blank(),
+        legend.position = "bottom",
+        legend.text = element_text(size = 9),
+        strip.text=element_blank())
+s2b
+
 
 ### 3. Actual Amount ----
 s3 <- plot_df %>% 

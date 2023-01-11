@@ -15,7 +15,7 @@ figdir <-  here::here("analyses", "5community_climate_ecology", "figures")
 
 mpa_trait <- read.csv("/home/shares/ca-mpa/data/sync-data/mpa_traits/processed/mpa_attributes_clean.csv")
 
-#load model output
+View#load model output
 mod_out_raw <- read.csv(file.path(datadir,"mpa_betadisp_mod.csv"))
 
 

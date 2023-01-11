@@ -13,8 +13,13 @@ require(here)
 data_path <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data"
 figdir <- here::here("analyses", "5community_climate_ecology", "figures")
 tabledir <- here::here("analyses", "5community_climate_ecology", "tables")
-mpa_traits <- read.csv("/home/shares/ca-mpa/data/sync-data/mpa_traits/processed/mpa_attributes_clean.csv")
 
+mpa_attributes_gen <- readRDS("/home/shares/ca-mpa/data/sync-data/mpa_traits/processed/mpa_attributes_general.Rds")
+mpa_attributes_hab <- readRDS("/home/shares/ca-mpa/data/sync-data/mpa_traits/processed/mpa_attributes_habitat.Rds")
+mpa_attributes_hab_div <- readRDS("/home/shares/ca-mpa/data/sync-data/mpa_traits/processed/mpa_attributes_habitat_diversity.Rds")
+
+mpa_traits1 <- left_join(mpa_attributes_gen, mpa_attributes_hab, by="name")
+mpa_traits <- left_join(mpa_traits1, mpa_attributes_hab_div, by="name")
 
 comm_data <- load(file.path(data_path, "comm_data.rda"))
 group_vars <- load(file.path(data_path, "group_vars.rda"))
@@ -22,7 +27,7 @@ group_vars <- load(file.path(data_path, "group_vars.rda"))
 
 
 ################################################################################
-#mvabund explore  --- community responses by heatwave period 
+#Step 1 --- balance samples
 #CENTRAL COAST ONLY
 #testing anova.manyglm using block = year 
 
@@ -33,43 +38,51 @@ CCFRP_join <- cbind(CCFRP_group_vars, CCFRP_ord_data)%>%
          year = factor(year))%>%
   group_by((siteID))%>%
   filter(all(levels(year) %in% year))%>%
-  dplyr::select(!(siteID))
+  ungroup()%>%
+  dplyr::select(!(c(siteID, `(siteID)`)))
 
 #note -- can't use standardized data, so must use raw counts for swath and upc
 kelp_swath_join <- cbind(kelp_swath_group_vars, kelp_swath_ord_data)%>%
   mutate(siteID = factor(paste(affiliated_mpa, mpa_defacto_designation)),
          year = factor(year))%>%
+  filter(mpa_defacto_designation=="smr")%>%
   group_by((siteID))%>%
   filter(all(levels(year) %in% year))%>%
-  dplyr::select(!(siteID))
+  ungroup()%>%
+  dplyr::select(!(c(siteID, `(siteID)`)))
 
 kelp_upc_join <- cbind(kelp_upc_group_vars, kelp_upc_ord_data)%>%
   mutate(siteID = factor(paste(affiliated_mpa, mpa_defacto_designation)),
          year = factor(year))%>%
   group_by((siteID))%>%
   filter(all(levels(year) %in% year))%>%
-  dplyr::select(!(siteID))
+  ungroup()%>%
+  dplyr::select(!(c(siteID, `(siteID)`)))
 
 kelp_fish_join <- cbind(kelp_fish_group_vars, kelp_fish_ord_data)%>%
   mutate(siteID = factor(paste(affiliated_mpa, mpa_defacto_designation)),
          year = factor(year))%>%
   group_by((siteID))%>%
   filter(all(levels(year) %in% year))%>%
-  dplyr::select(!(siteID))
+  ungroup()%>%
+  dplyr::select(!(c(siteID, `(siteID)`)))
 
 ####probmlem with deep reef ... not a single site was surveyed in all years###
 deep_reef_join <- cbind(deep_reef_group_vars, deep_reef_ord_data)%>%
   mutate(siteID = factor(paste(affiliated_mpa, mpa_defacto_designation)),
          year = factor(year))%>%
   group_by((siteID))%>%
-  filter(all(levels(year) %in% year))
+  filter(all(levels(year) %in% year)) %>%
+  ungroup()%>%
+  dplyr::select(!(c(siteID, `(siteID)`)))
 
 rocky_join <- cbind(rocky_group_vars, rocky_ord_data)%>%
   mutate(siteID = factor(paste(affiliated_mpa, mpa_designation)),
          year = factor(year))%>%
   group_by((siteID))%>%
   filter(all(levels(year) %in% year))%>%
-  dplyr::select(!(siteID))
+  ungroup()%>%
+  dplyr::select(!(c(siteID, `(siteID)`)))
 
 
 #format as mvabund objects
@@ -92,7 +105,7 @@ mvabund::meanvar.plot(rocky_spp)
 #are good choice here. 
 
 ################################################################################
-#fit glms to test for interaction between MPA type and heatwave period 
+# Step 2 --fit glms to test for interaction between MPA type and heatwave period 
 
 #CCFRP
 CCFRP_glm <- manyglm(CCFRP_spp ~ 
@@ -211,4 +224,6 @@ aov_out <- rbind(CCFRP_sig, kelp_swath_sig, kelp_upc_sig, kelp_fish_sig,
 
 
 View(aov_out)
+
+
 

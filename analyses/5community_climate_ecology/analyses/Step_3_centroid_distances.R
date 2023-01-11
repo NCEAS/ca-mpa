@@ -14,19 +14,19 @@ require(metafor)
 require(reshape2)
 require(ggfittext)
 require(pairwiseAdonis)
-
+require(here)
 
 
 # #load data --------------------------------------------------------------
 
 #data_path <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/ecological_community_data/year_level_with_envr_vars"
 data_path <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data"
+tab_out <- here::here("analyses","5community_climate_ecology","tables")
 
 nmds_scores <- load(file.path(data_path, "bray_nmds_scores.rda"))
 group_vars <- load(file.path(data_path, "group_vars.rda"))
 envr_vars <- load(file.path(data_path, "envr_vars.rda"))
 eco_dist <- load(file.path(data_path, "distance_matrices_BC.rda"))
-
 
 
 
@@ -163,6 +163,7 @@ kelp_invalg_pair_perm <- pairwise.adonis2(kelp_invalg_distmat ~ desig_state,
 rocky_pair_perm <- pairwise.adonis2(rocky_distmat ~ desig_state,
                                     data = rocky_group_vars, permutations = 999) 
 
+
 #create helper function to collect pairwise output 
 
 perm_fun <- function(perm_table, group_name){
@@ -258,12 +259,12 @@ distance1 <- travel_distance%>%
                            Var1== "smr before" & Var2== "smr during","before-to-during",
                          ifelse(Var1 == "ref before" & Var2== "ref after" |
                                   Var1== "smr before" & Var2== "smr after","before-to-after","")),
-         period=fct_relevel(period, c("before-to-during","before-to-after")),
+         period=forcats::fct_relevel(period, c("before-to-during","before-to-after")),
          MPA = tidytext::reorder_within(MPA, value, period),
          MPA_type = toupper(gsub( " .*$", "", Var1)))
 
-distance1$MPA_type <- recode_factor(distance1$MPA_type, "In"="MPA")
-distance1$MPA_type <- recode_factor(distance1$MPA_type, "Out"="Reference")
+distance1$MPA_type <- recode_factor(distance1$MPA_type, "REF"="Reference")
+distance1$MPA_type <- recode_factor(distance1$MPA_type, "SMR"="MPA")
 
 #perm_output$group <- recode_factor(perm_output$group, 	
 #                                   "Kelp forest inverts and algae" = "kelp inverts and algae")
@@ -285,7 +286,7 @@ sig_distance$period <- recode_factor(sig_distance$period, "before-to-after"="Bef
 
 
 
-my_theme <-  theme(axis.text=element_text(size=8),
+my_theme <-  theme(axis.text=element_text(size=7),
                    axis.text.y = element_text(angle = 90, hjust = 0.5),
                    axis.title=element_text(size=10),
                    plot.tag=element_blank(), #element_text(size=8),
@@ -331,6 +332,16 @@ p1 <-
   geom_text(aes(label=sig), size=5, hjust=-1, vjust=0.8,
             position = position_dodge(width=0.8),
             show.legend = FALSE)+
+  annotate("text", size=3,
+            x=4.5, y=-0.03,
+            label = "Greater resistance",
+           fontface = 'italic',
+           color = '#5A5A5A')+
+  annotate("text", size=3,
+           x=4.5, y=0.28,
+           label = "Less resistance",
+           fontface = 'italic',
+           color = '#5A5A5A')+
   ylab("")+
   xlab("")+
   scale_y_continuous(limits=c(-0.05,0.3))+
@@ -348,6 +359,7 @@ p1 <-
   my_theme+
   theme(aspect.ratio=1)
 
+p1
 
 
 p2 <- 
@@ -371,6 +383,16 @@ p2 <-
   geom_text(aes(label=sig), size=5, hjust=-1, vjust=0.8,
             position = position_dodge(width=0.8),
             show.legend = FALSE)+
+  annotate("text", size=3,
+           x=4.5, y=-0.03,
+           label = "Greater resilience",
+           fontface = 'italic',
+           color = '#5A5A5A')+
+  annotate("text", size=3,
+           x=4.5, y=0.28,
+           label = "Less resilience",
+           fontface = 'italic',
+           color = '#5A5A5A')+
   ylab("")+
   xlab("")+
   labs(color = "Site type")+
@@ -388,6 +410,7 @@ p2 <-
   my_theme+
   theme(aspect.ratio=1)
 
+p2
 
 
 library(grid)
@@ -406,6 +429,21 @@ g_title <- ggpubr::annotate_figure(g, left = textGrob("Distance (Bray-Curtis)",
 #   dpi = 600, bg="white")
 
 
+################################################################################
+#export table
+
+perm_tab <- sig_distance %>%
+            dplyr::select(habitat = group, MPA_type, period, distance  = value,
+                          Df, SumOfSqs, R2, `F`, `p-val`, sig) %>%
+            mutate(habitat = factor(habitat, levels = c("Rocky intertidal",
+                                                        "Kelp forest inverts and algae",
+                                                        "Kelp forest fishes",
+                                                        "Rocky reef fishes",
+                                                        "Deep reef fishes")),
+                   period = factor(period, levels = c("Before-to-during",
+                                                      "Before-to-after")))
+
+#write.csv(perm_tab, file.path(tab_out, "pairwise_permanova.csv"))
 
 
 

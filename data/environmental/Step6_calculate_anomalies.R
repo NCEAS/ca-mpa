@@ -10,13 +10,16 @@ library(tidyverse)
 envr_dat <- readRDS("/home/shares/ca-mpa/data/sync-data/environmental/processed/1988_2022_cuti_beuti_daily_by_monitoring_site.Rds")
 SST_dat <- readRDS("/home/shares/ca-mpa/data/sync-data/environmental/processed/2002_2022_mursst_monthly_by_monitoring_site.Rds")
 MOCI_dat <- read.csv("/home/shares/ca-mpa/data/sync-data/environmental/raw/MOCI.csv")
+glorys_dat <- read.csv("/home/shares/ca-mpa/data/sync-data/environmental/raw/CA_MPA_glorys_bottomT.csv")
 
 
 
 #make everything lower
 envr_df <- as.data.frame(sapply(envr_dat, tolower))
+glorys_df <- as.data.frame(sapply(glorys_dat, tolower))
 
-
+################################################################################
+#Process beuti and cuti
 
 # #calculate baseline annual mean ---- average for each site --------------
 
@@ -103,7 +106,8 @@ envr_build_step5 <- envr_build_step4 %>%
 
 
 
-
+################################################################################
+#Process SST
 
 # SST anomalies -----------------------------------------------------------
 
@@ -167,15 +171,76 @@ sst_build_step5 <- sst_build_step4 %>%
 
 
 
+################################################################################
+#Process GLORYS
+
+glorys_step1 <- glorys_df %>%
+                mutate(date= as.character(date),
+                       year = format(as.Date(date, format="%Y-%m-%d"),"%Y"),
+                       month = format(as.Date(date, format="%Y-%m-%d"),"%m"),
+                       day = format(as.Date(date, format="%Y-%m-%d"),"%d"),
+                       year = as.numeric(year),
+                       bottomT = as.numeric(bottomT))%>%
+                data.frame()
+
+#baseline bottomT 1993-2012
+baseline_bottomT <- glorys_step1 %>%
+  filter(year<=2012)%>%
+  dplyr::group_by(mpa_name) %>%
+  dplyr::summarize(bottomT_baseline = mean(bottomT, na.rm=TRUE))
+
+#join baseline back to original dataset
+glorys_step2 <- left_join(glorys_step1, baseline_bottomT, 
+                             by=c("mpa_name"
+                             ))
+
+#calculate bottomT monthly baseline
+monthly_base_bottomT <- glorys_step1 %>%
+  filter(year<=2012)%>%
+  group_by(mpa_name, month) %>% #leave out year because we want long term average for each month
+  dplyr::summarise(bottomT_monthly_baseline = mean(bottomT, na.rm=TRUE)) %>%
+  arrange(as.numeric(month))
+
+#join montlhy baseline back to dataset
+glorys_step3 <- left_join(glorys_step2, monthly_base_bottomT,
+                             by=c("mpa_name", "month"))
+
+
+#bottomT mean annual observed
+bottomT_annual_observed <- glorys_step3 %>%
+  group_by(mpa_name, year) %>%
+  dplyr::summarise(obs_annual_bottomT = mean(bottomT, na.rm=TRUE)) 
+
+#join annual bottomT with dataset
+glorys_step4 <- left_join(glorys_step3, bottomT_annual_observed, 
+                             by=c("mpa_name", "year"))
 
 
 
-# Join beuti, cuti, and sst -----------------------------------------------
+#bottomT monthly observed
+
+bottomT_monthly_observed <- glorys_step4 %>%
+  group_by(mpa_name, year, month) %>%
+  dplyr::summarise(obs_monthly_bottomT = mean(bottomT, na.rm=TRUE)) 
+
+glorys_step5 <- left_join(glorys_step4, bottomT_monthly_observed, 
+                             by=c("mpa_name", 
+                                  "year", "month"))
+
+#calculate anomalies
+glorys_step6 <- glorys_step5 %>%
+  mutate(monthly_anomaly_bottomT = obs_monthly_bottomT-bottomT_monthly_baseline,
+         mpa_name = factor(mpa_name))
+
+
+
+
+# Join beuti, cuti, sst, bottomT -----------------------------------------------
 
 #make everything lower
 sst_df <- as.data.frame(sapply(sst_build_step5, tolower))
             
-   
+
 #sst_df_rocky <- as.data.frame(sapply(sst_build_step5, tolower))%>%         
 #   filter(habitat=='rocky intertidal') #process rocky intertidal
 
@@ -199,13 +264,27 @@ sst_drop <- sst_df %>%
          mpa=as.factor(mpa),
          site_type = as.factor(site_type))
 
+glorys_drop <- glorys_step6 %>%
+              select(!(c("day", "date","lat_dd","long_dd","lat_approx","long_approx","bottomT")))%>%
+              distinct(across(everything()))%>%
+              mutate(year=factor(year),
+                month=factor(month),
+                mpa=as.factor(mpa_name))%>%
+              dplyr::select(!(mpa_name)) %>%
+              #remove leading zeros
+              mutate(month = str_remove(month, "^0+"))
+
 #step 2 - join
 envr_data_step2 <- left_join(sst_drop, envr_drop,
                             by=c("habitat","mpa","site_type","year","month"
-      
-                                                      ))
+                                                      )) 
+
+
+envr_data_step3 <- left_join(envr_data_step2, glorys_drop, by=c("mpa","year","month"))
+
+
 #step 3 - rename and clean
-envr_data <- envr_data_step2 %>%
+envr_data <- envr_data_step3 %>%
               mutate(mpa_class = str_extract(mpa, "smca|smr|special closure"),
                      mpa_designation = ifelse(site_type == "reference","ref",mpa_class),
                      mpa_name = gsub("\\s*\\([^\\)]+\\)","",mpa),
@@ -230,7 +309,12 @@ envr_data <- envr_data_step2 %>%
                      beuti_monthly_baseline = lt_monthly_beuti,
                      beuti_annual_obs = obs_annual_beuti,
                      beuti_monthly_obs = obs_monthly_beuti,
-                     beuti_monthly_anom = monthly_anomaly_beuti
+                     beuti_monthly_anom = monthly_anomaly_beuti,
+                     bottomT_annual_baseline = bottomT_baseline,
+                     bottomT_monthly_baseline = bottomT_monthly_baseline,
+                     bottomT_annual_obs = obs_annual_bottomT,
+                     bottomT_monthly_obs = obs_monthly_bottomT,
+                     bottomT_monthly_anom = monthly_anomaly_bottomT
                      )
 
 #reclassify
