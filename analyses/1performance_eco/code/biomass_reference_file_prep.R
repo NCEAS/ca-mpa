@@ -34,7 +34,7 @@ raw_parameters_ccfrp <- read_xlsx(file.path(data_dir, ccfrp_file), sheet = "CCFR
 
 # Create a fake length data set  -- TEMPORARY to be replaced by real data
 length_data <- tibble(
-  species_scientificname = sample(na.omit(raw_data_ccfrp$ScientificName_accepted), 100, replace = TRUE),
+  species_scientificname = sample(na.omit(raw_parameters_ccfrp$ScientificName_accepted), 100, replace = TRUE),
   TL_cm = rnorm(100, mean = 20, sd = 5)
   )
 
