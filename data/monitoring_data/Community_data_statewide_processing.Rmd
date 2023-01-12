@@ -648,4 +648,370 @@ rocky_count_prop <- rocky_count_envr %>%
 
 
 
+#Process CCFRP data
+```{r}
+# ccfrp -------------------------------------------------------------------
+
+#load species level mean fish CPUE
+data_path <- "/home/shares/ca-mpa/data/sync-data/monitoring/monitoring_ccfrp/CCFRP_derived_data_tables_DataONE"
+input_file <- "CCFRP_derived_effort_table.csv" 
+CPUE_raw <- read.csv(file.path(data_path, input_file))
+
+#reshape and clean up
+CCFRP_CPUE <- CPUE_raw %>%
+  mutate(affiliated_mpa = paste(Area,"smr"), #all ccfrp MPAs are defacto SMRs per PI
+         mpa_designation = ifelse(MPA_Status == "MPA","smr", MPA_Status))
+  
+CCFRP_CPUE$mpa_designation <- tolower(CCFRP_CPUE$mpa_designation)
+CCFRP_CPUE$mpa_designation <- tolower(CCFRP_CPUE$mpa_designation)
+
+CCFRP_CPUE <- CCFRP_CPUE %>%
+                  dplyr::select(year=Year, affiliated_mpa, mpa_designation, Grid_Cell_ID, Common_Name, CPUE_catch_per_angler_hour)%>%
+                  mutate(mpa_class="smr", 
+                         group="ccfrp") %>%
+                  group_by(group, year, affiliated_mpa, mpa_class, mpa_designation, Grid_Cell_ID, Common_Name)%>%
+                  dplyr::summarize(CPUE_mean = mean(CPUE_catch_per_angler_hour))%>%  #some species in the raw data have duplicate entries.
+                  ungroup() %>%
+                  tidyr::pivot_wider(names_from = Common_Name, 
+                                     values_from = CPUE_mean) %>%
+                  janitor::clean_names()
+              
+CCFRP_CPUE$affiliated_mpa <- tolower(CCFRP_CPUE$affiliated_mpa)
+
+CCFRP_CPUE$affiliated_mpa <- recode_factor(CCFRP_CPUE$affiliated_mpa, "southeast farallon islands smr" = "southeast farallon island smr") #clean up names
+
+CCFRP_CPUE$affiliated_mpa <- recode_factor(CCFRP_CPUE$affiliated_mpa, "swamis smr" = "swami's smca") #clean up names 
+
+
+#drop species and combine to higher taxa
+#### see reference taxonomy table https://docs.google.com/spreadsheets/d/1vxy0XVOrlNhXD-i9tWL_F9G5h8S3S4OV/edit#gid=2031917236
+
+CCFRP_combined <- CCFRP_CPUE %>%
+                  #merge species
+                  mutate(blue_rockfish_merge = rowSums(select(.,'blue_rockfish','deacon_rockfish')),
+                         mackerel_family_merge = rowSums(select(., 'mackerel_family_scombridae','pacific_chub_mackerel','jack_mackerel')),
+                         sanddabs_merge = rowSums(select(., 'pacific_sanddab','sanddab_spp','speckled_sanddab')))%>%
+                  select(!(c('blue_rockfish','deacon_rockfish','mackerel_family_scombridae','pacific_chub_mackerel',
+                             'pacific_sanddab','sanddab_spp','speckled_sanddab','jack_mackerel'))) %>%
+                  #drop species
+                  select(!(c('northern_anchovy',
+                             'olive_or_yellowtail_rockfish',
+                             'pacific_sardine',
+                             'petrale_sole',
+                             'pile_perch',
+                             'rubberlip_seaperch',
+                             'sand_sole',
+                             'spiny_dogfish',
+                             'senorita',
+                             'starry_skate',
+                             'tubesnout',
+                             'silversides_family_atherinopsidae',
+                             'un_id_blue_rockfish',
+                             'unknown',
+                             'unknown_rockfish',
+                             'wolf_eel',
+                             'yelloweye_rockfish',
+                             'bull_sculpin',
+                             'pacific_barracuda',
+                             'total')))%>%
+                  #drop string
+                  rename(blue_rockfish = blue_rockfish_merge,
+                         mackerel_family = mackerel_family_merge,
+                         sanddabs = sanddabs_merge)
+
+
+#add regions
+data_path <- "/home/shares/ca-mpa/data/sync-data/mpa_traits"
+input_file <- "mpa-attributes.xlsx" 
+four_region <- readxl::read_excel(file.path(data_path, input_file), sheet=1, skip = 0, na="NA")
+
+regions <- four_region %>%
+  dplyr::select(name, region3=bioregion, region4 = four_region_north_ci)
+
+CCFRP_CPUE <- left_join(CCFRP_combined, regions, by=c("affiliated_mpa"="name"))
+
+#clean up a
+
+CCFRP_CPUE <- CCFRP_CPUE %>%
+  mutate(MHW = ifelse(year>=2014 & year<=2016, "during",ifelse(year<2014, "before","after")))%>%
+  dplyr::select(year, group, region3, region4, MHW, everything())
+
+#drop species that were never observed 
+CCFRP_zero_drop <- CCFRP_CPUE  %>%
+                    select(!(where(~ any(. != 0))))
+
+CCFRP_cen <- CCFRP_CPUE %>% 
+                    select(where(~ any(. != 0)))
+
+#Export
+path_aurora <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data" 
+write.csv(CCFRP_cen,file.path(path_aurora, "CCFRP_statewide.csv"), row.names = FALSE)
+
+CCFRP_mpa_year_step1 <- CCFRP_cen %>%
+                  pivot_longer(cols=10:46, names_to="species",values_to="CPUE")%>%
+                  group_by(year, group, region3, region4, MHW, affiliated_mpa, mpa_class, mpa_designation, species)%>%
+                  dplyr::summarize(mean_CPUE = mean(CPUE))%>%
+                  ungroup()%>%
+                  pivot_wider(names_from = "species", values_from = "mean_CPUE")
+
+CCFRP_mpa_year <- left_join(CCFRP_mpa_year_step1, envr_dat, by=c("year","group",
+                                                       "region3","region4",
+                                                       "mpa_class"="mpa_defacto_class",
+                                                       "mpa_designation"="mpa_defacto_designation",
+                                                       "affiliated_mpa"="mpa_name"))%>%
+                  #filter(!(affiliated_mpa=="trinidad smr"))%>% #not a real MPA per PI
+                  dplyr::select(!(c("mpa_class.y","mpa_designation.y")))%>%
+                  dplyr::select(1:8,46:66,9:45)%>%
+                  mutate_all(~ifelse(is.nan(.), NA, .))
+
+#Export
+#path_aurora <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data" 
+#write.csv(CCFRP_mpa_year,file.path(path_aurora, "CCFRP_mpa_year.csv"), row.names = FALSE)
+```
+
+
+
+#process midwater/deep reef data
+```{r}
+#load species level mean fish biomass 
+data_path <- "/home/shares/ca-mpa/data/sync-data/monitoring/monitoring_deep-reef/ROV_Dataset"
+input_file <- "MidDepth_ROV_Fish_Count.csv" 
+deep_reef_counts_raw <- read.csv(file.path(data_path, input_file)) %>%
+                    janitor::clean_names()
+
+
+#select vars and clean
+deep_reef_counts <- deep_reef_counts_raw %>%
+                    filter(!grepl('Unidentified',scientific_name), #remove anything not identified to the species level
+                           !grepl('SMCA/Outside',type), #remove uncertain MPA types
+                           !grepl('SMR/SMCA',type))%>%  #remove undertain MPA types
+                    dplyr::select(year, mpa_group, type, designation, scientific_name, count)%>%
+                    group_by(year, mpa_group, type, designation, scientific_name)%>%
+                    dplyr::summarize(total_count = sum(count)) #counts in raw data are grouped by size class. Take summary across all sizes 
+
+deep_reef_counts$mpa_group[deep_reef_counts$mpa_group == "N/A" ] <- NA     #replace missing data with NA and drop
+deep_reef_counts <- deep_reef_counts %>%
+                    drop_na(mpa_group)
+
+deep_reef_counts$designation <- recode_factor(deep_reef_counts$designation, "MPA/Outside" = 'Reference')
+
+
+
+
+#add affiliated_mpa
+deep_reef_counts <- deep_reef_counts %>%
+                    mutate(mpa_class = type,
+                           affiliated_mpa = paste(mpa_group,type),
+                           mpa_designation = ifelse(designation=='Reference','ref',type))%>%
+                    ungroup()%>%
+                    dplyr::select(year, affiliated_mpa, mpa_class, mpa_designation, scientific_name, total_count)
+                    
+deep_reef_counts$affiliated_mpa <- tolower(deep_reef_counts$affiliated_mpa)
+
+
+#check for inconsistencies in mpa name spelling and correct designations
+
+deep_reef_counts$affiliated_mpa <- recode_factor(deep_reef_counts$affiliated_mpa, "se farallon islands smca" = "southeast farallon island smca") #correct spelling to match affiliated
+deep_reef_counts$affiliated_mpa <- recode_factor(deep_reef_counts$affiliated_mpa, "se farallon islands smr" = "southeast farallon island smr") #correct spelling to match affiliated
+deep_reef_counts$affiliated_mpa <- recode_factor(deep_reef_counts$affiliated_mpa, "n farallon islands smr" = "north farallon island smr") #correct spelling to match affiliated
+deep_reef_counts$affiliated_mpa <- recode_factor(deep_reef_counts$affiliated_mpa, "n farallon islands smca" = "north farallon island smr") #correct spelling to match affiliated
+deep_reef_counts$affiliated_mpa <- recode_factor(deep_reef_counts$affiliated_mpa, "north farallon island smr" = "north farallon islands smr") #correct spelling to match affiliated
+
+deep_reef_counts$affiliated_mpa <- recode_factor(deep_reef_counts$affiliated_mpa, "farallon islands smr" = "southeast farallon island smr") #correct spelling to match affiliated
+deep_reef_counts$affiliated_mpa <- recode_factor(deep_reef_counts$affiliated_mpa, "farallon islands smca" = "southeast farallon island smr") #correct spelling to match affiliated
+deep_reef_counts$affiliated_mpa <- recode_factor(deep_reef_counts$affiliated_mpa, "farnsworth smca" = "farnsworth offshore smca") #correct spelling to match affiliated
+deep_reef_counts$affiliated_mpa <- recode_factor(deep_reef_counts$affiliated_mpa, "point st. george smca" = "point st. george reef offshore smca") #correct spelling to match affiliated
+deep_reef_counts$affiliated_mpa <- recode_factor(deep_reef_counts$affiliated_mpa, "point buchon smr" = "Point Buchon") #correct spelling to match affiliated
+
+
+
+#add defacto SMRs
+data_path <- "/home/shares/ca-mpa/data/sync-data/mpa_traits"
+input_file <- "mpa-attributes.xlsx" 
+defacto_smr <- readxl::read_excel(file.path(data_path, input_file), sheet=5, skip = 0, na="NA")%>%
+               filter(group=="deep_reef") %>%
+               dplyr::select(affiliated_mpa, mpa_class)
+
+buchon_row <- c("Point Buchon","SMR","point buchon smr","No take.","deep_reef","SMR") 
+defacto_smr <- rbind(defacto_smr,buchon_row) #add missing row
+              
+deep_reef_counts <- left_join(deep_reef_counts, defacto_smr, by="affiliated_mpa")
+
+
+#clean
+deep_reef_counts <- deep_reef_counts %>%
+                    mutate(mpa_defacto_designation = ifelse(mpa_designation=='ref',mpa_designation,mpa_class.y))%>%
+                    dplyr::select(year, affiliated_mpa,mpa_class=mpa_class.x, mpa_designation, mpa_defacto_class=mpa_class.y, mpa_defacto_designation=mpa_designation, scientific_name, total_count)
+
+deep_reef_counts$scientific_name[deep_reef_counts$scientific_name == "" ] <- NA     #replace missing data with NA and drop
+
+deep_reef_counts <- deep_reef_counts %>%
+                    drop_na(scientific_name)
+
+deep_reef_counts$mpa_defacto_class <- tolower(deep_reef_counts$mpa_defacto_class)
+deep_reef_counts$mpa_defacto_designation <- tolower(deep_reef_counts$mpa_defacto_designation)
+
+
+#add 4 regions
+data_path <- "/home/shares/ca-mpa/data/sync-data/mpa_traits"
+input_file <- "mpa-attributes.xlsx" 
+four_region <- readxl::read_excel(file.path(data_path, input_file), sheet=1, skip = 0, na="NA")
+
+regions <- four_region %>%
+  dplyr::select(name, region3=bioregion, region4 = four_region_north_ci)
+
+deep_reef_counts$affiliated_mpa <- recode_factor(deep_reef_counts$affiliated_mpa, "Point Buchon"="point buchon smr")
+
+deep_reef_counts <- left_join(deep_reef_counts, regions, by=c("affiliated_mpa"="name"))
+
+#clean
+deep_reef_counts <- deep_reef_counts %>%
+                    group_by(year, region3, region4, affiliated_mpa,mpa_class, mpa_defacto_class, mpa_defacto_designation, scientific_name) %>%
+                    dplyr::summarise(counts = sum(total_count)) #make sure species are not duplicates by summarizing at the transect level (total counts)
+
+#drop species per PI based on incorrect range or ID
+
+deep_reef_counts_drop <- deep_reef_counts %>%
+                         #drop from all regions
+                         filter(!(scientific_name=='Hippoglossus stenolepis'|
+                                  scientific_name=='Hypsypops rubicundus'|
+                                  scientific_name=='Merluccius_productus'|
+                                  scientific_name=='Sebastes rosenblatti'|
+                                  scientific_name=='Ammodytes hexapterus'|
+                                  scientific_name=='Anisotremus davidsonii'|
+                                  scientific_name=='Pristigenys serrula'|
+                                  scientific_name=='Mola mola'|
+                                  scientific_name=='Alopias vulpinus'| 
+                                  scientific_name=='Lythrypnus dalli'|
+                                  scientific_name=='Brachyistius frenatus'|
+                                  scientific_name=='Sebastes caurinus or carnatus'|
+                                  scientific_name=='Sebastes pinniger or miniatus'|
+                                  scientific_name=='Engraulis mordax'|
+                                  scientific_name=='Aulorhynchus flavidus'|
+                                  scientific_name=='Aulorhynchus flavidus'|
+                                  scientific_name=='Sebastes serranoides or flavidus'|
+                                  scientific_name=='Sebastes hopkinsi or entomelas'|
+                                  scientific_name=='Sebastes melanops or mystinus or diaconus'|
+                          #drop for north only
+                                  scientific_name=='Pleuronichthys ritteri' &
+                                      region4=='north' |
+                                  scientific_name=='Hypsurus caryi' &
+                                      region4=='north'|
+                                  scientific_name=='Paralabrax nebulifer' &
+                                      region4=='north'|
+                                  scientific_name=='Sebastes umbrosus' &
+                                      region4=='north'|
+                                  scientific_name=='Phanerodon atripes' &
+                                      region4=='north'|
+                                  scientific_name=='Sebastes atrovirens' &
+                                      region4=='north'|
+                                  scientific_name=='Girella nigricans' &
+                                      region4=='north'|
+                                  scientific_name=='Paralabrax clathratus' &
+                                      region4=='north'|
+                                scientific_name=='Semicossyphus pulcher' &
+                                      region4=='north'|
+                                scientific_name=='Scorpaena guttata' &
+                                      region4=='north'|
+                                scientific_name=='Heterodontus francisci' &
+                                      region4=='north'|
+                                scientific_name=='Gymnothorax mordax' &
+                                      region4=='north'|
+                                scientific_name=='Cephaloscyllium entriosum' &
+                                      region4=='north'|
+                                scientific_name=='Seriola lalandi' &
+                                      region4=='north'|
+                                scientific_name=='Halichoeres semicinctus' &
+                                      region4=='north'|
+                        #drop for central
+                                scientific_name=='Heterodontus francisci' &
+                                      region4=='central'|
+                                scientific_name=='Gymnothorax mordax' &
+                                      region4=='central'|
+                                scientific_name=='Cephaloscyllium ventriosum' &
+                                      region4=='central'|
+                                scientific_name=='Seriola lalandi' &
+                                      region4=='central'|
+                                scientific_name=='Halichoeres semicinctus' &
+                                      region4=='central'|
+                                scientific_name=='Anarrihichthys ocellatus' &
+                                      region4=='central'|
+                                scientific_name=='Chromis punctipinnis' &
+                                      region4=='central'|
+                                scientific_name=='Cymatogaster aggregata' &
+                                      region4=='central'|
+                                scientific_name=='Eopsetta jordani' &
+                                      region4=='central'|
+                                scientific_name=='Lepidopsetta bilineata' &
+                                      region4=='central'|
+                                scientific_name=='Medialuna californiensis' &
+                                      region4=='central'|
+                                scientific_name=='Microstomus pacificus' &
+                                      region4=='central'|
+                                scientific_name=='Sebastes goodei' &
+                                      region4=='central'|
+                                scientific_name=='Torpedo californica' &
+                                      region4=='central'|
+                                scientific_name=='Squalus acanthias' &
+                                      region4=='central'|
+                                scientific_name=='Anarrhichthys ocellatus' &
+                                      region4=='central'|
+                               scientific_name=='Schooling (10-15 cm Sebastes sp.)' &
+                                      region4=='central'|
+                          
+                        #drop for south
+                                scientific_name=='Enophrys bison' &
+                                      region4=='south'|
+                                scientific_name=='Platichthys stellatus' &
+                                      region4=='south'|
+                        #drop for n. islands
+                                scientific_name=='Enophrys bison' &
+                                      region4=='north islands'
+                            )
+                        )
+
+
+
+
+#reshape to wide format
+deep_reef_counts_wide <- deep_reef_counts_drop %>%
+                    pivot_wider(names_from=scientific_name, values_from=counts) %>%
+                    janitor::clean_names()%>%
+                    drop_na(region4) %>%
+                    mutate(MHW = ifelse(year>=2014 & year<=2016, "during",ifelse(year<2014, "before","after")))%>%
+                    dplyr::select(year, region3, region4, affiliated_mpa,mpa_class, mpa_defacto_class, mpa_defacto_designation, MHW, everything()) %>%
+                    replace(is.na(.),0)%>%
+                    mutate(group='deep_reef')
+          
+                    #dplyr::select(-c(no_organisms_present_in_this_sample))
+
+
+deep_reef_counts_wide$mpa_class <- tolower(deep_reef_counts_wide$mpa_class)
+
+#drop species that were never observed on the central coast
+deep_reef_counts_wide_drop <- deep_reef_counts_wide %>% 
+                    select(!(where(~ any(. != 0))))
+
+deep_reef_counts_wide1 <- deep_reef_counts_wide %>% 
+                    select(where(~ any(. != 0)))
+
+#merge data
+
+deep_reef_merge <- as.data.frame(deep_reef_counts_wide1) %>%
+                  mutate(zaniolepis_frenata_or_latipinnis_merge = rowSums(
+                    select(.,'zaniolepis_frenata_or_latipinnis',
+                           'zaniolepis_latipinnis',
+                           'zaniolepis_frenata')))%>%
+                  select(!(c('zaniolepis_frenata_or_latipinnis',
+                           'zaniolepis_latipinnis',
+                           'zaniolepis_frenata')))%>%
+                  rename(zaniolepis_frenata_or_latipinnis = zaniolepis_frenata_or_latipinnis_merge)
+
+
+
+#Export
+path_aurora <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data" 
+write.csv(deep_reef_merge,file.path(path_aurora, "deep_reef_statewide.csv"), row.names = FALSE)
+
+```
 

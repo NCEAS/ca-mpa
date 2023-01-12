@@ -29,7 +29,8 @@ envr_dat <- readRDS("/home/shares/ca-mpa/data/sync-data/environmental/processed/
                      region3, region4, year)%>%
             dplyr::summarise(across(c("sst_annual_baseline", "sst_monthly_baseline", "sst_annual_obs", "sst_monthly_obs", "sst_monthly_anom",       
             "cuti_annual_baseline", "cuti_monthly_baseline", "cuti_annual_obs", "cuti_monthly_obs", "cuti_monthly_anom",     
-            "beuti_annual_baseline", "beuti_monthly_baseline", "beuti_annual_obs", "beuti_monthly_obs", "beuti_monthly_anom",     
+            "beuti_annual_baseline", "beuti_monthly_baseline", "beuti_annual_obs", "beuti_monthly_obs", "beuti_monthly_anom", 
+            "bottomT_annual_baseline", "bottomT_monthly_baseline", "bottomT_annual_obs", "bottomT_monthly_obs", "bottomT_monthly_anom",
               "annual_MOCI"), ~ mean(.x, na.rm = TRUE)))
 
 rocky_envr_vars <- readRDS("/home/shares/ca-mpa/data/sync-data/environmental/processed/envr_anomalies_at_intertidal_mpas.Rds")
@@ -152,7 +153,8 @@ CCFRP_mpa_year <- left_join(CCFRP_mpa_year_step1, envr_dat, by=c("year","group",
                                                        "affiliated_mpa"="mpa_name"))%>%
                   #filter(!(affiliated_mpa=="trinidad smr"))%>% #not a real MPA per PI
                   dplyr::select(!(c("mpa_class.y","mpa_designation.y")))%>%
-                  dplyr::select(1:8,46:61,9:45)
+                  dplyr::select(1:8,46:66,9:45)%>%
+                  mutate_all(~ifelse(is.nan(.), NA, .))
 
 #Export
 #path_aurora <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data" 
@@ -318,12 +320,13 @@ kelp_fish_mpa_year <- left_join(kelp_fish_mpa_year_step1, envr_dat, by=c("year",
                                                        "mpa_defacto_class",
                                                        "mpa_defacto_designation",
                                                        "affiliated_mpa"="mpa_name"))%>%
-                  dplyr::select(1:7,119:137,8:118) %>%
+                  dplyr::select(1:7,119:142,8:118) %>%
                   dplyr::select(!c("mpa_class","mpa_designation")) %>%
                   mutate(group="kelp_fish") %>%
                   dplyr::select(group, everything()) %>%
                   filter(region3 == 'central') %>%
-                  select(where(~ any(. != 0)))
+                  select(where(~ any(. != 0)))%>%
+                  mutate_all(~ifelse(is.nan(.), NA, .))
 
 
 #Export year                     
@@ -486,12 +489,13 @@ kelp_swath_mpa_year <- left_join(kelp_swath_mpa_year_step1, envr_dat,
                                                        "mpa_defacto_class",
                                                        "mpa_defacto_designation",
                                                        "affiliated_mpa"="mpa_name"))%>%
-                  dplyr::select(1:7,71:89,8:70) %>%
+                  dplyr::select(1:7,71:94,8:70) %>%
                   dplyr::select(!c("mpa_class","mpa_designation")) %>%
                   mutate(group = "kelp_swath")%>%
                   dplyr::select(group, everything()) %>%
                   filter(region3 == 'central') %>%
-                  select(where(~ any(. != 0)))
+                  select(where(~ any(. != 0))) %>%
+                  mutate_all(~ifelse(is.nan(.), NA, .))
 
 
 #Export year level
@@ -646,13 +650,14 @@ kelp_upc_mpa_year <- left_join(kelp_upc_mpa_year_step1, envr_dat,
                                                        "mpa_defacto_class",
                                                        "mpa_defacto_designation",
                                                        "affiliated_mpa"="mpa_name"))%>%
-                  dplyr::select(1:7,64:82,8:63) %>%
+                  dplyr::select(1:7,64:87,8:63) %>%
                   mutate(group="kelp_upc")%>%
                   dplyr::select(!c("mpa_class","mpa_designation")) %>%
                   dplyr::select(group, everything()) %>%
-                  mutate_at(c(25:80), ~replace_na(.,0))%>%
+                  mutate_at(c(30:85), ~replace_na(.,0))%>%
                   filter(region3 == 'central') %>%
-                  select(where(~ any(. != 0)))
+                  select(where(~ any(. != 0))) %>%
+                  mutate_all(~ifelse(is.nan(.), NA, .))
 
 #Export
 #path_aurora <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data" 
@@ -910,12 +915,13 @@ deep_reef_counts_envr <- left_join(deep_reef_merge, envr_dat,
                                                     "mpa_class"="mpa_class",
                                                     "mpa_defacto_designation"="mpa_designation",
                                                   "affiliated_mpa"="mpa_name")) %>%
-                  dplyr::select(1:8,67:84,9:66) %>%
+                  dplyr::select(1:8,67:89,9:66) %>%
                   dplyr::select(!c("mpa_defacto_class.y","mpa_defacto_designation.y"),
                                 mpa_defacto_class="mpa_defacto_class.x") %>%
                   dplyr::select(group, everything())%>%
                   filter(region3 == 'central') %>%
-                  select(where(~ any(. != 0)))
+                  select(where(~ any(. != 0))) %>%
+                  mutate_all(~ifelse(is.nan(.), NA, .))
 
 #Export
 #path_aurora <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data" 

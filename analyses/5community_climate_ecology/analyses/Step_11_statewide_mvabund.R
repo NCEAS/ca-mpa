@@ -178,6 +178,8 @@ kelp_swath_sig <- kelp_swath_out %>%
 
 # --------------
 #Analysis of proportional composition
+#tests whether the relative abundance (or proportion) of spp changed across
+#heatwave periods and across diverse habitats
 kelp_swath_glm <- manyglm(kelp_swath_mv ~ 
                             #kelp_swath_traits$MHW*kelp_swath_traits$habitat_diversity_sw+
                             #kelp_swath_traits$MHW*kelp_swath_traits$size,
@@ -196,6 +198,69 @@ kelp_swath_compT_aov <- anova.manyglm(kelp_swath_glm,
 save(kelp_swath_compF_aov, kelp_swath_compF_puni, 
      kelp_swath_compT_aov, 
      file = file.path(modout, "kelp_swath_mvabund"))
+
+
+#=====================Kelp fish===================
+kelp_fish_glm <- manyglm(kelp_fish_mv ~ 
+                            #kelp_swath_traits$MHW*kelp_swath_traits$habitat_diversity_sw+
+                            #kelp_swath_traits$MHW*kelp_swath_traits$size,
+                            kelp_fish_traits$MHW*kelp_fish_traits$habitat_diversity_sw +
+                            kelp_fish_traits$MHW*kelp_fish_traits$size,
+                          show.coef=F,
+                          data=kelp_fish_traits,
+                          composition = F)
+
+#best.r.sq(kelp_swath_mv ~  kelp_swath_traits$MHW*kelp_swath_traits$size*kelp_swath_traits$habitat_diversity_sw*kelp_swath_traits$age_at_survey)
+
+plot(kelp_fish_glm) #check fit
+coefplot(kelp_fish_glm, y.label = TRUE, #which.Xcoef = NULL,
+         #which.Ys = NULL, 
+         incl.intercept = FALSE, cex.ylab = 0.5, mfrow = NULL) #plot coefficients
+
+# use a randomization test of equality of all species
+#  note: this is slow
+kelp_fish_compF_aov <- anova.manyglm(kelp_fish_glm, 
+                                      block = kelp_fish_traits$year)
+
+# which species changed?  Extract univariate p-values and adjust for multiple testing
+kelp_fish_compF_puni <- anova.manyglm(kelp_fish_glm, p.uni="adjusted", 
+                                       pairwise.comp = ~kelp_fish_traits$MHW,
+                                       block = kelp_fish_traits$year)
+
+# which species have adjusted p < 0.05?
+kelp_fish_out <- as.data.frame(kelp_fish_pairwise_MHW[["uni.p"]])
+
+kelp_fish_sig <- kelp_fish_out %>%
+  tibble::rownames_to_column()%>%
+  pivot_longer(cols=2:ncol(.), names_to="species")%>%
+  filter(rowname == "kelp_fish_traits$MHW:kelp_fish_traits$habitat_diversity_sw")%>%
+  drop_na()%>%
+  filter(value <= 0.05) %>%
+  mutate(group="kelp_fish")
+
+
+# --------------
+#Analysis of proportional composition
+#tests whether the relative abundance (or proportion) of spp changed across
+#heatwave periods and across diverse habitats
+kelp_fish_glm <- manyglm(kelp_fish_mv ~ 
+                            #kelp_swath_traits$MHW*kelp_swath_traits$habitat_diversity_sw+
+                            #kelp_swath_traits$MHW*kelp_swath_traits$size,
+                            MHW*habitat_diversity_sw + 
+                            MHW*size,
+                          show.coef=F,
+                          data=kelp_fish_traits,
+                          composition = T)
+
+kelp_fish_compT_aov <- anova.manyglm(kelp_fish_glm
+                                      #block = kelp_swath_traits$year
+)
+
+
+
+save(kelp_fish_compF_aov, kelp_fish_compF_puni, 
+     kelp_fish_compT_aov, 
+     file = file.path(modout, "kelp_fish_mvabund"))
 
 
 

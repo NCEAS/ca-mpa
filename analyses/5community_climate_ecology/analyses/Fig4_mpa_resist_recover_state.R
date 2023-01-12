@@ -11,8 +11,8 @@ library(tidyverse)
 library(patchwork)
 
 # Directories
-basedir <- "/Volumes/GoogleDrive/.shortcut-targets-by-id/1kCsF8rkm1yhpjh2_VMzf8ukSPf9d4tqO/MPA Network Assessment: Working Group Shared Folder/data/sync-data" #Chris
-# basedir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data" #Josh
+#basedir <- "/Volumes/GoogleDrive/.shortcut-targets-by-id/1kCsF8rkm1yhpjh2_VMzf8ukSPf9d4tqO/MPA Network Assessment: Working Group Shared Folder/data/sync-data" #Chris
+basedir <- "/home/shares/ca-mpa/data/sync-data/" #Josh
 plotdir <- "analyses/5community_climate_ecology/figures"
 
 # Read data
@@ -38,14 +38,14 @@ data <- data_orig %>%
                     "Campus Point SMCA"="Campus Point SMCA (No-Take)",
                     "Point Vicente SMCA"="Point Vicente SMCA (No-Take)")) %>% 
   # Add region
-  left_join(mpas_orig %>% select(mpa, region), by="mpa") %>% 
+  left_join(mpas_orig %>% select(mpa, region, lat_dd), by="mpa") %>% 
   # Create type
   mutate(period=paste(period_1, period_2, sep="-"),
          process=recode_factor(period,
                         "before-during"="Resistance",
                         "before-after"="Resilience")) %>% 
   # Arrange
-  select(habitat, region, mpa, site_type, process, period, distance) %>% 
+  select(habitat, region, lat_dd, mpa, site_type, process, period, distance) %>% 
   # Spread
   spread(key="site_type", value="distance") %>% 
   rename(dist_ref=ref, dist_mpa=smr) %>% 
@@ -58,6 +58,20 @@ data <- data_orig %>%
 mpa_names <- sort(unique(data$mpa))
 mpa_names[!mpa_names %in% mpas_orig$mpa]
 
+#clean
+data2 <- data %>%
+        #Drop Natural Bridges since it is not a typical KF MPA
+         mutate(region = recode(region,
+                                "North Central Coast" = "North",
+                                "Central Coast" = "Central",
+                                "South Coast" = "South"))%>%
+        filter(!(habitat == "Kelp forest inverts and algae" &
+                   mpa == "Natural Bridges SMR")) %>%
+        filter(!(habitat == "Kelp forest fishes" &
+                   mpa == "Natural Bridges SMR"))%>%
+        mutate(mpa = factor(mpa))
+        
+                 
 
 # Plot data
 ################################################################################
@@ -81,13 +95,13 @@ my_theme <-  theme(axis.text=element_text(size=6),
 
 
 # Plot data
-g <-ggplot(data, aes(x=habitat, y=mpa, size=dist_mpa, fill=prop)) +
+g <-ggplot(data2, aes(x=habitat, y=reorder(mpa, lat_dd), size=dist_mpa, fill=prop)) +
   facet_grid(region~process, scales='free_y', space="free_y") +
   geom_point(pch=21) +
   # Labels
   labs(x="", y="", title="") +
   # Legend
-  scale_size_continuous(name="Shift distance\n(smaller=greater resilience)") +
+  scale_size_continuous(name="Shift distance\n(smaller=greater \nresistance or \nresilience)") +
   scale_fill_gradient2(name="% of shift\nprevented (blue)\nor exacerbated (red)",
                        label=scales::percent,
                        midpoint=0, mid="white", low="darkred", high="navy",) +
@@ -98,5 +112,5 @@ g
 
 # Export
 ggsave(g, filename=file.path(plotdir, "Fig4_mpa_resist_recover_state.png"), 
-       width=4.75, height=6, units="in", dpi=600)
+       width=6, height=8, units="in", dpi=600)
 

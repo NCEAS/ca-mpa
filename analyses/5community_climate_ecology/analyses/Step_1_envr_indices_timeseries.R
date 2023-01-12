@@ -22,12 +22,17 @@ envr_plot <- envr_vars_all %>%
   dplyr::summarise(beuti_anom = mean(beuti_monthly_anom),
                    cuti_anom = mean(cuti_monthly_anom),
                    sst_anom = mean(as.numeric(as.character(sst_monthly_anom)),na.rm=T),
+                   bottomT_anom = mean(as.numeric(as.character(bottomT_monthly_anom)),na.rm=T),
                    annual_MOCI = mean(as.numeric(annual_MOCI), na.rm=T),
                    quarterly_MOCI = mean(as.numeric(quarterly_MOCI), na.rm=T),
   ) %>%
-  pivot_longer(names_to = "index", cols=c("beuti_anom","cuti_anom","sst_anom","annual_MOCI", "quarterly_MOCI"))
+  pivot_longer(names_to = "index", cols=c("beuti_anom","cuti_anom","sst_anom",
+                                          "bottomT_anom","annual_MOCI", "quarterly_MOCI"))
 
-envr_plot$index <- factor(envr_plot$index, levels = c("sst_anom", "annual_MOCI","quarterly_MOCI","beuti_anom", "cuti_anom"))
+envr_plot$index <- factor(envr_plot$index, levels = c("sst_anom","bottomT_anom",
+                                                      "annual_MOCI",
+                                                      "quarterly_MOCI",
+                                                      "beuti_anom", "cuti_anom"))
 
 
 
@@ -46,9 +51,10 @@ envr_ts <- envr_plot%>%
   geom_hline(yintercept=0, linetype="dashed", color = "black")+
   #annotate("rect", xmin = 2014.5, xmax = 2016.5, ymin = -12, ymax = 12,
   #      alpha = .2, fill="pink")+
-  facet_wrap(~index, ncol=2, nrow=2, scale="free_y",
+  facet_wrap(~index, ncol=3, nrow=2, scale="free_y",
              strip.position = "left",
              labeller = as_labeller(c(sst_anom = "SST anomaly (°C)",
+                                      bottomT_anom = "Bottom temp anomaly (°C)",
                                       beuti_anom="BEUTI anomaly", 
                                       cuti_anom = "CUTI anomaly",
                                       #annual_MOCI = "annual MOCI",
@@ -82,14 +88,20 @@ print(envr_ts)
 envr_plot2 <- envr_vars_all %>%
   filter(region3=='central')%>%
   group_by(year, month)%>%
-  pivot_longer(names_to = "index", cols=c("beuti_monthly_anom","cuti_monthly_anom","sst_monthly_anom","annual_MOCI", "quarterly_MOCI"))
+  pivot_longer(names_to = "index", cols=c("beuti_monthly_anom","cuti_monthly_anom",
+                                          "sst_monthly_anom","annual_MOCI", "quarterly_MOCI",
+                                          "bottomT_monthly_anom"))
 
-envr_plot2$index <- factor(envr_plot2$index, levels = c("sst_monthly_anom","quarterly_MOCI","beuti_monthly_anom","cuti_monthly_anom","annual_MOCI"))
+envr_plot2$index <- factor(envr_plot2$index, levels = c("sst_monthly_anom",
+                                                        "bottomT_monthly_anom",
+                                                        "quarterly_MOCI","beuti_monthly_anom","cuti_monthly_anom","annual_MOCI"))
 
 MOCI <- envr_plot2 %>% filter(index=='quarterly_MOCI',
                                     year>=2000)
 SST <- envr_plot2 %>% filter(index=='sst_monthly_anom',
                              year>=2000)
+BT <- envr_plot2 %>% filter(index=='bottomT_monthly_anom',
+                            year>=2000)
 BEUTI <- envr_plot2 %>% filter(index=='beuti_monthly_anom',
                              year>=2000)
 CUTI <- envr_plot2 %>% filter(index=='cuti_monthly_anom',
@@ -116,6 +128,16 @@ SST_plot <- ggplot(aes(x=as.numeric(month),y=value), data=SST)+
   scale_x_continuous(breaks= scales::pretty_breaks())+
   theme(legend.position="none")
 
+BT_plot<- ggplot(aes(x=as.numeric(month),y=value),data=BT)+
+  stat_summary(fun=mean, geom="line", color = "#DB72FB", size=1)+
+  stat_summary(fun.data = mean_sdl, geom = "ribbon", fill='#DB72FB', color=NA, alpha=0.3)+
+  geom_hline(yintercept=0, linetype="dashed", color = "black")+
+  xlab("Month")+
+  ylab("CUTI anomaly")+
+  theme_minimal(base_size = 10, bgcolor("white"))+
+  scale_x_continuous(breaks= scales::pretty_breaks())+
+  theme(legend.position="none")
+
 BEUTI_plot<- ggplot(aes(x=as.numeric(month),y=value),data=BEUTI)+
   stat_summary(fun=mean, geom="line", color = "#00B9E3", size=1)+
   stat_summary(fun.data = mean_sdl, geom = "ribbon", fill='#00B9E3', color=NA, alpha=0.3)+
@@ -136,8 +158,9 @@ CUTI_plot<- ggplot(aes(x=as.numeric(month),y=value),data=CUTI)+
   scale_x_continuous(breaks= scales::pretty_breaks())+
   theme(legend.position="none")
 
+
 plots <- ggarrange(SST_plot, MOCI_plot,
-          BEUTI_plot, CUTI_plot, ncol=2, nrow=2)
+          BEUTI_plot, CUTI_plot, ncol=3, nrow=2)
 
 
 #ggsave(here::here("analyses", "5community_climate_ecology", "figures", "oceanographic_indices_range.png"), 
