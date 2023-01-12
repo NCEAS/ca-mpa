@@ -71,8 +71,19 @@ block_stats <- data2 %>%
             mpa_km2=sum(area_km2)) %>%
   ungroup()
 
+## List blocks for each MPA ----
+mpa_stats <- data2 %>% 
+  select(block_id, name) %>% 
+  sf::st_drop_geometry() %>% 
+  distinct() 
+
+rownames(mpa_stats) <- NULL
+  
+## Export MPA key: blocks with each MPA (all MPAs) ----
+#saveRDS(mpa_stats, file.path(outdir, "mpa_block_overlap_pairs.Rds"))
+
 ## Export block key: only blocks with MPAs (all MPAs) ----
-write.csv(block_stats, file=file.path(outdir, "CA_blocks_with_mpas_all_mpa_types.csv"), row.names=F)
+#write.csv(block_stats, file=file.path(outdir, "CA_blocks_with_mpas_all_mpa_types.csv"), row.names=F)
 
 
 # P2: Build Data - Only SMRs/SMCAs and FMRs/FMCAs ---------------------------

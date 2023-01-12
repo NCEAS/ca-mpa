@@ -17,8 +17,10 @@ hab_raw <- readRDS(file.path(data.dir, "mpa_attributes_processed.Rds")) %>%
   filter(!name == "Moro Cojo Slough SMR") %>%   # We know this is wrong 
   filter(!name == "Painted Cave SMCA") %>% 
   filter(!name == "Anacapa Island SMCA") %>% 
+  filter(!name == "Anacapa Island SMR") %>%
   filter(!name == "Judith Rock SMR") %>% 
-  filter(!name == "South La Jolla SMCA")
+  filter(!name == "South La Jolla SMCA") %>% 
+  filter(!name == "Richardson Rock SMR")
   
   
 # Build ------------------------------------------------------------------------
@@ -41,7 +43,26 @@ linear_habitats <- c("sandy_beach_km",
 
 ## Convert length to area 
 hab_adj <- hab %>% 
-  mutate(across(all_of(linear_habitats), ~.x*3))
+  mutate(across(all_of(linear_habitats), ~.x*0.003))
+
+## Calculate proportion rock
+prop_rock <- hab_adj %>% 
+  mutate(total_area_km2 = rowSums(across(everything()))) %>% 
+  select(total_area_km2, hard_substrate_0_30m_km2_comb, hard_substrate_30_100m_km2,
+         hard_substrate_100_200m_km2, hard_substrate_200_3000m_km2, 
+         rocky_inter_km) %>% 
+  mutate(total_rock_km2 = rowSums(across(c(hard_substrate_0_30m_km2_comb, 
+                                       hard_substrate_30_100m_km2,
+                                       hard_substrate_100_200m_km2, 
+                                       hard_substrate_200_3000m_km2, 
+                                       rocky_inter_km)))) %>% 
+  mutate(prop_rock = total_rock_km2/total_area_km2) %>% 
+  rownames_to_column("name") %>% 
+  select(name, total_area_km2, total_rock_km2, prop_rock) %>% 
+  left_join(hab_type %>% select(name, size_km2))
+
+## Export proportion rock
+
 
 ## Richness --------------------------------------------------------------------
 
@@ -89,7 +110,11 @@ ggplot(habr_df, aes(x = bioregion, y = value, fill = bioregion)) +
        y = "Habitat richness",
        fill = "Region")
 
-## Diversity --------------------------------------------------------------------
+## Evenness --------------------------------------------------------------------
+
+
+
+## Diversity -------------------------------------------------------------------
 
 habd <- diversity(hab_adj)
 
@@ -240,7 +265,7 @@ all_div <- habr_df %>%
 base.dir <- "/Volumes/GoogleDrive-105151121202188525604/Shared drives/NCEAS MPA network assessment/MPA Network Assessment: Working Group Shared Folder/data/sync-data" # Cori Local
 clean.dir <- file.path(base.dir, "mpa_traits", "processed")
 
-saveRDS(all_div, file.path(clean.dir, "mpa_attributes_habitat_diversity.Rds"))
-
+#saveRDS(all_div, file.path(clean.dir, "mpa_attributes_habitat_diversity.Rds"))
+#saveRDS(prop_rock, file.path(clean.dir, "mpa_attributes_habitat_rock.Rds"))
 
   

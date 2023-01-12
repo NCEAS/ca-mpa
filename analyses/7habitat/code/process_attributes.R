@@ -32,22 +32,25 @@ clean.dir <- file.path(base.dir, "mpa_traits", "processed")
 
 
 # Read Data Files --------------------------------------------------------------
-## Updated Attribute (Habitat/MPA Trait) Data (version provided October 2022)
+## Updated Attribute ----
+## (Habitat/MPA Trait) Data (version provided October 2022)
 att_new <- readxl::read_excel(file.path(raw.dir, "mpa-attributes-2022Oct17-raw.xlsx"),
                               sheet = 1, skip = 4, na = ".") %>% janitor::clean_names()
 
-## Original Attribute (Habitat/MPA Trait) Data (version provided May 2022)
+## Original Attribute ----
+## (Habitat/MPA Trait) Data (version provided May 2022)
 # Note that this has been previously modified and updated outside of script
 # because was saved as a google sheet that could be modified. Will try to
 # only keep columns that are verified but YMMV, use with caution.
 att_old <- readxl::read_excel(file.path(raw.dir, "mpa-attributes-2021.xlsx"),
                               sheet = 1, na = "na") %>% janitor::clean_names()
 
-## MPA Age Data
+## MPA Age Data ----
 # Information about previous protection prior to MLPA implementation
 mpa_age <- readxl::read_excel(file.path(raw.dir, "mpa-attributes-2021.xlsx"),
                               sheet = 3) %>% janitor::clean_names()
-## MPA Class Data
+
+## MPA Class Data ----
 # Information supplied by the long-term monitoring PIs indicating their 
 # perspective on the 'actual' level of protection within the MPA for their 
 # habitat type, e.g. if there is an SMCA that allows limited take of an 
@@ -56,12 +59,14 @@ mpa_age <- readxl::read_excel(file.path(raw.dir, "mpa-attributes-2021.xlsx"),
 mpa_class <- readxl::read_excel(file.path(raw.dir, "mpa-attributes-2021.xlsx"),
                                 sheet = 5) %>% janitor::clean_names()
 
-## MPA Distance to Port
+## MPA Distance to Port ----
 # Calculated from centroid of MPA polygon to centroid of nearest major port. 
 # Major ports identified as the ports contributing to the top 99% of landings 
 # from 2000-2020 via fish ticket data (CDFW). 
 mpa_port_dist <- readRDS(file.path(base.dir, "gis_data/processed/mpa_distance_to_port.Rds"))
 
+## MPA Pre-Implementation Fishing ----
+## To be added once finalized
 
 
 # Definitions ------------------------------------------------------------------
@@ -144,8 +149,8 @@ all_data <- att_new_clean %>%
     # Cluster and tier
     cluster, tier) 
 
-# Export
-saveRDS(all_data, file.path(clean.dir, "mpa_attributes_general.Rds")) # shared
+# Export General ----
+#saveRDS(all_data, file.path(clean.dir, "mpa_attributes_general.Rds")) # shared
 
 
 # Build Habitat ----------------------------------------------------------------
@@ -196,7 +201,7 @@ att_data <- att_new_clean %>%
 
 ## Correct some values
 att_data$mpa_habitat_type[att_data$name == "Moro Cojo Slough SMR"] <- "Estuary"
-  
+
 
 # Export Main Processed Data ---------------------------------------------------
 #saveRDS(att_data, file.path(data.dir, "mpa_attributes_processed.Rds")) #local
