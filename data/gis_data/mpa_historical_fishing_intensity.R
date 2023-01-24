@@ -24,6 +24,10 @@ blocks <- wcfish::blocks %>% sf::st_drop_geometry()
 
 mpa_block_pairs <- readRDS(file.path(basedir, "gis_data/processed", "mpa_block_overlap_pairs.Rds"))
 
+by_mpa <- mpa_block_pairs %>% 
+  group_by(name) %>% 
+  summarize(n = n())
+
 # Build ------------------------------------------------------------------------
 landings <- landings_raw %>% 
   # Filter for only pre-implementation years (2000-2006)
@@ -44,7 +48,8 @@ data <- mpa_block_pairs %>%
   # Join landings for each block with block pairs 
   left_join(landings, by="block_id") %>% 
   group_by(name) %>% 
-  summarize(annual_avg_lb_sqkm_20002006 = sum(annual_avg_lb_sqkm))
+  summarize(annual_avg_lb_sqkm_20002006 = sum(annual_avg_lb_sqkm)) %>% 
+  mutate(name = gsub("\\s*\\([^\\)]+\\)", "", name))
 
 # Export
 saveRDS(data, file.path("analyses/2performance_fisheries/analyses/blocks/pre_mpa_fishing_pressure_by_mpa.Rds"))
