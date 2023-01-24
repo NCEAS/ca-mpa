@@ -17,7 +17,7 @@ gisdir <- file.path(basedir, "gis_data/processed")
 plotdir <- "analyses/5community_climate_ecology/figures"
 
 # Read composition data
-load(file.path(basedir, "monitoring/processed_data/community_climate_derived_data/comp_data.rda"))
+load(file.path(basedir, "monitoring/processed_data/comp_data.rda"))
 comp_orig <- comp_data
 rm(comp_data)
 

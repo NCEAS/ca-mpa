@@ -141,7 +141,14 @@ envi <- envi_orig %>%
   # Remov missing value
   filter(!is.na(value_avg))
   
-  
+envi_dat <- envi_orig %>%
+  # Filter
+  filter(region3=='central' & year>=2000)%>%
+  mutate( date_order = as.numeric(paste0(year,".",month))
+    #Date = with(., sprintf("%d-%02d", year, month))
+         ) %>%
+  filter(date_order <= 2020.5)
+
 # Plot data
 ################################################################################
 
@@ -257,15 +264,21 @@ g1 <- ggplot() +
 g1
 
 # SST
-ymax <- envi %>% filter(indicator=="SST") %>% pull(value_hi) %>% max() * 1.05
+#ymax <- envi %>% filter(indicator=="SST") %>% pull(value_hi) %>% max() * 1.05   ##Chris
+ymax <- max(envi_dat$sst_monthly_anom, na.rm=TRUE) * .90 #Josh
 g2 <- ggplot(data=envi %>% filter(indicator=="SST"), aes(x=year, y=value_avg)) + 
+  #data series
+  geom_point(data=envi_dat, aes(x=date_order, y=sst_monthly_anom), size=1, alpha=0.1, color='lightgray')+
   # Heatwave
-  annotate(geom="rect", xmin=2013.5, xmax=2016.5, ymin=-Inf, ymax=Inf, fill="indianred1", alpha=0.5) +
-  annotate(geom="text", label="MHW", x=2015, y=ymax , size=2.1) +
+  annotate(geom="rect", xmin=2013.5, xmax=2016.5, ymin=-Inf, ymax=Inf, fill="indianred1", alpha=0.2) +
+  annotate(geom="text", label="MHW", x=2008, y=ymax , size=2.5) +
+  annotate("segment", x = 2010.5, y = ymax, xend = 2013.5, yend = ymax,
+           arrow = arrow(type = "closed", length = unit(0.02, "npc")))+
   # Plot data
   geom_ribbon(mapping=aes(x=year, ymin=value_lo, ymax=value_hi), 
               fill="grey60", color=NA, alpha=0.8) +
   geom_line() +
+  #add data points
   # Reference line
   geom_hline(yintercept = 0, linetype="dashed", color="grey40") +
   # Labels
@@ -280,11 +293,16 @@ g2
 
 
 # bottomT
-ymax <- envi %>% filter(indicator=="Bottom temp") %>% pull(value_hi) %>% max() * 1.05
+#ymax <- envi %>% filter(indicator=="Bottom temp") %>% pull(value_hi) %>% max() * 1.05 #Chris
+ymax <- max(envi_dat$bottomT_monthly_anom, na.rm=TRUE) * .90 #Josh
 g3 <- ggplot(data=envi %>% filter(indicator=="Bottom temp"), aes(x=year, y=value_avg)) + 
+  #data series
+  geom_point(data=envi_dat, aes(x=date_order, y=bottomT_monthly_anom), size=1, alpha=0.1, color='lightgray')+
   # Heatwave
-  annotate(geom="rect", xmin=2013.5, xmax=2016.5, ymin=-Inf, ymax=Inf, fill="indianred1", alpha=0.5) +
-  annotate(geom="text", label="MHW", x=2015, y=ymax , size=2.1) +
+  annotate(geom="rect", xmin=2013.5, xmax=2016.5, ymin=-Inf, ymax=Inf, fill="indianred1", alpha=0.2) +
+  annotate(geom="text", label="MHW", x=2008, y=ymax , size=2.5) +
+  annotate("segment", x = 2010.5, y = ymax, xend = 2013.5, yend = ymax,
+           arrow = arrow(type = "closed", length = unit(0.02, "npc")))+
   # Plot data
   geom_ribbon(mapping=aes(x=year, ymin=value_lo, ymax=value_hi), 
               fill="grey60", color=NA, alpha=0.8) +
@@ -302,11 +320,16 @@ g3 <- ggplot(data=envi %>% filter(indicator=="Bottom temp"), aes(x=year, y=value
 g3
 
 # MOCI
-ymax <- envi %>% filter(indicator=="MOCI") %>% pull(value_hi) %>% max() * 1.05
+#ymax <- envi %>% filter(indicator=="MOCI") %>% pull(value_hi) %>% max() * 1.05 #Chris
+ymax <- max(envi_dat$quarterly_MOCI, na.rm=TRUE) * .90 #Josh
 g4 <- ggplot(data=envi %>% filter(indicator=="MOCI"), aes(x=year, y=value_avg)) + 
+  #data series
+  geom_point(data=envi_dat, aes(x=date_order, y=quarterly_MOCI), size=1, alpha=0.1, color='lightgray')+
   # Heatwave
-  annotate(geom="rect", xmin=2013.5, xmax=2016.5, ymin=-Inf, ymax=Inf, fill="indianred1", alpha=0.5) +
-  annotate(geom="text", label="MHW", x=2015, y=ymax , size=2.1) +
+  annotate(geom="rect", xmin=2013.5, xmax=2016.5, ymin=-Inf, ymax=Inf, fill="indianred1", alpha=0.2) +
+  annotate(geom="text", label="MHW", x=2008, y=ymax , size=2.5) +
+  annotate("segment", x = 2010.5, y = ymax, xend = 2013.5, yend = ymax,
+           arrow = arrow(type = "closed", length = unit(0.02, "npc")))+
   # Plot data
   geom_ribbon(mapping=aes(x=year, ymin=value_lo, ymax=value_hi), 
               fill="grey60", color=NA, alpha=0.8) +
@@ -324,11 +347,16 @@ g4 <- ggplot(data=envi %>% filter(indicator=="MOCI"), aes(x=year, y=value_avg)) 
 g4
 
 # BEUTI
-ymax <- envi %>% filter(indicator=="BEUTI") %>% pull(value_hi) %>% max() * 1.05
+#ymax <- envi %>% filter(indicator=="BEUTI") %>% pull(value_hi) %>% max() * 1.05 #Chris
+ymax <- max(envi_dat$beuti_monthly_anom, na.rm=TRUE) * .90 #Josh
 g5 <- ggplot(data=envi %>% filter(indicator=="BEUTI"), aes(x=year, y=value_avg)) + 
+  #data series
+  geom_point(data=envi_dat, aes(x=date_order, y=beuti_monthly_anom), size=1, alpha=0.1, color='lightgray')+
   # Heatwave
-  annotate(geom="rect", xmin=2013.5, xmax=2016.5, ymin=-Inf, ymax=Inf, fill="indianred1", alpha=0.5) +
-  annotate(geom="text", label="MHW", x=2015, y=ymax , size=2.1) +
+  annotate(geom="rect", xmin=2013.5, xmax=2016.5, ymin=-Inf, ymax=Inf, fill="indianred1", alpha=0.2) +
+  annotate(geom="text", label="MHW", x=2008, y=ymax , size=2.5) +
+  annotate("segment", x = 2010.5, y = ymax, xend = 2013.5, yend = ymax,
+           arrow = arrow(type = "closed", length = unit(0.02, "npc")))+
   # Plot data
   geom_ribbon(mapping=aes(x=year, ymin=value_lo, ymax=value_hi), 
               fill="grey60", color=NA, alpha=0.8) +
@@ -379,5 +407,7 @@ g
 # Export figure
 ggsave(g, filename=file.path(plotdir, "Fig1_map_figure_new.png"), 
        width=5.8, height=6.5, units="in", dpi=600)
+
+
  
 
