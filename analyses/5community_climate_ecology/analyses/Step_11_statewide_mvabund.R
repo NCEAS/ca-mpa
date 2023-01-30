@@ -142,7 +142,9 @@ kelp_swath_dat <- kelp_swath_traits2%>%
   ungroup()%>%
   dplyr::select(!(c(siteID, `(siteID)`))) %>%
   #add this line to test model, but should drop NAs or replace with true 0
-  replace(is.na(.), 0)
+  replace(is.na(.), 0) %>%
+  #test setting all response vars to integer
+  mutate_at(15:ncol(.),ceiling)
 
 kelp_upc_dat <- kelp_upc_traits2%>%
   mutate(siteID = factor(paste(affiliated_mpa, mpa_defacto_designation)),
@@ -253,9 +255,9 @@ kelp_swath_compT_glm <- manyglm(kelp_swath_mv ~
 ######WARNING: SLOW
 kelp_swath_compT_aov <- anova.manyglm(kelp_swath_compT_glm)
 
-save(kelp_swath_compF_aov, kelp_swath_compF_puni,
+save(#kelp_swath_compF_aov, kelp_swath_compF_puni,
      kelp_swath_compT_aov,
-     file = file.path(modout, "kelp_swath_mvabund.RData"))
+     file = file.path(modout, "kelp_swath_compT_mvabund.RData"))
 
 
 #=====================Kelp fish===================

@@ -15,6 +15,7 @@ require(reshape2)
 require(ggfittext)
 require(pairwiseAdonis)
 require(here)
+require(forcats)
 
 
 # #load data --------------------------------------------------------------
@@ -333,15 +334,19 @@ p1 <-
             position = position_dodge(width=0.8),
             show.legend = FALSE)+
   annotate("text", size=3,
-            x=4.5, y=-0.03,
+            x=0.52, y=0.015, angle=90,
             label = "Greater resistance",
            fontface = 'italic',
            color = '#5A5A5A')+
   annotate("text", size=3,
-           x=4.5, y=0.28,
+           x=0.52, y=0.25,angle=90,
            label = "Less resistance",
            fontface = 'italic',
            color = '#5A5A5A')+
+  annotate("segment", x =0.52, y = 0.14, xend = 0.52, yend = 0.19,
+           arrow = arrow(type = "closed", length = unit(0.02, "npc")))+
+  annotate("segment", x =0.52, y = 0.14, xend = 0.52, yend = 0.09,
+           arrow = arrow(type = "closed", length = unit(0.02, "npc")))+
   ylab("")+
   xlab("")+
   scale_y_continuous(limits=c(-0.05,0.3))+
@@ -384,15 +389,19 @@ p2 <-
             position = position_dodge(width=0.8),
             show.legend = FALSE)+
   annotate("text", size=3,
-           x=4.5, y=-0.03,
-           label = "Greater resilience",
+           x=0.52, y=0.015, angle=90,
+           label = "Greater recovery",
            fontface = 'italic',
            color = '#5A5A5A')+
   annotate("text", size=3,
-           x=4.5, y=0.28,
-           label = "Less resilience",
+           x=0.52, y=0.25,angle=90,
+           label = "Less recovery",
            fontface = 'italic',
            color = '#5A5A5A')+
+  annotate("segment", x =0.52, y = 0.14, xend = 0.52, yend = 0.19,
+           arrow = arrow(type = "closed", length = unit(0.02, "npc")))+
+  annotate("segment", x =0.52, y = 0.14, xend = 0.52, yend = 0.09,
+           arrow = arrow(type = "closed", length = unit(0.02, "npc")))+
   ylab("")+
   xlab("")+
   labs(color = "Site type")+
@@ -406,7 +415,7 @@ p2 <-
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
         panel.background = element_blank(), axis.line = element_line(colour = "black"),
         legend.key=element_blank())+
-  ggtitle("Resilience \n(Before-to-after)")+
+  ggtitle("Recovery \n(Before-to-after)")+
   my_theme+
   theme(aspect.ratio=1)
 
@@ -425,8 +434,8 @@ g_title <- ggpubr::annotate_figure(g, left = textGrob("Distance (Bray-Curtis)",
 
 
 
-#ggsave(here::here("analyses", "5community_climate_ecology", "figures", "betadisp_plot3.png"), g_title, height=6, width = 8, units = "in", 
-#   dpi = 600, bg="white")
+ggsave(here::here("analyses", "5community_climate_ecology", "figures", "betadisp_plot4.png"), g_title, height=6, width = 8, units = "in", 
+  dpi = 600, bg="white")
 
 
 ################################################################################
