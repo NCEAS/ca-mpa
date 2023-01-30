@@ -78,6 +78,10 @@ mpa_stats <- data2 %>%
   distinct() 
 
 rownames(mpa_stats) <- NULL
+
+## Examine MPAs that do not overlap with any block
+no_block <- mpas %>% 
+  filter(!(name %in% data1$name))
   
 ## Export MPA key: blocks with each MPA (all MPAs) ----
 #saveRDS(mpa_stats, file.path(outdir, "mpa_block_overlap_pairs.Rds"))

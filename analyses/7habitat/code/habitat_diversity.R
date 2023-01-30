@@ -61,7 +61,7 @@ prop_rock <- hab_adj %>%
   select(name, total_area_km2, total_rock_km2, prop_rock) %>% 
   left_join(hab_type %>% select(name, size_km2))
 
-## Export proportion rock
+## Export proportion rock at bottom
 
 
 ## Richness --------------------------------------------------------------------
@@ -135,7 +135,7 @@ ggplot(habd_df, aes(x = mpa_habitat_type, y = value, fill = mpa_habitat_type)) +
        y = "Habitat Diversity",
        fill = "Classification")
 
-### Among 4 regions?  No 0.0509 ----
+### Among 4 regions?  No 0.078 ----
 habd_aov2 <- aov(habd ~ four_region_north_ci, data = hab_type)
 summary(habd_aov2)
 
@@ -265,7 +265,7 @@ all_div <- habr_df %>%
 base.dir <- "/Volumes/GoogleDrive-105151121202188525604/Shared drives/NCEAS MPA network assessment/MPA Network Assessment: Working Group Shared Folder/data/sync-data" # Cori Local
 clean.dir <- file.path(base.dir, "mpa_traits", "processed")
 
-#saveRDS(all_div, file.path(clean.dir, "mpa_attributes_habitat_diversity.Rds"))
+saveRDS(all_div, file.path(clean.dir, "mpa_attributes_habitat_diversity.Rds"))
 #saveRDS(prop_rock, file.path(clean.dir, "mpa_attributes_habitat_rock.Rds"))
 
   
