@@ -287,11 +287,11 @@ sig_distance$period <- recode_factor(sig_distance$period, "before-to-after"="Bef
 
 
 
-my_theme <-  theme(axis.text=element_text(size=7),
+my_theme <-  theme(axis.text=element_text(size=5),
                    axis.text.y = element_text(angle = 90, hjust = 0.5),
-                   axis.title=element_text(size=10),
+                   axis.title=element_text(size=6),
                    plot.tag=element_blank(), #element_text(size=8),
-                   plot.title =element_text(size=9, face="bold"),
+                   plot.title =element_text(size=7, face="bold"),
                    # Gridlines
                    panel.grid.major = element_blank(), 
                    panel.grid.minor = element_blank(),
@@ -299,11 +299,11 @@ my_theme <-  theme(axis.text=element_text(size=7),
                    axis.line = element_line(colour = "black"),
                    # Legend
                    legend.key = element_blank(),
-                   legend.text=element_text(size=6),
-                   legend.title=element_text(size=8),
+                   legend.text=element_text(size=7),
+                   legend.title=element_text(size=7),
                    legend.background = element_rect(fill=alpha('blue', 0)),
                    #facets
-                   strip.text = element_text(size=6),
+                   strip.text = element_text(size=5),
                    #margins
                    #plot.margin=unit(c(0.01,0.01,0.01,0.01),"cm")
 )
@@ -317,36 +317,41 @@ p1 <-
   filter(Period == "Before-to-during")%>%
   mutate(group = factor(group, levels = c("Rocky intertidal","Kelp forest inverts and algae",
                                           "Kelp forest fishes","Rocky reef fishes","Deep reef fishes")),
-         MPA_type = factor(MPA_type, levels = c("MPA","Reference")))%>%
+         MPA_type = factor(MPA_type, levels = c("MPA","Reference")),
+         sig_y = value+sd_pooled+0.01)%>%
   arrange(MPA_type, -value, group)%>%
   mutate(mpa_ordered = fct_inorder(paste(MPA_type, group, sep = "."))) |> 
   ggplot(aes(x = group, y = value, color = MPA_type, group = mpa_ordered)) +
-  geom_point(position = position_dodge(width=0.8),
-             size=3)+
+  geom_point(position = position_dodge(width=0.5),
+             size=2)+
   geom_errorbar(aes(ymin=value-sd_pooled,
                     ymax = value+sd_pooled), stat="identity",
-                position = position_dodge(width=0.8), size=0.3, width=.3)+
+                position = position_dodge(width=0.5), size=0.3, width=.3)+
   #scale_color_manual(name='MPA',
    #                  breaks=c('In', 'Out'),
     #                 values=c('In'='#EB6977', 'Out'='#13A0DD'))+
   #add significance level
-  geom_text(aes(label=sig), size=5, hjust=-1, vjust=0.8,
-            position = position_dodge(width=0.8),
+  geom_text(aes(x = group, y=sig_y, label=sig), size=3, #hjust=-1, vjust=0.5,
+            position = position_dodge(width=0.5),
             show.legend = FALSE)+
-  annotate("text", size=3,
-            x=0.52, y=0.015, angle=90,
-            label = "Greater resistance",
+  annotate("segment",x =0.6, y = 0.27, xend = 0.6, yend = -0.03,
+           arrow = arrow(type = "closed", length = unit(0.01, "npc")), size=3, linejoin = "mitre",
+           color="lightgray")+
+  annotate("text", size=1.8,
+           x=0.6, y=0.125, angle=90,
+           label = "Resistance",
            fontface = 'italic',
-           color = '#5A5A5A')+
-  annotate("text", size=3,
-           x=0.52, y=0.25,angle=90,
-           label = "Less resistance",
+           color = 'black')+
+  annotate("text", size=1.5,
+           x=0.6, y=-0.05,
+           label = "High",
            fontface = 'italic',
-           color = '#5A5A5A')+
-  annotate("segment", x =0.52, y = 0.14, xend = 0.52, yend = 0.19,
-           arrow = arrow(type = "closed", length = unit(0.02, "npc")))+
-  annotate("segment", x =0.52, y = 0.14, xend = 0.52, yend = 0.09,
-           arrow = arrow(type = "closed", length = unit(0.02, "npc")))+
+           color = 'black')+
+  annotate("text", size=1.5,
+           x=0.61, y=0.28, 
+           label = "Low",
+           fontface = 'italic',
+           color = 'black')+
   ylab("")+
   xlab("")+
   scale_y_continuous(limits=c(-0.05,0.3))+
@@ -372,36 +377,41 @@ p2 <-
   rename("Period"=period)%>%
   filter(Period == "Before-to-after")%>%
   mutate(group = factor(group, levels = c("Rocky intertidal","Kelp forest inverts and algae",
-                                          "Kelp forest fishes","Rocky reef fishes","Deep reef fishes")))%>%
+                                          "Kelp forest fishes","Rocky reef fishes","Deep reef fishes")),
+         sig_y = value+sd_pooled+0.01)%>%
   arrange(MPA_type, -value, group)%>%
   mutate(mpa_ordered = fct_inorder(paste(MPA_type, group, sep = "."))) |> 
   ggplot(aes(x = group, y = value, color = MPA_type, group = mpa_ordered)) +
-  geom_point(position = position_dodge(width=0.8),
-             size=3)+
+  geom_point(position = position_dodge(width=0.5),
+             size=2)+
   geom_errorbar(aes(ymin=value-sd_pooled,
                     ymax = value+sd_pooled), stat="identity",
-                position = position_dodge(width=0.8), size=0.3, width=.3)+
+                position = position_dodge(width=0.5), size=0.3, width=.3)+
   #scale_color_manual(name='MPA',
   #                  breaks=c('In', 'Out'),
   #                 values=c('In'='#EB6977', 'Out'='#13A0DD'))+
   #add significance level
-  geom_text(aes(label=sig), size=5, hjust=-1, vjust=0.8,
-            position = position_dodge(width=0.8),
+  geom_text(aes(x = group, y=sig_y, label=sig), size=3, #hjust=-1, vjust=0.5,
+            position = position_dodge(width=0.5),
             show.legend = FALSE)+
-  annotate("text", size=3,
-           x=0.52, y=0.015, angle=90,
-           label = "Greater recovery",
+  annotate("segment",x =0.6, y = 0.27, xend = 0.6, yend = -0.03,
+           arrow = arrow(type = "closed", length = unit(0.01, "npc")), size=3, linejoin = "mitre",
+           color="lightgray")+
+  annotate("text", size=1.8,
+           x=0.6, y=0.125, angle=90,
+           label = "Recovery",
            fontface = 'italic',
-           color = '#5A5A5A')+
-  annotate("text", size=3,
-           x=0.52, y=0.25,angle=90,
-           label = "Less recovery",
+           color = 'black')+
+  annotate("text", size=1.5,
+           x=0.6, y=-0.05,
+           label = "High",
            fontface = 'italic',
-           color = '#5A5A5A')+
-  annotate("segment", x =0.52, y = 0.14, xend = 0.52, yend = 0.19,
-           arrow = arrow(type = "closed", length = unit(0.02, "npc")))+
-  annotate("segment", x =0.52, y = 0.14, xend = 0.52, yend = 0.09,
-           arrow = arrow(type = "closed", length = unit(0.02, "npc")))+
+           color = 'black')+
+  annotate("text", size=1.5,
+           x=0.61, y=0.28, 
+           label = "Low",
+           fontface = 'italic',
+           color = 'black')+
   ylab("")+
   xlab("")+
   labs(color = "Site type")+
@@ -429,12 +439,12 @@ g <- ggpubr::ggarrange(p1, p2, nrow=1, ncol=2,
 
 
 g_title <- ggpubr::annotate_figure(g, left = textGrob("Distance (Bray-Curtis)", 
-                                                     rot = 90, vjust = 2, hjust=0.3, gp = gpar(cex = 0.8)),
-                                  bottom = textGrob("Habitat", hjust=1, vjust=-11, gp = gpar(cex = 0.8)))
+                                                     rot = 90, vjust = 3, hjust=0.3, gp = gpar(cex = 0.6)),
+                                  bottom = textGrob("Habitat", hjust=1, vjust=-17, gp = gpar(cex = 0.6)))
 
 
 
-ggsave(here::here("analyses", "5community_climate_ecology", "figures", "betadisp_plot4.png"), g_title, height=6, width = 8, units = "in", 
+ggsave(here::here("analyses", "5community_climate_ecology", "figures", "betadisp_plot4.png"), g_title, height=6, width = 7, units = "in", 
   dpi = 600, bg="white")
 
 
