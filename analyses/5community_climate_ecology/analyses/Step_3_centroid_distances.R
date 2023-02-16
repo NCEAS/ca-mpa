@@ -76,6 +76,8 @@ F <- plot(rocky_disper, main="rocky", col=c('red','blue'))
 #create helper function to handle negative eigenvalues and
 #convert to square mat
 
+disper_mat <- CCFRP_disper
+
 eig_fun <- function(disper_mat) {
   
   x = melt(as.matrix(sqrt(dist(disper_mat$centroids[,disper_mat$eig>0]^2)-
@@ -116,13 +118,34 @@ eig_fun <- function(disper_mat) {
     sd_smr_pooled_before_during = sqrt(
       ((`n_smr before`-1)*`s_d_smr before`^2 + (`n_smr during`-1)*`s_d_smr during`^2)/
         (`n_smr before`+`n_smr during`-2)
-    )
+    ),
+    se_pooled_smr_during = sd_smr_pooled_before_during*(sqrt(1/`n_smr before` + 1/`n_smr during`)),
+    se_pooled_smr_after = sd_smr_pooled_before_after*(sqrt(1/`n_smr before` + 1/`n_smr after`)),
+    se_pooled_ref_during = sd_ref_pooled_before_during*(sqrt(1/`n_ref before` + 1/`n_ref during`)),
+    se_pooled_ref_after = sd_ref_pooled_before_after*(sqrt(1/`n_ref before` + 1/`n_ref after`)),
     ) %>%
     dplyr::select(`sd_ref_pooled_before_after`,`sd_ref_pooled_before_during`,
-                  `sd_smr_pooled_before_after`,`sd_smr_pooled_before_during`)%>%
+                  `sd_smr_pooled_before_after`,`sd_smr_pooled_before_during`,
+                  #standard error
+                  `se_pooled_smr_during`, `se_pooled_smr_after`,`se_pooled_ref_during`,`se_pooled_ref_after`)%>%
     pivot_longer(cols=c(`sd_ref_pooled_before_after`,`sd_ref_pooled_before_during`,
                         `sd_smr_pooled_before_after`,`sd_smr_pooled_before_during`),
-                 values_to ="sd_pooled")
+                 values_to ="sd_pooled") %>%
+    mutate(period1 = word(name,-2, sep="_"),
+           period2 = word(name,-1, sep="_"),
+           MPA_type =  word(name,-4, sep="_"),
+           se_pooled = ifelse(MPA_type == "ref" & period2=="during",
+                              se_pooled_ref_during,ifelse(
+                                MPA_type == "ref" & period2=="after",
+                                se_pooled_ref_after, ifelse(
+                                  MPA_type == "smr" & period2 == "during",
+                                  se_pooled_smr_during,
+                                  ifelse(MPA_type == "smr" & period2 == "after",
+                                         se_pooled_smr_after,NA)
+                                )
+                              )))%>%
+    dplyr::select(name, sd_pooled, se_pooled)
+  
   cbind(x2, e_hat)
 }
 
@@ -279,7 +302,7 @@ distance1$MPA_type <- recode_factor(distance1$MPA_type, "SMR"="MPA")
 sig_distance <- left_join(distance1, perm_output, 
                           by=c("group","MPA_type","period"))%>%
                 mutate(sig = ifelse(`Pr(>F)`<0.05, "*",""))%>%
-                rename("p-val" = `Pr(>F)`) %>%
+                dplyr::rename("p-val" = `Pr(>F)`) %>%
                 mutate(period = factor(period, levels=c("before-to-during",
                                                         "before-to-after")))
 sig_distance$period <- recode_factor(sig_distance$period, "before-to-during"="Before-to-during")
@@ -313,20 +336,23 @@ sig_distance$MPA_type <- recode_factor(sig_distance$MPA_type, "Out"="Reference")
 
 p1 <- 
   sig_distance %>%
-  rename("Period"=period)%>%
+  dplyr::rename("Period"=period)%>%
   filter(Period == "Before-to-during")%>%
   mutate(group = factor(group, levels = c("Rocky intertidal","Kelp forest inverts and algae",
                                           "Kelp forest fishes","Rocky reef fishes","Deep reef fishes")),
          MPA_type = factor(MPA_type, levels = c("MPA","Reference")),
-         sig_y = value+sd_pooled+0.01)%>%
+         sig_y = value+se_pooled+0.01)%>%
   arrange(MPA_type, -value, group)%>%
   mutate(mpa_ordered = fct_inorder(paste(MPA_type, group, sep = "."))) |> 
   ggplot(aes(x = group, y = value, color = MPA_type, group = mpa_ordered)) +
   geom_point(position = position_dodge(width=0.5),
              size=2)+
-  geom_errorbar(aes(ymin=value-sd_pooled,
-                    ymax = value+sd_pooled), stat="identity",
+  geom_errorbar(aes(ymin=value-se_pooled,
+                    ymax = value+se_pooled), stat="identity",
                 position = position_dodge(width=0.5), size=0.3, width=.3)+
+  #geom_errorbar(aes(ymin=value-sd_pooled,
+   #                 ymax = value+sd_pooled), stat="identity",
+    #            position = position_dodge(width=0.5), size=0.3, width=.3)+
   #scale_color_manual(name='MPA',
    #                  breaks=c('In', 'Out'),
     #                 values=c('In'='#EB6977', 'Out'='#13A0DD'))+
@@ -334,27 +360,27 @@ p1 <-
   geom_text(aes(x = group, y=sig_y, label=sig), size=3, #hjust=-1, vjust=0.5,
             position = position_dodge(width=0.5),
             show.legend = FALSE)+
-  annotate("segment",x =0.6, y = 0.27, xend = 0.6, yend = -0.03,
+  annotate("segment",x =0.6, y = 0.215, xend = 0.6, yend = 0.002,
            arrow = arrow(type = "closed", length = unit(0.01, "npc")), size=3, linejoin = "mitre",
            color="lightgray")+
   annotate("text", size=1.8,
-           x=0.6, y=0.125, angle=90,
+           x=0.6, y=0.12, angle=90,
            label = "Resistance",
            fontface = 'italic',
            color = 'black')+
   annotate("text", size=1.5,
-           x=0.6, y=-0.05,
+           x=0.6, y=-0.01,
            label = "High",
            fontface = 'italic',
            color = 'black')+
   annotate("text", size=1.5,
-           x=0.61, y=0.28, 
+           x=0.61, y=0.22, 
            label = "Low",
            fontface = 'italic',
            color = 'black')+
   ylab("")+
   xlab("")+
-  scale_y_continuous(limits=c(-0.05,0.3))+
+  scale_y_continuous(limits=c(-0.01,0.23))+
   scale_x_discrete(labels = function(x) 
     stringr::str_wrap(x, width = 15)
     )+
@@ -374,18 +400,18 @@ p1
 
 p2 <- 
   sig_distance %>%
-  rename("Period"=period)%>%
+  dplyr::rename("Period"=period)%>%
   filter(Period == "Before-to-after")%>%
   mutate(group = factor(group, levels = c("Rocky intertidal","Kelp forest inverts and algae",
                                           "Kelp forest fishes","Rocky reef fishes","Deep reef fishes")),
-         sig_y = value+sd_pooled+0.01)%>%
+         sig_y = value+se_pooled+0.01)%>%
   arrange(MPA_type, -value, group)%>%
   mutate(mpa_ordered = fct_inorder(paste(MPA_type, group, sep = "."))) |> 
   ggplot(aes(x = group, y = value, color = MPA_type, group = mpa_ordered)) +
   geom_point(position = position_dodge(width=0.5),
              size=2)+
-  geom_errorbar(aes(ymin=value-sd_pooled,
-                    ymax = value+sd_pooled), stat="identity",
+  geom_errorbar(aes(ymin=value-se_pooled,
+                    ymax = value+se_pooled), stat="identity",
                 position = position_dodge(width=0.5), size=0.3, width=.3)+
   #scale_color_manual(name='MPA',
   #                  breaks=c('In', 'Out'),
@@ -394,28 +420,28 @@ p2 <-
   geom_text(aes(x = group, y=sig_y, label=sig), size=3, #hjust=-1, vjust=0.5,
             position = position_dodge(width=0.5),
             show.legend = FALSE)+
-  annotate("segment",x =0.6, y = 0.27, xend = 0.6, yend = -0.03,
+  annotate("segment",x =0.6, y = 0.215, xend = 0.6, yend = 0.002,
            arrow = arrow(type = "closed", length = unit(0.01, "npc")), size=3, linejoin = "mitre",
            color="lightgray")+
   annotate("text", size=1.8,
-           x=0.6, y=0.125, angle=90,
+           x=0.6, y=0.12, angle=90,
            label = "Recovery",
            fontface = 'italic',
            color = 'black')+
   annotate("text", size=1.5,
-           x=0.6, y=-0.05,
+           x=0.6, y=-0.01,
            label = "High",
            fontface = 'italic',
            color = 'black')+
   annotate("text", size=1.5,
-           x=0.61, y=0.28, 
+           x=0.61, y=0.22, 
            label = "Low",
            fontface = 'italic',
            color = 'black')+
   ylab("")+
   xlab("")+
   labs(color = "Site type")+
-  scale_y_continuous(limits=c(-0.05,0.3))+
+  scale_y_continuous(limits=c(-0.01,0.23))+
   scale_x_discrete(labels = function(x) 
     stringr::str_wrap(x, width = 15)
   )+
@@ -444,7 +470,7 @@ g_title <- ggpubr::annotate_figure(g, left = textGrob("Distance (Bray-Curtis)",
 
 
 
-ggsave(here::here("analyses", "5community_climate_ecology", "figures", "betadisp_plot4.png"), g_title, height=6, width = 7, units = "in", 
+ggsave(here::here("analyses", "5community_climate_ecology", "figures", "betadisp_plot5.png"), g_title, height=6, width = 7, units = "in", 
   dpi = 600, bg="white")
 
 
