@@ -32,7 +32,7 @@ rm(coef_out)
 
 # Parameters
 guilds <- c("Cold temperate", "Warm temperate", "Subtropical", "Tropical", "Cosmopolitan")
-indicators <- c("SST", "BT", "BEUTI", "MOCI")
+indicators <- c("SST", "BT", "MOCI", "BEUTI")
 
 # Composition
 ##########################################
