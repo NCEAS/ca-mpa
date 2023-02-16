@@ -12,7 +12,7 @@ library(patchwork)
 
 # Directories
 basedir <- "/Volumes/GoogleDrive/.shortcut-targets-by-id/1kCsF8rkm1yhpjh2_VMzf8ukSPf9d4tqO/MPA Network Assessment: Working Group Shared Folder/data/sync-data"
-#basedir <- "/home/shares/ca-mpa/data/sync-data/" #aurora 
+basedir <- "/home/shares/ca-mpa/data/sync-data/" #aurora 
 gisdir <- file.path(basedir, "gis_data/processed")
 plotdir <- "analyses/5community_climate_ecology/figures"
 
@@ -107,7 +107,7 @@ hab_key <- expand.grid(mpa=mpa_names, habitat=habitats) %>%
 ################################################################################
 
 # Read data
-envi_orig <- readRDS(file.path(basedir, "environmental/processed/envr_anomalies_at_mpas.Rds"))
+envi_orig <- readRDS(file.path( basedir, "environmental/processed/envr_anomalies_at_mpas.Rds"))
 
 # Process data
 envi <- envi_orig %>%
