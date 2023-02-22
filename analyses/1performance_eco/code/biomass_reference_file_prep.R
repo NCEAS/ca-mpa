@@ -100,7 +100,7 @@ a_prime_conversion <- tribble(
 
 # filter the necessary parameters
 conversion_parameters <- raw_parameters_ccfrp %>%
-  filter(!(is.na(WL_a))) %>%
+  filter(!(is.na(WL_a))) %>% # remove rows without conversion
   filter(ScientificName_accepted %in% unique(length_data$species_scientificname))
 
 # Join the parameters to the data (might be expensive with large data sets)
