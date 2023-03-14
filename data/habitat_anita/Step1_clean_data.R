@@ -16,17 +16,35 @@ basedir <- "/Volumes/GoogleDrive/.shortcut-targets-by-id/1kCsF8rkm1yhpjh2_VMzf8u
 indir <- file.path(basedir, "habitat_anita/raw")
 outdir <- file.path(basedir, "habitat_anita/processed")
 
+# Read CDFW data
+
+
 # Read CI data
+# 1=hard substrate, 0=soft abstrate
 sub_ci <- terra::rast(file.path(indir, "CIN_rock/All_CI_N_rock_2m.tif"))
 
 # Inspect regional data
 list.files(file.path(indir, "rock"))
 
 # Read regional data
-sub_n <- terra::rast(file.path(indir, "rock/hab_ncsr_rock_2m.tif"))
-sub_nc <- terra::rast(file.path(indir, "rock/hab_nccsr_rock_2m.tif"))
-sub_c <- terra::rast(file.path(indir, "rock/hab_ccsr_rock_2m.tif"))
-sub_s <- terra::rast(file.path(indir, "rock/hab_scsr_rock_2m.tif"))
+# 2 m resolution
+# 1=hard substrate, NA=soft substrate
+sub_n <- raster::raster(file.path(indir, "rock/hab_ncsr_rock_2m.tif"))
+sub_nc <- raster::raster(file.path(indir, "rock/hab_nccsr_rock_2m.tif"))
+sub_c <- raster::raster(file.path(indir, "rock/hab_ccsr_rock_2m.tif"))
+sub_s <- raster::raster(file.path(indir, "rock/hab_scsr_rock_2m.tif"))
+
+# Inspect data
+################################################################################
+
+plot(sub_n)
+plot(sub_ci)
+
+
+# Read data
+################################################################################
+
+
 
 # CRS
 crs_use <- "+proj=utm +zone=10 +datum=NAD83 +units=m +no_defs"
