@@ -18,6 +18,7 @@ require(forcats)
 #data_path <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/ecological_community_data/year_level_with_envr_vars"
 data_path <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data"
 tab_out <- here::here("analyses","5community_climate_ecology","tables")
+fig_dir <- here::here("analyses","5community_climate_ecology","figures")
 
 nmds_scores <- load(file.path(data_path, "bray_nmds_scores.rda"))
 group_vars <- load(file.path(data_path, "group_vars.rda"))
@@ -209,10 +210,10 @@ my_theme <-  theme(axis.text=element_text(size=7),
                    panel.background = element_blank(), 
                    axis.line = element_line(colour = "black"),
                    # Legend
-                   legend.key = element_blank(),
+                   #legend.key = element_blank(),
                    legend.background = element_rect(fill=alpha('blue', 0)))
 
-ggplot(transform(traject_dist,
+g <- ggplot(transform(traject_dist,
                  group=factor(group,levels=c("Rocky intertidal",
                                              "Kelp inverts and algae",
                                              "Kelp fish",
@@ -222,12 +223,19 @@ ggplot(transform(traject_dist,
   geom_point()+
   facet_wrap(~group, ncol=3, scales="free")+
   scale_x_continuous(limits=c(2014,2020)) + scale_y_continuous(limits=c(0,0.6))+
+  annotate("rect", xmin = 2014, xmax = 2016, ymin = -Inf, ymax = Inf,
+           alpha = .15, fill='red')+
   theme_minimal()+
+  xlab("Year")+
+  ylab("Distance to pre-heatwave centroid \n(Bray-Curtis)")+
+  labs(color = "MPA type")+
   my_theme
 
+g
 
 
-
+ggsave(g, filename=file.path(fig_dir, "FigSX_centroid_trajectory.png"), 
+       width=7, height=5, units="in", dpi=600)
 
 
 

@@ -28,6 +28,11 @@ data_path <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/commu
 comm_data <- load(file.path(data_path, "comm_data.rda"))
 group_vars <- load(file.path(data_path, "group_vars.rda"))
 
+#load data with thermal affin
+load(file.path(datadir,"all_groups_mpa_level_means_long.rda"))
+
+tab_dir <- here::here("analyses","5community_climate_ecology","tables")
+
 
 
 # run SIMPER tables before & after MHW------------------------------------------
@@ -108,7 +113,7 @@ simper_a_b_table <- rbind(CCFRP_a_b_table,
                           deep_reef_a_b_table, rocky_a_b_table)%>%
   tibble::rownames_to_column(var = "species") %>%
   filter(cumsum <0.80)%>%
-  select(group, species, avg_before = avb, avg_after=ava, cumsum, contrib, perc_change, sign)
+  dplyr::select(group, species, avg_before = avb, avg_after=ava, cumsum, contrib, perc_change, sign)
 
 
 
@@ -123,12 +128,12 @@ taxon_tab <- readxl::read_excel(
   file.path("/home/shares/ca-mpa/data/sync-data/monitoring/taxonomy_tables","Kelp-Taxonomy.xlsx"), sheet=1, skip = 0, na="NA")
 rocky_taxon <- readxl::read_excel(
   file.path("/home/shares/ca-mpa/data/sync-data/monitoring/taxonomy_tables","RockyIntertidal-LongTerm-Taxonomy.xlsx"), sheet=1, skip = 0, na="NA")%>%
-  select(marine_species_code, marine_species_name)
+  dplyr::select(marine_species_code, marine_species_name)
 
 rocky_taxon$marine_species_code <- tolower(rocky_taxon$marine_species_code)
 
 taxon_short <- taxon_tab %>%
-  select(common_name, ScientificName_accepted) %>%
+  dplyr::select(common_name, ScientificName_accepted) %>%
   mutate(join_ID = sub(" ","_", ScientificName_accepted))
 
 
@@ -202,7 +207,48 @@ simper_table$monitoring <- factor(simper_table$monitoring,
                                         'Kelp Forest',
                                         'Rocky Intertidal'))
 
+###############################################################################
+#create df with thermal affin
+rocky_affin <- rocky_join1 %>%
+                dplyr::select(species, thermal_affinity)%>%
+                distinct()
 
+kf_swath <- kelp_swath_join1 %>%
+  dplyr::select(species, thermal_affinity)%>%
+  distinct()
+
+kf_upc <- kelp_upc_join1 %>%
+  dplyr::select(species, thermal_affinity)%>%
+  distinct()
+
+kelp_fish <- kelp_fish_join1 %>%
+  dplyr::select(species, thermal_affinity)%>%
+  distinct()
+
+ccfrp_affin <- CCFRP_join1 %>%
+  dplyr::select(species, thermal_affinity)%>%
+  distinct() 
+
+deep_reef_affin <- deep_reef_join1 %>%
+  dplyr::select(species, thermal_affinity)%>%
+  distinct()
+
+
+affin_tab <- rbind(rocky_affin, kf_swath, kf_upc, kelp_fish, ccfrp_affin, deep_reef_affin) %>%
+              distinct()
+
+
+###############################################################################
+#merge affin with SIMPER output
+
+simper_tab <- left_join(simper_table, affin_tab, by="species")
+
+###############################################################################
+#write to .csv
+
+
+
+write.csv(simper_tab, file.path(tab_dir,"SIMPER_output.csv")) 
 
 
 ###############################################################################
@@ -230,7 +276,7 @@ st
 
 #gt option
 simper_out_gt <- simper_table %>%
-              select('monitoring group'=monitoring, "community type"=group, 
+              dplyr::select('monitoring group'=monitoring, "community type"=group, 
                      'species' = species_ID,
                      'cumulative contrib.'=cumsum, 'individual contrib.' = contrib)%>%
               dplyr::group_by(`monitoring group`, `community type`)%>%
@@ -244,7 +290,7 @@ simper_out_gt <- simper_table %>%
                         structure changes"))
 
 
-gtsave(simper_out_gt, "analyses/5community_climate_ecology/tables/simper_table.docx")
+#gtsave(simper_out_gt, "analyses/5community_climate_ecology/tables/simper_table.docx")
 
 #flex option
 simper_out_flex <- simper_table %>%
