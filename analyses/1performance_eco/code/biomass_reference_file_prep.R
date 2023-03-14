@@ -19,12 +19,12 @@ ccfrp_file <- "CCFRP_Biomass_Conversion_20220206.xlsx"   # file sent to us by Ra
 #### Read the data in ####
 
 # Kelp data
-raw_data_kf <- read_xlsx(file.path(data_dir, kelp_file), sheet = "species_attribute_table") %>%
-  mutate(source = "kelp")
+# raw_data_kf <- read_xlsx(file.path(data_dir, kelp_file), sheet = "species_attribute_table") %>%
+#   mutate(source = "kelp")
 
 # old CCFRP (Shelby)
-raw_data_ccfrp_old <- read_csv(file.path(data_dir, ccfrp_file_old)) %>%
-  mutate(source = "ccfrp")
+# raw_data_ccfrp_old <- read_csv(file.path(data_dir, ccfrp_file_old)) %>%
+#   mutate(source = "ccfrp")
 
 # Lastest CCFRP (Rachel)
 raw_parameters_ccfrp <- read_xlsx(file.path(data_dir, ccfrp_file), sheet = "CCFRP_Biomass_Conversion_Table_") %>%
@@ -72,32 +72,6 @@ a_prime_conversion <- tribble(
 
 #### Length conversion ####
 
-
-#  Code from Shelby
-# 
-# fishes.caught.bpue = fishes.caught.cpue %>%
-#   na.omit() %>%
-#   #Get rid of fishes without lengths - this will change results
-#   #slightly, but can't be avoided
-#   merge(., length.weight, by='Common.Name') %>%
-#   mutate(
-#     biomass.kg =ifelse(WL_L_units=='cm' & WL_input_length=='TL'
-#                        & WL_W_units=='kg', WL_a*((Length.cm)^WL_b),
-#                        ifelse(WL_L_units=='mm' & WL_input_length=='TL'
-#                               & WL_W_units=='kg', WL_a*((Length.cm*10)^WL_b),
-#                               ifelse(WL_L_units=='cm' & WL_input_length=='TL'
-#                                      & WL_W_units=='g', WL_a*((Length.cm)^WL_b)/1000,
-#                                      ifelse(WL_L_units=='mm' & WL_input_length=='TL'
-#                                             & WL_W_units=='g', WL_a*((Length.cm*10)^WL_b)/1000,
-#                                             ifelse(WL_L_units=='mm' & WL_input_length=='SL'
-#                                                    & WL_W_units=='g' & LC_type_for_WL=='TYPICAL',
-#                                                    WL_a*((LC_a*(Length.cm*10)+LC_b)^WL_b)/1000,
-#                                                    ifelse(WL_L_units=='mm' & WL_input_length=='SL'
-#                                                           & WL_W_units=='g' & LC_type_for_WL=='REVERSE',
-#                                                           WL_a*((((Length.cm*10)-LC_b)/LC_a)^WL_b)/1000,NA))))))) %>%
-#   droplevels()
-
-
 # filter the necessary parameters
 conversion_parameters <- raw_parameters_ccfrp %>%
   filter(!(is.na(WL_a))) %>% # remove rows without conversion
@@ -105,7 +79,7 @@ conversion_parameters <- raw_parameters_ccfrp %>%
 
 # Join the parameters to the data (might be expensive with large data sets)
 data_ccfrg_param <- length_data %>% 
-  left_join(conversion_parameters, by = c("species_scientificname"="ScientificName_accepted"))
+  left_join(conversion_parameters, by = c("species_scientificname"="ScientificName_accepted"), multiple = "all")
 
 # Compute from the cm inputs the type of length and units needed by the formula 
 data_length_ccfrg <-  data_ccfrg_param %>%
@@ -130,10 +104,32 @@ data_length_ccfrg <-  data_ccfrg_param %>%
 
 
 
+################################################################################
 
 
-
-
+#  Code from Shelby
+# 
+# fishes.caught.bpue = fishes.caught.cpue %>%
+#   na.omit() %>%
+#   #Get rid of fishes without lengths - this will change results
+#   #slightly, but can't be avoided
+#   merge(., length.weight, by='Common.Name') %>%
+#   mutate(
+#     biomass.kg =ifelse(WL_L_units=='cm' & WL_input_length=='TL'
+#                        & WL_W_units=='kg', WL_a*((Length.cm)^WL_b),
+#                        ifelse(WL_L_units=='mm' & WL_input_length=='TL'
+#                               & WL_W_units=='kg', WL_a*((Length.cm*10)^WL_b),
+#                               ifelse(WL_L_units=='cm' & WL_input_length=='TL'
+#                                      & WL_W_units=='g', WL_a*((Length.cm)^WL_b)/1000,
+#                                      ifelse(WL_L_units=='mm' & WL_input_length=='TL'
+#                                             & WL_W_units=='g', WL_a*((Length.cm*10)^WL_b)/1000,
+#                                             ifelse(WL_L_units=='mm' & WL_input_length=='SL'
+#                                                    & WL_W_units=='g' & LC_type_for_WL=='TYPICAL',
+#                                                    WL_a*((LC_a*(Length.cm*10)+LC_b)^WL_b)/1000,
+#                                                    ifelse(WL_L_units=='mm' & WL_input_length=='SL'
+#                                                           & WL_W_units=='g' & LC_type_for_WL=='REVERSE',
+#                                                           WL_a*((((Length.cm*10)-LC_b)/LC_a)^WL_b)/1000,NA))))))) %>%
+#   droplevels()
 
 
 
