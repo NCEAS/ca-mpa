@@ -25,6 +25,9 @@ prop_rock <- readRDS("/home/shares/ca-mpa/data/sync-data/mpa_traits/processed/mp
 mod_out_raw <- read.csv(file.path(datadir,"mpa_betadisp_mod.csv"))
 
 #connectivity
+conn_path <- "/home/shares/ca-mpa/data/sync-data/connectivity"
+input_file <- "Settlement_connectivity_by_habitat.csv"  
+settle_dat <- read.csv(file.path(conn_path, input_file))
 
 
 
@@ -53,7 +56,18 @@ recover_RR_dat <- mod_out_raw %>% filter(habitat =="Kelp forest fishes" |
          period = "recovery") 
         
 
-RR_dat <- rbind(resist_RR_dat, recover_RR_dat)
+RR_dat1 <- rbind(resist_RR_dat, recover_RR_dat)
+
+rocky_join <- mod_out_raw %>% filter(habitat=="Rocky intertidal") %>%
+              filter(MPA_type == "smr")%>%
+                mutate(ref = NA,
+                       logRR=NA,
+                       prop_shift = NA)%>%
+               dplyr::select(habitat, MPA, ref, smr = "distance", logRR,
+                      prop_shift, period = "period_2") %>%
+                mutate(period = recode(period, during = "resistance",
+                                      after = "recovery"))
+RR_dat  = rbind(RR_dat1, rocky_join)
 
 #Join model output with MPA traits
 
@@ -81,11 +95,26 @@ mpa_traits <- mpa_traits4 %>%
 
 #step 5 - join traits and mod
 
-RR_dat_full <- left_join(RR_dat, mpa_traits, by=c("MPA"="affiliated_mpa")) %>%
-  mutate(implementation_year = as.numeric(format(implementation_date,'%Y')))
+RR_dat_join <- left_join(RR_dat, mpa_traits, by=c("MPA"="affiliated_mpa")) %>%
+  mutate(implementation_year = as.numeric(format(implementation_date,'%Y')),
+         habitat_short = ifelse(habitat =="Kelp forest fishes"|
+                                  habitat =="Kelp forest inverts and algae","Kelp forest",habitat))
 
 
+#step 6 - join settlement dat
 
+settle_dat1 <- settle_dat %>% mutate(MPA = tolower(MPA)) %>%
+                  dplyr::rename("Rocky intertidal" = "Rocky_Intertidal",
+                                "Kelp forest" = `Shallow.Rocky.Reef..Kelp.and.Rock.`,
+                                "Shallow rocky reef" = `Rock.30_100m`,
+                                "Deep reef" = `Rock.100_200m`) %>%
+                  pivot_longer(cols = c("Rocky intertidal","Kelp forest","Shallow rocky reef","Deep reef"),
+                               values_to = "settlement", names_to = "habitat_short") %>%
+                  mutate(MPA = recode(MPA, "campus point smca (no-take)" = "campus point smca",
+                         "point vicente smca (no-take)" = "point vicente smca",
+                         "blue cavern onshore smca (no-take)" = "blue cavern onshore smca"))
+
+RR_dat_full <- left_join(RR_dat_join, settle_dat1, by=c("MPA","habitat_short"))
 
 
 ###############################################################################
@@ -101,20 +130,33 @@ kf_fish_resil <- RR_dat_full %>%
 
 #resistance 
 kf_fish_resist_mod <-glm(logRR ~ size + habitat_richness +
-                                    habitat_diversity + prop_rock + fishing_pressure, data = kf_fish_resist, #add region or lat?
+                                    habitat_diversity + prop_rock + fishing_pressure + settlement, data = kf_fish_resist, #add region or lat?
                                   family="gaussian", 
                                   na.action = na.exclude)
 summary(kf_fish_resist_mod)
 
 #resilience
-kf_fish_resil_mod <- glm(logRR ~ size + habitat_richness +
-                           habitat_diversity + prop_rock + fishing_pressure, data = kf_fish_resil, #add region or lat?
+kf_fish_resil_mod <- glm(smr ~ size + habitat_richness +
+                           habitat_diversity + prop_rock + fishing_pressure + settlement, data = kf_fish_resil, #add region or lat?
                          family="gaussian", 
-                         na.action = na.exclude)
+                         na.action = na.exclude) 
 
 summary(kf_fish_resil_mod)
 
+ggplot(RR_dat_full %>% filter(
+                              #period == "recovery"
+                              ) %>% mutate(period = factor(period, levels=c("resistance","recovery"))) ,aes(x = settlement, y=smr))+
+    geom_point()+
+    #geom_line()+
+  stat_poly_line() +
+  stat_poly_eq(use_label(c("P","R2")), label.x.npc="right") +
+  facet_wrap(habitat~period, ncol=2, scales="free")+
+  theme_classic()+
+  labs(y="Distance (Bray-Curtis)")
 
+lm <- lm(smr ~ settlement, data = RR_dat_full %>% filter(habitat=="Kelp forest inverts and algae",
+                                                         period=="recovery"))
+summary(lm)
 
 ###############################################################################
 #build model for kelp forest inverts and algae
