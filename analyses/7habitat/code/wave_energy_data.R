@@ -46,7 +46,7 @@ h5ls(file=wave_filename_test, s3 = FALSE)
 
 for (y in years){
   wave_filename <- paste0("West_Coast_wave_", y, ".h5")
-  sprintf("Processing file %s", wave_filename)
+  message(sprintf("Processing file %s", wave_filename))
   
   # get the coordinate and create dataframe
   if(y == years[1]) {
@@ -82,7 +82,7 @@ coord_ca <- coord_df %>%
   
 #### Compute the all year average ####
 wave_power_df <- coord_ca %>%
-  mutate(mean_200012 = rowMeans(select(., starts_with("y2"))))
+  mutate(mean_200012 = rowMeans(select(., starts_with("y2")), na.rm = TRUE))
 
 # make it an sf object 
 wave_power_sf <- st_as_sf(wave_power_df, coords = c("lon","lat"), remove = FALSE, crs = 4326)
