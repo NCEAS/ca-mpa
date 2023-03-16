@@ -54,7 +54,7 @@ length_data <- tibble(
 # 
 # Main formula: W = a * L^b
 
-# Unit transformation (source: Fishbase
+# Unit transformation (source: Fishbase)
 # a'(cm, g) = a (mm, g)*10^b
 # a'(cm, g) = a (cm, kg)*1000
 # a'(cm, g) = a (mm, mg)*10^b/1000
