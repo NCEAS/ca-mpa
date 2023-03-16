@@ -12,77 +12,55 @@ library(tidyverse)
 # Directories
 basedir <- "/Volumes/GoogleDrive/.shortcut-targets-by-id/1kCsF8rkm1yhpjh2_VMzf8ukSPf9d4tqO/MPA Network Assessment: Working Group Shared Folder/data/sync-data"
 datadir1 <- file.path(basedir, "habitat_cdfw/processed")
-datadir2 <- file.path(basedir, "habitat_anita/raw")
+datadir2 <- file.path(basedir, "habitat_stanford/processed")
+datadir3 <- file.path(basedir, "habitat_anita/processed")
+outdir <- file.path(basedir, "habitat_merge")
 plotdir <- "data/habitat_cdfw/figures"
 
 # Read data
-cdfw_orig <- terra::rast(file.path(datadir1, "CA_bottom_substrate_10m.tiff")) 
-ci_orig <-  terra::rast(file.path(datadir2, "CIN_rock/All_CI_N_rock_2m.tif"))
+cdfw_orig <- terra::rast(file.path(datadir1, "CA_bottom_substrate_10m_reclassed.tiff")) 
+stanford_orig <- terra::rast(file.path(datadir2, "CA_substrate_polygon_stanford_10m.tiff"))
+anita_orig <- terra::rast(file.path(datadir3, "CI_substrate_10m_qgis_new2.tif"))
+plot(anita_orig)
+
+# Format data
+################################################################################
+
+# Format data
+rcl_mat <- matrix(c(1, 0, 
+                    2, 1), byrow=T, ncol=2)
+anita <- anita_orig %>% 
+  terra::clamp(lower=0.5, upper=2.5, values=F) %>% 
+  terra::classify(rcl=rcl_mat)
+plot(anita)
+
+# Convert to rasters
+cdfw_ras <- raster::raster(cdfw_orig)
+stanford_ras <- raster::raster(stanford_orig)
+anita_ras <- raster::raster(anita_orig)
 
 
 # Build data
 ################################################################################
 
-# Reproject Channel Islands raster
-ci <- ci_orig %>% 
-  terra::project(y=cdfw_orig)
-terra::plot(ci_orig)
-terra::plot(ci)
+# Merge data
+data <- raster::merge(anita_ras, cdfw_ras, stanford_ras, overlap=T)
 
-# Recode non-Channel Islands raster
-# 1-4 = soft; 5-8 = hard
-cdfw <- cdfw_orig %>% 
-  terra::classify(rcl=matrix(c(1, 0,
-                               2, 0, 
-                               3, 0,
-                               4, 0,
-                               5, 1,
-                               6, 1, 
-                               7, 1, 
-                               8, 1), ncol=2, byrow=T))
-plot(cdfw)
+# Export data
+raster::writeRaster(data_ras, filename = file.path(outdir, "CA_bottom_substrate_type_10m.tiff"), overwrite=T)
 
 # Merge rasters
+# terra::merge goes bottom-to-top from left-to-right
+# data <- terra::merge(stanford_orig, cdfw_orig, anita, first=T)
+# data_ras <- raster::raster(data)
 
-ci_df <- ci %>% 
-  as.data.frame()
-
-
-# Plot islands
-################################################################################
-
-# Get land
-usa <- rnaturalearth::ne_states(country="United States of America", returnclass = "sf") %>% 
-  sf::st_transform(crs=crs(ci))
-foreign <- rnaturalearth::ne_countries(country=c("Canada", "Mexico"), returnclass = "sf") %>% 
-  sf::st_transform(crs=crs(ci))
-
-# Plot data
-g <- ggplot() +
-  # Plot land
-  geom_sf(data=foreign, fill="grey80", color="white", lwd=0.3) +
-  geom_sf(data=usa, fill="grey80", color="white", lwd=0.3) +
-  # Plot raster
-  # Crop
-  # terra::ext(ci)
-  coord_sf(datum=crs(usa),
-           xlim=c(-100000, 100000),
-           ylim=c(-500000, -400000)) +
-  # Theme
-  theme_bw()
-g
+# Export data
+# terra::writeRaster(data, filename = file.path(outdir, "CA_bottom_substrate_type_10m.tiff"), overwrite=T)
+# raster::writeRaster(data_ras, filename = "~/Desktop/CA_bottom_substrate_type_10m.tiff", overwrite=T)
 
 
 
 
-# Inspect Channel Islands
-################################################################################
 
-cdfw_check <- cdfw_orig %>%
-  raster::projectRaster(crs=raster::crs(ci_orig)) %>% 
-  raster::crop(y=raster::extent(ci_orig))
-
-# Anita
-plot(ci_orig)
 
 
