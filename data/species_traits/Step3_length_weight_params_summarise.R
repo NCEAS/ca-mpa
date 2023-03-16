@@ -56,6 +56,7 @@ lw_gen <- data_orig %>%
   summarize(a=median(a, na.rm=T),
             b=median(b, na.rm=T)) %>% 
   ungroup()
+write.csv(lw_gen, file=file.path(datadir, "fishbase_lw_parameters_by_genus.csv"), row.names = F)
 
 # Family summary
 lw_fam <- data_orig %>% 
@@ -65,6 +66,7 @@ lw_fam <- data_orig %>%
   summarize(a=median(a, na.rm=T),
             b=median(b, na.rm=T)) %>% 
   ungroup()
+write.csv(lw_fam, file=file.path(datadir, "fishbase_lw_parameters_by_family.csv"), row.names = F)
 
 # Create final data
 data <- spp %>% 
@@ -106,18 +108,14 @@ write.csv(data, file=file.path(datadir, "fishbase_lw_parameters_by_species.csv")
 ################################################################################
 
 # LW by common name
-data2 <- spp_orig %>% 
+data2 <- spp_orig %>%
   # Add LW params
-  left_join(data %>% select(sciname, family, lw_source, a, b), by="sciname") %>% 
+  left_join(data %>% select(sciname, family, lw_source, a, b), by="sciname") %>%
   # Simplify
   select(species_id, sciname, lw_source, a, b)
 
 # Export data
 write.csv(data2, file=file.path(datadir, "fishbase_lw_parameters_by_species_id.csv"), row.names = F)
-
-
-
-
 
 
 

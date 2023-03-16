@@ -50,22 +50,21 @@ spp <- spp_orig %>%
                         # "Atrimitra idae"                                     
                         # "Beringraja binoculata"                               
                         # "Beringraja stellulata"                              
-                        "Brevispinus, ochraceus, or giganteus"="Pisaster Brevispinus/ochraceus/giganteus",               
+                        "Brevispinus, ochraceus, or giganteus"="Pisaster brevispinus/ochraceus/giganteus",               
                         # "Californiconus californicus"                        
-                        # "Californicus /syn./ parastichopus californicus"      
+                        "Californicus /syn./ parastichopus californicus"="Apostichopus californicus",    
                         "Californicus or pycnopodia helianthoides"="Rathbunaster californicus, Pycnopodia helianthoides",       
                         "Carnatus, caurinus"="Sebastes carnatus/caurinus",
                         "Ceramium flaccidum"="Gayliella flaccida",                              
                         "Chiliensis chiliensis"="Sarda chiliensis",
                         "Chrysomelas/carnatus young of year"="Sebastes chrysomelas/carnatus",               
-                        # "Coriacea /syn./ tealia coriacea"                     
+                        "Coriacea /syn./ tealia coriacea"="Urticina coriacea",                    
                         # "Cribrinopsis albopunctata"                          
                         # "Cyanoplax hartwegii"                                 
                         "Dawsoni or stimpsoni"="Solaster dawsoni/stimpsoni",
                         # "Diaperoforma californica"                            
                         # "Dictyoneurum californicum/reticulatum"              
                         # "Dodecaceria fewkesi/concharum"                       
-                        # "Eopsetta  jordani"                                  
                         # "Epitonium tinctum"                                   
                         # "Evasterias troschelii"                              
                         # "Felimare californiensis"                             
@@ -73,17 +72,17 @@ spp <- spp_orig %>%
                         # "Felimida macfarlandi"                                
                         # "Flabellinopsis iodinea"                             
                         "Foliolata or astropecten armatus"="Luidia foliolata, Astropecten armatus",                
-                        # "Franciscanus /syn./ strongylocentrotus franciscanus"
+                        "Franciscanus /syn./ strongylocentrotus franciscanus"="Mesocentrotus franciscanus",
                         "Franciscanus or strongylocentrotus purpuratus"="Mesocentrotus franciscanus, Strongylocentrotus purpuratus",
                         "Halichondria (halichondria)"="Halichondria panicea",
                         "Haliclona (reniera)"="Haliclona cinerea",
                         # "Hedophyllum sessile"                                
                         "Holothuria (vaneyothuria) zacae"="Holothuria zacae",
                         "Inflata or hippasteria spinosa"="Poraniopsis inflata, Hippasteria spinosa",
-                        # "Leukothele /syn./ parastichopus leukothele"          
+                        "Leukothele /syn./ parastichopus leukothele"="Apostichopus leukothele",        
                         # "Lirobittium munitum"                                
                         # "Lithopoma undosum"                                   
-                        # "Lofotensis /syn./ tealia lofotensis"                
+                        "Lofotensis /syn./ tealia lofotensis"="Urticina lofotensis",              
                         "Loligo opalescens"="Doryteuthis opalescens",                                   
                         # "Lopholithodes mandtii/foraminatus"                  
                         # "Loxorhynchus/scyra crispatus/acutifrons"             
@@ -97,11 +96,11 @@ spp <- spp_orig %>%
                         # "Neoagarum fimbriatum"                                
                         # "Neobernaya spadicea"                                
                         # "Neogastroclonium subarticulatum"                     
-                        # "Nobilis /syn./ anisodoris nobilis"                  
+                        "Nobilis /syn./ anisodoris nobilis"="Montereina nobilis",
                         # "Norrisia norrisii"                                   
                         # "Okenia rosacea"                                     
                         "Opalescens (eggs)"="Doryteuthis opalescens",
-                        # "Parvimensis /syn./ parastichopus parvimensis"       
+                        "Parvimensis /syn./ parastichopus parvimensis"="Apostichopus parvimensis",       
                         # "Peltodoris nobilis"                                  
                         # "Phyllospadix scouleri"                              
                         # "Phyllospadix serrulatus"                             
@@ -111,7 +110,7 @@ spp <- spp_orig %>%
                         # "Pseudobatos productus"                               
                         # "Psolus chitonoides"                                 
                         # "Pugettia foliata"                                    
-                        # "Ritteri /syn./ heteropolypus ritteri"               
+                        "Ritteri /syn./ heteropolypus ritteri"="Heteropolypus ritteri",               
                         # "Scyra/oregonia acutifrons/gracilis"                  
                         "Sebastes (10-15"="Sebastes spp",                                  
                         "Sebastes atrovirens,carnatus,chrysomelas,caurinus"="Sebastes atrovirens/carnatus/chrysomelas/caurinus",   
@@ -139,11 +138,14 @@ spp <- spp_orig %>%
 # Inspect
 sort(unique(spp$genus))
 
-
 # Check names
 spp_names <- spp$sciname[spp$level=="species"] %>% unique() %>% sort()
 wrong_names <- freeR::check_names(spp_names)
 wrong_names 
+
+# Check names with punctuation
+gen_names <- spp$sciname[grepl("/", spp$sciname)] %>% unique() %>% sort()
+gen_names
 
 # Export
 write.csv(spp, file=file.path(datadir, "species_key.csv"), row.names = F)
