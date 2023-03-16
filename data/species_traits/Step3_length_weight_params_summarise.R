@@ -93,5 +93,34 @@ data <- spp %>%
                      lw_source=="Genus" ~ b_gen,
                      lw_source=="Family" ~ b_fam,
                      T ~ 0),
-         b=ifelse(b==0, NA, b))
+         b=ifelse(b==0, NA, b)) %>% 
+  # Simplify
+  select(type, family, genus, sciname, lw_source, a, b) %>% 
+  arrange(type, family, genus, sciname)
+
+# Export data
+write.csv(data, file=file.path(datadir, "fishbase_lw_parameters_by_species.csv"), row.names = F)
+
+
+# Add LW to common name
+################################################################################
+
+# LW by common name
+data2 <- spp_orig %>% 
+  # Add LW params
+  left_join(data %>% select(sciname, family, lw_source, a, b), by="sciname") %>% 
+  # Simplify
+  select(species_id, sciname, lw_source, a, b)
+
+# Export data
+write.csv(data2, file=file.path(datadir, "fishbase_lw_parameters_by_species_id.csv"), row.names = F)
+
+
+
+
+
+
+
+
+
 
