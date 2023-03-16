@@ -40,9 +40,19 @@ h5ls(file=wave_filename_test, s3 = FALSE)
 # 12     /                  time_index H5I_DATASET   STRING          2928
 # 13     /                 water_depth H5I_DATASET    FLOAT        699904
 
+# Check the units of the layer of interest
+
+# Query the metadta
+wave_power_met <- h5readAttributes(file = file.path(data_dir, "West_Coast_wave_2000.h5"), 
+                 name = "omni-directional_wave_power")
+
+# get the units
+wave_power_met$units
+# "W/m"
 
 
-#### Main loop ####
+
+#### Main loop through all the files ####
 
 for (y in years){
   wave_filename <- paste0("West_Coast_wave_", y, ".h5")
