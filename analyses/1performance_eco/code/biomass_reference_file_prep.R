@@ -19,12 +19,12 @@ ccfrp_file <- "CCFRP_Biomass_Conversion_20220206.xlsx"   # file sent to us by Ra
 #### Read the data in ####
 
 # Kelp data
-raw_data_kf <- read_xlsx(file.path(data_dir, kelp_file), sheet = "species_attribute_table") %>%
-  mutate(source = "kelp")
+# raw_data_kf <- read_xlsx(file.path(data_dir, kelp_file), sheet = "species_attribute_table") %>%
+#   mutate(source = "kelp")
 
 # old CCFRP (Shelby)
-raw_data_ccfrp_old <- read_csv(file.path(data_dir, ccfrp_file_old)) %>%
-  mutate(source = "ccfrp")
+# raw_data_ccfrp_old <- read_csv(file.path(data_dir, ccfrp_file_old)) %>%
+#   mutate(source = "ccfrp")
 
 # Lastest CCFRP (Rachel)
 raw_parameters_ccfrp <- read_xlsx(file.path(data_dir, ccfrp_file), sheet = "CCFRP_Biomass_Conversion_Table_") %>%
@@ -54,7 +54,7 @@ length_data <- tibble(
 # 
 # Main formula: W = a * L^b
 
-# Unit transformation (source: Fishbase
+# Unit transformation (source: Fishbase)
 # a'(cm, g) = a (mm, g)*10^b
 # a'(cm, g) = a (cm, kg)*1000
 # a'(cm, g) = a (mm, mg)*10^b/1000
@@ -71,6 +71,40 @@ a_prime_conversion <- tribble(
 
 
 #### Length conversion ####
+
+# filter the necessary parameters
+conversion_parameters <- raw_parameters_ccfrp %>%
+  filter(!(is.na(WL_a))) %>% # remove rows without conversion
+  filter(ScientificName_accepted %in% unique(length_data$species_scientificname))
+
+# Join the parameters to the data (might be expensive with large data sets)
+data_ccfrg_param <- length_data %>% 
+  left_join(conversion_parameters, by = c("species_scientificname"="ScientificName_accepted"), multiple = "all")
+
+# Compute from the cm inputs the type of length and units needed by the formula 
+data_length_ccfrg <-  data_ccfrg_param %>%
+  mutate(length_to_use = case_when(
+    WL_input_length == "TL" & WL_L_units == "cm" ~ TL_cm,
+    WL_input_length == "TL" & WL_L_units == "mm" ~ TL_cm *10,
+    WL_input_length == "SL" & WL_L_units == "cm" ~ (TL_cm - LC_b)/LC_a,
+    WL_input_length == "SL" & WL_L_units == "mm" ~ (TL_cm - LC_b)/LC_a *10,
+    WL_input_length == "FL" & WL_L_units == "cm" ~ TL_cm,
+    WL_input_length == "FL" & WL_L_units == "mm" ~ TL_cm *10,
+    WL_input_length == "DW" & WL_L_units == "cm" ~ TL_cm,
+    WL_input_length == "DW" & WL_L_units == "mm" ~ TL_cm *10,
+    TRUE ~ NA   #-9999 # for debugging, to be switched to NA
+  ),
+  # Compute the weight
+  weight_g = case_when(
+    WL_W_units == "g" ~ WL_a*length_to_use^WL_b,
+    WL_W_units == "kg" ~ (WL_a*length_to_use^WL_b)/1000,
+    TRUE ~ NA #-9999 # for debugging, to be switched to NA
+  )
+)
+
+
+
+################################################################################
 
 
 #  Code from Shelby
@@ -96,44 +130,6 @@ a_prime_conversion <- tribble(
 #                                                           & WL_W_units=='g' & LC_type_for_WL=='REVERSE',
 #                                                           WL_a*((((Length.cm*10)-LC_b)/LC_a)^WL_b)/1000,NA))))))) %>%
 #   droplevels()
-
-
-# filter the necessary parameters
-conversion_parameters <- raw_parameters_ccfrp %>%
-  filter(!(is.na(WL_a))) %>%
-  filter(ScientificName_accepted %in% unique(length_data$species_scientificname))
-
-# Join the parameters to the data (might be expensive with large data sets)
-data_ccfrg_param <- length_data %>% 
-  left_join(conversion_parameters, by = c("species_scientificname"="ScientificName_accepted"))
-
-# Compute from the cm inputs the type of length and units needed by the formula 
-data_length_ccfrg <-  data_ccfrg_param %>%
-  mutate(length_to_use = case_when(
-    WL_input_length == "TL" & WL_L_units == "cm" ~ TL_cm,
-    WL_input_length == "TL" & WL_L_units == "mm" ~ TL_cm *10,
-    WL_input_length == "SL" & WL_L_units == "cm" ~ (TL_cm - LC_b)/LC_a,
-    WL_input_length == "SL" & WL_L_units == "mm" ~ (TL_cm - LC_b)/LC_a *10,
-    WL_input_length == "FL" & WL_L_units == "cm" ~ TL_cm,
-    WL_input_length == "FL" & WL_L_units == "mm" ~ TL_cm *10,
-    WL_input_length == "DW" & WL_L_units == "cm" ~ TL_cm,
-    WL_input_length == "DW" & WL_L_units == "mm" ~ TL_cm *10,
-    TRUE ~ NA   #-9999 # for debugging, to be switched to NA
-  ),
-  # Compute the weight
-  weight_g = case_when(
-    WL_W_units == "g" ~ WL_a*length_to_use^WL_b,
-    WL_W_units == "kg" ~ (WL_a*length_to_use^WL_b)/1000,
-    TRUE ~ NA #-9999 # for debugging, to be switched to NA
-  )
-)
-
-
-
-
-
-
-
 
 
 
