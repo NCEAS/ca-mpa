@@ -94,7 +94,11 @@ spp <- spp_orig %>%
                         # "Antiopella barbarensis"                              
                         # "Atrimitra idae"                                     
                         "Beringraja binoculata"  = "Beringraja spp",                             
-                        "Beringraja stellulata" = "Beringraha spp",                           
+                        "Beringraja stellulata" = "Beringraha spp",  
+                        "Diopatra/chaetopterus spp" = "Diopatra spp",
+                        "Loxorhynchus/scyra spp" = "Loxorhynchus spp",
+                        "Synchirus/rimicola spp" = "Synchirus",
+                        "Thylacodes/petaloconchus spp" = "Thylacodes spp",
                         "Brevispinus, ochraceus, or giganteus"="Pisaster brevispinus/ochraceus/giganteus",               
                         "Californiconus californicus" = "Californiconus spp",                        
                         "Californicus /syn./ parastichopus californicus"="Apostichopus californicus",    
@@ -130,7 +134,8 @@ spp <- spp_orig %>%
                         "Lirobittium munitum"     = "Lirobittium spp",                           
                          "Lithopoma undosum"        = "Lithopoma spp",                           
                         "Lofotensis /syn./ tealia lofotensis"="Urticina lofotensis",              
-                        "Loligo opalescens"="Doryteuthis opalescens",                                   
+                        "Loligo opalescens"="Doryteuthis opalescens",   
+                        "Synchirus" = "Synchirus spp",
                         # "Lopholithodes mandtii/foraminatus"                  
                         # "Loxorhynchus/scyra crispatus/acutifrons"             
                         "Magister /syn./ cancer magister"="Metacarcinus magister",                    

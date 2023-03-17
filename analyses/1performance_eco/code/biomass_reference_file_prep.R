@@ -15,6 +15,21 @@ kelp_file <- "kelp_forest_biomass_params.xlsx"
 ccfrp_file_old <- "old/CCFRP_biomass_params.csv"         # file we got through Shelby
 ccfrp_file <- "CCFRP_Biomass_Conversion_20220206.xlsx"   # file sent to us by Rachel Brooks, rachel.brooks@sjsu.edu, on 11/30/2022
 
+fishbase_params <- read.csv("/home/shares/ca-mpa/data/sync-data/species_traits/processed/fishbase_lw_parameters_by_species.csv")
+
+################################################################################
+#prep fishbase params for join with Brooks 
+
+fishbase_params1 <- fishbase_params %>% 
+                      mutate(source = "fishbase",
+                             WL_W_units = "g",
+                             WL_L_units = "cm",
+                             WL_input_length = "TL")%>%
+                      select(ScientificName_accepted = sciname,
+                             WL_a = a, WL_b = b,
+                             WL_W_units,
+                             WL_L_units,
+                             WL_input_length, source)
 
 #### Read the data in ####
 
@@ -29,12 +44,29 @@ ccfrp_file <- "CCFRP_Biomass_Conversion_20220206.xlsx"   # file sent to us by Ra
 # Lastest CCFRP (Rachel)
 raw_parameters_ccfrp <- read_xlsx(file.path(data_dir, ccfrp_file), sheet = "CCFRP_Biomass_Conversion_Table_") %>%
   mutate(source = "ccfrp") %>% 
-  rename(units = ...16)  # fix column with no header in original file
+  rename(units = ...16)%>%  # fix column with no header in original file
+  mutate(source = "Brooks") #add source of params
 
+################################################################################
+#drop species from fishbase params that are already in Brooks
+brooks_join <- raw_parameters_ccfrp %>% select(ScientificName_accepted) 
+fishbase_join <- fishbase_params1 %>% select(ScientificName_accepted)
+
+drop_spp <- inner_join(brooks_join, fishbase_join)  
+
+fishbase_params2 <- anti_join(fishbase_params1, drop_spp, by="ScientificName_accepted")
+                  
+################################################################################
+#merge unique params
+
+params_tab <- merge(raw_parameters_ccfrp,fishbase_params2,all=TRUE)
+
+################################################################################
+#Build lookup 
 
 # Create a fake length data set  -- TEMPORARY to be replaced by real data
 length_data <- tibble(
-  species_scientificname = sample(na.omit(raw_parameters_ccfrp$ScientificName_accepted), 100, replace = TRUE),
+  species_scientificname = sample(na.omit(params_tab$ScientificName_accepted), 100, replace = TRUE),
   TL_cm = rnorm(100, mean = 20, sd = 5)
   )
 
@@ -73,7 +105,7 @@ a_prime_conversion <- tribble(
 #### Length conversion ####
 
 # filter the necessary parameters
-conversion_parameters <- raw_parameters_ccfrp %>%
+conversion_parameters <- params_tab %>%
   filter(!(is.na(WL_a))) %>% # remove rows without conversion
   filter(ScientificName_accepted %in% unique(length_data$species_scientificname))
 
