@@ -30,7 +30,7 @@ spp <- spp_orig %>%
   #select(species_id, everything()) %>% 
   # Format genus
   mutate(Genus_orig=stringr::str_to_sentence(Genus),
-         Genus_orig=ifelse(genus=="", NA, Genus)) %>% 
+         Genus_orig=ifelse(Genus=="", NA, Genus)) %>% 
   #Fix Genus
   mutate(Genus = recode(Genus_orig, 
                         "Thylacodes/petaloconchus" = "Thylacodes",
