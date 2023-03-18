@@ -1,6 +1,9 @@
 #Processing monitoring data for mpa-year level analyses
 #Joshua G Smith; June 1, 2022
 
+####This file uses the reported means from each monitoring group. For
+#raw size frequency data and biomass conversions see /sync-data/species_traits
+
 rm(list=ls())
 
 #load required packages
