@@ -12,7 +12,16 @@ require(stringr)
 datadir <- "/home/shares/ca-mpa/data/sync-data/monitoring/"
 outdir <-  "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data"
 
-ccfrp_raw <- read.csv(file.path(datadir, "/monitoring_ccfrp/CCFRP_derived_data_tables_DataONE/CCFRP_derived_effort_table.csv"))
+#load raw monitoring data
+ccfrp_caught_fishes <- read.csv(file.path(datadir, "/monitoring_ccfrp/CCFRP_database/CCFRP_database_2007-2020_csv/4-Caught_Fishes.csv"))%>%
+                          janitor::clean_names()
+ccfrp_drift <- read.csv(file.path(datadir, "/monitoring_ccfrp/CCFRP_database/CCFRP_database_2007-2020_csv/3-Drift_Information.csv"))%>%
+  janitor::clean_names()
+ccfrp_trip_info <- read.csv(file.path(datadir, "/monitoring_ccfrp/CCFRP_database/CCFRP_database_2007-2020_csv/1-Trip_Information.csv"))%>%
+  janitor::clean_names()
+ccfrp_areas <- read.csv(file.path(datadir, "/monitoring_ccfrp/CCFRP_database/CCFRP_database_2007-2020_csv/Monitoring_Areas.csv"))%>%
+  janitor::clean_names()
+
 kelp_forest_raw <- read.csv(file.path(datadir, "/monitoring_kelp/MLPA_kelpforest_fish.4.csv"))
 
 #load taxonomy lookup table
@@ -26,10 +35,6 @@ kelp_sites <- read.csv(file.path(datadir, "/monitoring_kelp/MLPA_kelpforest_site
 
 #load habitat data
 mpa_attributes_gen <- readRDS("/home/shares/ca-mpa/data/sync-data/mpa_traits/processed/mpa_attributes_general.Rds")
-mpa_attributes_hab <- readRDS("/home/shares/ca-mpa/data/sync-data/mpa_traits/processed/mpa_attributes_habitat.Rds")
-mpa_attributes_hab_div <- readRDS("/home/shares/ca-mpa/data/sync-data/mpa_traits/processed/mpa_attributes_habitat_diversity.Rds")
-fishing_effort <- readRDS(here::here("analyses","2performance_fisheries","analyses","blocks","pre_mpa_fishing_pressure_by_mpa.Rds"))
-prop_rock <- readRDS("/home/shares/ca-mpa/data/sync-data/mpa_traits/processed/mpa_attributes_habitat_rock.Rds")
 
 regions <- mpa_attributes_gen %>%
   dplyr::select(name, bioregion, region4 = four_region_north_ci) %>%
@@ -171,6 +176,76 @@ kelp_fish_counts_final <- kelp_fish_counts %>%
 
 #write.csv(kelp_fish_counts_final, row.names = F, file.path(outdir,"/biomass_processed/kelpforest_fish_biomass.csv"))
 
+################################################################################
+#process CCFRP
+
+#step 1 -- select variables of interest
+
+ccfrp_caught_fishes1 <- ccfrp_caught_fishes %>% 
+                        dplyr::select(drift_id, species_code, length_cm)
+ccfrp_drift1 <- ccfrp_drift %>% 
+                    dplyr::select(drift_id, trip_id, grid_cell_id, site_mpa_ref,
+                                  total_angler_hrs)
+ccfrp_trip_info1 <- ccfrp_trip_info %>%
+                    dplyr::select(trip_id, area, year = year_automatic)
+ccfrp_areas1 <- ccfrp_areas %>% dplyr::select(area_code, name, mpa_designation)
+
+#join
+ccfrp_build1 <- left_join(ccfrp_caught_fishes1, ccfrp_drift1, by="drift_id")
+ccfrp_build2 <- left_join(ccfrp_build1, ccfrp_trip_info1, by="trip_id")
+ccfrp_build3 <- left_join(ccfrp_build2, ccfrp_areas1, by=c("area"="area_code")) %>%
+                  dplyr::select(year, name, mpa_designation, site_mpa_ref, 
+                                grid_cell_id, total_angler_hrs, species_code,
+                                length_cm)
+
+#filter taxon tab
+ccfrp_taxa <- taxon_tab %>% filter(habitat =="Rocky reef")
+
+#Join species ID
+
+ccfrp_build4 <- left_join(ccfrp_build3, ccfrp_taxa, by=c("species_code" = "habitat_specific_code"))
+
+
+#step 2 -- drop missing species
+
+ccfrp_build5 <- ccfrp_build4 %>% 
+                filter(!(species_code == "MKL"|
+                           species_code == "SMT"|
+                           species_code == "UNK"|
+                           species_code == ""|
+                           is.na(species_code))) %>%
+                rename(fish_tl = length_cm) %>%
+                #drop species without TL
+                filter(!(is.na(fish_tl)))
+
+#step 3 -- calculate biomass
+
+ccfrp_build6 <- convert_dat(params_tab, ccfrp_build5)
+ccfrp_build7 <- bio_fun(ccfrp_build6) %>%
+                dplyr::select(year, name, mpa_designation, site_mpa_ref, grid_cell_id,
+                              total_angler_hrs, species_code, TL_cm, sciname,
+                              weight_g, target_status)
+#step 4 -- add regions
+
+ccfrp_build8 <- ccfrp_build7 %>%
+                  mutate(mpa_defacto_class = "smr",
+                         mpa_defacto_designation = tolower(site_mpa_ref),
+                         mpa_defacto_designation = recode(mpa_defacto_designation, "mpa" = "smr"),
+                         affiliated_mpa = paste(tolower(name),mpa_defacto_class),
+                         affiliated_mpa = recode(affiliated_mpa, "se farallon islands smr" = "southeast farallon island smr",
+                                                 "SE farallon islands smr" = "southeast farallon island smr",
+                                                 "swamis smr" = "swami's smca"
+                                                 )
+                         )%>%
+                  #drop per PI recommendation
+                  filter(!(name == "Trinidad"))
+
+ccfrp_build9 <- left_join(ccfrp_build8, regions, by=c("affiliated_mpa"="name")) %>%
+                dplyr::select(year, bioregion, region4, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation,
+                              grid_cell_id, total_angler_hrs, species_code, sciname,
+                              TL_cm, weight_g, target_status)
+
+#write.csv(ccfrp_build9, row.names = F, file.path(outdir,"/biomass_processed/ccfrp_fish_biomass.csv"))         
 
 
 
