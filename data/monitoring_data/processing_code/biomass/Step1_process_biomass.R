@@ -103,7 +103,7 @@ bio_fun <- function(data_with_params) {
 ################################################################################
 #process kelp forest
 
-kelp_code <- taxon_tab %>% filter(habitat=="Kelp forest")
+kelp_code <- taxon_tab  %>% filter(habitat=="Kelp forest")
 kelp_forest_process1 <- left_join(kelp_forest_raw, kelp_code, by=(c("classcode"="habitat_specific_code")))
 
 #estimate biomass
@@ -191,19 +191,26 @@ ccfrp_trip_info1 <- ccfrp_trip_info %>%
 ccfrp_areas1 <- ccfrp_areas %>% dplyr::select(area_code, name, mpa_designation)
 
 #join
-ccfrp_build1 <- left_join(ccfrp_caught_fishes1, ccfrp_drift1, by="drift_id")
-ccfrp_build2 <- left_join(ccfrp_build1, ccfrp_trip_info1, by="trip_id")
+ccfrp_build1 <- merge(ccfrp_caught_fishes1, ccfrp_drift1, by="drift_id", all=TRUE)
+ccfrp_build2 <- merge(ccfrp_build1, ccfrp_trip_info1, by="trip_id", all=TRUE)
 ccfrp_build3 <- left_join(ccfrp_build2, ccfrp_areas1, by=c("area"="area_code")) %>%
                   dplyr::select(year, name, mpa_designation, site_mpa_ref, 
                                 grid_cell_id, total_angler_hrs, species_code,
                                 length_cm)
+
+#calculate effort
+effort <- ccfrp_build3 %>%
+  dplyr::select(year, grid_cell_id, site_mpa_ref, total_angler_hrs) %>% distinct() %>%
+  group_by(year, grid_cell_id, site_mpa_ref) %>%
+  summarize(cell_hours = sum(total_angler_hrs))
 
 #filter taxon tab
 ccfrp_taxa <- taxon_tab %>% filter(habitat =="Rocky reef")
 
 #Join species ID
 
-ccfrp_build4 <- left_join(ccfrp_build3, ccfrp_taxa, by=c("species_code" = "habitat_specific_code"))
+ccfrp_build4 <- left_join(ccfrp_build3, ccfrp_taxa, by=c("species_code" = "habitat_specific_code"),
+                          na_matches="never")
 
 
 #step 2 -- drop missing species
@@ -243,9 +250,30 @@ ccfrp_build8 <- ccfrp_build7 %>%
 ccfrp_build9 <- left_join(ccfrp_build8, regions, by=c("affiliated_mpa"="name")) %>%
                 dplyr::select(year, bioregion, region4, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation,
                               grid_cell_id, total_angler_hrs, species_code, sciname,
-                              TL_cm, weight_g, target_status)
+                              TL_cm, weight_g, target_status) %>%
+                mutate_at('total_angler_hrs', ~replace_na(.,0))
+
+
+bpue <- ccfrp_build9 %>% 
+  mutate(weight_kg = weight_g/1000) %>%
+  group_by(year, grid_cell_id, mpa_defacto_designation, sciname) %>%
+  dplyr::summarize(bpue = sum(weight_kg))
 
 #write.csv(ccfrp_build9, row.names = F, file.path(outdir,"/biomass_processed/ccfrp_fish_biomass.csv"))         
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
