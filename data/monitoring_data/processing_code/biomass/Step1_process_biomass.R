@@ -254,6 +254,11 @@ ccfrp_build9 <- left_join(ccfrp_build8, regions, by=c("affiliated_mpa"="name")) 
                 mutate_at('total_angler_hrs', ~replace_na(.,0))
 
 
+
+####use CCFRP derived effort table and cross-check species to see if params
+#are correct. So far most look ok except blue rockfish and black rockfish. 
+
+
 bpue <- ccfrp_build9 %>% 
   mutate(weight_kg = weight_g/1000) %>%
   group_by(year, grid_cell_id, mpa_defacto_designation, sciname) %>%
