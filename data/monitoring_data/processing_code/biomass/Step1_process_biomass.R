@@ -21,6 +21,8 @@ ccfrp_trip_info <- read.csv(file.path(datadir, "/monitoring_ccfrp/CCFRP_database
   janitor::clean_names()
 ccfrp_areas <- read.csv(file.path(datadir, "/monitoring_ccfrp/CCFRP_database/CCFRP_database_2007-2020_csv/Monitoring_Areas.csv"))%>%
   janitor::clean_names()
+ccfrp_effort <- read.csv(file.path(datadir, "/monitoring_ccfrp/CCFRP_derived_data_tables_DataONE/CCFRP_derived_effort_table.csv"))%>%
+  janitor::clean_names()
 
 kelp_forest_raw <- read.csv(file.path(datadir, "/monitoring_kelp/MLPA_kelpforest_fish.4.csv"))
 
@@ -253,15 +255,45 @@ ccfrp_build9 <- left_join(ccfrp_build8, regions, by=c("affiliated_mpa"="name")) 
                               TL_cm, weight_g, target_status) %>%
                 mutate_at('total_angler_hrs', ~replace_na(.,0))
 
+#step 4 -- process effort
 
+ccfrp_effort_tab <- ccfrp_effort %>% dplyr::select(year, grid_cell_id, cell_hours = total_angler_hours,
+                                                   mpa_defacto_designation=mpa_status
+                                                   ) %>% distinct() %>%
+                        mutate(mpa_defacto_designation = ifelse(mpa_defacto_designation == "REF","ref","smr"))
 
-####use CCFRP derived effort table and cross-check species to see if params
-#are correct. So far most look ok except blue rockfish and black rockfish. 
+#step 5 -- calculate total species biomass per cell
 
-
-bpue <- ccfrp_build9 %>% 
+ccfrp_build10 <- ccfrp_build9 %>%
   mutate(weight_kg = weight_g/1000) %>%
-  group_by(year, grid_cell_id, mpa_defacto_designation, sciname) %>%
+  group_by(year, bioregion, region4, affiliated_mpa, mpa_defacto_class,
+           mpa_defacto_designation, grid_cell_id, sciname) %>%
+  dplyr::summarize(total_biomass = sum(weight_kg))
+
+#step 6 -- add effort
+
+ccfrp_build11 <- left_join(ccfrp_build10, ccfrp_effort_tab, by=c("year","grid_cell_id","mpa_defacto_designation")) %>%
+                    mutate(bpue = total_biomass / cell_hours)
+
+
+
+
+
+
+
+
+ccfrp_build11 <- ccfrp_build10 %>%
+                  mutate(weight_kg = weight_g/1000) %>%
+                  group_by(year, bioregion, region4, affiliated_mpa, mpa_defacto_class,
+                    mpa_defacto_designation, grid_cell_id, sciname, cell_hours) %>%
+                    dplyr::summarize(bpue = sum(weight_kg)) %>%
+                  mutate(bpue = )
+  
+
+bpue <- ccfrp_build11 %>% 
+  mutate(weight_kg = weight_g/1000) %>%
+  group_by(year, bioregion, region4, affiliated_mpa, mpa_defacto_class,
+           mpa_defacto_designation, grid_cell_id, sciname, cell_hours) %>%
   dplyr::summarize(bpue = sum(weight_kg))
 
 #write.csv(ccfrp_build9, row.names = F, file.path(outdir,"/biomass_processed/ccfrp_fish_biomass.csv"))         
