@@ -26,6 +26,9 @@ ccfrp_effort <- read.csv(file.path(datadir, "/monitoring_ccfrp/CCFRP_derived_dat
 
 kelp_forest_raw <- read.csv(file.path(datadir, "/monitoring_kelp/MLPA_kelpforest_fish.4.csv"))
 
+deep_reef_raw <- read.csv(file.path(datadir, "/monitoring_deep-reef/ROV_Dataset/ROVLengths2005-2019Merged-2021-02-02SLZ.csv")) %>%
+  janitor::clean_names()
+
 #load taxonomy lookup table
 taxon_tab <- read.csv("/home/shares/ca-mpa/data/sync-data/species_traits/processed/species_key.csv")
 
@@ -306,15 +309,84 @@ ccfrp_build12 <- ccfrp_build11 %>%
                                    cell_bpue = mean(bpue))
 
 
-write.csv(ccfrp_build12, row.names = F, file.path(outdir,"/biomass_processed/ccfrp_fish_biomass.csv"))         
+
+#write.csv(ccfrp_build12, row.names = F, file.path(outdir,"/biomass_processed/ccfrp_fish_biomass.csv"))         
 
 
+################################################################################
+#process deep reef
 
 
+deep_reef_build1 <- deep_reef_raw %>%
+                      #remove transects that crossed MPA boundaries -- per PI
+                    filter(!(type == ""|
+                               type == "SMR/SMCA"|
+                               type=="SMCA/SMR"|
+                               type == "N/A")) %>%
+                      #clean up mpa name
+                      mutate(
+                        #assign missing MPAs a name
+                        mpa_name = ifelse(mpa_name == "",paste(mpa_group, type),mpa_name),
+                        #clean up
+                        mpa_name1 = str_replace_all(mpa_name, "_", " "),
+                        #determine whether site was in an MPA or ref
+                             site_type = word(mpa_name1,-1),
+                             site_type = ifelse(site_type == "","REF",site_type),
+                             mpa_name2 = trimws(str_replace_all(mpa_name1, "REF", "")))%>%
+                      #separate MPAs 
+                      separate(mpa_name2, into=c("primary_mpa", "secondary_mpa","tertiary_mpa"),sep = ",", convert = TRUE)%>%
+                      #dplyr::select(!c(secondary_mpa, tertiary_mpa))%>%
+                      #trim ws
+                      mutate(primary_mpa = trimws(primary_mpa)) %>%
+                      #recode reference MPAs to match 
+                      mutate(primary_mpa2 = recode(primary_mpa, 
+                                                  "Ano Nuevo Reference" = "Ano Nuevo SMCA",
+                                                  "Big Creek Reference" = "Big Creek SMCA, Big Creek SMR",
+                                                  "Campus Point Reference" = "Campus Point SMCA",
+                                                  "Carrington Point Reference" = "Carrington Point SMR",
+                                                  "Farallon Islands Reference" = "Farallon Islands SMCA",
+                                                  "Gull Island Reference" = "Gull Island SMR",
+                                                  "Harris Point Reference" = "Harris Point SMR",
+                                                  "Pillar Point Reference" = "Pillar Point SMCA",
+                                                  "Point Buchon Reference" = "Point Buchon SMR",
+                                                  "Point Conception Reference" = "Point Conception SMR",
+                                                  "Point Lobos Reference" = "Point Lobos SMR",
+                                                  "Point St. George Reference" = "Point St. George SMCA",
+                                                  "Point Sur Reference" = "Point Sur SMCA, Point Sur SMR",
+                                                  "Portuguese Ledge Reference" = "Portuguese Ledge SMCA",
+                                                  "Sea Lion Gulch Reference" = "Sea Lion Gulch SMR",
+                                                  "South Point Reference" = "South Point SMR",
+                                                  "Ten Mile Reference" = "Ten Mile SMR",
+                                                  "Bodega Bay Reference" = "Bodega Bay SMR, Bodega Bay SMCA"))%>%
+  separate(primary_mpa2, into=c("primary_mpa2", "secondary_mpa2","tertiary_mpa2"),sep = ",", convert = TRUE)%>%
+  mutate(primary_final = primary_mpa2,
+         secondary_final = paste(secondary_mpa, secondary_mpa2),
+         tertiary_final = paste(tertiary_mpa, tertiary_mpa2),
+         secondary_final = trimws(str_replace_all(secondary_final, "NA", "")),
+         tertiary_final = trimws(str_replace_all(tertiary_final, "NA", "")))
+  
+unique(sort(deep_reef_build1$primary_final))
+unique(sort(deep_reef_build1$secondary_final))
+unique(sort(deep_reef_build1$tertiary_final))
 
+#clean up
 
+deep_reef_build2 <- deep_reef_build1 %>%
+                    dplyr::select(year= survey_year, primary_mpa = primary_final,
+                                  secondary_mpa = secondary_final, 
+                                  tertiary_mpa = tertiary_final,
+                                  site_type, line_id, line, dive, scientific_name,
+                                  common_name, count, estimated_length_cm) %>%
+                    mutate(secondary_mpa = ifelse(secondary_mpa=="",NA,secondary_mpa),
+                           tertiary_mpa = ifelse(tertiary_mpa == "",NA,tertiary_mpa),
+                           site_type = recode(site_type, "Reference"="REF")) %>%
+                    #create single affiliated_mpa -- reference sites with multiple affiliated mpas will have duplicates
+                    pivot_longer(cols=c("primary_mpa","secondary_mpa","tertiary_mpa"),
+                                 names_to = "mpa_order", values_to = "affiliated_mpa",
+                                 values_drop_na = TRUE) %>%
+                    mutate(MPA_type = word(affiliated_mpa, -1))
 
-
+unique(deep_reef_build2$MPA_type)
 
 
 
