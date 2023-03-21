@@ -189,21 +189,21 @@ ccfrp_drift1 <- ccfrp_drift %>%
                     dplyr::select(drift_id, trip_id, grid_cell_id, site_mpa_ref,
                                   total_angler_hrs)
 ccfrp_trip_info1 <- ccfrp_trip_info %>%
-                    dplyr::select(trip_id, area, year = year_automatic)
+                    dplyr::select(trip_id, area, year = year_automatic, month, day)
 ccfrp_areas1 <- ccfrp_areas %>% dplyr::select(area_code, name, mpa_designation)
 
 #join
 ccfrp_build1 <- merge(ccfrp_caught_fishes1, ccfrp_drift1, by="drift_id", all=TRUE)
 ccfrp_build2 <- merge(ccfrp_build1, ccfrp_trip_info1, by="trip_id", all=TRUE)
 ccfrp_build3 <- left_join(ccfrp_build2, ccfrp_areas1, by=c("area"="area_code")) %>%
-                  dplyr::select(year, name, mpa_designation, site_mpa_ref, 
-                                grid_cell_id, total_angler_hrs, species_code,
+                  dplyr::select(year, month, day, trip_id, drift_id, grid_cell_id, name, mpa_designation, site_mpa_ref, 
+                                 total_angler_hrs, species_code,
                                 length_cm)
 
 #calculate effort
 effort <- ccfrp_build3 %>%
-  dplyr::select(year, grid_cell_id, site_mpa_ref, total_angler_hrs) %>% distinct() %>%
-  group_by(year, grid_cell_id, site_mpa_ref) %>%
+  dplyr::select(year, month, day, grid_cell_id, site_mpa_ref, total_angler_hrs) %>% distinct() %>%
+  group_by(year, month, day, grid_cell_id, site_mpa_ref) %>%
   summarize(cell_hours = sum(total_angler_hrs))
 
 #filter taxon tab
@@ -231,7 +231,7 @@ ccfrp_build5 <- ccfrp_build4 %>%
 
 ccfrp_build6 <- convert_dat(params_tab, ccfrp_build5)
 ccfrp_build7 <- bio_fun(ccfrp_build6) %>%
-                dplyr::select(year, name, mpa_designation, site_mpa_ref, grid_cell_id,
+                dplyr::select(year,month, day, name, mpa_designation, site_mpa_ref, grid_cell_id,
                               total_angler_hrs, species_code, TL_cm, sciname,
                               weight_g, target_status)
 #step 4 -- add regions
@@ -250,53 +250,63 @@ ccfrp_build8 <- ccfrp_build7 %>%
                   filter(!(name == "Trinidad"))
 
 ccfrp_build9 <- left_join(ccfrp_build8, regions, by=c("affiliated_mpa"="name")) %>%
-                dplyr::select(year, bioregion, region4, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation,
+                dplyr::select(year, month, day, bioregion, region4, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation,
                               grid_cell_id, total_angler_hrs, species_code, sciname,
                               TL_cm, weight_g, target_status) %>%
                 mutate_at('total_angler_hrs', ~replace_na(.,0))
 
 #step 4 -- process effort
 
-ccfrp_effort_tab <- ccfrp_effort %>% dplyr::select(year, grid_cell_id, cell_hours = total_angler_hours,
+ccfrp_effort_tab <- ccfrp_effort %>% dplyr::select(year, month, day, grid_cell_id, cell_hours = total_angler_hours,
                                                    mpa_defacto_designation=mpa_status
                                                    ) %>% distinct() %>%
-                        mutate(mpa_defacto_designation = ifelse(mpa_defacto_designation == "REF","ref","smr"))
+                        mutate(mpa_defacto_designation = ifelse(mpa_defacto_designation == "REF","ref","smr"),
+                               year = as.character(year),
+                               month = month.name[month],
+                               day = as.character(day),
+                               grid_cell_id = trimws(as.character(grid_cell_id)),
+                               mpa_defacto_designation = as.character(mpa_defacto_designation)) %>%
+                      #calculate total effort per cell
+                      group_by(year, month, day, grid_cell_id,
+                               mpa_defacto_designation) %>%
+                      dplyr::summarize(total_cell_hours = sum(cell_hours))
 
-#step 5 -- calculate total species biomass per cell
+#step 5 -- calculate total species biomass per cell day
 
 ccfrp_build10 <- ccfrp_build9 %>%
-  mutate(weight_kg = weight_g/1000) %>%
-  group_by(year, bioregion, region4, affiliated_mpa, mpa_defacto_class,
-           mpa_defacto_designation, grid_cell_id, sciname) %>%
+  mutate(weight_kg = weight_g/1000,
+         year = as.character(year),
+         month = as.character(month),
+         day = as.character(day),
+         grid_cell_id = trimws(as.character(grid_cell_id)),
+         mpa_defacto_designation = as.character(mpa_defacto_designation)
+         ) %>%
+  group_by(year, month, day, bioregion, region4, affiliated_mpa, mpa_defacto_class,
+           mpa_defacto_designation, grid_cell_id, sciname, target_status) %>%
   dplyr::summarize(total_biomass = sum(weight_kg))
 
 #step 6 -- add effort
 
-ccfrp_build11 <- left_join(ccfrp_build10, ccfrp_effort_tab, by=c("year","grid_cell_id","mpa_defacto_designation")) %>%
-                    mutate(bpue = total_biomass / cell_hours)
+
+ccfrp_build11 <- left_join(ccfrp_build10, ccfrp_effort_tab, by=c("year","month","day","grid_cell_id","mpa_defacto_designation")) %>%
+                    #drop cells per PI
+                    filter(!(is.na(total_cell_hours)))%>%
+                    mutate(bpue = total_biomass / total_cell_hours)
 
 
+#step 7 -- calculate cell annual average bpue. Note::some cells were sampled
+#more than one time in a single year, so take the average. 
+
+ccfrp_build12 <- ccfrp_build11 %>%
+                  group_by(year, bioregion, region4, affiliated_mpa, 
+                           mpa_defacto_class, mpa_defacto_designation, 
+                           grid_cell_id, sciname, target_status) %>%
+                  dplyr::summarize(cell_total_biomass = mean(total_biomass),
+                                   cell_hours = mean(total_cell_hours),
+                                   cell_bpue = mean(bpue))
 
 
-
-
-
-
-ccfrp_build11 <- ccfrp_build10 %>%
-                  mutate(weight_kg = weight_g/1000) %>%
-                  group_by(year, bioregion, region4, affiliated_mpa, mpa_defacto_class,
-                    mpa_defacto_designation, grid_cell_id, sciname, cell_hours) %>%
-                    dplyr::summarize(bpue = sum(weight_kg)) %>%
-                  mutate(bpue = )
-  
-
-bpue <- ccfrp_build11 %>% 
-  mutate(weight_kg = weight_g/1000) %>%
-  group_by(year, bioregion, region4, affiliated_mpa, mpa_defacto_class,
-           mpa_defacto_designation, grid_cell_id, sciname, cell_hours) %>%
-  dplyr::summarize(bpue = sum(weight_kg))
-
-#write.csv(ccfrp_build9, row.names = F, file.path(outdir,"/biomass_processed/ccfrp_fish_biomass.csv"))         
+write.csv(ccfrp_build12, row.names = F, file.path(outdir,"/biomass_processed/ccfrp_fish_biomass.csv"))         
 
 
 
