@@ -36,7 +36,7 @@ surf_zone_build2 <- surf_zone_build1 %>%
                       summarize(haul_avg = mean(total_biomass, na.rm=TRUE),
                                 n_hauls = n(),
                                 haul_sd = sd(total_biomass, na.rm=TRUE),
-                                haul_se = haul_sd/n_hauls) %>%
+                                haul_se = haul_sd/sqrt(n_hauls)) %>%
                       filter(!(is.na(target_status)))
 
 #calculate response ratio
@@ -89,7 +89,7 @@ kelp_build2 <- kelp_build1 %>%
   summarize(biomass = mean(total_biomass, na.rm=TRUE),
             n_rep = n(),
             sd = sd(total_biomass, na.rm=TRUE),
-            se = sd/n_rep) %>%
+            se = sd/sqrt(n_rep)) %>%
   filter(!(is.na(target_status)))
 
 
@@ -137,7 +137,7 @@ ccfrp_build2 <- ccfrp_build1 %>%
   summarize(biomass = mean(total_biomass, na.rm=TRUE),
             n_rep = n(),
             sd = sd(total_biomass, na.rm=TRUE),
-            se = sd/n_rep) %>%
+            se = sd/sqrt(n_rep)) %>%
   filter(!(is.na(target_status)))
 
 
@@ -186,7 +186,7 @@ deep_reef_build2 <- deep_reef_build1 %>%
   summarize(biomass = mean(total_biomass, na.rm=TRUE),
             n_rep = n(),
             sd = sd(total_biomass, na.rm=TRUE),
-            se = sd/n_rep) %>%
+            se = sd/sqrt(n_rep)) %>%
   filter(!(is.na(target_status)))
 
 
