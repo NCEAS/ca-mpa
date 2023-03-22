@@ -67,7 +67,8 @@ surf_target_RR <- rbind(surf_targeted_RR, surf_nontargeted_RR) %>%
                            "sd_ref" = haul_sd_ref,
                            "sd_smr" = haul_sd_smr,
                            "se_ref" = haul_se_ref,
-                           "se_smr" = haul_se_smr)
+                           "se_smr" = haul_se_smr) %>%
+                    mutate(habitat = "Surf zone")
                            
 #-------------------kelp forest------------------------------------------------#
 
@@ -113,9 +114,117 @@ kelp_nontargeted_RR <- kelp_build2 %>% filter(target_status == "Nontargeted") %>
   filter(!(is.na(n_rep_ref)|is.na(n_rep_smr)))%>%
   mutate(log_RR = log(biomass_smr/biomass_ref))
 
-kelp_target_RR <- rbind(kelp_targeted_RR, kelp_nontargeted_RR)
+kelp_target_RR <- rbind(kelp_targeted_RR, kelp_nontargeted_RR) %>%
+                        mutate(habitat = "Kelp forest")
 
 
 #------------------------CCFRP------------------------------------------------#
+
+#calculate total biom for each rep unit
+ccfrp_build1 <- rocky_reef_raw %>%
+  group_by(year, bioregion, region4, affiliated_mpa,
+           mpa_defacto_class, mpa_defacto_designation,
+           grid_cell_id, target_status)%>%
+  dplyr::summarize(total_biomass = sum(cell_bpue_kg))
+
+
+#calculate MPA average and error
+
+ccfrp_build2 <- ccfrp_build1 %>%
+  group_by(year, bioregion, region4, affiliated_mpa,
+           mpa_defacto_class, mpa_defacto_designation,
+           target_status) %>%
+  summarize(biomass = mean(total_biomass, na.rm=TRUE),
+            n_rep = n(),
+            sd = sd(total_biomass, na.rm=TRUE),
+            se = sd/n_rep) %>%
+  filter(!(is.na(target_status)))
+
+
+#calculate response ratio
+
+ccfrp_targeted_RR <- ccfrp_build2 %>% filter(target_status == "Targeted") %>%
+  #drop smcas
+  filter(!(mpa_defacto_class == "smca"))%>%
+  pivot_wider(names_from = "mpa_defacto_designation",
+              values_from = c(biomass, n_rep, sd, se)) %>%
+  #drop sites that do not have pairs
+  filter(!(is.na(n_rep_ref)|is.na(n_rep_smr)))%>%
+  mutate(log_RR = log(biomass_smr/biomass_ref))
+
+
+ccfrp_nontargeted_RR <- ccfrp_build2 %>% filter(target_status == "Nontargeted") %>%
+  #drop smcas
+  filter(!(mpa_defacto_class == "smca"))%>%
+  pivot_wider(names_from = "mpa_defacto_designation",
+              values_from = c(biomass, n_rep, sd, se)) %>%
+  #drop sites that do not have pairs
+  filter(!(is.na(n_rep_ref)|is.na(n_rep_smr)))%>%
+  mutate(log_RR = log(biomass_smr/biomass_ref))
+
+ccfrp_target_RR <- rbind(ccfrp_targeted_RR, ccfrp_nontargeted_RR) %>%
+                      mutate(habitat = "Rocky reef")
+
+
+#------------------------DEEP REEF---------------------------------------------#
+
+#calculate total biom for each rep unit
+deep_reef_build1 <- deep_reef_raw %>%
+  group_by(year, bioregion, region4, affiliated_mpa,
+           mpa_defacto_class, mpa_defacto_designation,
+           line_id, target_status)%>%
+  dplyr::summarize(total_biomass = sum(total_biom_kg)) %>%
+        filter(!(is.na(target_status)))
+
+
+#calculate MPA average and error
+
+deep_reef_build2 <- deep_reef_build1 %>%
+  group_by(year, bioregion, region4, affiliated_mpa,
+           mpa_defacto_class, mpa_defacto_designation,
+           target_status) %>%
+  summarize(biomass = mean(total_biomass, na.rm=TRUE),
+            n_rep = n(),
+            sd = sd(total_biomass, na.rm=TRUE),
+            se = sd/n_rep) %>%
+  filter(!(is.na(target_status)))
+
+
+#calculate response ratio
+
+deep_reef_targeted_RR <- deep_reef_build2 %>% filter(target_status == "Targeted") %>%
+  mutate(mpa_defacto_designation = tolower(mpa_defacto_designation),
+         mpa_defacto_class = tolower(mpa_defacto_class))%>%
+  #drop smcas
+  filter(!(mpa_defacto_class == "smca"))%>%
+  pivot_wider(names_from = "mpa_defacto_designation",
+              values_from = c(biomass, n_rep, sd, se)) %>%
+  #drop sites that do not have pairs
+  filter(!(is.na(n_rep_ref)|is.na(n_rep_smr)))%>%
+  mutate(log_RR = log(biomass_smr/biomass_ref))
+
+
+
+deep_reef_nontargeted_RR <- deep_reef_build2 %>% filter(target_status == "Nontargeted") %>%
+  mutate(mpa_defacto_designation = tolower(mpa_defacto_designation),
+         mpa_defacto_class = tolower(mpa_defacto_class))%>%
+  #drop smcas
+  filter(!(mpa_defacto_class == "smca"))%>%
+  pivot_wider(names_from = "mpa_defacto_designation",
+              values_from = c(biomass, n_rep, sd, se)) %>%
+  #drop sites that do not have pairs
+  filter(!(is.na(n_rep_ref)|is.na(n_rep_smr)))%>%
+  mutate(log_RR = log(biomass_smr/biomass_ref))
+
+deep_reef_target_RR <- rbind(deep_reef_targeted_RR, deep_reef_nontargeted_RR) %>%
+                        mutate(habitat ="Deep reef")
+
+################################################################################
+# join data
+
+target_RR_full <- rbind(surf_target_RR, kelp_target_RR, ccfrp_target_RR, deep_reef_target_RR) %>%
+                    dplyr::select(habitat, everything())
+
+#write.csv(row.names = FALSE, target_RR_full, file.path(datadir, "targeted_nontargeted_biomass_MPA_means"))
 
 

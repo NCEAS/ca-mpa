@@ -417,7 +417,9 @@ unique(deep_reef_build2$MPA_type)
 #add defacto SMRs
 
 deep_reef_build3 <- left_join(deep_reef_build2, defacto_smr_deep_reef, by="affiliated_mpa") %>%
-                          mutate(mpa_defacto_designation = ifelse(site_type == "REF","REF",mpa_defacto_class))
+                          mutate(mpa_defacto_designation = ifelse(site_type == "REF","REF",mpa_defacto_class),
+                                 affiliated_mpa = recode(affiliated_mpa, "ano nuevo smr" = "año nuevo smr"))
+          
 
 
 #add regions
