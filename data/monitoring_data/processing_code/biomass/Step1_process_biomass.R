@@ -52,9 +52,14 @@ defacto_smr_kelp <- readxl::read_excel(file.path(data_path, input_file), sheet=5
   filter(group=="kelp") %>%
   dplyr::select(affiliated_mpa, mpa_defacto_class = mpa_class)
 
+defacto_smr_deep_reef <- readxl::read_excel(file.path(data_path, input_file), sheet=5, skip = 0, na="NA")%>%
+  filter(group=="deep_reef") %>%
+  dplyr::select(affiliated_mpa, mpa_defacto_class = mpa_class)
+
 #load lw params
 params_tab <- read.csv("/home/shares/ca-mpa/data/sync-data/species_traits/processed/fish_lw_parameters_by_species.csv") %>%
-                mutate(ScientificName_accepted = recode(ScientificName_accepted, "Sebastes spp." = "Sebastes spp"))
+                mutate(ScientificName_accepted = recode(ScientificName_accepted, "Sebastes spp." = "Sebastes spp")) %>%
+                filter(!(is.na(ScientificName_accepted)))
 
 ################################################################################
 #prep conversion function
@@ -384,17 +389,107 @@ deep_reef_build2 <- deep_reef_build1 %>%
                     pivot_longer(cols=c("primary_mpa","secondary_mpa","tertiary_mpa"),
                                  names_to = "mpa_order", values_to = "affiliated_mpa",
                                  values_drop_na = TRUE) %>%
-                    mutate(MPA_type = word(affiliated_mpa, -1))
+                    mutate(MPA_type = word(affiliated_mpa, -1),
+                           affiliated_mpa = tolower(affiliated_mpa),
+                           #correct spelling to match mpa attribute table
+                           affiliated_mpa = recode(affiliated_mpa, 
+                                                   "point buchon smr" = "point buchon smca",
+                                                    "southeast farallon islands smca"= "southeast farallon island smca",
+                                                     "southeast farallon islands smr"="southeast farallon island smr",
+                                                     "ano nuevo smca"= "ano nuevo smr",
+                                                     "bodega bay smr"="bodega head smr",
+                                                     "bodega bay smca"="bodega head smca",
+                                                     "farallon islands smca"="southeast farallon island smca",
+                                                     "point st. george smca" = "point st. george reef offshore smca"
+                                                     )
+                           )
 
 unique(deep_reef_build2$MPA_type)
 
+#add defacto SMRs
+
+deep_reef_build3 <- left_join(deep_reef_build2, defacto_smr_deep_reef, by="affiliated_mpa") %>%
+                          mutate(mpa_defacto_designation = ifelse(site_type == "REF","REF",mpa_defacto_class))
 
 
+#add regions
+
+deep_reef_build4 <- left_join(deep_reef_build3, regions, by=c("affiliated_mpa"="name"))%>%
+                      dplyr::rename(fish_tl = estimated_length_cm)
 
 
+#add taxa and correct species spellings
+deep_reef_taxa <- taxon_tab %>% filter(habitat=="Deep reef") %>%
+                    #fix target status
+                    mutate(target_status = ifelse(habitat_specific_spp_name == "Sebastes melanops or mystinus", "Targeted",target_status),
+                           target_status = ifelse(habitat_specific_spp_name == "Sebastes melanops or mystinus or diaconus", "Targeted",target_status),
+                           target_status = ifelse(habitat_specific_spp_name == "Sebastes mystinus or diaconus", "Targeted",target_status),
+                           target_status = ifelse(habitat_specific_spp_name == "Sebastes pinniger or miniatus", "Targeted",target_status),
+                           target_status = ifelse(habitat_specific_spp_name == "Sebastes diaconus", "Targeted",target_status),
+                           target_status = ifelse(habitat_specific_spp_name == "Sebastes serranoides or flavidus", "Targeted",target_status),
+                           target_status = ifelse(habitat_specific_spp_name == "Sebastes serranoides or flavidus", "Targeted",target_status)
+                           )
+
+deep_reef_build5 <- left_join(deep_reef_build4, deep_reef_taxa, by=c("scientific_name"="habitat_specific_spp_name"), multiple="all")%>%
+                        filter(is.na(sciname)) #identify species that are spelled incorrectly
+
+deep_reef_build6 <- deep_reef_build4 %>%
+                      mutate(scientific_name = recode(scientific_name,
+                              "Pleuronectidae spp." = "Pleuronectidae spp",
+                              "sebastes miniatus" = "Sebastes miniatus",
+                              "Hexagrammus decagrammus" = "Hexagrammos decagrammus",
+                              "Sebastes paucipinis" = "Sebastes paucispinis",
+                              "Sebastes minatus"="Sebastes miniatus",
+                              "Sebastes letiginosus"="Sebastes lentiginosus",
+                              "Sebases serranoides" = "Sebastes serranoides",
+                              "Rhinogobiops nicholsii" = "Rhinogobiops nicholsii",
+                              "Chromis Punctipinnis" = "Chromis punctipinnis",
+                              "Sebastes Caurinus" = "Sebastes caurinus",
+                              "Oxylebius rictus†"= "Oxylebius rictus",
+                              "Sebastes hopskini" = "Sebastes hopkinsi",
+                              "Sebaste miniatus" = "Sebastes miniatus",
+                              "Hexagrammos decagrammus†" = "Hexagrammos decagrammus",
+                              "Sebastes lentiginosus" = "Sebastes lentiginosus",
+                              "Sebastes umbrosus†" = "Sebastes umbrosus",
+                              "Sebastes dalii"="Sebastes dallii",
+                              "Sebastes pauscipinis" = "Sebastes paucispinis",
+                              "Sebastes ensifer" = "Sebastes ensifer",
+                              "Hydrolagus collei" = "Hydrolagus collei",
+                              "Zaniolepis Spp." = "Zaniolepis spp",
+                              "Starry Rockfish" = "Sebastes constellatus",
+                              "Sebastes carnatus " = "Sebastes carnatus",
+                              "Zaniolepis spp." ="Zaniolepis spp",
+                              "Sebastes nebulosus " ="Sebastes nebulosus",
+                              "Hyperprosopon ellipticum" = "Hyperprosopon ellipticum",
+                              "Sebastes mystinus " = "Sebastes mystinus",
+                              "Hexagrammos decagrammus " = "Hexagrammos decagrammus",
+                              "Sebastes caurinus " = "Sebastes caurinus",
+                              "Sebastes miniatus " = "Sebastes miniatus",
+                              "sebastes maliger" = "Sebastes maliger",
+                              "Sebastes pinniger " = "Sebastes pinniger",
+                              "Ophiodon elongatus " = "Ophiodon elongatus",
+                              "Unidentified Sebastes sp." = "Sebastes spp"
+                             ))
+
+deep_reef_build7 <- left_join(deep_reef_build6, deep_reef_taxa, by=c("scientific_name"="habitat_specific_spp_name"), multiple="all")
 
 
+#calculate biomass
+deep_reef_build8 <- convert_dat(params_tab, deep_reef_build7)
+deep_reef_build9 <- bio_fun(deep_reef_build8) %>%
+                      filter(!(is.na(weight_g)))
+
+#clean up
+
+deep_reef_build10 <- deep_reef_build9 %>%
+                      mutate(total_biom_g = weight_g*count,
+                             total_biom_kg = total_biom_g/1000)%>%
+                      dplyr::select(year, bioregion, region4, affiliated_mpa,
+                                    site_type, mpa_defacto_class, mpa_defacto_designation,
+                                    line_id, line, dive, habitat_specific_code, habitat_specific_id = scientific_name,
+                                    sciname, target_status, count, TL_cm, weight_g, total_biom_kg)
 
 
+#write.csv(deep_reef_build10, row.names = F, file.path(outdir,"/biomass_processed/deep_reef_fish_biomass.csv"))  
 
 
