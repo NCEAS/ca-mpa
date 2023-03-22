@@ -182,7 +182,7 @@ kelp_fish_counts_final <- kelp_fish_counts %>%
                       filter(!(is.na(mpa_defacto_class)))%>%
                       mutate(mpa_defacto_class = tolower(mpa_defacto_class),
                              mpa_designation = tolower(mpa_designation),
-                             mpa_defacto_designation = ifelse(mpa_defacto_class == "ref","ref",mpa_defacto_class),
+                             mpa_defacto_designation = ifelse(mpa_designation == "ref","ref",mpa_defacto_class),
                              mpa_state_class = tolower(mpa_state_class),
                              total_biom_kg = total_biom_g/1000)%>%
                       dplyr::rename(mpa_state_designation = mpa_designation)%>%
@@ -527,15 +527,18 @@ surf_zone_build1 <- surf_zone_raw %>%
             total_weight_kg = total_weight_g/1000,
             fish_length = fish_length/10,
             affiliated_mpa = tolower(affiliated_mpa),
-            affiliated_mpa = recode(affiliated_mpa, "ano nuevo smr" = "año nuevo smr"))
+            #affiliated_mpa = recode(affiliated_mpa, "ano nuevo smr" = "año nuevo smr")
+            )
 
 
 #add defacto smrs
 
-surf_zone_build2 <- left_join(surf_zone_build1, defacto_smr_surf, by="affiliated_mpa")
+surf_zone_build2 <- left_join(surf_zone_build1, defacto_smr_surf, by="affiliated_mpa") %>%
+                        mutate(affiliated_mpa = recode(affiliated_mpa, "ano nuevo smr" = "año nuevo smr"))
 
 
 #add regions
+
 
 surf_zone_build3 <- left_join(surf_zone_build2, regions, by=c("affiliated_mpa"="name")) %>%
                       mutate(mpa_defacto_designation = ifelse(mpa_state_designation == "ref","ref",tolower(mpa_defacto_class)))%>%
