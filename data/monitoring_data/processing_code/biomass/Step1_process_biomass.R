@@ -29,6 +29,9 @@ kelp_forest_raw <- read.csv(file.path(datadir, "/monitoring_kelp/MLPA_kelpforest
 deep_reef_raw <- read.csv(file.path(datadir, "/monitoring_deep-reef/ROV_Dataset/ROVLengths2005-2019Merged-2021-02-02SLZ.csv")) %>%
   janitor::clean_names()
 
+surf_zone_raw <- read.csv(file.path(datadir, "/monitoring_sandy-beach/surf_zone_fish_seine_data.csv")) %>%
+  janitor::clean_names()
+
 #load taxonomy lookup table
 taxon_tab <- read.csv("/home/shares/ca-mpa/data/sync-data/species_traits/processed/species_key.csv")
 
@@ -54,6 +57,10 @@ defacto_smr_kelp <- readxl::read_excel(file.path(data_path, input_file), sheet=5
 
 defacto_smr_deep_reef <- readxl::read_excel(file.path(data_path, input_file), sheet=5, skip = 0, na="NA")%>%
   filter(group=="deep_reef") %>%
+  dplyr::select(affiliated_mpa, mpa_defacto_class = mpa_class)
+
+defacto_smr_surf <- readxl::read_excel(file.path(data_path, input_file), sheet=5, skip = 0, na="NA")%>%
+  filter(group=="surf") %>%
   dplyr::select(affiliated_mpa, mpa_defacto_class = mpa_class)
 
 #load lw params
@@ -169,16 +176,17 @@ kelp_fish_counts <- left_join(kelp_fish_counts, defacto_smr_kelp, by="affiliated
 
 kelp_fish_counts_final <- kelp_fish_counts %>% 
                       dplyr::select(year, month, day, affiliated_mpa, 
-                                    mpa_state_class = mpa_class.x,
+                                    mpa_state_class = mpa_class,
                                     mpa_defacto_class, bioregion, region4,
                                     everything()) %>%
                       filter(!(is.na(mpa_defacto_class)))%>%
                       mutate(mpa_defacto_class = tolower(mpa_defacto_class),
                              mpa_designation = tolower(mpa_designation),
                              mpa_defacto_designation = ifelse(mpa_defacto_class == "ref","ref",mpa_defacto_class),
-                             mpa_state_class = tolower(mpa_state_class))%>%
+                             mpa_state_class = tolower(mpa_state_class),
+                             total_biom_kg = total_biom_g/1000)%>%
                       dplyr::rename(mpa_state_designation = mpa_designation)%>%
-                      select(!(mpa_class.y)) %>%
+                      #select(!(mpa_class.y)) %>%
   dplyr::select(year, month, day, affiliated_mpa, 
                 mpa_state_class, mpa_state_designation,
                 mpa_defacto_class, mpa_defacto_designation, bioregion, region4,
@@ -311,7 +319,7 @@ ccfrp_build12 <- ccfrp_build11 %>%
                            grid_cell_id, sciname, target_status) %>%
                   dplyr::summarize(cell_total_biomass = mean(total_biomass),
                                    cell_hours = mean(total_cell_hours),
-                                   cell_bpue = mean(bpue))
+                                   cell_bpue_kg = mean(bpue))
 
 
 
@@ -491,5 +499,61 @@ deep_reef_build10 <- deep_reef_build9 %>%
 
 
 #write.csv(deep_reef_build10, row.names = F, file.path(outdir,"/biomass_processed/deep_reef_fish_biomass.csv"))  
+
+
+
+
+################################################################################
+#process surf zone
+
+#identify pairs
+
+pairs <- surf_zone_raw %>% dplyr::select(site_code, site_type, mpa_name_short,
+                                         affiliated_mpa, site_pair, mpa_status,
+                                         mpa_type) %>% distinct() %>%
+                              mutate(mpa_state_class = word(affiliated_mpa, -1),
+                                     mpa_state_designation = ifelse(mpa_status == "Reference","ref",tolower(mpa_state_class))) %>%
+                              dplyr::select(affiliated_mpa, mpa_state_class, mpa_state_designation, everything())
+
+surf_zone_build1 <- surf_zone_raw %>%
+  mutate(mpa_state_class = word(affiliated_mpa, -1),
+         mpa_state_designation = ifelse(mpa_status == "Reference","ref",tolower(mpa_state_class))) %>%
+                      dplyr::select(affiliated_mpa, mpa_state_class, mpa_state_designation, everything())%>%
+                      dplyr::select(!(c(site_code, site_type, site_name, region, mpa_name_short, site_pair,
+                                      mpa_status, mpa_type)))%>%
+          dplyr::rename(weight_g = fish_weight_individual,
+                        total_weight_g = fish_weight) %>%
+          mutate(
+            total_weight_kg = total_weight_g/1000,
+            fish_length = fish_length/10,
+            affiliated_mpa = tolower(affiliated_mpa),
+            affiliated_mpa = recode(affiliated_mpa, "ano nuevo smr" = "año nuevo smr"))
+
+
+#add defacto smrs
+
+surf_zone_build2 <- left_join(surf_zone_build1, defacto_smr_surf, by="affiliated_mpa")
+
+
+#add regions
+
+surf_zone_build3 <- left_join(surf_zone_build2, regions, by=c("affiliated_mpa"="name")) %>%
+                      mutate(mpa_defacto_designation = ifelse(mpa_state_designation == "ref","ref",tolower(mpa_defacto_class)))%>%
+                      #clean up
+                      dplyr::select(year, month, day, bioregion, region4, affiliated_mpa, 
+                                    mpa_state_class, mpa_state_designation,
+                                    mpa_defacto_class, mpa_defacto_designation,
+                                    haul_number, species_code, class, order, 
+                                    family, genus, species, target_status=targeted,
+                                    fish_length, weight_g, total_weight_g, 
+                                    count, total_weight_kg) %>%
+                        #drop no species
+                      filter(!(species_code == "NOSP"))
+
+
+#write.csv(surf_zone_build3, row.names = F, file.path(outdir,"/biomass_processed/surf_zone_fish_biomass.csv"))  
+
+
+
 
 
