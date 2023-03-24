@@ -36,71 +36,68 @@ eco_dist <- load(file.path(data_path, "distance_matrices_BC.rda"))
 
 CCFRP_disper <- betadisper(CCFRP_distmat, type="centroid", 
                            group=CCFRP_group_vars$desig_state)
-A<- plot(CCFRP_disper, main="CCFRP", col=c('red','blue'),
+plot(CCFRP_disper, main="CCFRP", col=c('red','blue'),
          hull=TRUE, ellipse=FALSE, label=FALSE)
 
 
 kelp_swath_disper <- betadisper(kelp_swath_distmat, type="centroid", 
                                 group=kelp_swath_group_vars$desig_state)
-B<- plot(kelp_swath_disper, main="kelp swath", col=c('red','blue'))
+plot(kelp_swath_disper, main="kelp swath", col=c('red','blue'))
 
 
 
 kelp_upc_disper <- betadisper(kelp_upc_distmat, type="centroid", 
                               group=kelp_upc_group_vars$desig_state)
-C<- plot(kelp_upc_disper, main="kelp upc", col=c('red','blue'))
+plot(kelp_upc_disper, main="kelp upc", col=c('red','blue'))
 
 
 kelp_fish_disper <- betadisper(kelp_fish_distmat, type="centroid", 
                                group=kelp_fish_group_vars$desig_state)
-D<- plot(kelp_fish_disper, main="kelp fish", col=c('red','blue'))
+plot(kelp_fish_disper, main="kelp fish", col=c('red','blue'))
 
 kelp_invalg_disper <- betadisper(kelp_invalg_distmat, type="centroid", 
                                group=kelp_invalg_group_vars$desig_state)
-G<- plot(kelp_invalg_disper, main="kelp inverts and algae", col=c('red','blue'))
+plot(kelp_invalg_disper, main="kelp inverts and algae", col=c('red','blue'))
 
 
 deep_reef_disper <- betadisper(deep_reef_distmat, type="centroid", 
                                group=deep_reef_group_vars$desig_state)
-E <- plot(deep_reef_disper, main="deep reef", col=c('red','blue'))
+plot(deep_reef_disper, main="deep reef", col=c('red','blue'))
 
 
 rocky_disper <- betadisper(rocky_distmat, type="centroid", 
                            group=rocky_group_vars$desig_state)
-F <- plot(rocky_disper, main="rocky", col=c('red','blue'))
+plot(rocky_disper, main="rocky", col=c('red','blue'))
 
 
 ################################################################################
 #calculate dist between centroids using betadisper output
 
 #create helper function to handle negative eigenvalues and
-#convert to square mat
-
-disper_mat <- CCFRP_disper
+#convert to square matrix
 
 eig_fun <- function(disper_mat) {
-  
+  #set positive-definite eigenvalues
   x = melt(as.matrix(sqrt(dist(disper_mat$centroids[,disper_mat$eig>0]^2)-
                             dist(disper_mat$centroids[,disper_mat$eig<0]^2))))
   tibble::rownames_to_column(x, "distance")
-  
+  #select pairwise comparisons (resistance = before-during, recovery= before-after)
   x2 <- x %>% filter(Var1 == "ref before" & Var2 == "ref after" |
                        Var1 == "ref before" & Var2 == "ref during" |
                        Var1 == "smr before" & Var2 == "smr after"|
                        Var1 == "smr before" & Var2 == "smr during") %>%
     mutate(MPA = gsub( " .*$", "", Var1)) # %>%
-  #select(MPA, value)%>%
-  #pivot_wider(names_from="MPA")%>%
-  #mutate(logRR = log(smr/ref))
   
+  #calculate pairswise standard deviation 
   sd = melt(as.matrix(tapply(disper_mat$distances, disper_mat$group, sd)))%>%
     tibble::rownames_to_column() %>% mutate(s_d = value)%>%
     dplyr::select(Var1, s_d)
   
+  #calculate number of reps (sites) used in pairwise comparison 
   n = melt(table(disper_mat$group))%>%
     tibble::rownames_to_column() %>% mutate(n = value)%>%
     dplyr::select(Var1, n) 
-  
+  #calculate pooled standard error 
   e_hat <- left_join(sd, n, by='Var1') %>%
     pivot_wider(names_from='Var1', values_from = c('s_d','n'))%>%
     mutate(sd_ref_pooled_before_after = sqrt(
@@ -156,9 +153,11 @@ kelp_fish_travel <- eig_fun(kelp_fish_disper) %>% mutate(group = "Kelp forest fi
 deep_reef_travel <- eig_fun(deep_reef_disper) %>% mutate(group = "Deep reef fishes")
 rocky_travel <- eig_fun(rocky_disper) %>% mutate(group = "Rocky intertidal")
 
+#combine results
 travel_distance <- as.data.frame(rbind(ccfrp_travel, kelp_invalg_travel, kelp_fish_travel,
                          deep_reef_travel, rocky_travel))
 
+#clean up names
 travel_distance$MPA <- recode_factor(travel_distance$MPA, 'smr'='MPA')
 travel_distance$MPA <- recode_factor(travel_distance$MPA, 'ref'='Reference')
 
@@ -277,7 +276,7 @@ perm_fun <- function(perm_table, group_name){
 ################################################################################
 #plot betadisper distance between centroids
 
-#join distance and PERMANOVA tables
+#join distance and PERMANOVA results
 distance1 <- travel_distance%>%
   mutate(period = ifelse(Var1 == "ref before" & Var2== "ref during" |
                            Var1== "smr before" & Var2== "smr during","before-to-during",
@@ -291,7 +290,7 @@ distance1$MPA_type <- recode_factor(distance1$MPA_type, "REF"="Reference")
 distance1$MPA_type <- recode_factor(distance1$MPA_type, "SMR"="MPA")
 
 #perm_output$group <- recode_factor(perm_output$group, 	
-#                                   "Kelp forest inverts and algae" = "kelp inverts and algae")
+#                                 "Kelp forest inverts and algae" = "kelp inverts and algae")
 #perm_output$group <- recode_factor(perm_output$group, 	
 #                                   "Kelp forest fish" = "kelp fish")
 #perm_output$group <- recode_factor(perm_output$group, 	
@@ -470,8 +469,8 @@ g_title <- ggpubr::annotate_figure(g, left = textGrob("Distance (Bray-Curtis)",
 
 
 
-ggsave(here::here("analyses", "5community_climate_ecology", "figures", "betadisp_plot5.png"), g_title, height=6, width = 7, units = "in", 
-  dpi = 600, bg="white")
+#ggsave(here::here("analyses", "5community_climate_ecology", "figures", "betadisp_plot5.png"), g_title, height=6, width = 7, units = "in", 
+#  dpi = 600, bg="white")
 
 
 ################################################################################
