@@ -64,10 +64,12 @@ dist_long1 <- dist_long %>%
   #filter site-by-site comparisons only
   filter(site_1==site_2) %>%
   #select baseline period
+  #filter(year_1 >= 2007 & year_1 <= 2013)%>%
   filter(year_1 >= 2004 & year_1 <= 2006)%>%
   #make year numeric for plotting
   mutate(year_x = as.numeric(year_2))%>%
   #plot starts at 2006
+  #filter(year_x >= 2013) %>%
   filter(year_x >= 2006) %>%
   dplyr::select(MPA_2, year_1, year_x, dissim)%>%
   #convert dissim to sim
