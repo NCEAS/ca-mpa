@@ -907,7 +907,7 @@ cplot <- cowplot::plot_grid(
   legend
   )
 print(cplot)
-
+ 
 
 cowplot::save_plot(here::here("analyses", "5community_climate_ecology", "figures", "community_trajectory.png"), cplot, bg="white",dpi = 600, units = "in", base_width=10, base_height = 8)
 
