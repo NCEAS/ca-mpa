@@ -37,7 +37,7 @@ eco_dist <- load(file.path(data_path, "distance_matrices_BC.rda"))
 CCFRP_disper <- betadisper(CCFRP_distmat, type="centroid", 
                            group=CCFRP_group_vars$desig_state)
 plot(CCFRP_disper, main="CCFRP", col=c('red','blue'),
-         hull=TRUE, ellipse=FALSE, label=FALSE)
+         hull=T, ellipse=F, label=F)
 
 
 kelp_swath_disper <- betadisper(kelp_swath_distmat, type="centroid", 
@@ -355,6 +355,7 @@ p2 <-
   filter(Period == "Before-to-after")%>%
   mutate(group = factor(group, levels = c("Rocky intertidal","Kelp forest inverts and algae",
                                           "Kelp forest fishes","Rocky reef fishes","Deep reef fishes")),
+         MPA_type = factor(MPA_type, levels = c("MPA","Reference")),
          sig_y = value+se_pooled+0.01)%>%
   arrange(MPA_type, -value, group)%>%
   mutate(mpa_ordered = fct_inorder(paste(MPA_type, group, sep = "."))) |> 
@@ -364,9 +365,6 @@ p2 <-
   geom_errorbar(aes(ymin=value-se_pooled,
                     ymax = value+se_pooled), stat="identity",
                 position = position_dodge(width=0.5), size=0.3, width=.3)+
-  #scale_color_manual(name='MPA',
-  #                  breaks=c('In', 'Out'),
-  #                 values=c('In'='#EB6977', 'Out'='#13A0DD'))+
   #add significance level
   geom_text(aes(x = group, y=sig_y, label=sig), size=3, #hjust=-1, vjust=0.5,
             position = position_dodge(width=0.5),
@@ -376,7 +374,7 @@ p2 <-
            color="lightgray")+
   annotate("text", size=1.8,
            x=0.6, y=0.12, angle=90,
-           label = "Recovery",
+           label = "Resistance",
            fontface = 'italic',
            color = 'black')+
   annotate("text", size=1.5,
@@ -391,21 +389,20 @@ p2 <-
            color = 'black')+
   ylab("")+
   xlab("")+
-  labs(color = "Site type")+
   scale_y_continuous(limits=c(-0.01,0.23))+
   scale_x_discrete(labels = function(x) 
     stringr::str_wrap(x, width = 15)
   )+
+  labs(color = "Site type")+
   scale_color_brewer(palette="Set1") +
   #geom_vline(xintercept=c(1.5, 2.5,3.5,4.5), color="grey",alpha=.4)+
   #coord_flip()+
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
         panel.background = element_blank(), axis.line = element_line(colour = "black"),
         legend.key=element_blank())+
-  ggtitle("Recovery \n(Before-to-after)")+
+  ggtitle("Resistance \n(Before-to-during)")+
   my_theme+
   theme(aspect.ratio=1)
-
 p2
 
 
