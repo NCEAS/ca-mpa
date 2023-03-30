@@ -374,7 +374,7 @@ p2 <-
            color="lightgray")+
   annotate("text", size=1.8,
            x=0.6, y=0.12, angle=90,
-           label = "Resistance",
+           label = "Recovery",
            fontface = 'italic',
            color = 'black')+
   annotate("text", size=1.5,
@@ -400,7 +400,7 @@ p2 <-
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
         panel.background = element_blank(), axis.line = element_line(colour = "black"),
         legend.key=element_blank())+
-  ggtitle("Resistance \n(Before-to-during)")+
+  ggtitle("Recovery \n(Before-to-after)")+
   my_theme+
   theme(aspect.ratio=1)
 p2
@@ -419,7 +419,7 @@ g_title <- ggpubr::annotate_figure(g, left = textGrob("Distance (Bray-Curtis)",
 
 
 #ggsave(here::here("analyses", "5community_climate_ecology", "figures", "betadisp_plot5.png"), g_title, height=6, width = 7, units = "in", 
-#  dpi = 600, bg="white")
+ # dpi = 600, bg="white")
 
 
 ################################################################################
@@ -434,9 +434,24 @@ perm_tab <- sig_distance %>%
                                                         "Rocky reef fishes",
                                                         "Deep reef fishes")),
                    period = factor(period, levels = c("Before-to-during",
-                                                      "Before-to-after")))
+                                                      "Before-to-after")),
+                   habitat = factor(habitat, levels = c("Rocky intertidal",
+                                                        "Kelp forest inverts and algae",
+                                                        "Kelp forest fishes",
+                                                        "Rocky reef fishes",
+                                                        "Deep reef fishes")))%>%
+          rename("MPA type" = "MPA_type",
+                 "Habitat" = "habitat",
+                 "Transition" = "period",
+                 "B-C distance" = "distance",
+                 "Sum of squares" = "SumOfSqs",
+                 "R-squared" = "R2",
+                 "Psuedo F" = "F",
+                 "P(perm)" = "p-val") %>%
+          dplyr::select(Habitat, "MPA type", Transition, "B-C distance", "Sum of squares",
+                        "R-squared", "Psuedo F","P(perm)") 
 
-#write.csv(perm_tab, file.path(tab_out, "pairwise_permanova.csv"))
+write.csv(perm_tab, file.path(tab_out, "pairwise_permanova.csv"))
 
 
 
