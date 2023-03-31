@@ -22,17 +22,71 @@ fishing_effort <- readRDS(here::here("analyses","2performance_fisheries","analys
 prop_rock <- readRDS("/home/shares/ca-mpa/data/sync-data/mpa_traits/processed/mpa_attributes_habitat_rock.Rds")
 
 #load model output
-mod_out_raw <- read.csv(file.path(datadir,"mpa_betadisp_mod.csv"))
+mod_out_raw <- read.csv(file.path(datadir,"mpa_betadisp_mod_run2.csv"))
 
 #connectivity
 conn_path <- "/home/shares/ca-mpa/data/sync-data/connectivity"
 input_file <- "Settlement_connectivity_by_habitat.csv"  
 settle_dat <- read.csv(file.path(conn_path, input_file))
 
+#biomass
+biom_path <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/biomass_processed"
+file <- "biomass_lnRR_MPA_means.csv"
+biomass <- read.csv(file.path(biom_path, file))
+targeted_biomass <- read.csv(file.path(biom_path, "targeted_biomass_lnRR_MPA_means.csv"))
+
+###############################################################################
+#process data
+
+#-------------------------------------------------------------------------------
+#all fish biomass
+#calculate biomass slope pre-MHW for KF fish
+
+kf_biomass <- biomass %>% filter(habitat == "Kelp forest") %>%
+                filter(year >= 2007 & year <= 2013)
+
+#quick check of slopes
+ggplot(kf_biomass, aes(x=year, y=log_RR))+
+  geom_point()+
+  ggpmisc::stat_poly_line(formula = y ~ x)+
+  facet_wrap(~affiliated_mpa)
+
+#calculate slopes and save to df
+slopes <- nlme::lmList(log_RR ~ year | affiliated_mpa, data=kf_biomass)
+coef <- data.frame(affiliated_mpa=rownames(coef(slopes)),coef(slopes),check.names=FALSE) %>%
+              rename(all_biomass_slope = year)
+rownames(coef) <- NULL ## now redundant
+
+#-------------------------------------------------------------------------------
+#targeted fish biomass
+
+kf_biomass_targeted <- targeted_biomass %>% filter(habitat == "Kelp forest") %>%
+  filter(year >= 2007 & year <= 2013)
+
+#quick check of slopes
+ggplot(kf_biomass_targeted, aes(x=year, y=log_RR))+
+  geom_point()+
+  ggpmisc::stat_poly_line(formula = y ~ x)+
+  facet_wrap(~affiliated_mpa)
+
+#calculate slopes and save to df
+slopes_targeted <- nlme::lmList(log_RR ~ year | as.factor(affiliated_mpa), data=kf_biomass_targeted, na.action = na.exclude)
+
+coef_targeted <- data.frame(affiliated_mpa=rownames(coef(slopes_targeted)),coef(slopes_targeted),check.names=FALSE) %>%
+  rename(targeted_biomass_slope = year)
+rownames(coef) <- NULL ## now redundant
+
+#merge
+
+biomass_RR <- left_join(coef, coef_targeted, by="affiliated_mpa") %>%
+                dplyr::select(affiliated_mpa, all_biomass_slope, targeted_biomass_slope) %>%
+                mutate(habitat = "Kelp forest fishes")
 
 
 ###############################################################################
-#PART 1 ---- DISTANCE BASED RESPONSE RATIOS
+###############################################################################
+#MODEL 1 ---- DISTANCE-BASED RESPONSE RATIOS 
+
 
 resist_RR_dat <- mod_out_raw %>% filter(habitat =="Kelp forest fishes" |
                                    habitat=="Kelp forest inverts and algae",
@@ -116,70 +170,330 @@ settle_dat1 <- settle_dat %>% mutate(MPA = tolower(MPA)) %>%
 
 RR_dat_full <- left_join(RR_dat_join, settle_dat1, by=c("MPA","habitat_short"))
 
+#step 7 - join biomass slopes for KF fishes
 
-###############################################################################
+
+RR_dat_full1 <- left_join(RR_dat_full, biomass_RR, by=c("habitat","MPA"="affiliated_mpa"))
+
+
+#-------------------------------------------------------------------------------
 #build model for kelp forest fishes
 
-kf_fish_resist <- RR_dat_full %>%
+kf_fish_resist <- RR_dat_full1 %>%
   filter(period=="resistance",
          habitat == 'Kelp forest fishes')
 
-kf_fish_resil <- RR_dat_full %>%
+kf_fish_resil <- RR_dat_full1 %>%
   filter(period=="recovery",
          habitat == "Kelp forest fishes")
 
 #resistance 
 kf_fish_resist_mod <-glm(logRR ~ size + habitat_richness +
-                                    habitat_diversity + prop_rock + fishing_pressure + settlement, data = kf_fish_resist, #add region or lat?
+                                    habitat_diversity + prop_rock + 
+                                    fishing_pressure + settlement +
+                                    targeted_biomass_slope, 
+                                  data = kf_fish_resist, #add region or lat?
                                   family="gaussian", 
-                                  na.action = na.exclude)
+                                  na.action = na.exclude) 
 summary(kf_fish_resist_mod)
 
 #resilience
 kf_fish_resil_mod <- glm(smr ~ size + habitat_richness +
-                           habitat_diversity + prop_rock + fishing_pressure + settlement, data = kf_fish_resil, #add region or lat?
+                           habitat_diversity + prop_rock + 
+                           fishing_pressure + settlement +
+                           targeted_biomass_slope, 
+                         data = kf_fish_resil, #add region or lat?
                          family="gaussian", 
                          na.action = na.exclude) 
 
 summary(kf_fish_resil_mod)
 
-ggplot(RR_dat_full %>% filter(
-                              #period == "recovery"
-                              ) %>% mutate(period = factor(period, levels=c("resistance","recovery"))) ,aes(x = settlement, y=smr))+
-    geom_point()+
-    #geom_line()+
-  stat_poly_line() +
-  stat_poly_eq(use_label(c("P","R2")), label.x.npc="right") +
-  facet_wrap(habitat~period, ncol=2, scales="free")+
-  theme_classic()+
-  labs(y="Distance (Bray-Curtis)")
 
-lm <- lm(smr ~ settlement, data = RR_dat_full %>% filter(habitat=="Kelp forest inverts and algae",
-                                                         period=="recovery"))
-summary(lm)
-
-###############################################################################
+#-------------------------------------------------------------------------------
 #build model for kelp forest inverts and algae
 
+kf_invalg_resist <- RR_dat_full1 %>%
+  filter(period=="resistance",
+         habitat == 'Kelp forest inverts and algae')
+
+kf_invalg_resil <- RR_dat_full1 %>%
+  filter(period=="recovery",
+         habitat == "Kelp forest inverts and algae")
+
+#resistance 
+kf_invalg_resist_mod <-glm(logRR ~ size + habitat_richness +
+                           habitat_diversity + prop_rock + 
+                           fishing_pressure + settlement, 
+                         data = kf_invalg_resist, #add region or lat?
+                         family="gaussian", 
+                         na.action = na.exclude) 
+summary(kf_invalg_resist_mod)
+
+#resilience
+kf_invalg_resil_mod <- glm(smr ~ size + habitat_richness +
+                           habitat_diversity + prop_rock + 
+                           fishing_pressure + settlement, 
+                         data = kf_invalg_resil, #add region or lat?
+                         family="gaussian", 
+                         na.action = na.exclude) 
+
+summary(kf_fish_resil_mod)
+
+
+####NOTE: rocky intertidal does not have paired reference sites, so
+#can't run response ratio for individual MPAs
 
 ###############################################################################
-#build model for intertidal
+###############################################################################
+#MODEL 2 - --- RAW DISTANCE REGRESSION for MPAs only
 
+#-------------------------------------------------------------------------------
+#build model for kelp forest fishes
+
+kf_fish_resist <- RR_dat_full1 %>%
+  filter(period=="resistance",
+         habitat == 'Kelp forest fishes')
+
+kf_fish_resil <- RR_dat_full1 %>%
+  filter(period=="recovery",
+         habitat == "Kelp forest fishes")
+
+#resistance 
+kf_fish_resist_mod <-glm(smr ~ size + habitat_richness +
+                           habitat_diversity + prop_rock + 
+                           fishing_pressure + settlement +
+                           targeted_biomass_slope, 
+                         data = kf_fish_resist, #add region or lat?
+                         family="gaussian", 
+                         na.action = na.exclude)  
+summary(kf_fish_resist_mod)
+
+#resilience
+kf_fish_resil_mod <- glm(smr ~ size + habitat_richness +
+                           habitat_diversity + prop_rock + 
+                           fishing_pressure + settlement +
+                           targeted_biomass_slope, 
+                         data = kf_fish_resil, #add region or lat?
+                         family="gaussian", 
+                         na.action = na.exclude) 
+
+summary(kf_fish_resil_mod)
+
+
+
+
+#-------------------------------------------------------------------------------
+#build model for kelp forest inverts and algae
+
+kf_invalg_resist <- RR_dat_full1 %>%
+  filter(period=="resistance",
+         habitat == 'Kelp forest inverts and algae')
+
+kf_invalg_resil <- RR_dat_full1 %>%
+  filter(period=="recovery",
+         habitat == "Kelp forest inverts and algae")
+
+#resistance 
+kf_invalg_resist_mod <-glm(smr ~ size + habitat_richness +
+                             habitat_diversity + prop_rock + 
+                             fishing_pressure + settlement, 
+                           data = kf_invalg_resist, #add region or lat?
+                           family="gaussian", 
+                           na.action = na.exclude) %>% stepAIC()
+summary(kf_invalg_resist_mod)
+
+#resilience
+kf_invalg_resil_mod <- glm(smr ~ size + habitat_richness +
+                             habitat_diversity + prop_rock + 
+                             fishing_pressure + settlement, 
+                           data = kf_invalg_resil, #add region or lat?
+                           family="gaussian", 
+                           na.action = na.exclude) %>% stepAIC()
+
+summary(kf_fish_resil_mod)
+
+
+
+#-------------------------------------------------------------------------------
+#build model for rocky intertidal
+
+
+rocky_resist <- RR_dat_full1 %>%
+  filter(period=="resistance",
+         habitat == 'Rocky intertidal')
+
+rocky_resil <- RR_dat_full1 %>%
+  filter(period=="recovery",
+         habitat == "Rocky intertidal")
+
+#resistance 
+rocky_resist_mod <-glm(smr ~ size + habitat_richness +
+                             habitat_diversity + prop_rock + 
+                             fishing_pressure + settlement, 
+                           data = rocky_resist, #add region or lat?
+                           family="gaussian", 
+                           na.action = na.exclude)
+summary(rocky_resist_mod)
+
+#resilience
+rocky_resil_mod <- glm(smr ~ size + habitat_richness +
+                             habitat_diversity + prop_rock + 
+                             fishing_pressure + settlement, 
+                           data = rocky_resil, #add region or lat?
+                           family="gaussian", 
+                           na.action = na.exclude) %>% stepAIC()
+
+summary(kf_fish_resil_mod)
 
 ###############################################################################
-#create table of output
-
-
 ###############################################################################
-#MODEL 2 - --- RAW DISTANCE REGRESSION 
+#MODEL 3 - --- LOGISTIC REGRESSION WITH PERMANOVA OUTPUT
+
+resist_logit_dat <- mod_out_raw %>% filter(
+                                       period_2 =="during",
+                                       MPA_type == "smr") %>%
+  mutate(stability = ifelse(p.value > 0.05, "yes","no"))%>%
+  dplyr::select(habitat, MPA, stability) %>%
+  #pivot_wider(names_from = MPA_type, values_from = stability) %>%
+  drop_na() %>%
+  mutate(
+         period = "resistance") 
+
+
+recover_logit_dat <- mod_out_raw %>% filter(
+  period_2 =="after",
+  MPA_type == "smr") %>%
+  mutate(stability = ifelse(p.value > 0.05, "yes","no"))%>%
+  dplyr::select(habitat, MPA, stability) %>%
+  #pivot_wider(names_from = MPA_type, values_from = stability) %>%
+  drop_na() %>%
+  mutate(
+    period = "recovery") 
+
+
+RR_dat1 <- rbind(resist_logit_dat, recover_logit_dat)
+
+
+#Join model output with MPA traits
+
+RR_logit_join <- left_join(RR_dat1, mpa_traits, by=c("MPA"="affiliated_mpa")) %>%
+  mutate(implementation_year = as.numeric(format(implementation_date,'%Y')),
+         habitat_short = ifelse(habitat =="Kelp forest fishes"|
+                                  habitat =="Kelp forest inverts and algae","Kelp forest",habitat))
+
+#join settlement dat
+
+RR_dat_full <- left_join(RR_logit_join, settle_dat1, by=c("MPA","habitat_short"))
+
+#join biomass slopes for KF fishes
+
+RR_dat_full1 <- left_join(RR_dat_full, biomass_RR, by=c("habitat","MPA"="affiliated_mpa")) %>%
+                  mutate(stability = ifelse(stability == "no",0,1))
 
 
 
+#-------------------------------------------------------------------------------
+#build model for kelp fishes
+
+#build model for kelp forest fishes
+
+kf_fish_resist <- RR_dat_full1 %>%
+  filter(period=="resistance",
+         habitat == 'Kelp forest fishes')
+
+kf_fish_resil <- RR_dat_full1 %>%
+  filter(period=="recovery",
+         habitat == "Kelp forest fishes")
+
+#resistance 
+kf_fish_resist_mod <-glm(stability ~ size + 
+                           habitat_diversity + prop_rock + 
+                           fishing_pressure + settlement + targeted_biomass_slope, 
+                         data = kf_fish_resist, #add region or lat?
+                         family="binomial", 
+                         na.action = na.exclude)  
+summary(kf_fish_resist_mod)
+
+#resilience
+
+kf_fish_resil_mod <- glm(stability ~ size + habitat_richness +
+                           habitat_diversity + prop_rock + 
+                           fishing_pressure + settlement +
+                           targeted_biomass_slope, 
+                         data = kf_fish_resil, #add region or lat?
+                         family="gaussian", 
+                         na.action = na.exclude) 
+
+summary(kf_fish_resil_mod)
 
 
+#-------------------------------------------------------------------------------
+#build model for invalg
 
 
+kf_invalg_resist <- RR_dat_full1 %>%
+  filter(period=="resistance",
+         habitat == 'Kelp forest inverts and algae') %>% dplyr::select(!(c(all_biomass_slope, targeted_biomass_slope)))%>%
+           drop_na()
 
+kf_invalg_resil <- RR_dat_full1 %>%
+  filter(period=="recovery",
+         habitat == 'Kelp forest inverts and algae') %>% dplyr::select(!(c(all_biomass_slope, targeted_biomass_slope)))%>%
+        drop_na()
+
+#resistance 
+kf_invalg_resist_mod <-glm(stability ~ size + 
+                           habitat_diversity + prop_rock + 
+                           fishing_pressure, 
+                         data = kf_invalg_resist, #add region or lat?
+                         family="binomial", 
+                         na.action = na.exclude) 
+summary(kf_invalg_resist_mod)
+
+#resilience
+
+kf_fish_resil_mod <- glm(stability ~ size + habitat_richness +
+                           habitat_diversity + prop_rock + 
+                           fishing_pressure + settlement, 
+                         data = kf_invalg_resil, #add region or lat?
+                         family="gaussian", 
+                         na.action = na.exclude) 
+
+summary(kf_invalg_resil_mod)
+
+
+#-------------------------------------------------------------------------------
+#build model for rocky intertidal
+
+
+rocky_resist <- RR_dat_full1 %>%
+  filter(period=="resistance",
+         habitat == 'Rocky intertidal') %>% dplyr::select(!(c(all_biomass_slope, targeted_biomass_slope)))%>%
+  drop_na()
+
+rocky_resil <- RR_dat_full1 %>%
+  filter(period=="recovery",
+         habitat == 'Rocky intertidal') %>% dplyr::select(!(c(all_biomass_slope, targeted_biomass_slope)))%>%
+  drop_na()
+
+#resistance 
+rocky_resist_mod <-glm(stability ~ size + habitat_richness +
+                             habitat_diversity + prop_rock + 
+                             fishing_pressure + settlement, 
+                           data = rocky_resist, #add region or lat?
+                           family="binomial", 
+                           na.action = na.exclude) 
+summary(rocky_resist_mod)
+
+#resilience
+
+rocky_resil_mod <-glm(stability ~ size + habitat_richness +
+                         habitat_diversity + prop_rock + 
+                         settlement, 
+                       data = rocky_resil, #add region or lat?
+                       family="binomial", 
+                       na.action = na.exclude) %>% stepAIC()
+summary(rocky_resist_mod)
 
 
 
