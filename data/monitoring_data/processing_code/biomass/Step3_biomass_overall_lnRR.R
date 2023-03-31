@@ -166,5 +166,5 @@ deep_RR <- deep_reef_build2 %>%
 biomass_RR_full <- rbind(surf_RR, kelp_RR, ccfrp_RR, deep_RR) %>%
   dplyr::select(habitat, everything())
 
-#write.csv(row.names = FALSE, target_RR_full, file.path(datadir, "biomass_lnRR_MPA_means"))
+#write.csv(row.names = FALSE, biomass_RR_full, file.path(datadir, "biomass_lnRR_MPA_means.csv"))
 
