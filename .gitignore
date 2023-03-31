@@ -29,9 +29,11 @@ vignettes/*.pdf
 #MacOS
 .DS_Store
 pca-kf-new.R
+Rplot.png
+
 # Confidential data
 analyses/2performance_fisheries/analyses/lobster_logbooks/output
 analyses/2performance_fisheries/analyses/dive_logbooks/output
+
 # Large files
-data/habitat_cdfw/shiny_app/data
-Rplot.png
+data/habitat_cdfw/old/shiny_app/data

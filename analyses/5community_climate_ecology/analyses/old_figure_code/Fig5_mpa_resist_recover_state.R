@@ -11,8 +11,8 @@ library(tidyverse)
 library(patchwork)
 
 # Directories
-#basedir <- "/Volumes/GoogleDrive/.shortcut-targets-by-id/1kCsF8rkm1yhpjh2_VMzf8ukSPf9d4tqO/MPA Network Assessment: Working Group Shared Folder/data/sync-data" #Chris
-basedir <- "/home/shares/ca-mpa/data/sync-data/" #Josh
+basedir <- "/Volumes/GoogleDrive/.shortcut-targets-by-id/1kCsF8rkm1yhpjh2_VMzf8ukSPf9d4tqO/MPA Network Assessment: Working Group Shared Folder/data/sync-data" #Chris
+# basedir <- "/home/shares/ca-mpa/data/sync-data/" #Josh
 plotdir <- "analyses/5community_climate_ecology/figures"
 
 # Read data
@@ -43,7 +43,7 @@ data <- data_orig %>%
   mutate(period=paste(period_1, period_2, sep="-"),
          process=recode_factor(period,
                         "before-during"="Resistance",
-                        "before-after"="Resilience")) %>% 
+                        "before-after"="Recovery")) %>% 
   # Arrange
   select(habitat, region, lat_dd, mpa, site_type, process, period, distance) %>% 
   # Spread

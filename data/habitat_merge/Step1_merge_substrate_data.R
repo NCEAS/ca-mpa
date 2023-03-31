@@ -19,32 +19,20 @@ plotdir <- "data/habitat_cdfw/figures"
 
 # Read data
 cdfw_orig <- terra::rast(file.path(datadir1, "CA_bottom_substrate_10m_reclassed.tiff")) 
-stanford_orig <- terra::rast(file.path(datadir2, "CA_substrate_polygon_stanford_10m.tiff"))
-anita_orig <- terra::rast(file.path(datadir3, "CI_substrate_10m_qgis_new2.tif"))
+# stanford_orig <- terra::rast(file.path(datadir2, "CA_substrate_polygon_stanford_10m.tiff"))
+anita_orig <- terra::rast(file.path(datadir3, "CI_substrate_10m_clean.tiff"))
 plot(anita_orig)
-
-# Format data
-################################################################################
-
-# Format data
-rcl_mat <- matrix(c(1, 0, 
-                    2, 1), byrow=T, ncol=2)
-anita <- anita_orig %>% 
-  terra::clamp(lower=0.5, upper=2.5, values=F) %>% 
-  terra::classify(rcl=rcl_mat)
-plot(anita)
-
-# Convert to rasters
-cdfw_ras <- raster::raster(cdfw_orig)
-stanford_ras <- raster::raster(stanford_orig)
-anita_ras <- raster::raster(anita_orig)
 
 
 # Build data
 ################################################################################
 
+data <- cdfw_orig + anita_orig
+
+cdfw_no_ci <- terra::mask(x = cdfw_orig, mask=anita_orig, inverse=T)
+
 # Merge data
-data <- raster::merge(anita_ras, cdfw_ras, stanford_ras, overlap=T)
+data <- terra::mosaic(anita_ras, cdfw_ras, overlap=T)
 
 # Export data
 raster::writeRaster(data_ras, filename = file.path(outdir, "CA_bottom_substrate_type_10m.tiff"), overwrite=T)

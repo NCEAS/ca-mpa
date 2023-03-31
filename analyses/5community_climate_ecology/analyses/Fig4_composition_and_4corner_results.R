@@ -154,7 +154,7 @@ g_4corner <- ggplot(coef, aes(x=indicator, y=guild, fill=beta_sd)) +
                        midpoint=0,
                        breaks=c(-1.5, 0, 2), 
                        labels=c("-", "0", "+"),
-                       low="darkred", high="navy", mid="white") +
+                       low="navy", high="darkred", mid="white") +
   guides(fill = guide_colorbar(ticks.colour = "black", frame.colour = "black")) +
   # Theme
   theme_bw() + base_theme +
@@ -222,7 +222,7 @@ g3 <- ggplot(coef %>% filter(habitat=="Kelp forest fish"),
 g3
 
 # Plot four corner - kelp inv/alg
-g4 <- ggplot(coef %>% filter(habitat=="Kelp forest inv/alg"),
+g4 <- ggplot(coef %>% filter(habitat=="Kelp inv/alg (s)"),
              aes(x=indicator, y=guild, fill=beta)) +
   facet_wrap(~habitat, ncol=1) +
   geom_raster() +
