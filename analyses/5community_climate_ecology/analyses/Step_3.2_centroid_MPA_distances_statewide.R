@@ -208,7 +208,7 @@ mpa_output <- left_join(a_join, b_join, by=c("habitat"="group","join_ID"))%>%
 
 
 #write.csv(mpa_output, 
-# "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data/statewide_data/mpa_betadisp_mod.csv",
+# "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data/statewide_data/mpa_betadisp_mod_run2.csv",
 # row.names = FALSE)
 
 

@@ -248,7 +248,7 @@ simper_tab <- left_join(simper_table, affin_tab, by="species")
 
 
 
-write.csv(simper_tab, file.path(tab_dir,"SIMPER_output.csv")) 
+#write.csv(simper_tab, file.path(tab_dir,"SIMPER_output.csv")) 
 
 
 ###############################################################################
@@ -375,12 +375,12 @@ rocky_join <- cbind(rocky_group_vars, rocky_ord_data)%>%
 
 
 #format as mvabund objects
-CCFRP_spp <- mvabund(CCFRP_join[,10:102])
-kelp_swath_spp <- mvabund(kelp_swath_join[,10:177])
-kelp_upc_spp <- mvabund(kelp_upc_join[,10:81])
-kelp_fish_spp <- mvabund(kelp_fish_join[,10:108])
-deep_reef_spp <- mvabund(deep_reef_join[,11:112])
-rocky_spp <- mvabund(rocky_join[,10:58])
+CCFRP_spp <- mvabund(CCFRP_join[,10:46])
+kelp_swath_spp <- mvabund(kelp_swath_join[,10:72])
+kelp_upc_spp <- mvabund(kelp_upc_join[,10:49])
+kelp_fish_spp <- mvabund(kelp_fish_join[,10:76])
+deep_reef_spp <- mvabund(deep_reef_join[,11:66])
+rocky_spp <- mvabund(rocky_join[,10:51])
 
 
 
@@ -415,7 +415,7 @@ kelp_upc_aov <- anova(kelp_upc_glm, p.uni = "adjusted")
 kelp_upc_out <- as.data.frame(kelp_upc_aov[["uni.p"]])
 
 kelp_fish_aov <- anova(kelp_fish_glm, p.uni="adjusted")
-kelp_fisf_out <- as.data.frame(kelp_fish_aov[["uni.p"]])
+kelp_fish_out <- as.data.frame(kelp_fish_aov[["uni.p"]])
 
 deep_reef_aov <- anova(deep_reef_glm, p.uni="adjusted")
 deep_reef_out <- as.data.frame(deep_reef_aov[["uni.p"]])
