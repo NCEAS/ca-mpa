@@ -222,13 +222,13 @@ contrast_fun <- function(data, order, group) {
             dplyr::slice(.,2) %>%
             rename("P" = Pr..F.)
   
-  #bt_ref <- grangertest(ref_dat$mean_BT ~ ref_dat$dissim,
-   #                  order=order, na.action = na.omit) %>%
-  #  data.frame()%>%
-   # mutate(MPA_type = "Reference",
-    #       test = "BT") %>%
-    #dplyr::slice(.,2) %>%
-    #rename("P" = Pr..F.)
+  bt_ref <- grangertest(ref_dat$mean_BT ~ ref_dat$dissim,
+                     order=order, na.action = na.omit) %>%
+    data.frame()%>%
+   mutate(MPA_type = "Reference",
+           test = "BT") %>%
+    dplyr::slice(.,2) %>%
+    rename("P" = Pr..F.)
   
   beuti_ref <- grangertest(ref_dat$mean_BEUTI ~ ref_dat$dissim,
                      order=order, na.action = na.omit) %>%
@@ -254,13 +254,13 @@ contrast_fun <- function(data, order, group) {
     dplyr::slice(.,2) %>%
     rename("P" = Pr..F.)
   
-  #bt_smr <- grangertest(smr_dat$mean_BT ~ smr_dat$dissim,
-  #                      order=order, na.action = na.omit) %>%
-  #  data.frame()%>%
-  #  mutate(MPA_type = "MPA",
-  #         test = "BT") %>%
-  #  dplyr::slice(.,2) %>%
-  #  rename("P" = Pr..F.)
+  bt_smr <- grangertest(smr_dat$mean_BT ~ smr_dat$dissim,
+                        order=order, na.action = na.omit) %>%
+    data.frame()%>%
+    mutate(MPA_type = "MPA",
+           test = "BT") %>%
+    dplyr::slice(.,2) %>%
+   rename("P" = Pr..F.)
   
   beuti_smr <- grangertest(smr_dat$mean_BEUTI ~ smr_dat$dissim,
                            order=order, na.action = na.omit) %>%
@@ -299,7 +299,7 @@ kelp_invalg_g <- contrast_fun(kelp_invalg_dat,3, "Kelp forest inverts and algae"
 deep_reef_dat <- con_dat1 %>% filter(group =="Deep reef fishes")
 deep_reef_g <- contrast_fun(deep_reef_dat,1, "Deep reef fishes")
 
-#drop BT from function to run rocky intertidal
+#### TURN OFF 'bt_smr' and 'bt_ref'from function to run rocky intertidal
 intertidal_dat <- con_dat1 %>% filter(group =="Rocky intertidal")
 intertidal_g <- contrast_fun(intertidal_dat,3, "Rocky intertidal")
 
