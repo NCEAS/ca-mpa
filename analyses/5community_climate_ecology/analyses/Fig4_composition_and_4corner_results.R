@@ -11,7 +11,7 @@ library(tidyverse)
 library(patchwork)
 
 # Directories
-basedir <- "/Volumes/GoogleDrive/.shortcut-targets-by-id/1kCsF8rkm1yhpjh2_VMzf8ukSPf9d4tqO/MPA Network Assessment: Working Group Shared Folder/data/sync-data" #Chris
+basedir <- "/Users/cfree/Library/CloudStorage/GoogleDrive-cfree@ucsb.edu/.shortcut-targets-by-id/1kCsF8rkm1yhpjh2_VMzf8ukSPf9d4tqO/MPA Network Assessment: Working Group Shared Folder/data/sync-data/" #Chris
 # basedir <- "/home/shares/ca-mpa/data/sync-data/" #Josh
 gisdir <- file.path(basedir, "gis_data/processed")
 plotdir <- "analyses/5community_climate_ecology/figures"
@@ -52,7 +52,7 @@ comp <- comp_orig %>%
                                "kelp forest fishes"="Kelp forest fish",
                                "Kelp forest inverts and algae (swath)"="Kelp forest invertebrates/algae (swath)",
                                "Kelp forest inverts and algae (upc)"="Kelp forest invertebrates/algae (UPC)",
-                               "Rocky reef fishes"="Rocky reef",
+                               "Rocky reef fishes"="Shallow reef",
                                "Deep reef fishes"="Deep reef")) %>% 
   # Calculate percentage
   group_by(habitat, year) %>% 
@@ -89,7 +89,7 @@ coef <- coef_orig %>%
                                "kelp forest fish"="Kelp forest fish",
                                "Kelp forest inverts and algae (swath)"="Kelp inv/alg (s)",
                                "Kelp forest inverts and algae (upc)"="Kelp inv/alg (U)",
-                               "Rocky reef fish"="Rocky reef",
+                               "Rocky reef fish"="Shallow reef",
                                "Deep reef fish"="Deep reef")) %>% 
   # Standardize beta
   group_by(habitat) %>% 
@@ -243,7 +243,7 @@ g4 <- ggplot(coef %>% filter(habitat=="Kelp inv/alg (s)"),
 g4
 
 # Plot four corner - rocky reef
-g5 <- ggplot(coef %>% filter(habitat=="Rocky reef"),
+g5 <- ggplot(coef %>% filter(habitat=="Shallow reef"),
              aes(x=indicator, y=guild, fill=beta)) +
   facet_wrap(~habitat, ncol=1) +
   geom_raster() +
