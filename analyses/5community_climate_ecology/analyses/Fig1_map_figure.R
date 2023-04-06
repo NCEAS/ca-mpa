@@ -11,14 +11,15 @@ library(tidyverse)
 library(patchwork)
 
 # Directories
-basedir <- "/Volumes/GoogleDrive/.shortcut-targets-by-id/1kCsF8rkm1yhpjh2_VMzf8ukSPf9d4tqO/MPA Network Assessment: Working Group Shared Folder/data/sync-data"
+#basedir <- "/Volumes/GoogleDrive/.shortcut-targets-by-id/1kCsF8rkm1yhpjh2_VMzf8ukSPf9d4tqO/MPA Network Assessment: Working Group Shared Folder/data/sync-data"
 basedir <- "/home/shares/ca-mpa/data/sync-data/" #aurora 
 gisdir <- file.path(basedir, "gis_data/processed")
 plotdir <- "analyses/5community_climate_ecology/figures"
 
 # Read site locations
 sites <- readRDS(file.path(basedir, "monitoring/monitoring_sites_clean.Rds")) %>% 
-  mutate(habitat=recode(habitat, "Kelp"="Kelp forest"))
+  mutate(habitat=recode(habitat, "Kelp"="Kelp forest"),
+         habitat = recode(habitat, "Rocky reef"="Shallow reef"))
 
 # Read data
 state_waters_poly <- readRDS(file.path(gisdir, "CA_state_waters_polygons.Rds"))
@@ -57,7 +58,7 @@ hab_key <- expand.grid(mpa=mpa_names, habitat=habitats) %>%
   left_join(mpas_data %>% select(mpa, lat_dd, long_dd), by="mpa") %>% 
   # Order habitats
   mutate(habitat=factor(habitat, c("Rocky intertidal", 
-                                   "Kelp forest", "Rocky reef", "Deep reef")),
+                                   "Kelp forest", "Shallow reef", "Deep reef")),
          habitat_num=as.numeric(habitat)) %>% 
   # Adjust longitude
   mutate(long_dd_adj=long_dd-0.04-habitat_num*0.05) %>% 
@@ -107,7 +108,7 @@ hab_key <- expand.grid(mpa=mpa_names, habitat=habitats) %>%
 ################################################################################
 
 # Read data
-envi_orig <- readRDS(file.path( basedir, "environmental/processed/envr_anomalies_at_mpas.Rds"))
+envi_orig <- readRDS(file.path( basedir, "environmental/processed/envr_anomalies_at_mpas_new.Rds"))
 
 # Process data
 envi <- envi_orig %>%
@@ -405,7 +406,7 @@ g <- gridExtra::grid.arrange(g1, g2, g3, g4, g5, layout_matrix=layout_matrix,
 g
 
 # Export figure
-ggsave(g, filename=file.path(plotdir, "Fig1_map_figure_new.png"), 
+ggsave(g, filename=file.path(plotdir, "Fig1_map_figure_final.png"), 
        width=5.8, height=6.5, units="in", dpi=600)
 
 
