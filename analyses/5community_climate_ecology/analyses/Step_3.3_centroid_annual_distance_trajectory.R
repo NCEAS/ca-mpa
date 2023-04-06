@@ -32,25 +32,25 @@ eco_dist <- load(file.path(data_path, "distance_matrices_BC.rda"))
 
 #process group vars by setting 'dummy' start centroid
 CCFRP_group_vars2 <- CCFRP_group_vars %>% mutate(year = 
-                                                   ifelse(year < 2014, "2007",year),
+                                                   ifelse(year < 2014, 2007,year),
                                                  desig_state_year = paste(mpa_designation, year))
 
 
 kelp_invalg_group_vars2 <- kelp_invalg_group_vars %>% mutate(year = 
-                                                               ifelse(year < 2014, "2007",year),
+                                                               ifelse(year < 2014, 2007,year),
                                                              desig_state_year = paste(mpa_defacto_designation, year))
 
 kelp_fish_group_vars2 <- kelp_fish_group_vars %>% mutate(year = 
-                                                           ifelse(year < 2014, "2007",year),
+                                                           ifelse(year < 2014, 2007,year),
                                                          desig_state_year = paste(mpa_defacto_designation, year))
 
 deep_reef_group_vars2 <- deep_reef_group_vars %>% mutate(year = 
-                                                           ifelse(year < 2014, "2007",year),
+                                                           ifelse(year < 2014, 2007,year),
                                                          desig_state_year = paste(mpa_defacto_designation, year))
 
 
 rocky_group_vars2 <- rocky_group_vars %>% mutate(year = 
-                                                   ifelse(year < 2014, "2007",year),
+                                                   ifelse(year < 2014, 2007,year),
                                                  desig_state_year = paste(mpa_designation, year))
 
 
@@ -234,8 +234,8 @@ g <- ggplot(transform(traject_dist,
 g
 
 
-ggsave(g, filename=file.path(fig_dir, "FigSX_centroid_trajectory.png"), 
-       width=7, height=5, units="in", dpi=600)
+#ggsave(g, filename=file.path(fig_dir, "FigSX_centroid_trajectory.png"), 
+#       width=7, height=5, units="in", dpi=600)
 
 
 
