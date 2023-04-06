@@ -7,9 +7,9 @@ rm(list=ls())
 library(tidyverse)
 
 # Directories
-# datadir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data" # Josh
-basedir <- "/Volumes/GoogleDrive/.shortcut-targets-by-id/1kCsF8rkm1yhpjh2_VMzf8ukSPf9d4tqO/MPA Network Assessment: Working Group Shared Folder/data/sync-data/"
-datadir1 <- file.path(basedir, "processed_data/climate_data_share")
+basedir <- "/home/shares/ca-mpa/data/sync-data" # Josh
+#basedir <- "/Volumes/GoogleDrive/.shortcut-targets-by-id/1kCsF8rkm1yhpjh2_VMzf8ukSPf9d4tqO/MPA Network Assessment: Working Group Shared Folder/data/sync-data/"
+datadir1 <- file.path(basedir, "monitoring/processed_data/community_climate_derived_data")
 datadir2 <- file.path(basedir, "mpa_traits/processed")
 plotdir <- "analyses/5community_climate_ecology/figures"
 
@@ -49,7 +49,7 @@ CCFRP1 <- CCFRP %>%
          mpa_class == "smr")%>%
   distinct(year, region3, region4, affiliated_mpa, mpa_designation)%>%
   mutate(dummy_var = 1,
-         habitat = "Rocky reef fishes")%>%
+         habitat = "Shallow reef")%>%
   filter(!(affiliated_mpa == "trinidad smr"))
 
 deep_reef1 <- deep_reef %>%
@@ -57,7 +57,7 @@ deep_reef1 <- deep_reef %>%
          mpa_defacto_class == "smr")%>%
   distinct(year, region3, region4, affiliated_mpa, mpa_designation= mpa_defacto_designation)%>%
   mutate(dummy_var = 1,
-         habitat = "Deep reef fishes")
+         habitat = "Deep reef")
 
 
 # Build data
@@ -79,8 +79,8 @@ data <- bind_rows(kelp_data1, intertidal1, CCFRP1, deep_reef1) %>%
   mutate(habitat=recode_factor(habitat,
                               "Rocky intertidal"="Rocky intertidal\ninverts/algae",
                               "Kelp forest"="Kelp forest\nfishes/inverts/algae",
-                              "Rocky reef fishes"="Rocky reef\nfishes",
-                              "Deep reef fishes"="Deep reef\nfishes")) %>% 
+                              "Rocky reef fishes"="Shallow reef",
+                              "Deep reef fishes"="Deep reef")) %>% 
   # Add region
   left_join(mpas_data %>% select(mpa, region)) %>% 
   mutate(region=recode_factor(region,
