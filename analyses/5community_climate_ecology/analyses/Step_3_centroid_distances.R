@@ -147,10 +147,10 @@ eig_fun <- function(disper_mat) {
 }
 
 
-ccfrp_travel <- eig_fun(CCFRP_disper) %>% mutate(group = "Rocky reef fishes")
+ccfrp_travel <- eig_fun(CCFRP_disper) %>% mutate(group = "Shallow reef")
 kelp_invalg_travel <- eig_fun(kelp_invalg_disper) %>% mutate(group = "Kelp forest inverts and algae")
 kelp_fish_travel <- eig_fun(kelp_fish_disper) %>% mutate(group = "Kelp forest fishes")
-deep_reef_travel <- eig_fun(deep_reef_disper) %>% mutate(group = "Deep reef fishes")
+deep_reef_travel <- eig_fun(deep_reef_disper) %>% mutate(group = "Deep reef")
 rocky_travel <- eig_fun(rocky_disper) %>% mutate(group = "Rocky intertidal")
 
 #combine results
@@ -219,11 +219,11 @@ perm_fun <- function(perm_table, group_name){
 
 
 #collect output
-ccfrp_op <- perm_fun(ccfrp_pair_perm, group="Rocky reef fishes")
+ccfrp_op <- perm_fun(ccfrp_pair_perm, group="Shallow reef")
 kelp_fish_op <- perm_fun(kelp_fish_pair_perm, group='Kelp forest fishes')
 kelp_invalg_perm <- perm_fun(kelp_invalg_pair_perm, group = "Kelp forest inverts and algae")
 rocky_op <- perm_fun(rocky_pair_perm, group="Rocky intertidal")
-deep_reef_op <- perm_fun(dr_pair_perm, group = "Deep reef fishes")
+deep_reef_op <- perm_fun(dr_pair_perm, group = "Deep reef")
 
 perm_output <- rbind(ccfrp_op, kelp_fish_op, deep_reef_op,
                      kelp_invalg_perm, rocky_op)
@@ -296,7 +296,7 @@ p1 <-
   dplyr::rename("Period"=period)%>%
   filter(Period == "Before-to-during")%>%
   mutate(group = factor(group, levels = c("Rocky intertidal","Kelp forest inverts and algae",
-                                          "Kelp forest fishes","Rocky reef fishes","Deep reef fishes")),
+                                          "Kelp forest fishes","Shallow reef","Deep reef")),
          MPA_type = factor(MPA_type, levels = c("MPA","Reference")),
          sig_y = value+se_pooled+0.01)%>%
   arrange(MPA_type, -value, group)%>%
@@ -354,7 +354,7 @@ p2 <-
   dplyr::rename("Period"=period)%>%
   filter(Period == "Before-to-after")%>%
   mutate(group = factor(group, levels = c("Rocky intertidal","Kelp forest inverts and algae",
-                                          "Kelp forest fishes","Rocky reef fishes","Deep reef fishes")),
+                                          "Kelp forest fishes","Shallow reef","Deep reef")),
          MPA_type = factor(MPA_type, levels = c("MPA","Reference")),
          sig_y = value+se_pooled+0.01)%>%
   arrange(MPA_type, -value, group)%>%
@@ -418,7 +418,7 @@ g_title <- ggpubr::annotate_figure(g, left = textGrob("Distance (Bray-Curtis)",
 
 
 
-#ggsave(here::here("analyses", "5community_climate_ecology", "figures", "betadisp_plot5.png"), g_title, height=6, width = 7, units = "in", 
+#ggsave(here::here("analyses", "5community_climate_ecology", "figures", "betadisp_plot6.png"), g_title, height=6, width = 7, units = "in", 
  # dpi = 600, bg="white")
 
 
