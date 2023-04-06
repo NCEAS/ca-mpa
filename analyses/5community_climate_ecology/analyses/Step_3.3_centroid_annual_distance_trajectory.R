@@ -181,18 +181,18 @@ traject_dist <- as.data.frame(rbind(ccfrp_ref,
                 mutate(year = word(centroid_2, 2),
                        MPA_type = word(centroid_2, 1)) %>%
                 dplyr::select(group, year, MPA_type, distance)%>%
-                mutate(group = recode(group, "ccfrp" = "Rocky reef",
-                                               "kelp_invalg" = "Kelp inverts and algae",
-                                      "kelp_fish" = "Kelp fish",
+                mutate(group = recode(group, "ccfrp" = "Shallow reef",
+                                               "kelp_invalg" = "Kelp forest inverts and algae",
+                                      "kelp_fish" = "Kelp forest fishes",
                                       "deep_reef" = "Deep reef",
                                       "rocky_intertidal" = "Rocky intertidal"),
                        year = as.numeric(year),
                        MPA_type = recode(MPA_type, "ref" = "Reference", "smr" = "MPA"),
                        MPA_type = as.factor(MPA_type),
                        group = factor(group, levels = c("Rocky intertidal",
-                                                           "Kelp inverts and algae",
-                                                           "Kelp fish",
-                                                           "Rocky reef",
+                                                           "Kelp forest inverts and algae",
+                                                           "Kelp forest fishes",
+                                                           "Shallow reef",
                                                            "Deep reef")))
 
 
@@ -211,13 +211,14 @@ my_theme <-  theme(axis.text=element_text(size=7),
                    axis.line = element_line(colour = "black"),
                    # Legend
                    #legend.key = element_blank(),
-                   legend.background = element_rect(fill=alpha('blue', 0)))
+                   #legend.background = element_rect(fill=alpha('blue', 0))
+                   )
 
 g <- ggplot(transform(traject_dist,
                  group=factor(group,levels=c("Rocky intertidal",
-                                             "Kelp inverts and algae",
-                                             "Kelp fish",
-                                             "Rocky reef",
+                                             "Kelp forest inverts and algae",
+                                             "Kelp forest fishes",
+                                             "Shallow reef",
                                              "Deep reef"))) , aes(x = year, y = distance, group = MPA_type, color=MPA_type))+
   geom_smooth(method = "loess", se=FALSE) +
   geom_point()+
@@ -229,13 +230,18 @@ g <- ggplot(transform(traject_dist,
   xlab("Year")+
   ylab("Distance to pre-heatwave centroid \n(Bray-Curtis)")+
   labs(color = "MPA type")+
-  my_theme
+  scale_color_manual(name = "MPA Type",
+                    values=c('#EB6977','#13A0DD')
+  )+
+  my_theme + theme(legend.position = "top", 
+                   legend.margin = margin(t = 0, r = 0, b = 10, l = 0))
 
 g
 
 
-#ggsave(g, filename=file.path(fig_dir, "FigSX_centroid_trajectory.png"), 
-#       width=7, height=5, units="in", dpi=600)
+
+ggsave(g, filename=file.path(fig_dir, "FigS4_centroid_trajectory.png"), 
+       width=7, height=5, units="in", dpi=600)
 
 
 
