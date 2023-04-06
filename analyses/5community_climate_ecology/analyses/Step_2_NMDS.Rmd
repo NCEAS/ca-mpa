@@ -170,7 +170,7 @@ CCFRP<- ggplot(data=cent, aes(NMDS1, NMDS2)) +
        arrow = arrow(length = unit(0.25, "cm")), colour = "grey50", lwd=0.5)+
      geom_text(data = en_coord_cont, aes(x = (NMDS1), y = (NMDS2)), colour = "black", 
        fontface = "bold", label = row.names(en_coord_cont), position=position_jitter(width=0.01,height=0.01), size=2.8) + 
-  ggtitle("Rocky reef fishes")+
+  ggtitle("Shallow reef")+
   scale_color_manual(values=c('#004D40','#D81B60','#1E88E5',
                               '#004D40','#D81B60','#1E88E5'))+
   labs(shape="Site type",color='Heatwave period') +
@@ -252,7 +252,7 @@ kelp_invalg<- ggplot(data=cent, aes(NMDS1, NMDS2)) +
        arrow = arrow(length = unit(0.25, "cm")), colour = "grey50", lwd=0.5)+
      geom_text(data = en_coord_cont, aes(x = (NMDS1), y = (NMDS2)), colour = "black", 
        fontface = "bold", label = row.names(en_coord_cont), position=position_jitter(width=0.02,height=0.02), size=2.8) + 
-  ggtitle("Kelp invertebrates and algae")+
+  ggtitle("Kelp forest inverts and algae")+
   scale_color_manual(values=c('#004D40','#D81B60','#1E88E5',
                               '#004D40','#D81B60','#1E88E5'))+
   labs(shape="site type",color='heatwave period') +
@@ -404,7 +404,7 @@ deep_reef<- ggplot(data=cent, aes(NMDS1, NMDS2)) +
        arrow = arrow(length = unit(0.25, "cm")), colour = "grey50", lwd=0.5)+
      geom_text(data = en_coord_cont, aes(x = (NMDS1), y = (NMDS2)), colour = "black", 
        fontface = "bold", label = row.names(en_coord_cont), position=position_jitter(width=0.01,height=0.02), size=2.8) + 
-  ggtitle("Deep reef fishes")+
+  ggtitle("Deep reef")+
   scale_color_manual(values=c('#004D40','#D81B60','#1E88E5'))+
   labs(shape="site type",color='heatwave period') +
   #theme(text = element_text(12))+
@@ -519,7 +519,7 @@ cplot <- cowplot::plot_grid(
 print(cplot)
 
 
-cowplot::save_plot(here::here("analyses", "5community_climate_ecology", "figures", "community_structure_central5.png"), cplot, bg="white",dpi = 600, units = "in", base_width=8.5, base_height = 6)
+cowplot::save_plot(here::here("analyses", "5community_climate_ecology", "figures", "community_structure_central6.png"), cplot, bg="white",dpi = 600, units = "in", base_width=8.5, base_height = 6)
 
 
 
@@ -583,7 +583,7 @@ CCFRP_trajectory<- ggplot(data=cent %>%
   geom_point(aes(shape=MHW, color=mpa_designation), size=4) +                           #centroids
   geom_path(aes(NMDS1, NMDS2, color= mpa_designation), size = 0.5, linetype=1 
             )+         
-  ggtitle("Rocky reef fishes")+
+  ggtitle("Shallow reef")+
   scale_color_manual(values=c('#D81B60','#1E88E5'))+
   theme(strip.text = element_text(size=18, face="bold"))+
   theme(plot.title = element_text(size=16, face="bold"))+
@@ -634,7 +634,7 @@ kelp_invalg_trajectory<- ggplot(data=cent %>%
   geom_point(aes(shape=MHW, color=mpa_designation), size=4) +                           #centroids
   geom_path(aes(NMDS1, NMDS2, color= mpa_designation), size = 0.5, linetype=1 
             )+         
-  ggtitle("Kelp invertebrates and algae")+
+  ggtitle("Kelp forest inverts and algae")+
   scale_color_manual(values=c('#D81B60','#1E88E5'))+
   theme(strip.text = element_text(size=18, face="bold"))+
   theme(plot.title = element_text(size=16, face="bold"))+
@@ -741,7 +741,7 @@ deep_reef_trajectory<- ggplot(data=cent %>%
   geom_point(aes(shape=MHW, color=mpa_designation), size=4) +                           #centroids
   geom_path(aes(NMDS1, NMDS2, color= mpa_designation), size = 0.5, linetype=1 
             )+         
-  ggtitle("Deep reef fishes")+
+  ggtitle("Deep reef")+
   scale_color_manual(values=c('#D81B60','#1E88E5'))+
   theme(strip.text = element_text(size=18, face="bold"))+
   theme(plot.title = element_text(size=16, face="bold"))+
@@ -830,7 +830,7 @@ cplot <- cowplot::plot_grid(
 print(cplot)
  
 
-cowplot::save_plot(here::here("analyses", "5community_climate_ecology", "figures", "community_trajectory.png"), cplot, bg="white",dpi = 600, units = "in", base_width=10, base_height = 8)
+cowplot::save_plot(here::here("analyses", "5community_climate_ecology", "figures", "community_trajectory_new.png"), cplot, bg="white",dpi = 600, units = "in", base_width=10, base_height = 8)
 
 
 ```
