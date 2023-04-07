@@ -30,7 +30,8 @@ ccfrp_shannon <- diversity(CCFRP_ord_data, index="shannon")
 ccfrp_abund <- rowSums(CCFRP_ord_data[,1:37])
 
 ccfrp_alphadiv <- cbind(CCFRP_group_vars, ccfrp_richness, ccfrp_shannon, ccfrp_evenness, ccfrp_abund)%>%
-  mutate(MHW = factor(MHW, levels=c("before","during","after")))
+  mutate(MHW = str_to_sentence(MHW),
+         MHW = factor(MHW, levels=c("Before","During","After")))
 
 
 #kelp fish
@@ -40,7 +41,8 @@ kelp_fish_shannon <- diversity(kelp_fish_ord_data, index="shannon")
 kelp_fish_abund <- rowSums(kelp_fish_ord_data[,1:67]) 
 
 kelp_fish_alphadiv <- cbind(kelp_fish_group_vars, t(kelp_fish_richness), kelp_fish_shannon,kelp_fish_abund, kelp_fish_evenness)%>%
-  mutate(MHW = factor(MHW, levels=c("before","during","after")))%>%
+  mutate(MHW = str_to_sentence(MHW),
+         MHW = factor(MHW, levels=c("Before","During","After"))) %>%
   #drop outliers 
   filter(!(kelp_fish_abund > 10000))
 
@@ -52,7 +54,8 @@ deep_reef_abund <- rowSums(deep_reef_ord_data[,1:56])
 
 deep_reef_alphadiv <- cbind(deep_reef_group_vars, deep_reef_richness, 
                             deep_reef_shannon,deep_reef_abund, deep_reef_evenness)%>%
-  mutate(MHW = factor(MHW, levels=c("before","during","after")))
+  mutate(MHW = str_to_sentence(MHW),
+         MHW = factor(MHW, levels=c("Before","During","After")))
 
 #kelp swath
 kelp_swath_richness <- estimateR(kelp_swath_ord_data)
@@ -62,7 +65,8 @@ kelp_swath_abund <- rowSums(kelp_swath_ord_data[,1:63])
 
 kelp_swath_alphadiv <- cbind(kelp_swath_group_vars, t(kelp_swath_richness), 
                             kelp_swath_shannon, kelp_swath_abund, kelp_swath_evenness)%>%
-  mutate(MHW = factor(MHW, levels=c("before","during","after")))
+  mutate(MHW = str_to_sentence(MHW),
+         MHW = factor(MHW, levels=c("Before","During","After")))
 
 
 
@@ -75,7 +79,8 @@ rocky_abund <- rowSums(rocky_ord_data[,1:42])
 
 rocky_alphadiv <- cbind(rocky_group_vars, rocky_richness, 
                              rocky_shannon, rocky_abund, rocky_evenness)%>%
-  mutate(MHW = factor(MHW, levels=c("before","during","after")))
+  mutate(MHW = str_to_sentence(MHW),
+         MHW = factor(MHW, levels=c("Before","During","After")))
 
 
 
@@ -105,70 +110,71 @@ my_theme <-  theme(axis.text=element_text(size=7),
 )
 
 
-color_set <- c("In" = "#EB6977","Out" = "#13A0DD")
+color_set <- c("MPA" = "#EB6977","Reference" = "#13A0DD")
 
 #richness plots
-ccfrp_alphadiv$mpa_designation <- recode_factor(ccfrp_alphadiv$mpa_designation, "smr"="In")
-ccfrp_alphadiv$mpa_designation <- recode_factor(ccfrp_alphadiv$mpa_designation, "ref"="Out")
+ccfrp_alphadiv$mpa_designation <- recode_factor(ccfrp_alphadiv$mpa_designation, "smr"="MPA")
+ccfrp_alphadiv$mpa_designation <- recode_factor(ccfrp_alphadiv$mpa_designation, "ref"="Reference")
 r1 <-ggplot(ccfrp_alphadiv, aes(x = mpa_designation, y=S.obs))+
   geom_boxplot(aes(x=MHW, fill=mpa_designation))+
   #facet_wrap(~MHW)+
   theme_bw()+my_theme+
   labs(x="", 
-       y="Richness", 
-       title="Rock reef fish",
+       y="", 
+       title="Shallow reef",
        tag = "Richness")+
   scale_fill_manual(values = color_set)+
-  guides(fill=guide_legend(title="MPA"))
+  guides(fill=guide_legend(title="MPA type"))
 
-kelp_fish_alphadiv$mpa_defacto_designation <- recode_factor(kelp_fish_alphadiv$mpa_defacto_designation, "smr"="In")
-kelp_fish_alphadiv$mpa_defacto_designation <- recode_factor(kelp_fish_alphadiv$mpa_defacto_designation, "ref"="Out")
+kelp_fish_alphadiv$mpa_defacto_designation <- recode_factor(kelp_fish_alphadiv$mpa_defacto_designation, "smr"="MPA")
+kelp_fish_alphadiv$mpa_defacto_designation <- recode_factor(kelp_fish_alphadiv$mpa_defacto_designation, "ref"="Reference")
 r2 <- ggplot(kelp_fish_alphadiv, aes(x = mpa_defacto_designation, y=S.obs))+
   geom_boxplot(aes(x=MHW, fill=mpa_defacto_designation), show.legend = FALSE)+
   #facet_wrap(~MHW)+
   theme_bw()+my_theme+
   labs(x="", 
        y="", 
-       title="Kelp forest fish")+
+       title="Kelp forest fishes")+
   scale_fill_manual(values = color_set)
 
-deep_reef_alphadiv$mpa_defacto_designation <- recode_factor(deep_reef_alphadiv$mpa_defacto_designation, "smr"="In")
-deep_reef_alphadiv$mpa_defacto_designation <- recode_factor(deep_reef_alphadiv$mpa_defacto_designation, "ref"="Out")
+deep_reef_alphadiv$mpa_defacto_designation <- recode_factor(deep_reef_alphadiv$mpa_defacto_designation, "smr"="MPA")
+deep_reef_alphadiv$mpa_defacto_designation <- recode_factor(deep_reef_alphadiv$mpa_defacto_designation, "ref"="Reference")
 r3 <- ggplot(deep_reef_alphadiv, aes(x = mpa_defacto_designation, y=S.obs))+
   geom_boxplot(aes(x=MHW, fill=mpa_defacto_designation), show.legend = FALSE)+
   #facet_wrap(~MHW)+
   theme_bw()+my_theme+
   labs(x="", 
        y="", 
-       title="Deep reef fish")+
+       title="Deep reef")+
   scale_fill_manual(values = color_set)
 
-kelp_swath_alphadiv$mpa_defacto_designation <- recode_factor(kelp_swath_alphadiv$mpa_defacto_designation, "smr"="In")
-kelp_swath_alphadiv$mpa_defacto_designation <- recode_factor(kelp_swath_alphadiv$mpa_defacto_designation, "ref"="Out")
+kelp_swath_alphadiv$mpa_defacto_designation <- recode_factor(kelp_swath_alphadiv$mpa_defacto_designation, "smr"="MPA")
+kelp_swath_alphadiv$mpa_defacto_designation <- recode_factor(kelp_swath_alphadiv$mpa_defacto_designation, "ref"="Reference")
 r4 <- ggplot(kelp_swath_alphadiv, aes(x = mpa_defacto_designation, y=S.obs))+
   geom_boxplot(aes(x=MHW, fill=mpa_defacto_designation), show.legend = FALSE)+
   #facet_wrap(~MHW)+
   labs(x="", 
        y="", 
-       title="Kelp inverts and algae")+
+       title="Kelp forest inverts and algae")+
   theme_bw()+my_theme+
   scale_fill_manual(values = color_set)
 
 
-rocky_alphadiv$mpa_designation <- recode_factor(rocky_alphadiv$mpa_designation, "smr"="In")
-rocky_alphadiv$mpa_designation <- recode_factor(rocky_alphadiv$mpa_designation, "ref"="Out")
+rocky_alphadiv$mpa_designation <- recode_factor(rocky_alphadiv$mpa_designation, "smr"="MPA")
+rocky_alphadiv$mpa_designation <- recode_factor(rocky_alphadiv$mpa_designation, "ref"="Reference")
 r5 <- ggplot(rocky_alphadiv, aes(x = mpa_designation, y=S.obs),show.legend = FALSE)+
   geom_boxplot(aes(x=MHW, fill=mpa_designation), show.legend = FALSE)+
   #facet_wrap(~MHW)+
   labs(x="", 
-       y="", 
-       title="Rocky intertidal")+
+       y="Richness", 
+       title="Rocky intertidal",
+       tag = "Richness")+
   theme_bw()+my_theme+
   scale_fill_manual(values = color_set)
 
 
 
-r_plot <- ggarrange(r1, r2, r3, r4, r5, nrow=1, common.legend = TRUE)
+r_plot <- ggarrange(r5, r1, r4, r2, r3, nrow=1, common.legend = TRUE)
 r_plot <- annotate_figure(r_plot, left = text_grob("Richness", rot = 90, face = "bold"))
                                 
                 
@@ -178,9 +184,9 @@ a1 <-ggplot(ccfrp_alphadiv, aes(x = mpa_designation, y=ccfrp_abund))+
   geom_boxplot(aes(x=MHW, fill=mpa_designation), show.legend = FALSE)+
   #facet_wrap(~MHW)+
   theme_bw()+my_theme+
-  labs(x="Abundance", 
+  labs(x="", 
        y="", 
-       title="Rock reef fish",
+       title="Shallow reef",
        tag = "Richness")+
   scale_fill_manual(values = color_set)
 
@@ -190,7 +196,7 @@ a2 <- ggplot(kelp_fish_alphadiv, aes(x = mpa_defacto_designation, y=kelp_fish_ab
   theme_bw()+my_theme+
   labs(x="", 
        y="", 
-       title="Kelp forest fish")+
+       title="Kelp forest fishes")+
   scale_fill_manual(values = color_set)
 
 a3 <- ggplot(deep_reef_alphadiv, aes(x = mpa_defacto_designation, y=deep_reef_abund))+
@@ -199,7 +205,7 @@ a3 <- ggplot(deep_reef_alphadiv, aes(x = mpa_defacto_designation, y=deep_reef_ab
   theme_bw()+my_theme+
   labs(x="", 
        y="", 
-       title="Deep reef fish")+
+       title="Deep reef")+
   scale_fill_manual(values = color_set)
 
 a4 <- ggplot(kelp_swath_alphadiv, aes(x = mpa_defacto_designation, y=kelp_swath_abund))+
@@ -207,7 +213,7 @@ a4 <- ggplot(kelp_swath_alphadiv, aes(x = mpa_defacto_designation, y=kelp_swath_
   #facet_wrap(~MHW)+
   labs(x="", 
        y="", 
-       title="Kelp inverts and algae")+
+       title="Kelp forest inverts and algae")+
   theme_bw()+my_theme+
   scale_fill_manual(values = color_set)
 
@@ -221,8 +227,7 @@ a5 <- ggplot(rocky_alphadiv, aes(x = mpa_designation, y=rocky_abund))+
   scale_fill_manual(values = color_set)
 
 
-
-a_plot <- ggarrange(a1, a2, a3, a4, a5, nrow=1, common.legend = TRUE)
+a_plot <- ggarrange(a5, a1, a4, a2, a3, nrow=1, common.legend = TRUE)
 a_plot <- annotate_figure(a_plot, left = text_grob("Abundance", rot = 90, face = "bold"))
 
 
@@ -233,8 +238,8 @@ e1 <-ggplot(ccfrp_alphadiv, aes(x = mpa_designation, y=ccfrp_evenness))+
   #facet_wrap(~MHW)+
   theme_bw()+my_theme+
   labs(x="", 
-       y="Evenness", 
-       title="Rock reef fish")+
+       y="", 
+       title="Shallow reef")+
   scale_fill_manual(values = color_set)
 
 e2 <- ggplot(kelp_fish_alphadiv, aes(x = mpa_defacto_designation, y=kelp_fish_evenness))+
@@ -243,7 +248,7 @@ e2 <- ggplot(kelp_fish_alphadiv, aes(x = mpa_defacto_designation, y=kelp_fish_ev
   theme_bw()+my_theme+
   labs(x="", 
        y="", 
-       title="Kelp forest fish")+
+       title="Kelp forest fishes")+
   scale_fill_manual(values = color_set)
 
 e3 <- ggplot(deep_reef_alphadiv, aes(x = mpa_defacto_designation, y=deep_reef_abund))+
@@ -252,7 +257,7 @@ e3 <- ggplot(deep_reef_alphadiv, aes(x = mpa_defacto_designation, y=deep_reef_ab
   theme_bw()+my_theme+
   labs(x="", 
        y="", 
-       title="Deep reef fish")+
+       title="Deep reef")+
   scale_fill_manual(values = color_set)
 
 e4 <- ggplot(kelp_swath_alphadiv, aes(x = mpa_defacto_designation, y=kelp_swath_evenness))+
@@ -260,7 +265,7 @@ e4 <- ggplot(kelp_swath_alphadiv, aes(x = mpa_defacto_designation, y=kelp_swath_
   #facet_wrap(~MHW)+
   labs(x="", 
        y="", 
-       title="Kelp inverts and algae")+
+       title="Kelp forest inverts and algae")+
   theme_bw()+my_theme+
   scale_fill_manual(values = color_set)
 
@@ -268,14 +273,14 @@ e5 <- ggplot(rocky_alphadiv, aes(x = mpa_designation, y=rocky_evenness))+
   geom_boxplot(aes(x=MHW, fill=mpa_designation), show.legend = FALSE)+
   #facet_wrap(~MHW)+
   labs(x="", 
-       y="", 
+       y="Evenness", 
        title="Rocky intertidal")+
   theme_bw()+my_theme+
   scale_fill_manual(values = color_set)
 
 
 
-e_plot <- ggarrange(e1, e2, e3, e4, e5, nrow=1, common.legend = TRUE)
+e_plot <- ggarrange(e5, e1, e4, e2, e3, nrow=1, common.legend = TRUE)
 e_plot <- annotate_figure(e_plot, left = text_grob("Evenness", rot = 90, face = "bold"))
 
 #Diversity
@@ -284,17 +289,17 @@ s1 <-ggplot(ccfrp_alphadiv, aes(x = mpa_designation, y=ccfrp_shannon))+
   #facet_wrap(~MHW)+
   theme_bw()+my_theme+
   labs(x="", 
-       y="Shannon", 
-       title="Rock reef fish")+
+       y="", 
+       title="Shallow reef")+
   scale_fill_manual(values = color_set)
 
 s2 <- ggplot(kelp_fish_alphadiv, aes(x = mpa_defacto_designation, y=kelp_fish_shannon))+
   geom_boxplot(aes(x=MHW, fill=mpa_defacto_designation), show.legend = FALSE)+
   #facet_wrap(~MHW)+
   theme_bw()+my_theme+
-  labs(x="", 
+  labs(x="Marine heatwave period", 
        y="", 
-       title="Kelp forest fish")+
+       title="Kelp forest fishes")+
   scale_fill_manual(values = color_set)
 
 s3 <- ggplot(deep_reef_alphadiv, aes(x = mpa_defacto_designation, y=deep_reef_shannon))+
@@ -303,7 +308,7 @@ s3 <- ggplot(deep_reef_alphadiv, aes(x = mpa_defacto_designation, y=deep_reef_sh
   theme_bw()+my_theme+
   labs(x="", 
        y="", 
-       title="Deep reef fish")+
+       title="Deep reef")+
   scale_fill_manual(values = color_set)
 
 s4 <- ggplot(kelp_swath_alphadiv, aes(x = mpa_defacto_designation, y=kelp_swath_shannon))+
@@ -319,7 +324,7 @@ s5 <- ggplot(rocky_alphadiv, aes(x = mpa_designation, y=rocky_shannon))+
   geom_boxplot(aes(x=MHW, fill=mpa_designation), show.legend = FALSE)+
   #facet_wrap(~MHW)+
   labs(x="", 
-       y="", 
+       y="Shannon diversity", 
        title="Rocky intertidal")+
   theme_bw()+my_theme+
   scale_fill_manual(values = color_set)
@@ -329,17 +334,17 @@ s5 <- ggplot(rocky_alphadiv, aes(x = mpa_designation, y=rocky_shannon))+
 #s_plot <- ggarrange(s1, s2, s3, s4, s5, nrow=1, common.legend = TRUE)
 #s_plot <- annotate_figure(s_plot, left = text_grob("Shannon", rot = 90, face = "bold"))
 
-
 #boxplots <- ggarrange(r_plot, a_plot, e_plot, s_plot, nrow=4)
 
-boxplots<- 
-  ggarrange(r1,r2,r3,r4,r5,
-            #a1,a2,a3,a4,a5, 
-            e1,e2,e3,e4,e5,
-            s1,s2,s3,s4,s5, nrow=3, ncol=5, common.legend=TRUE)
 
-ggsave(boxplots, filename=file.path(figdir, "alpha_diversity.png"), 
-       width=8, height=6.5, units="in", dpi=600, bg="white")
+boxplots<- 
+  ggarrange(r5, r4, r2, r1, r3,
+            #a1,a2,a3,a4,a5, 
+            e5,e4,e2,e1,e3,
+            s5,s4,s2,s1,s3, nrow=3, ncol=5, common.legend=TRUE)
+
+#ggsave(boxplots, filename=file.path(figdir, "FigS8_diversity.png"), 
+ #      width=10, height=8.5, units="in", dpi=600, bg="white")
 
 
 
