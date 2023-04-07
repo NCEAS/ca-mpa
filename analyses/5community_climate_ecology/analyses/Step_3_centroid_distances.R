@@ -270,7 +270,7 @@ sig_distance$period <- recode_factor(sig_distance$period, "before-to-after"="Bef
 my_theme <-  theme(axis.text=element_text(size=5),
                    axis.text.y = element_text(angle = 90, hjust = 0.5),
                    axis.title=element_text(size=6),
-                   plot.tag=element_blank(), #element_text(size=8),
+                   plot.tag=element_text(size=7),
                    plot.title =element_text(size=7, face="bold"),
                    # Gridlines
                    panel.grid.major = element_blank(), 
@@ -335,7 +335,7 @@ p1 <-
   scale_x_discrete(labels = function(x) 
     stringr::str_wrap(x, width = 15)
     )+
- labs(color = "Site type")+
+ labs(color = "Site type", tag = "A")+
   scale_color_brewer(palette="Set1") +
   #geom_vline(xintercept=c(1.5, 2.5,3.5,4.5), color="grey",alpha=.4)+
   #coord_flip()+
@@ -393,7 +393,7 @@ p2 <-
   scale_x_discrete(labels = function(x) 
     stringr::str_wrap(x, width = 15)
   )+
-  labs(color = "Site type")+
+  labs(color = "Site type", tag="B")+
   scale_color_brewer(palette="Set1") +
   #geom_vline(xintercept=c(1.5, 2.5,3.5,4.5), color="grey",alpha=.4)+
   #coord_flip()+
@@ -418,7 +418,7 @@ g_title <- ggpubr::annotate_figure(g, left = textGrob("Distance (Bray-Curtis)",
 
 
 
-#ggsave(here::here("analyses", "5community_climate_ecology", "figures", "betadisp_plot6.png"), g_title, height=6, width = 7, units = "in", 
+#ggsave(here::here("analyses", "5community_climate_ecology", "figures", "Fig3_centroid_shifts.png"), g_title, height=6, width = 7, units = "in", 
  # dpi = 600, bg="white")
 
 
@@ -451,7 +451,7 @@ perm_tab <- sig_distance %>%
           dplyr::select(Habitat, "MPA type", Transition, "B-C distance", "Sum of squares",
                         "R-squared", "Psuedo F","P(perm)") 
 
-write.csv(perm_tab, file.path(tab_out, "pairwise_permanova.csv"))
+#write.csv(perm_tab, file.path(tab_out, "pairwise_permanova.csv"))
 
 
 
