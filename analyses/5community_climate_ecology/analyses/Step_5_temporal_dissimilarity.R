@@ -934,7 +934,7 @@ CCFRP <- ggplot() +
   scale_color_manual(values=c('#C0C0C0', '#444444','#4c78b5','#44b89d','#f56969'))+
   labs(color='heatwave period')+
   guides(color="none")+
-  ggtitle("Rocky reef fishes")+
+  ggtitle("Shallow reef")+
   theme(plot.title = element_text(size = 7, face = "bold"))
 
 
@@ -974,7 +974,7 @@ invalg <- ggplot() +
   scale_color_manual(values=c('#C0C0C0', '#444444','#4c78b5','#44b89d','#f56969'))+
   labs(color='heatwave period')+
   guides(color="none")+
-  ggtitle("Kelp invertebrates and algae")+
+  ggtitle("Kelp forest inverts and algae")+
   theme(plot.title = element_text(size = 7, face = "bold"))
 
 
@@ -1058,7 +1058,7 @@ deep_reef <- ggplot() +
   scale_color_manual(values=c('#C0C0C0', '#444444','#4c78b5','#44b89d','#f56969'))+
   labs(color='heatwave period')+
   guides(color="none")+
-  ggtitle("Deep reef fishes")+
+  ggtitle("Deep reef")+
   theme(plot.title = element_text(size = 7, face = "bold"))
 
 
@@ -1144,7 +1144,7 @@ dendro_fig2<- annotate_figure(dendro_fig,
 )
 
 
-ggsave(here::here("analyses", "5community_climate_ecology", "figures", "dendro_cluster3.png"), 
+ggsave(here::here("analyses", "5community_climate_ecology", "figures", "dendro_cluster4.png"), 
        dendro_fig2, width=6,height=5, bg="white", dpi = 600, units = "in")
 
 
