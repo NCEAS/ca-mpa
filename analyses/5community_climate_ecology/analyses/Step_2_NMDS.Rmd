@@ -230,15 +230,29 @@ df_ell <- df_ell %>%
 
 
 #reorder for plotting
+#reorder for plotting
 cent$mpa_designation <- factor(cent$mpa_designation, level=c("smr","ref"))
 cent$MHW <- factor(cent$MHW, level=c("before","during","after"))
+
+
+cent$mpa_designation <- recode_factor(cent$mpa_designation, "smr"="MPA")
+cent$mpa_designation <- recode_factor(cent$mpa_designation, "ref"="Reference")
 
 kelp_invalg_stress <- as.data.frame(kelp_invalg_ord[["stress"]]) %>% 
   rename("stress" = 1) %>%
   mutate_at(1, round, 3)
 
-cent$mpa_designation <- recode_factor(cent$mpa_designation, "smr"="In")
-cent$mpa_designation <- recode_factor(cent$mpa_designation, "ref"="Out")
+df_ell$mpa_type <- factor(df_ell$mpa_type, level=c("smr","ref"))
+df_ell$MHW <- recode_factor(df_ell$MHW, "before"="Before")
+df_ell$MHW <- recode_factor(df_ell$MHW, "during"="During")
+df_ell$MHW <- recode_factor(df_ell$MHW, "after"="After")
+df_ell$MHW <- factor(df_ell$MHW, level=c("Before","During","After"))
+
+cent$MHW <- recode_factor(cent$MHW, "before"="Before")
+cent$MHW <- recode_factor(cent$MHW, "during"="During")
+cent$MHW <- recode_factor(cent$MHW, "after"="After")
+cent$MHW <- factor(cent$MHW, level=c("Before","During","After"))
+cent$mpa_designation <- factor(cent$mpa_designation, level=c("MPA","Reference"))
 
 df_ell$mpa_type <- factor(df_ell$mpa_type, level=c("smr","ref"))
 
@@ -309,12 +323,25 @@ df_ell <- df_ell %>%
 cent$mpa_designation <- factor(cent$mpa_designation, level=c("smr","ref"))
 cent$MHW <- factor(cent$MHW, level=c("before","during","after"))
 
+
+cent$mpa_designation <- recode_factor(cent$mpa_designation, "smr"="MPA")
+cent$mpa_designation <- recode_factor(cent$mpa_designation, "ref"="Reference")
+
 kelp_fish_stress <- as.data.frame(kelp_fish_ord[["stress"]]) %>% 
   rename("stress" = 1) %>%
   mutate_at(1, round, 3)
 
-cent$mpa_designation <- recode_factor(cent$mpa_designation, "smr"="In")
-cent$mpa_designation <- recode_factor(cent$mpa_designation, "ref"="Out")
+df_ell$mpa_type <- factor(df_ell$mpa_type, level=c("smr","ref"))
+df_ell$MHW <- recode_factor(df_ell$MHW, "before"="Before")
+df_ell$MHW <- recode_factor(df_ell$MHW, "during"="During")
+df_ell$MHW <- recode_factor(df_ell$MHW, "after"="After")
+df_ell$MHW <- factor(df_ell$MHW, level=c("Before","During","After"))
+
+cent$MHW <- recode_factor(cent$MHW, "before"="Before")
+cent$MHW <- recode_factor(cent$MHW, "during"="During")
+cent$MHW <- recode_factor(cent$MHW, "after"="After")
+cent$MHW <- factor(cent$MHW, level=c("Before","During","After"))
+cent$mpa_designation <- factor(cent$mpa_designation, level=c("MPA","Reference"))
 
 df_ell$mpa_type <- factor(df_ell$mpa_type, level=c("smr","ref"))
 
@@ -385,12 +412,24 @@ cent$mpa_designation <- factor(cent$mpa_designation, level=c("smr","ref"))
 cent$MHW <- factor(cent$MHW, level=c("before","during","after"))
 
 
+cent$mpa_designation <- recode_factor(cent$mpa_designation, "smr"="MPA")
+cent$mpa_designation <- recode_factor(cent$mpa_designation, "ref"="Reference")
+
 deep_reef_stress <- as.data.frame(deep_reef_ord[["stress"]]) %>% 
   rename("stress" = 1) %>%
   mutate_at(1, round, 3)
 
-cent$mpa_designation <- recode_factor(cent$mpa_designation, "smr"="In")
-cent$mpa_designation <- recode_factor(cent$mpa_designation, "ref"="Out")
+df_ell$mpa_type <- factor(df_ell$mpa_type, level=c("smr","ref"))
+df_ell$MHW <- recode_factor(df_ell$MHW, "before"="Before")
+df_ell$MHW <- recode_factor(df_ell$MHW, "during"="During")
+df_ell$MHW <- recode_factor(df_ell$MHW, "after"="After")
+df_ell$MHW <- factor(df_ell$MHW, level=c("Before","During","After"))
+
+cent$MHW <- recode_factor(cent$MHW, "before"="Before")
+cent$MHW <- recode_factor(cent$MHW, "during"="During")
+cent$MHW <- recode_factor(cent$MHW, "after"="After")
+cent$MHW <- factor(cent$MHW, level=c("Before","During","After"))
+cent$mpa_designation <- factor(cent$mpa_designation, level=c("MPA","Reference"))
 
 df_ell$mpa_type <- factor(df_ell$mpa_type, level=c("smr","ref"))
 
@@ -462,12 +501,24 @@ cent$mpa_designation <- factor(cent$mpa_designation, level=c("smr","ref"))
 cent$MHW <- factor(cent$MHW, level=c("before","during","after"))
 
 
+cent$mpa_designation <- recode_factor(cent$mpa_designation, "smr"="MPA")
+cent$mpa_designation <- recode_factor(cent$mpa_designation, "ref"="Reference")
+
 rocky_stress <- as.data.frame(rocky_ord[["stress"]]) %>% 
   rename("stress" = 1) %>%
   mutate_at(1, round, 3)
 
-cent$mpa_designation <- recode_factor(cent$mpa_designation, "smr"="In")
-cent$mpa_designation <- recode_factor(cent$mpa_designation, "ref"="Out")
+df_ell$mpa_type <- factor(df_ell$mpa_type, level=c("smr","ref"))
+df_ell$MHW <- recode_factor(df_ell$MHW, "before"="Before")
+df_ell$MHW <- recode_factor(df_ell$MHW, "during"="During")
+df_ell$MHW <- recode_factor(df_ell$MHW, "after"="After")
+df_ell$MHW <- factor(df_ell$MHW, level=c("Before","During","After"))
+
+cent$MHW <- recode_factor(cent$MHW, "before"="Before")
+cent$MHW <- recode_factor(cent$MHW, "during"="During")
+cent$MHW <- recode_factor(cent$MHW, "after"="After")
+cent$MHW <- factor(cent$MHW, level=c("Before","During","After"))
+cent$mpa_designation <- factor(cent$mpa_designation, level=c("MPA","Reference"))
 
 df_ell$mpa_type <- factor(df_ell$mpa_type, level=c("smr","ref"))
 
@@ -519,7 +570,7 @@ cplot <- cowplot::plot_grid(
 print(cplot)
 
 
-cowplot::save_plot(here::here("analyses", "5community_climate_ecology", "figures", "community_structure_central6.png"), cplot, bg="white",dpi = 600, units = "in", base_width=8.5, base_height = 6)
+cowplot::save_plot(here::here("analyses", "5community_climate_ecology", "figures", "Fig2_NMDS.png"), cplot, bg="white",dpi = 600, units = "in", base_width=8.5, base_height = 6)
 
 
 
