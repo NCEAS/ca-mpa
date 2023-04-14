@@ -123,7 +123,7 @@ schem_theme <- theme_minimal() +
                      axis.text.y=element_text(color=c("#377EB8", "#E41A1C")))
 
 # Colors
-RColorBrewer::brewer.pal(2, "Set3")
+RColorBrewer::brewer.pal(2, "Set1")
 
 # Plot schematic 1
 toy1 <- tibble(site=factor(c("MPA", "Reference"), levels=c("Reference", "MPA")),
