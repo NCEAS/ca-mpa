@@ -132,7 +132,7 @@ schem1 <- ggplot(toy1, aes(y=site, yend=site, xend=distance, color=site)) +
   geom_segment(x=0, arrow = arrow(length=unit(0.30, "cm"))) +
   # Labels
   #labs(title = "MPA prevents shifts")+
-  labs(title="Shift reduced in MPA") +
+  labs(title="Shift distance less in MPA") +
   scale_color_manual(values=c("#377EB8", "#E41A1C")) +
   # Limits
   lims(x=c(0, 0.8)) +
@@ -147,7 +147,7 @@ schem2 <- ggplot(toy2, aes(y=site, yend=site, xend=distance, color=site)) +
   geom_segment(x=0, arrow = arrow(length=unit(0.30, "cm"))) +
   # Labels
   #labs(title="MPA exacerbates shifts") +
-  labs(title="Shift exacerbated in MPA") +
+  labs(title="Shift distance greater in MPA") +
   scale_color_manual(values=c( "#377EB8", "#E41A1C")) +
   # Limits
   lims(x=c(0, 0.8)) +
@@ -165,18 +165,18 @@ g1 <- ggplot(data2, aes(x=habitat, y=mpa, size=distance, fill=dist_perc, color="
   scale_size_continuous(name="Shift distance\n(smaller = more resilient)") +
   scale_fill_gradient2(name="Prop. of shift\nexacerbated (red)\nor reduced (blue)",
                        midpoint=0, high="#E41A1C", low="#377EB8", mid="white") +
-  guides(size = guide_legend(order = 1),
-         fill = guide_colorbar(ticks.colour = "black", frame.colour = "black")) +
   #trick ggplot into placing NAs in legend
   scale_color_manual(values=NA) +
-  guides(color=guide_legend(order=3, "No paired reference site", override.aes=list(fill="gray60"))) +
   # Theme
   theme_bw() + base_theme +
   theme(axis.title = element_blank(),
         axis.text = element_text(size=6),
-        axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+        axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  #set legend order
+  guides(size = guide_legend(order = 1),
+         fill = guide_colorbar(order = 2, ticks.colour = "black", frame.colour = "black"),
+         color = guide_legend(order = 3, "No paired reference site", override.aes=list(fill="gray60")))
 g1
-
 
   
 # Merge
