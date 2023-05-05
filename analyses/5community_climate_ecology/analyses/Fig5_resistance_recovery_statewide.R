@@ -93,12 +93,12 @@ data2 <- data %>%
 ################################################################################
 
 # Base theme
-base_theme <- theme(axis.text=element_text(size=7),
-                    axis.title=element_text(size=8),
-                    legend.text=element_text(size=6),
-                    legend.title=element_text(size=7),
-                    strip.text=element_text(size=7),
-                    plot.tag=element_text(size=9),
+base_theme <- theme(axis.text=element_text(size=3),
+                    axis.title=element_text(size=7),
+                    legend.text=element_text(size=5),
+                    legend.title=element_text(size=6),
+                    strip.text=element_text(size=6),
+                    plot.tag=element_text(size=8),
                     plot.title=element_blank(),
                     # Gridlines
                     panel.grid.major = element_blank(), 
@@ -131,7 +131,7 @@ schem1 <- ggplot(toy1, aes(y=site, yend=site, xend=distance, color=site)) +
   geom_segment(x=0, arrow = arrow(length=unit(0.30, "cm"))) +
   # Labels
   #labs(title = "MPA prevents shifts")+
-  labs(title="Shift reduced in MPA") +
+  labs(title="Shift distance less in MPA") +
   scale_color_manual(values=c("#377EB8", "#E41A1C")) +
   # Limits
   lims(x=c(0, 0.8)) +
@@ -146,7 +146,7 @@ schem2 <- ggplot(toy2, aes(y=site, yend=site, xend=distance, color=site)) +
   geom_segment(x=0, arrow = arrow(length=unit(0.30, "cm"))) +
   # Labels
   #labs(title="MPA exacerbates shifts") +
-  labs(title="Shift exacerbated in MPA") +
+  labs(title="Shift distance greater in MPA") +
   scale_color_manual(values=c( "#377EB8", "#E41A1C")) +
   # Limits
   lims(x=c(0, 0.8)) +
@@ -156,27 +156,39 @@ schem2
 
 # Plot data
 g1 <- ggplot(data2, aes(x=habitat, y=mpa, size=distance, fill=dist_perc, color="")) +
-  facet_grid(region~process, space="free_y", scale="free_y") +
+  facet_grid(region~process, space="free", scale="free") +
   geom_point(pch=21) +
   # Labels
   labs(x="", y="") +
   # Legend
   scale_size_continuous(name="Shift distance\n(smaller = more resilient)") +
+<<<<<<< HEAD
   scale_fill_gradient2(name="Percent of shift\nexacerbated (red)\nor reduced (blue)",
                        midpoint=0, high="darkred", low="navy", mid="white", # high="#E41A1C", low="#377EB8"
                        labels=scales::percent) +
   guides(size = guide_legend(order = 1),
          fill = guide_colorbar(ticks.colour = "black", frame.colour = "black", order=2)) +
+=======
+  scale_fill_gradient2(name="Prop. of shift\nexacerbated (red)\nor reduced (blue)",
+                       midpoint=0, high="#E41A1C", low="#377EB8", mid="white") +
+>>>>>>> c531b2bf7ae3c34e5b3b1cb813d788f0b601ac8d
   #trick ggplot into placing NAs in legend
   scale_color_manual(values=NA) +
-  guides(color=guide_legend(order=3, "No paired reference site", override.aes=list(fill="gray60"))) +
   # Theme
   theme_bw() + base_theme +
   theme(axis.title = element_blank(),
         axis.text = element_text(size=6),
-        axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+        axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  #reduce space between x items
+  #scale_x_discrete(expand = c(-1, -2)) +
+  #ggh4x::force_panelsizes(cols = c(0.001, 0.001)) +
+  #set legend order
+  guides(size = guide_legend(order = 1),
+         fill = guide_colorbar(order = 2, ticks.colour = "black", frame.colour = "black"),
+         color = guide_legend(order = 3, "No paired \nreference site", override.aes=list(fill="gray60")))+
+  #increase spacing
+  theme(plot.margin = unit(c(0,2,1,2), "lines"))
 g1
-
 
   
 # Merge
@@ -184,13 +196,15 @@ layout_matrix <- matrix(c(1,2,
                           3,3), ncol=2, byrow=T)
 g1_full <- gridExtra::grid.arrange(schem1, schem2, g1, 
                                    layout_matrix=layout_matrix,
-                                   heights=c(0.1, 0.9))
+                                   heights=c(0.1, 0.8))
 g1_full
 
 
+
+
 # Export
-#ggsave(g1_full, filename=file.path(plotdir, "Fig5_resistance_recovery_statewide_new.png"), 
- #      width=6.5, height=6.5, units="in", dpi=600)
+cowplot::save_plot(g1_full, filename=file.path(plotdir, "Fig5_resistance_recovery_statewide_new.png"), 
+     base_width=6.5, base_height=6.5, units="in", dpi=600, bg="white", base_asp=0.8)
 
 
 
