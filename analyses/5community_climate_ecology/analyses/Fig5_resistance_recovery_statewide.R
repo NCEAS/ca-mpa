@@ -11,18 +11,17 @@ library(tidyverse)
 library(patchwork)
 
 # Chris Directories
-#basedir <- "/Volumes/GoogleDrive/.shortcut-targets-by-id/1kCsF8rkm1yhpjh2_VMzf8ukSPf9d4tqO/MPA Network Assessment: Working Group Shared Folder/data/sync-data" #Chris
-#datadir <- file.path(basedir, "monitoring/processed_data/community_climate_derived_data/statewide_data")
-#plotdir <- "analyses/5community_climate_ecology/figures"
-
-# Josh Directories
-basedir <- "/home/shares/ca-mpa/data/sync-data" 
+basedir <- "/Users/cfree/Library/CloudStorage/GoogleDrive-cfree@ucsb.edu/.shortcut-targets-by-id/1kCsF8rkm1yhpjh2_VMzf8ukSPf9d4tqO/MPA Network Assessment: Working Group Shared Folder/data/sync-data" #Chris
 datadir <- file.path(basedir, "monitoring/processed_data/community_climate_derived_data/statewide_data")
 plotdir <- "analyses/5community_climate_ecology/figures"
 
+# Josh Directories
+# basedir <- "/home/shares/ca-mpa/data/sync-data"
+# datadir <- file.path(basedir, "monitoring/processed_data/community_climate_derived_data/statewide_data")
+# plotdir <- "analyses/5community_climate_ecology/figures"
+
 # Read data
 data_orig2 <- read.csv(file.path(datadir, "mpa_betadisp_mod_run2.csv"), as.is=T)
-
 
 # Read MPA metadata
 mpas_data <- readRDS(file.path(basedir, "mpa_traits/processed/CA_mpa_metadata.Rds"))
@@ -163,10 +162,11 @@ g1 <- ggplot(data2, aes(x=habitat, y=mpa, size=distance, fill=dist_perc, color="
   labs(x="", y="") +
   # Legend
   scale_size_continuous(name="Shift distance\n(smaller = more resilient)") +
-  scale_fill_gradient2(name="Prop. of shift\nexacerbated (red)\nor reduced (blue)",
-                       midpoint=0, high="#E41A1C", low="#377EB8", mid="white") +
+  scale_fill_gradient2(name="Percent of shift\nexacerbated (red)\nor reduced (blue)",
+                       midpoint=0, high="darkred", low="navy", mid="white", # high="#E41A1C", low="#377EB8"
+                       labels=scales::percent) +
   guides(size = guide_legend(order = 1),
-         fill = guide_colorbar(ticks.colour = "black", frame.colour = "black")) +
+         fill = guide_colorbar(ticks.colour = "black", frame.colour = "black", order=2)) +
   #trick ggplot into placing NAs in legend
   scale_color_manual(values=NA) +
   guides(color=guide_legend(order=3, "No paired reference site", override.aes=list(fill="gray60"))) +

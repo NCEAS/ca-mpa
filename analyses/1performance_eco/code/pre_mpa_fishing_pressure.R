@@ -11,7 +11,7 @@ library(countrycode)
 library(tidycensus)
 
 # Directories
-basedir <- "/Volumes/GoogleDrive/.shortcut-targets-by-id/1kCsF8rkm1yhpjh2_VMzf8ukSPf9d4tqO/MPA Network Assessment: Working Group Shared Folder/data/sync-data"
+basedir <- "/Users/cfree/Library/CloudStorage/GoogleDrive-cfree@ucsb.edu/.shortcut-targets-by-id/1kCsF8rkm1yhpjh2_VMzf8ukSPf9d4tqO/MPA Network Assessment: Working Group Shared Folder/data/sync-data"
 datadir <- file.path(basedir, "data")
 plotdir <- file.path(basedir, "figures")
 traitdir <- file.path(basedir, "mpa_traits/processed")
@@ -26,6 +26,7 @@ landings_orig <- readRDS("/Users/cfree/Dropbox/Chris/UCSB/projects/california/cd
 # Read blocks
 blocks <- wcfish::blocks
 
+
 # Summarize catch by block
 ################################################################################
 
@@ -35,7 +36,8 @@ landings <- landings_orig %>%
   filter(year %in% 2000:2006) %>% 
   # Summarize
   group_by(block_id,) %>% 
-  summarize(landings_lb=sum(landings_lb, na.rm=T)) %>% 
+  summarize(nvessels=n_distinct(vessel_id),
+            landings_lb=sum(landings_lb, na.rm=T)) %>% 
   ungroup() %>% 
   # Add area
   left_join(blocks %>% select(block_id, block_sqkm), by="block_id") %>% 
@@ -55,6 +57,10 @@ data <- mpas %>%
 
 # Export
 saveRDS(data, file=file.path(outputdir, "pre_mpa_fishing_pressure_by_mpa.Rds"))
+
+
+# Plot data
+################################################################################
 
 
 
