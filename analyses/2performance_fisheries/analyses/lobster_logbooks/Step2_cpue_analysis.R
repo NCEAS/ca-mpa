@@ -44,6 +44,52 @@ data2 <- data1 %>%
 n_distinct(data2$mpa)
 
 
+# Plot data (non-confidential)
+################################################################################
+
+# Logbooks use
+data_binned <- data %>% 
+  # Add bins
+  filter(cpue<=5) %>% 
+  mutate(dist_catg=cut(dist_km, breaks=seq(0,112,1), 
+                       label=seq(1,112,1), right=F) %>% as.character() %>% as.numeric()) %>% 
+  # Summarzie
+  group_by(dist_catg) %>% 
+  summarize(q50=median(cpue, na.rm=T),
+            q90=quantile(cpue, probs=0.95, na.rm=T)) %>% 
+  ungroup()
+
+
+# Theme
+my_theme <-  theme(axis.text=element_text(size=6),
+                   axis.title=element_text(size=8),
+                   strip.text=element_text(size=7),
+                   plot.title=element_blank(),
+                   # Gridlines
+                   panel.grid.major = element_blank(), 
+                   panel.grid.minor = element_blank(),
+                   panel.background = element_blank(), 
+                   axis.line = element_line(colour = "black"),
+                   # Legend
+                   legend.background = element_rect(fill=alpha('blue', 0)))
+
+# Plot data
+g <- ggplot(data_binned, aes(x=dist_catg, y=q90)) +
+  geom_line() +
+  # Labels
+  labs(x="Distance to nearest MPA (km)", 
+       y="Catch per trap-night") +
+  # Axes
+  scale_x_continuous(lim=c(0,30)) +
+  # Theme
+  theme_bw() + my_theme
+g
+
+# Export
+ggsave(g, filename=file.path(plotdir, "FigX_spillover_w_outliers.png"), 
+       width=3.5, height=3.5, units="in", dpi=600)
+
+
 # Plot data
 ################################################################################
 
@@ -61,7 +107,7 @@ my_theme <-  theme(axis.text=element_text(size=6),
                    legend.background = element_rect(fill=alpha('blue', 0)))
 
 # Plot data
-g <- ggplot(data, aes(x=dist_km, y=cpue)) +
+g <- ggplot(data, aes(x=dist_catg, y=cpue)) +
   geom_point(pch=21, color="grey50", alpha=0.5) +
   geom_smooth(method = "gam", fill="grey40", color="black") +
   # Labels
