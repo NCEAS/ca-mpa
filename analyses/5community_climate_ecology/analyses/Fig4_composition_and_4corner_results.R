@@ -31,8 +31,8 @@ rm(coef_out)
 ################################################################################
 
 # Parameters
-guilds <- c("Cold temperate", "Warm temperate", "Subtropical", "Tropical", "Cosmopolitan")
-indicators <- c("SST", "BT", "MOCI", "BEUTI")
+guilds <- c("Cold temp.", "Warm temp.", "Subtropical", "Tropical", "Cosmopolitan")
+indicators <- c("SST", "SBT", "MOCI", "BEUTI")
 
 # Composition
 ##########################################
@@ -45,6 +45,7 @@ comp <- comp_orig %>%
          biomass=group_total) %>% 
   # Format guild
   mutate(guild=stringr::str_to_sentence(guild),
+         mutate(guild=gsub("temperate", "temp.", guild)) %>% 
          guild=factor(guild, levels=guilds)) %>% 
   # Format habitat
   mutate(habitat=recode_factor(habitat,
@@ -75,7 +76,8 @@ coef <- coef_orig %>%
          habitat=group, 
          indicator=environmental_variables) %>% 
   # Format indicator
-  mutate(indicator=factor(indicator, levels=indicators)) %>% 
+  mutate(indicator=recode(indicator, "BT"="SBT"), 
+         indicator=factor(indicator, levels=indicators)) %>% 
   # Format guild
   mutate(guild=recode_factor(guild,
                              "Cold temperate"="Cold temp.",
@@ -105,12 +107,12 @@ table(coef$habitat)
 ################################################################################
 
 # Theme
-base_theme <-  theme(axis.text=element_text(size=7),
-                     axis.title=element_text(size=8),
-                     legend.text=element_text(size=7),
-                     legend.title=element_text(size=8),
-                     strip.text=element_text(size=8),
-                     plot.tag=element_text(size=9),
+base_theme <-  theme(axis.text=element_text(size=8),
+                     axis.title=element_text(size=9),
+                     legend.text=element_text(size=8),
+                     legend.title=element_text(size=9),
+                     strip.text=element_text(size=9),
+                     plot.tag=element_text(size=10),
                      # Gridlines
                      panel.grid.major = element_blank(), 
                      panel.grid.minor = element_blank(),
@@ -123,7 +125,7 @@ base_theme <-  theme(axis.text=element_text(size=7),
 # Plot composition
 g1 <- ggplot(comp, aes(x=year, y=prop, fill=guild)) +
   facet_wrap(~habitat, ncol=1) +
-  geom_bar(stat="identity", position = position_fill(reverse = TRUE)) +
+  geom_bar(stat="identity", position = position_fill(reverse = TRUE), color="grey30", lwd=0.2) +
   # Refence lines
   geom_vline(xintercept = c(2013.5, 2016.5), linetype="dashed") +
   # Labels
