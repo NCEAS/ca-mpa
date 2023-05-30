@@ -45,7 +45,7 @@ comp <- comp_orig %>%
          biomass=group_total) %>% 
   # Format guild
   mutate(guild=stringr::str_to_sentence(guild),
-         mutate(guild=gsub("temperate", "temp.", guild)) %>% 
+         guild=gsub("temperate", "temp.", guild),
          guild=factor(guild, levels=guilds)) %>% 
   # Format habitat
   mutate(habitat=recode_factor(habitat,
@@ -169,7 +169,7 @@ g_4corner
 
 # Merge
 g_all1 <- gridExtra::grid.arrange(g1, g_4corner,
-                                  widths=c(0.7,  0.3))
+                                  widths=c(0.68,  0.32))
 g_all1
 
 # Export
