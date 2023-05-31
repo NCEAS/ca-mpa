@@ -12,6 +12,7 @@ data_path <- "/home/shares/ca-mpa/data/sync-data/"
 biomass_dat <-  paste0(data_path,"monitoring/processed_data/biomass_processed")
 fig_dir <- here::here("analyses","1performance_eco","figures")
 tab_dir <- here::here("analyses","1performance_eco","tables")
+dat_path <- here::here("analyses","1performance_eco","output")
 
 # Load biomass data 
 surf_biomass <- read.csv(file.path(biomass_dat,"surf_zone_fish_biomass.csv"))
@@ -50,7 +51,14 @@ surf_build1 <- surf_biomass %>%
                           #file:///Users/jossmith/Downloads/MPA_BeachSurfZoneSites_Methods_dataone.pdf
                           mutate(n_ref = 6,
                                  n_smr = 6) %>%
-                          mutate_all(~ replace_na(.,0))
+                          mutate_all(~ replace_na(.,0)) %>%
+  #clean up
+  janitor::clean_names()  %>%
+  mutate(across(everything(), str_to_sentence),
+         habitat = "Surf zone")%>%
+  dplyr::select(habitat, everything())
+
+
                                   
 #kelp
 kelp_build1 <- kelp_biomass %>% 
@@ -79,7 +87,14 @@ kelp_build1 <- kelp_biomass %>%
   pivot_wider(names_from = mpa_defacto_designation,
               values_from = c(mean_kg, sd_kg, n, se_kg)) %>%
   #drop sites with missing data
-  filter(!(is.na(mean_kg_ref) | is.na(mean_kg_smr)))
+  filter(!(is.na(mean_kg_ref) | is.na(mean_kg_smr))) %>%
+  #clean up
+  janitor::clean_names()  %>%
+  mutate(across(everything(), str_to_sentence),
+         habitat = "Kelp forest")%>%
+  dplyr::select(habitat, everything())
+
+
 
 
 
@@ -109,7 +124,13 @@ ccfrp_build1 <- ccfrp_biomass %>%
   #drop sites with missing data
   filter(!(is.na(n_ref) | is.na(n_smr))) %>%
   #ccfrp is targeted only
-  filter(target_status == "Targeted")
+  filter(target_status == "Targeted")%>%
+  #clean up
+  janitor::clean_names()  %>%
+  mutate(across(everything(), str_to_sentence),
+         habitat = "Shallow reef")%>%
+  dplyr::select(habitat, everything())
+
 
 
 #deep reef
@@ -141,17 +162,19 @@ deep_reef_build1 <- deep_reef_biomass %>%
   mutate_all(~replace_na(.,0)) %>%
   #clean up
   janitor::clean_names()  %>%
-  mutate(across(everything(), str_to_sentence))
+  mutate(across(everything(), str_to_sentence),
+         habitat = "Deep reef")%>%
+  dplyr::select(habitat, everything())
 
 
+#merge
+
+biomass_dat <- rbind(surf_build1, kelp_build1, ccfrp_build1, deep_reef_build1)
+
+write.csv(biomass_dat, file.path(dat_path,"biomass_dat.csv"), row.names = FALSE)
 
 
-
-
-
-
-
-
+################################################################################
 
 
 
