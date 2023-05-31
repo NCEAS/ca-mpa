@@ -170,7 +170,7 @@ CCFRP<- ggplot(data=cent, aes(NMDS1, NMDS2)) +
             )+           #line connecting groups (years)
    geom_segment(aes(x = 0, y = 0, xend = (NMDS1), yend = (NMDS2)), 
        data = en_coord_cont, size =0.5, alpha = 0.5,
-       arrow = arrow(length = unit(0.25, "cm")), colour = "grey50", lwd=0.5)+
+       arrow = arrow(length = unit(0.25, "cm")), colour = "grey30", lwd=0.5)+
      geom_text(data = en_coord_cont, aes(x = ifelse(NMDS1 > 0, NMDS1 + 0.03, NMDS1), #adjust BEUTI label
                                          y = ifelse(NMDS1 < 0, NMDS2 + 0.01,
                                                     ifelse(row.names(en_coord_cont) == "SST", NMDS2-0.015, NMDS2))), #adjust MOCI
@@ -178,8 +178,8 @@ CCFRP<- ggplot(data=cent, aes(NMDS1, NMDS2)) +
        fontface = "bold", label = row.names(en_coord_cont), #position=position_jitter(width=0.01,height=0.01), 
        size=2.8) + 
   ggtitle("Shallow reef")+
-  scale_color_manual(values=c('#004D40','#D81B60','#1E88E5',
-                              '#004D40','#D81B60','#1E88E5'))+
+  scale_color_manual(values=c('#1B9E77','#FF7F00','#984EA3',
+                              '#1B9E77','#FF7F00','#984EA3'))+
   labs(shape="Site type",color='Heatwave period') +
   annotate(geom="text", 
            x=0.115, 
@@ -272,7 +272,7 @@ kelp_invalg<- ggplot(data=cent, aes(NMDS1, NMDS2)) +
             )+           #line connecting groups (years)
    geom_segment(aes(x = 0, y = 0, xend = (NMDS1), yend = (NMDS2)), 
        data = en_coord_cont, size =0.5, alpha = 0.5,
-       arrow = arrow(length = unit(0.25, "cm")), colour = "grey50", lwd=0.5)+
+       arrow = arrow(length = unit(0.25, "cm")), colour = "grey30", lwd=0.5)+
      geom_text(data = en_coord_cont, aes(x = ifelse(NMDS1 > 0, NMDS1 - 0.02, NMDS1+0.01), #adjust BEUTI label
                                          y = ifelse(NMDS1 > 0, NMDS2 + 0.03, #adjust SBT and SST
                                                     ifelse(NMDS1 < 0 & NMDS2 >0, NMDS2+0.02, NMDS2-0.02))), #adjust MOCI
@@ -280,8 +280,8 @@ kelp_invalg<- ggplot(data=cent, aes(NMDS1, NMDS2)) +
        fontface = "bold", label = row.names(en_coord_cont), #position=position_jitter(width=0.01,height=0.01), 
        size=2.8) + 
   ggtitle("Kelp forest inverts and algae")+
-  scale_color_manual(values=c('#004D40','#D81B60','#1E88E5',
-                              '#004D40','#D81B60','#1E88E5'))+
+  scale_color_manual(values=c('#1B9E77','#FF7F00','#984EA3',
+                              '#1B9E77','#FF7F00','#984EA3'))+
   labs(shape="site type",color='heatwave period') +
   annotate(geom="text", 
            x=0.085, 
@@ -367,7 +367,7 @@ kelp_fish<- ggplot(data=cent, aes(NMDS1, NMDS2)) +
             )+           #line connecting groups (years)
    geom_segment(aes(x = 0, y = 0, xend = (NMDS1), yend = (NMDS2)), 
        data = en_coord_cont, size =0.5, alpha = 0.5,
-       arrow = arrow(length = unit(0.25, "cm")), colour = "grey50", lwd=0.5)+
+       arrow = arrow(length = unit(0.25, "cm")), colour = "grey30", lwd=0.5)+
     geom_text(data = en_coord_cont, aes(x = ifelse(NMDS1 > 0, NMDS1, NMDS1+0.01), 
                                          y = ifelse(NMDS1 > 0, NMDS2 + 0.016, 
                                                     ifelse(NMDS1 < 0, NMDS2-0.016, NMDS2 + 0.016))), #adjust MOCI
@@ -375,8 +375,8 @@ kelp_fish<- ggplot(data=cent, aes(NMDS1, NMDS2)) +
        fontface = "bold", label = row.names(en_coord_cont), #position=position_jitter(width=0.01,height=0.01), 
        size=2.8) + 
   ggtitle("Kelp forest fishes")+
- scale_color_manual(values=c('#004D40','#D81B60','#1E88E5',
-                              '#004D40','#D81B60','#1E88E5'))+
+ scale_color_manual(values=c('#1B9E77','#FF7F00','#984EA3',
+                              '#1B9E77','#FF7F00','#984EA3'))+
   labs(shape="site type",color='heatwave period') +
   annotate(geom="text", 
            x=0.05, 
@@ -460,14 +460,15 @@ deep_reef<- ggplot(data=cent, aes(NMDS1, NMDS2)) +
             )+           #line connecting groups (years)
    geom_segment(aes(x = 0, y = 0, xend = (NMDS1), yend = (NMDS2)), 
        data = en_coord_cont, size =0.5, alpha = 0.5,
-       arrow = arrow(length = unit(0.25, "cm")), colour = "grey50", lwd=0.5)+
+       arrow = arrow(length = unit(0.25, "cm")), colour = "grey30", lwd=0.5)+
      geom_text(data = en_coord_cont, aes(x = ifelse(NMDS1 < 0, NMDS1 +0.035, NMDS1+0.01), 
                                          y = ifelse(NMDS2 < 0, NMDS2 - 0.02, NMDS2 + 0.015)), #adjust MOCI
                colour = "black", 
        fontface = "bold", label = row.names(en_coord_cont), #position=position_jitter(width=0.01,height=0.01), 
        size=2.8) + 
   ggtitle("Deep reef")+
-  scale_color_manual(values=c('#004D40','#D81B60','#1E88E5'))+
+  scale_color_manual(values=c('#1B9E77','#FF7F00','#984EA3',
+                              '#1B9E77','#FF7F00','#984EA3'))+
   labs(shape="site type",color='heatwave period') +
   #theme(text = element_text(12))+
   annotate(geom="text", 
@@ -554,13 +555,14 @@ rocky<- ggplot(data=cent, aes(NMDS1, NMDS2)) +
             )+           #line connecting groups (years)
    geom_segment(aes(x = 0, y = 0, xend = (NMDS1), yend = (NMDS2)), 
        data = en_coord_cont, size =0.5, alpha = 0.5,
-       arrow = arrow(length = unit(0.25, "cm")), colour = "grey50", lwd=0.5)+
+       arrow = arrow(length = unit(0.25, "cm")), colour = "grey30", lwd=0.5)+
      geom_text(data = en_coord_cont, aes(x = ifelse(NMDS1 > 0, NMDS1 - 0.03, NMDS1 + 0.01), 
                                          y = ifelse(NMDS2 > 0, NMDS2 + 0.01, NMDS2)), colour = "black", 
        fontface = "bold", label = row.names(en_coord_cont), #position=position_jitter(width=0.01,height=0.01), 
        size=2.8) + 
   ggtitle("Rocky intertidal")+
-  scale_color_manual(values=c('#004D40','#D81B60','#1E88E5'))+
+  scale_color_manual(values=c('#1B9E77','#FF7F00','#984EA3',
+                              '#1B9E77','#FF7F00','#984EA3'))+
   labs(shape="site type",color='heatwave period') +
   #theme(text = element_text(12))+
     annotate(geom="text", 
