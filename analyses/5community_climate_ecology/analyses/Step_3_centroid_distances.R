@@ -173,6 +173,7 @@ mean_ref <- mean(dist_ref$value)
 #pairwise PERMANOVA to test for sig differences
 
 #pariwise permanova
+set.seed(1985)
 ccfrp_pair_perm <- pairwise.adonis2(CCFRP_distmat ~ desig_state,
                                     data = CCFRP_group_vars, permutations = 999)
 dr_pair_perm <- pairwise.adonis2(deep_reef_distmat ~ desig_state, 
@@ -267,10 +268,12 @@ sig_distance$period <- recode_factor(sig_distance$period, "before-to-after"="Bef
 
 
 
-my_theme <-  theme(axis.text=element_text(size=5),
-                   axis.text.y = element_text(angle = 90, hjust = 0.5),
+my_theme <-  theme(axis.text=element_text(size=7),
+                   axis.text.y = element_text(#angle = 90, 
+                                              hjust = 0.5, color = "black"),
+                   axis.text.x = element_text(color = "black"),
                    axis.title=element_text(size=6),
-                   plot.tag=element_text(size=7),
+                   plot.tag=element_text(size=7, color = "black"),
                    plot.title =element_text(size=7, face="bold"),
                    # Gridlines
                    panel.grid.major = element_blank(), 
@@ -311,7 +314,7 @@ p1 <-
   geom_text(aes(x = group, y=sig_y, label=sig), size=3, #hjust=-1, vjust=0.5,
             position = position_dodge(width=0.5),
             show.legend = FALSE)+
-  annotate("segment",x =0.6, y = 0.215, xend = 0.6, yend = 0.002,
+  annotate("segment",x =0.62, y = 0.215, xend = 0.62, yend = 0.01,
            arrow = arrow(type = "closed", length = unit(0.01, "npc")), size=3, linejoin = "mitre",
            color="lightgray")+
   annotate("text", size=1.8,
@@ -319,22 +322,24 @@ p1 <-
            label = "Resistance",
            fontface = 'italic',
            color = 'black')+
-  annotate("text", size=1.5,
-           x=0.6, y=-0.01,
+  annotate("text", size=2,
+           x=0.64, y=-0.008,
            label = "High",
            fontface = 'italic',
            color = 'black')+
-  annotate("text", size=1.5,
-           x=0.61, y=0.22, 
+  annotate("text", size=2,
+           x=0.61, y=0.225, 
            label = "Low",
            fontface = 'italic',
            color = 'black')+
   ylab("")+
   xlab("")+
   scale_y_continuous(limits=c(-0.01,0.23))+
-  scale_x_discrete(labels = function(x) 
-    stringr::str_wrap(x, width = 15)
-    )+
+  scale_x_discrete(labels = function(x) {
+    ifelse(x == "Kelp forest inverts and algae", 
+           stringr::str_wrap(x, width = 9), 
+           stringr::str_wrap(x, width = 8))
+  })+
  labs(color = "Site type", tag = "A")+
   scale_color_brewer(palette="Set1") +
   #geom_vline(xintercept=c(1.5, 2.5,3.5,4.5), color="grey",alpha=.4)+
@@ -369,7 +374,7 @@ p2 <-
   geom_text(aes(x = group, y=sig_y, label=sig), size=3, #hjust=-1, vjust=0.5,
             position = position_dodge(width=0.5),
             show.legend = FALSE)+
-  annotate("segment",x =0.6, y = 0.215, xend = 0.6, yend = 0.002,
+  annotate("segment",x =0.62, y = 0.215, xend = 0.62, yend = 0.01,
            arrow = arrow(type = "closed", length = unit(0.01, "npc")), size=3, linejoin = "mitre",
            color="lightgray")+
   annotate("text", size=1.8,
@@ -377,22 +382,24 @@ p2 <-
            label = "Recovery",
            fontface = 'italic',
            color = 'black')+
-  annotate("text", size=1.5,
-           x=0.6, y=-0.01,
+  annotate("text", size=2,
+           x=0.64, y=-0.008,
            label = "High",
            fontface = 'italic',
            color = 'black')+
-  annotate("text", size=1.5,
-           x=0.61, y=0.22, 
+  annotate("text", size=2,
+           x=0.61, y=0.225, 
            label = "Low",
            fontface = 'italic',
            color = 'black')+
   ylab("")+
   xlab("")+
   scale_y_continuous(limits=c(-0.01,0.23))+
-  scale_x_discrete(labels = function(x) 
-    stringr::str_wrap(x, width = 15)
-  )+
+  scale_x_discrete(labels = function(x) {
+    ifelse(x == "Kelp forest inverts and algae", 
+           stringr::str_wrap(x, width = 9), 
+           stringr::str_wrap(x, width = 8))
+  })+
   labs(color = "Site type", tag="B")+
   scale_color_brewer(palette="Set1") +
   #geom_vline(xintercept=c(1.5, 2.5,3.5,4.5), color="grey",alpha=.4)+
@@ -414,12 +421,12 @@ g <- ggpubr::ggarrange(p1, p2, nrow=1, ncol=2,
 
 g_title <- ggpubr::annotate_figure(g, left = textGrob("Distance (Bray-Curtis)", 
                                                      rot = 90, vjust = 3, hjust=0.3, gp = gpar(cex = 0.6)),
-                                  bottom = textGrob("Habitat", hjust=1, vjust=-17, gp = gpar(cex = 0.6)))
+                                  bottom = textGrob("Habitat", hjust=1, vjust=-5, gp = gpar(cex = 0.6)))
 
 
 
-#ggsave(here::here("analyses", "5community_climate_ecology", "figures", "Fig3_centroid_shifts.png"), g_title, height=6, width = 7, units = "in", 
- # dpi = 600, bg="white")
+ggsave(here::here("analyses", "5community_climate_ecology", "figures", "Fig3_centroid_shifts_revised.png"), g_title, height=4, width = 7, units = "in", 
+  dpi = 600, bg="white")
 
 
 ################################################################################
