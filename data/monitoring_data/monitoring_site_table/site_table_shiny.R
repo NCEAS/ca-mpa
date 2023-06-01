@@ -142,67 +142,49 @@ shinyApp(ui = ui, server = server)
 
 
 
+################################################################################
+#tmap
+
+sites <- sites %>% ungroup() %>% data.frame() %>% mutate(group = factor(group, levels = c("Beach","Surf","Intertidal","CCFRP","Kelp Forest")))
 
 
-
-
-
-library(leaflet)
-
-# Define UI
 ui <- fluidPage(
-  titlePanel("Sites by Year"),
   sidebarLayout(
     sidebarPanel(
-      sliderInput("year", "Year", min = min(sites$year), max = max(sites$year),
-                  value = min(sites$year), step = 1)
+      sliderInput("year", "Select Year:", min = 2000, max = 2023, value = 2007)
     ),
     mainPanel(
-      leafletOutput("site_plot"),
-      leafletOutput("legend")  # Add leaflet output for legend
+      leafletOutput("map")
     )
   )
 )
 
-# Define server
 server <- function(input, output) {
-  output$site_plot <- renderLeaflet({
-    # Filter sites based on selected year
-    filtered_sites <- subset(sites, year == input$year)
-    
-    # Convert group variable to factor if needed
-    filtered_sites$group <- as.factor(filtered_sites$group)
-    
-    # Create color palette for groups
-    color_palette <- colorFactor(palette = "Set1", domain = filtered_sites$group)
-    
-    # Create leaflet map
-    m <- leaflet() %>%
-      # Set initial view to California
-      setView(lng = -119.4179, lat = 36.7783, zoom = 5.2) %>%
-      # Add map tiles
-      addTiles() %>%
-      # Add site markers with fill colors based on group
-      addCircleMarkers(data = filtered_sites, lng = ~lon_wgs84, lat = ~lat_wgs84,
-                       color = ~color_palette(group), radius = 5, stroke = FALSE, fillOpacity = 0.7)
-    
-    m
+  # Read the data frame
+  sites 
+  
+  # Convert necessary columns to numeric and factor
+  sites$lat_wgs84 <- as.numeric(sites$lat_wgs84)
+  sites$lon_wgs84 <- as.numeric(sites$lon_wgs84)
+  sites$year <- as.integer(sites$year)
+  sites$group <- as.factor(sites$group)  # Convert 'group' to factor
+  
+  # Create a reactive expression for filtered data based on the selected year
+  filteredData <- reactive({
+    year <- input$year
+    sites[sites$year == year, ]
   })
   
-  # Create separate leaflet object for legend
-  output$legend <- renderLeaflet({
-    # Create color palette for groups
-    color_palette <- colorFactor(palette = "Set1", domain = sites$group)
+  # Render the map
+  output$map <- renderLeaflet({
+    pal <- colorFactor(palette = "Set1", domain = filteredData()$group)  # Define color palette
     
-    # Create leaflet map for legend
-    legend_map <- leaflet() %>%
-      addTiles() %>%
-      addLegend(position = "bottomright", pal = color_palette, values = sites$group,
-                title = "Group", opacity = 1)
-    
-    legend_map
+    leaflet() %>%
+      addProviderTiles("OpenStreetMap.Mapnik") %>%
+      addCircleMarkers(data = filteredData(),
+                       lng = ~lon_wgs84, lat = ~lat_wgs84,
+                       color = ~pal(group), radius = 5)
   })
 }
 
-# Run the app
-shinyApp(ui = ui, server = server)
+shinyApp(ui, server)
