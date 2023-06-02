@@ -48,8 +48,7 @@ ui <- fluidPage(
     sidebarPanel(
       sliderInput("year", "Select Year:", min = 2007, max = 2020, value = 2007, sep = ""),
       selectInput("group", "Select Group:", choices = c("All", "Sandy beach", "Surf zone", "Intertidal long-term", "Intertidal biodiversity", "Kelp forest", "CCFRP", "Deep reef"), multiple = TRUE)
-      # Add the selectInput for the 'group' variable with the available choices
-      # Set multiple = TRUE to allow selecting multiple groups
+      
     ),
     mainPanel(
       tmapOutput("map"),
@@ -63,14 +62,11 @@ ui <- fluidPage(
 server <- function(input, output) {
   sf_use_s2(FALSE)  # Disable S2 geometry library
   
-  # Read the data frame
   sites_spat 
   
-  # Convert necessary columns to numeric and factor
   sites_spat$year <- as.integer(sites_spat$year)
   sites_spat$group <- as.factor(sites_spat$group)  # Convert 'group' to factor
   
-  # Create a reactive expression for filtered data based on the selected year and groups
   filteredData <- reactive({
     year <- input$year
     groups <- input$group
