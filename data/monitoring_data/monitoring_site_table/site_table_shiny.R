@@ -5,186 +5,122 @@
 rm(list=ls())
 
 #required packages
-librarian::shelf(ggplot2, tidyverse)
+librarian::shelf(ggplot2, tidyverse, tmap, sf, shiny)
 
 #Directories
 basedir <- "/home/shares/ca-mpa/data/sync-data"
 gisdir <- file.path(basedir, "gis_data/processed")
 
 # Read data
-state_waters_poly <- readRDS(file.path(gisdir, "CA_state_waters_polygons.Rds"))
-state_waters_line <- readRDS(file.path(gisdir, "CA_state_waters_polyline.Rds"))
-mpas_orig <- readRDS(file.path(basedir, "mpa_traits/processed", "CA_mpa_metadata.Rds"))
-
-# Get land
-usa <- rnaturalearth::ne_states(country="United States of America", returnclass = "sf")
-foreign <- rnaturalearth::ne_countries(country=c("Canada", "Mexico"), returnclass = "sf")
+mpas_orig <- readRDS(file.path(gisdir, "CA_MPA_polygons.Rds")) 
 
 # Read site locations
-sites <- readxl::read_excel(file.path(basedir, "monitoring/ltm-site-table-cleaned.xlsx")) %>%
-              filter(!(is.na(Data))) %>%
-              janitor::clean_names()
+sites <- read.csv(file.path(basedir, "monitoring/site_tables/processed/monitoring_site_table.csv"))
 
 ################################################################################
+#process data
 
-#MPA regions
-# CA/OR, Alder Creek, Pigeon Point, Point Conception, CA/MEX 
-region_lats <- c(39.0, 37.18, 34.5)
-
-# Region labels
-region_labels <- tibble(long_dd=c(-123.9, -122.9, -121, -118, -119.5),
-                        lat_dd=c(40.5, 38.7, 36, 34.1, 34.8),
-                        label=c("North\n(Dec 2012)", "North Central\n(May 2010)", "Central\n(Sep 2007)", "South\n(Jan 2012)", "N. Channel\nIslands (2003)"))
-
-# Theme
-base_theme <-  theme(axis.text=element_text(size=7),
-                     axis.title=element_text(size=8),
-                     legend.text=element_text(size=7),
-                     legend.title=element_text(size=8),
-                     plot.tag=element_text(size=8),
-                     # Gridlines
-                     panel.grid.major = element_blank(), 
-                     panel.grid.minor = element_blank(),
-                     panel.background = element_blank(), 
-                     axis.line = element_line(colour = "black"),
-                     # Legend
-                     legend.key = element_rect(fill=alpha('blue', 0)),
-                     legend.background = element_rect(fill=alpha('blue', 0)))
-
-# Plot data
-g1 <- ggplot() +
-  # Plot regions
-  geom_hline(mapping=aes(yintercept=region_lats)) +
-  # Plot land
-  geom_sf(data=foreign, fill="grey80", color="white", lwd=0.3) +
-  geom_sf(data=usa, fill="grey80", color="white", lwd=0.3) +
-  # Plot state waters
-  geom_sf(data=state_waters_line, color="grey40", lwd=0.1) +
-  # Plot sites
-  geom_point(data=sites, mapping=aes(x=lon_wgs84, y=lat_wgs84, color = Group)) +
-  # Plot region labels
-  geom_text(data=region_labels, mapping=aes(x=long_dd, y=lat_dd, label=label), hjust=0, size=2.3) +
-  # Labels
-  labs(x="", y="", tag="A") +
-  scale_size_continuous(name="# of habitats monitored") +
-  # Axes
-  scale_y_continuous(breaks=32:42) +
-  # Crop
-  coord_sf(xlim = c(-124.5, -117), ylim = c(32.5, 42)) +
-  # Theme
-  theme_bw() + base_theme +
-  theme(axis.text.y = element_text(angle = 90, hjust = 0.5),
-        axis.title=element_blank(),
-        legend.position = c(0.8, 0.7),
-        legend.key.size = unit(0.4, "cm"))
-g1
-
-
-###############################################################################
-# Define UI
-ui <- fluidPage(
-  titlePanel("Sites by Year"),
-  sidebarLayout(
-    sidebarPanel(
-      sliderInput("year", "Year", min = min(sites$year), max = max(sites$year),
-                  value = min(sites$year), step = 1)
-    ),
-    mainPanel(
-      plotOutput("site_plot")
-    )
-  )
-)
-
-# Define server
-server <- function(input, output) {
-  output$site_plot <- renderPlot({
-    # Filter sites based on selected year
-    filtered_sites <- subset(sites, year == input$year)
-    
-    # Plot data
-    ggplot() +
-      # Plot regions
-      geom_hline(mapping = aes(yintercept = region_lats)) +
-      # Plot land
-      geom_sf(data = foreign, fill = "grey80", color = "white", lwd = 0.3) +
-      geom_sf(data = usa, fill = "grey80", color = "white", lwd = 0.3) +
-      # Plot state waters
-      geom_sf(data = state_waters_line, color = "grey40", lwd = 0.1) +
-      # Plot sites
-      geom_point(data = filtered_sites, mapping = aes(x = lon_wgs84, y = lat_wgs84, color = group)) +
-      # Plot region labels
-      geom_text(data = region_labels, mapping = aes(x = long_dd, y = lat_dd, label = label), hjust = 0, size = 2.3) +
-      # Labels
-      labs(x = "", y = "") +
-      scale_size_continuous(name = "# of habitats monitored") +
-      # Axes
-      scale_y_continuous(breaks = 32:42) +
-      # Crop
-      coord_sf(xlim = c(-124.5, -117), ylim = c(32.5, 42)) +
-      # Theme
-      theme_bw() +
-      theme(
-        axis.text.y = element_text(angle = 90, hjust = 0.5),
-        axis.title = element_blank(),
-        legend.position = c(0.8, 0.7),
-        legend.key.size = unit(0.4, "cm")
-      )
-  })
-}
-
-# Run the app
-shinyApp(ui = ui, server = server)
-
-
-
-
-
-
+mlpa_mpas <- mpas_orig %>% filter(type == "SMR" | type == "SMCA" | type == "SMCA (No-Take)") %>%
+              dplyr::rename("MPA type" = type) 
 
 
 ################################################################################
 #tmap
 
-sites <- sites %>% ungroup() %>% data.frame() %>% mutate(group = factor(group, levels = c("Beach","Surf","Intertidal","CCFRP","Kelp Forest")))
+sites <- sites %>% ungroup() %>% data.frame() %>% 
+  mutate(group = factor(group, levels = c("Sandy beach","Surf zone","Intertidal long-term","Intertidal biodiversity",
+                                          "Kelp forest","CCFRP","Deep reef")))
+
+# Make spatial
+sites_spat <- sites %>% 
+  drop_na(lon_wgs84, lat_wgs84) %>% 
+  st_as_sf(., coords = c("lon_wgs84", "lat_wgs84"), crs = 4326)
 
 
 ui <- fluidPage(
+  tags$head(
+    tags$style(
+      HTML(".leaflet-container { height: 800px !important; }"),
+      HTML("HTML, body {background-color: transparent;}")
+    )
+  ),
   sidebarLayout(
     sidebarPanel(
-      sliderInput("year", "Select Year:", min = 2000, max = 2023, value = 2007)
+      sliderInput("year", "Select Year:", min = 2007, max = 2020, value = 2007, sep = ""),
+      selectInput("group", "Select Group:", choices = c("All", "Sandy beach", "Surf zone", "Intertidal long-term", "Intertidal biodiversity", "Kelp forest", "CCFRP", "Deep reef"), multiple = TRUE)
+      # Add the selectInput for the 'group' variable with the available choices
+      # Set multiple = TRUE to allow selecting multiple groups
     ),
     mainPanel(
-      leafletOutput("map")
+      tmapOutput("map"),
+      br(),
+      p("Create by: Joshua G. Smith - National Center for Ecological Analysis and Synthesis"),
     )
   )
 )
 
+
 server <- function(input, output) {
+  sf_use_s2(FALSE)  # Disable S2 geometry library
+  
   # Read the data frame
-  sites 
+  sites_spat 
   
   # Convert necessary columns to numeric and factor
-  sites$lat_wgs84 <- as.numeric(sites$lat_wgs84)
-  sites$lon_wgs84 <- as.numeric(sites$lon_wgs84)
-  sites$year <- as.integer(sites$year)
-  sites$group <- as.factor(sites$group)  # Convert 'group' to factor
+  sites_spat$year <- as.integer(sites_spat$year)
+  sites_spat$group <- as.factor(sites_spat$group)  # Convert 'group' to factor
   
-  # Create a reactive expression for filtered data based on the selected year
+  # Create a reactive expression for filtered data based on the selected year and groups
   filteredData <- reactive({
     year <- input$year
-    sites[sites$year == year, ]
+    groups <- input$group
+    
+    if (is.null(groups) || length(groups) == 0 || "All" %in% groups) {
+      # If no groups are selected or "All" is selected, return all data
+      sites_spat[sites_spat$year == year, ]
+    } else {
+      filtered <- sites_spat[sites_spat$year == year & sites_spat$group %in% groups, ]
+      if (nrow(filtered) == 0) {
+        # If the filtered data is empty, return a data frame with no rows
+        data.frame(lon_wgs84 = numeric(), lat_wgs84 = numeric(), group = factor())
+      } else {
+        filtered
+      }
+    }
   })
   
   # Render the map
-  output$map <- renderLeaflet({
-    pal <- colorFactor(palette = "Set1", domain = filteredData()$group)  # Define color palette
-    
-    leaflet() %>%
-      addProviderTiles("OpenStreetMap.Mapnik") %>%
-      addCircleMarkers(data = filteredData(),
-                       lng = ~lon_wgs84, lat = ~lat_wgs84,
-                       color = ~pal(group), radius = 5)
+  output$map <- renderTmap({
+    if (nrow(filteredData()) == 0) {
+      # If the filtered data is empty, display a message
+      tm_shape(sites_spat) +
+        tm_text("Please make a selection.")
+    } else {
+      tm_shape(mlpa_mpas) +
+        tm_polygons(col = "indianred")+
+      tm_shape(filteredData()) +
+        tm_symbols(col = "group", palette = "Set1", size = 0.01) +
+        tm_legend(show = TRUE)
+    }
   })
 }
 
 shinyApp(ui, server)
+
+################################################################################
+#publish
+library(rsconnect)
+
+
+
+rsconnect::deployApp(here::here("data","monitoring_data","monitoring_site_table","site_table_shiny.R"))
+
+
+
+
+
+
+
+
+
+
