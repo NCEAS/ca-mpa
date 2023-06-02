@@ -1,0 +1,11 @@
+name: site_app
+title:
+username:
+account: joshuagsmith
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 9230698
+bundleId: 7293434
+url: https://joshuagsmith.shinyapps.io/site_app/
+when: 1685644592.67509
+lastSyncTime: 1685644592.67511
