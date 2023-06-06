@@ -265,7 +265,7 @@ g1 <- ggplot() +
   coord_sf(xlim = c(-122.6, -120.5), ylim = c(34.5, 37.2)) +
   # Theme
   theme_bw() + base_theme +
-  theme(axis.text.y = element_text(angle = 0, hjust = 0.5),
+  theme(axis.text.y = element_text(angle = 90, hjust = 0.5),
         axis.title=element_blank(),
         legend.position = c(0.2, 0.2), 
         legend.key.size = unit(0.4, "cm")) +
@@ -273,7 +273,7 @@ g1 <- ggplot() +
   annotation_custom(grob = g1_inset, 
                     xmin = -121.4, 
                     xmax = -120.37,
-                    ymin = 36.08) 
+                    ymin = 36.08)
   # Add inset
   # patchwork::inset_element(g1_inset, 
   #                          right = -120.6,
@@ -336,7 +336,7 @@ g3 <- ggplot(data=envi %>% filter(indicator=="Bottom temp"), aes(x=year, y=value
   # Theme
   theme_bw() + base_theme +
   theme(axis.title.x=element_blank(),
-        axis.text.y = element_text(angle = 0, hjust = 0.5))
+        axis.text.y = element_text(angle = 0, hjust = 0.5)) 
 g3
 
 # MOCI
@@ -363,7 +363,7 @@ g4 <- ggplot(data=envi %>% filter(indicator=="MOCI"), aes(x=year, y=value_avg)) 
   # Theme
   theme_bw() + base_theme +
   theme(axis.title.x=element_blank(),
-        axis.text.y = element_text(angle = 0, hjust = 0.5))
+        axis.text.y = element_text(angle = 0, hjust = 0.5)) 
 g4
 
 # BEUTI
@@ -435,11 +435,10 @@ g6
 ######use patchwork to align plot area 
 # Merge
 library(patchwork)
-g <- g1 + (g2 / g3 / g4 / g5 + plot_layout(ncol = 1)) + plot_layout(widths = c(0.7, 0.3)
-                                                                    )
+g <- g1 + (g2 / g3 / g4 / g5 + plot_layout(ncol = 1)) + plot_layout(widths = c(0.75, 0.25))
 
 
-ggsave(g, filename=file.path(plotdir, "Fig1_map_figure_new4.png"), 
+ggsave(g, filename=file.path(plotdir, "Fig1_map_figure.png"), 
             width=6, height=7, units="in", dpi=600)
 
 
