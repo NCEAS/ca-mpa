@@ -245,7 +245,7 @@ g1 <- ggplot() +
   # Labels
   labs(x="", y="", tag="A") +
   # Legend
-  scale_color_manual(name="Habitat", values=c( "#ffb703", "#06d6a0", "#118ab2", "#073b4c")) +
+  scale_color_manual(name="Habitat", values=c( "#f2cc8f", "#81b29a", "#e07a5f", "#3d405b")) +
   scale_shape_manual(name="Monitoring data?", values=c(1, 16)) +
   guides(color = guide_legend(order = 1), shape = guide_legend(order = 2)) +
   #add scalebar
@@ -308,7 +308,8 @@ g2 <- ggplot(data=envi %>% filter(indicator=="SST"), aes(x=year, y=value_avg)) +
   # Theme
   theme_bw() + base_theme +
   theme(axis.title.x=element_blank(),
-        axis.text.y = element_text(angle = 0, hjust = 0.5))
+        axis.text.y = element_text(angle = 0, hjust = 0.5),
+        plot.tag.position = c(0.05, 0.98))
 g2
 
 
@@ -336,7 +337,8 @@ g3 <- ggplot(data=envi %>% filter(indicator=="Bottom temp"), aes(x=year, y=value
   # Theme
   theme_bw() + base_theme +
   theme(axis.title.x=element_blank(),
-        axis.text.y = element_text(angle = 0, hjust = 0.5)) 
+        axis.text.y = element_text(angle = 0, hjust = 0.5),
+        plot.tag.position = c(0.05, 0.98))
 g3
 
 # MOCI
@@ -363,7 +365,8 @@ g4 <- ggplot(data=envi %>% filter(indicator=="MOCI"), aes(x=year, y=value_avg)) 
   # Theme
   theme_bw() + base_theme +
   theme(axis.title.x=element_blank(),
-        axis.text.y = element_text(angle = 0, hjust = 0.5)) 
+        axis.text.y = element_text(angle = 0, hjust = 0.5),
+        plot.tag.position = c(0.05, 0.98))
 g4
 
 # BEUTI
@@ -391,7 +394,8 @@ g5 <- ggplot(data=envi %>% filter(indicator=="BEUTI"), aes(x=year, y=value_avg))
   # Theme
   theme_bw() + base_theme +
   theme(axis.title.x=element_blank(),
-        axis.text.y = element_text(angle = 0))
+        axis.text.y = element_text(angle = 0),
+        plot.tag.position = c(0.05, 0.98))
 g5
 
 
@@ -415,7 +419,8 @@ g6 <- ggplot(data=envi %>% filter(indicator=="CUTI"), aes(x=year, y=value_avg)) 
   # Theme
   theme_bw() + base_theme +
   theme(axis.title.x=element_blank(),
-        axis.text.y = element_text(angle = 90, hjust = 0.5))
+        axis.text.y = element_text(angle = 90, hjust = 0.5),
+        plot.tag.position = c(0.02, 1))
 g6
 
 # Merge
