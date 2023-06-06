@@ -291,8 +291,8 @@ my_theme <-  theme(axis.text=element_text(size=7),
                    #plot.margin=unit(c(0.01,0.01,0.01,0.01),"cm")
 )
 
-sig_distance$MPA_type <- recode_factor(sig_distance$MPA_type, "In"="MPA")
-sig_distance$MPA_type <- recode_factor(sig_distance$MPA_type, "Out"="Reference")
+sig_distance$MPA_type <- recode_factor(sig_distance$MPA_type, "Reference"="Outside")
+sig_distance$MPA_type <- recode_factor(sig_distance$MPA_type, "MPA"="Inside")
 
 p1 <- 
   sig_distance %>%
@@ -300,7 +300,7 @@ p1 <-
   filter(Period == "Before-to-during")%>%
   mutate(group = factor(group, levels = c("Rocky intertidal","Kelp forest inverts and algae",
                                           "Kelp forest fishes","Shallow reef","Deep reef")),
-         MPA_type = factor(MPA_type, levels = c("MPA","Reference")),
+         MPA_type = factor(MPA_type, levels = c("Inside","Outside")),
          sig_y = value+se_pooled+0.01)%>%
   arrange(MPA_type, -value, group)%>%
   mutate(mpa_ordered = fct_inorder(paste(MPA_type, group, sep = "."))) |> 
@@ -360,7 +360,7 @@ p2 <-
   filter(Period == "Before-to-after")%>%
   mutate(group = factor(group, levels = c("Rocky intertidal","Kelp forest inverts and algae",
                                           "Kelp forest fishes","Shallow reef","Deep reef")),
-         MPA_type = factor(MPA_type, levels = c("MPA","Reference")),
+         MPA_type = factor(MPA_type, levels = c("Inside","Outside")),
          sig_y = value+se_pooled+0.01)%>%
   arrange(MPA_type, -value, group)%>%
   mutate(mpa_ordered = fct_inorder(paste(MPA_type, group, sep = "."))) |> 
@@ -425,7 +425,7 @@ g_title <- ggpubr::annotate_figure(g, left = textGrob("Distance (Bray-Curtis)",
 
 
 
-ggsave(here::here("analyses", "5community_climate_ecology", "figures", "Fig3_centroid_shifts_revised.png"), g_title, height=4, width = 7, units = "in", 
+ggsave(here::here("analyses", "5community_climate_ecology", "figures", "Fig3_centroid_shifts_revised_new.png"), g_title, height=4, width = 7, units = "in", 
   dpi = 600, bg="white")
 
 
