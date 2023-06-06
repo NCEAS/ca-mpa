@@ -130,9 +130,9 @@ cent$MHW <- recode_factor(cent$MHW, "during"="During")
 cent$MHW <- recode_factor(cent$MHW, "after"="After")
 cent$MHW <- factor(cent$MHW, level=c("Before","During","After"))
 cent$mpa_designation <- factor(cent$mpa_designation, level=c("MPA","Reference"))
+cent$mpa_designation <- recode(cent$mpa_designation, "MPA" = "Inside", "Reference" = "Outside")
 
-
-my_theme <-  theme(axis.text=element_text(size=8),
+my_theme <-  theme(axis.text=element_text(size=10),
                    axis.text.y = element_text(hjust = 0.5, color = "black"),
                    axis.text.x = element_text(color = "black"),
                    axis.title=element_text(size=10),
@@ -145,11 +145,11 @@ my_theme <-  theme(axis.text=element_text(size=8),
                    axis.line = element_line(colour = "black"),
                    # Legend
                    legend.key = element_blank(),
-                   legend.text=element_text(size=8),
-                   legend.title=element_text(size=10),
+                   legend.text=element_text(size=9),
+                   legend.title=element_text(size=11),
                    legend.background = element_rect(fill=alpha('blue', 0)),
                    #facets
-                   strip.text = element_text(size=6),
+                   strip.text = element_text(size=7),
                    #margins
                    #plot.margin=unit(c(0.01,0.01,0.01,0.01),"cm")
 )
@@ -173,7 +173,7 @@ CCFRP<- ggplot(data=cent, aes(NMDS1, NMDS2)) +
        arrow = arrow(length = unit(0.25, "cm")), colour = "grey30", lwd=0.5)+
      geom_text(data = en_coord_cont, aes(x = ifelse(NMDS1 > 0, NMDS1 + 0.03, NMDS1), #adjust BEUTI label
                                          y = ifelse(NMDS1 < 0, NMDS2 + 0.01,
-                                                    ifelse(row.names(en_coord_cont) == "SST", NMDS2-0.015, NMDS2))), #adjust MOCI
+                                                    ifelse(row.names(en_coord_cont) == "SST", NMDS2-0.02, NMDS2))), #adjust MOCI
                colour = "black", 
        fontface = "bold", label = row.names(en_coord_cont), #position=position_jitter(width=0.01,height=0.01), 
        size=2.8) + 
@@ -598,7 +598,7 @@ cplot <- cowplot::plot_grid(
 print(cplot)
 
 
-cowplot::save_plot(here::here("analyses", "5community_climate_ecology", "figures", "Fig2_NMDS.png"), cplot, bg="white",dpi = 600, units = "in", base_width=8.5, base_height = 6)
+cowplot::save_plot(here::here("analyses", "5community_climate_ecology", "figures", "Fig2_NMDS_new.png"), cplot, bg="white",dpi = 600, units = "in", base_width=8.5, base_height = 6)
 
 
 
