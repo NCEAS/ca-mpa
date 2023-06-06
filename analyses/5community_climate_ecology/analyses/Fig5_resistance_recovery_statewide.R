@@ -125,7 +125,7 @@ schem_theme <- theme_minimal() +
 RColorBrewer::brewer.pal(3, "Set1")
 
 # Plot schematic 1
-toy1 <- tibble(site=factor(c("MPA", "Reference"), levels=c("Reference", "MPA")),
+toy1 <- tibble(site=factor(c("Inside", "Outside"), levels=c("Outside", "Inside")),
                distance=c(0.5, 0.7))
 schem1 <- ggplot(toy1, aes(y=site, yend=site, xend=distance, color=site)) +
   geom_segment(x=0, arrow = arrow(length=unit(0.30, "cm"))) +
@@ -140,7 +140,7 @@ schem1 <- ggplot(toy1, aes(y=site, yend=site, xend=distance, color=site)) +
 schem1
 
 # Plot schematic 2
-toy2 <- tibble(site=factor(c("MPA", "Reference"), levels=c("Reference", "MPA")),
+toy2 <- tibble(site=factor(c("Inside", "Outside"), levels=c("Outside", "Inside")),
                distance=c(0.7, 0.5))
 schem2 <- ggplot(toy2, aes(y=site, yend=site, xend=distance, color=site)) +
   geom_segment(x=0, arrow = arrow(length=unit(0.30, "cm"))) +
