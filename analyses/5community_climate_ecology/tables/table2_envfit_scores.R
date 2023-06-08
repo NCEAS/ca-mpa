@@ -13,7 +13,7 @@ datadir <-  "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/commun
 tabdir <- here::here("analyses","5community_climate_ecology","tables")
 
 #load EnvFit score
-load(file.path(datadir, "env_fit_scores.rda"))
+load(file.path(datadir, "env_fit_scores_with_absolutes.rda"))
 
 
 #create helper function
@@ -53,7 +53,7 @@ envfit_scores <- rbind(rocky_int, CCFRP, kf_invalg, kf_fish, deep_reef)
 
 View(envfit_scores)
 
-write.csv(envfit_scores, file.path(tabdir, "env_fit_scores.csv"),
+write.csv(envfit_scores, file.path(tabdir, "env_fit_scores_with_absolutes.csv"),
           row.names=FALSE)
 
 
