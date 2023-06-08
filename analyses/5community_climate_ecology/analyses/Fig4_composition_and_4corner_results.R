@@ -23,7 +23,11 @@ rm(comp_data)
 
 # Read four-corner data
 load(file.path(basedir,"monitoring/processed_data/community_climate_derived_data/four_corner_output_anom.rda"))
-coef_orig <- coef_out
+coef_anom <- coef_out
+rm(coef_out)
+
+load(file.path(basedir,"monitoring/processed_data/community_climate_derived_data/four_corner_output_abs.rda"))
+coef_abs <- coef_out
 rm(coef_out)
 
 
@@ -69,7 +73,7 @@ table(comp$habitat)
 ##########################################
 
 # Format data
-coef <- coef_orig %>% 
+coef <- coef_anom %>% 
   # Rename
   janitor::clean_names("snake") %>% 
   rename(guild=thermal_affinity, 
@@ -140,7 +144,7 @@ g1 <- ggplot(comp, aes(x=year, y=prop, fill=guild)) +
   theme(legend.position = "bottom",
         legend.key.size = unit(0.2, "cm"),
         legend.margin = margin(-5,0,5,0), # 3 is to align x-axis of panels
-        axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=0))
+        axis.text.x = element_text(angle = 45, hjust=1))
 g1
 
 # Plot all four corner results
@@ -164,7 +168,7 @@ g_4corner <- ggplot(coef, aes(x=indicator, y=guild, fill=beta_sd)) +
         legend.key.size = unit(0.2, "cm"),
         legend.margin = margin(-5,0,0,0),
         # axis.title = element_blank(),
-        axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+        axis.text.x = element_text(angle = 45, hjust=1))
 g_4corner 
 
 # Merge
@@ -173,15 +177,46 @@ g_all1 <- gridExtra::grid.arrange(g1, g_4corner,
 g_all1
 
 # Export
-ggsave(g_all1, filename=file.path(plotdir, "Fig4_composition_and_4corner_results3.png"),
+ggsave(g_all1, filename=file.path(plotdir, "Fig4_composition_and_4corner_results4.png"),
        width=6.5, height=7.5, units="in", dpi=600)
 
 
-# Plot data - indiv 4corner plot approach
+# Plot data - indiv 4corner plot approach for absolute temp as supp fig
 ################################################################################
 
+# Format data
+coef_abs <- coef_abs %>% 
+  # Rename
+  janitor::clean_names("snake") %>% 
+  rename(guild=thermal_affinity, 
+         habitat=group, 
+         indicator=environmental_variables) %>% 
+  # Format indicator
+  mutate(indicator=recode(indicator, "BT"="SBT"), 
+         indicator=factor(indicator, levels=indicators)) %>% 
+  # Format guild
+  mutate(guild=recode_factor(guild,
+                             "Cold temperate"="Cold temp.",
+                             "Warm temperate"="Warm temp.",
+                             "Subtropical"="Subtropical",
+                             "thermal_affinitytropical"="Tropical",
+                             "Cosmopolitan"="Cosmo.")) %>% 
+  # Format habitat
+  mutate(habitat=recode_factor(habitat,
+                               "Rocky intertidal"="Rocky intertidal",        
+                               "kelp forest fish"="Kelp forest fish",
+                               "Kelp forest inverts and algae (swath)"="Kelp inv/alg (s)",
+                               "Kelp forest inverts and algae (upc)"="Kelp inv/alg (U)",
+                               "Rocky reef fish"="Shallow reef",
+                               "Deep reef fish"="Deep reef")) %>% 
+  # Standardize beta
+  group_by(habitat) %>% 
+  mutate(beta_sd=scale(beta, center=F, scale=T)) %>% 
+  ungroup()
+
+
 # Plot four corner - rocky
-g2 <- ggplot(coef %>% filter(habitat=="Rocky intertidal"),
+g2 <- ggplot(coef_abs %>% filter(habitat=="Rocky intertidal"),
              aes(x=indicator, y=guild, fill=beta)) +
   facet_wrap(~habitat, ncol=1) +
   geom_raster() +
@@ -203,7 +238,7 @@ g2 <- ggplot(coef %>% filter(habitat=="Rocky intertidal"),
 g2
 
 # Plot four corner - kelp fish
-g3 <- ggplot(coef %>% filter(habitat=="Kelp forest fish"),
+g3 <- ggplot(coef_abs %>% filter(habitat=="Kelp forest fish"),
              aes(x=indicator, y=guild, fill=beta)) +
   facet_wrap(~habitat, ncol=1) +
   geom_raster() +
@@ -224,7 +259,7 @@ g3 <- ggplot(coef %>% filter(habitat=="Kelp forest fish"),
 g3
 
 # Plot four corner - kelp inv/alg
-g4 <- ggplot(coef %>% filter(habitat=="Kelp inv/alg (s)"),
+g4 <- ggplot(coef_abs %>% filter(habitat=="Kelp inv/alg (s)"),
              aes(x=indicator, y=guild, fill=beta)) +
   facet_wrap(~habitat, ncol=1) +
   geom_raster() +
@@ -245,7 +280,7 @@ g4 <- ggplot(coef %>% filter(habitat=="Kelp inv/alg (s)"),
 g4
 
 # Plot four corner - rocky reef
-g5 <- ggplot(coef %>% filter(habitat=="Shallow reef"),
+g5 <- ggplot(coef_abs %>% filter(habitat=="Shallow reef"),
              aes(x=indicator, y=guild, fill=beta)) +
   facet_wrap(~habitat, ncol=1) +
   geom_raster() +
@@ -266,7 +301,7 @@ g5 <- ggplot(coef %>% filter(habitat=="Shallow reef"),
 g5
 
 # Plot four corner - deep reef
-g6 <- ggplot(coef %>% filter(habitat=="Deep reef"),
+g6 <- ggplot(coef_abs %>% filter(habitat=="Deep reef"),
              aes(x=indicator, y=guild, fill=beta)) +
   facet_wrap(~habitat, ncol=1) +
   geom_raster() +
@@ -283,7 +318,7 @@ g6 <- ggplot(coef %>% filter(habitat=="Deep reef"),
         legend.key.size = unit(0.2, "cm"),
         legend.margin = margin(-5,0,0,0),
         # axis.title = element_blank(),
-        axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+        axis.text.x = element_text(angle = 45, hjust=1))
 g6
 
 # Merge
@@ -302,7 +337,11 @@ g_all2
 
 
 # Export
-ggsave(g_all2, filename=file.path(plotdir, "Fig4_composition_and_4corner_results2.png"),
+ggsave(g_all2, filename=file.path(plotdir, "FigSX_composition_and_4corner_absolute.png"),
        width=6.5, height=6.5, units="in", dpi=600)
+
+
+
+
 
 
