@@ -16,8 +16,7 @@ mpa_attributes_hab <- readRDS("/home/shares/ca-mpa/data/sync-data/mpa_traits/pro
 mpa_attributes_hab_div <- readRDS("/home/shares/ca-mpa/data/sync-data/mpa_traits/processed/mpa_attributes_habitat_diversity.Rds")
 fishing_effort <- readRDS(here::here("analyses","2performance_fisheries","analyses","blocks","pre_mpa_fishing_pressure_by_mpa.Rds"))
 prop_rock <- readRDS("/home/shares/ca-mpa/data/sync-data/mpa_traits/processed/mpa_attributes_habitat_rock.Rds")
-
-
+mpa_attributes_cdfw <- read.csv("/home/shares/ca-mpa/data/sync-data/mpa_traits/processed/mpa_attributes_clean.csv")
 
 #step 1 - merge habitat gen and diversity
 mpa_traits1 <- left_join(mpa_attributes_gen, mpa_attributes_hab, by="name")
@@ -29,13 +28,23 @@ mpa_traits3 <- left_join(mpa_traits2, prop_rock, by="name")
 #step 3 - merge habitat and fishing effort
 mpa_traits4 <- left_join(mpa_traits3, fishing_effort, by="name")
 
+#step 4 - join with CDFW attributes
+mpa_traits_cdfw <- mpa_attributes_cdfw %>%
+  dplyr::select(affiliated_mpa = name, min_depth_m,
+                max_depth_m) %>%
+  mutate(depth_range_m = max_depth_m - min_depth_m)
+
+
+mpa_traits5 <- left_join(mpa_traits4, mpa_traits_cdfw, by="affiliated_mpa")
+
 #step 4 - clean up
 
-mpa_traits <- mpa_traits4 %>%
+mpa_traits <- mpa_traits5 %>%
   #select variables of interest
   dplyr::select(region = bioregion.x, affiliated_mpa, designation, implementation_date, size=size_km2.x,
                 habitat_richness, habitat_diversity=habitat_diversity_sw, 
-                prop_rock, fishing_pressure = annual_avg_lb_sqkm_20002006)%>%
+                prop_rock, fishing_pressure = annual_avg_lb_sqkm_20002006,
+                max_depth_m)%>%
   mutate(affiliated_mpa = recode(affiliated_mpa,
                                  "año nuevo smr" = "ano nuevo smr"))%>%
   #assign region based on Figure 5
@@ -78,7 +87,9 @@ mpa_traits <- mpa_traits4 %>%
                         "habitat_diversity",
                         "habitat_richness",
                         "prop_rock",
-                        "size"
+                        "size",
+                        "max_depth_m",
+                        #"depth_range_m",
                         ), names_to = "feature", values_to = "value") %>%
   mutate(
     feature = case_when(
@@ -86,12 +97,14 @@ mpa_traits <- mpa_traits4 %>%
       feature == "habitat_diversity" ~ "Habitat diversity \n(Shannon-Wiener)",
       feature == "habitat_richness" ~ "Habitat richness \n(no. habitats)",
       feature == "prop_rock" ~ "Percent rock",
+      feature == "max_depth_m" ~ "Maximum depth (m)",
+      #feature == "depth_range_m" ~ "Depth range (m)",
       feature == "size" ~ "MPA size (km²)",
       # Add more renaming conditions as needed
       TRUE ~ feature  # Keep the original feature name if no renaming condition matches
     )
   )
-  
+
 
 
 ################################################################################
