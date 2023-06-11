@@ -34,7 +34,7 @@ mpa_traits4 <- left_join(mpa_traits3, fishing_effort, by="name")
 mpa_traits <- mpa_traits4 %>%
   #select variables of interest
   dplyr::select(region = bioregion.x, affiliated_mpa, designation, implementation_date, size=size_km2.x,
-                habitat_richness, habitat_diversity=habitat_diversity_sw, total_rock =total_rock_km2,
+                habitat_richness, habitat_diversity=habitat_diversity_sw, 
                 prop_rock, fishing_pressure = annual_avg_lb_sqkm_20002006)%>%
   mutate(affiliated_mpa = recode(affiliated_mpa,
                                  "año nuevo smr" = "ano nuevo smr"))%>%
@@ -73,15 +73,14 @@ mpa_traits <- mpa_traits4 %>%
            affiliated_mpa == "anacapa island smr" |
            affiliated_mpa == "abalone cove smca"
            ) %>%
-  pivot_longer(cols = 5:10, names_to = "feature", values_to = "value") %>%
+  pivot_longer(cols = 5:9, names_to = "feature", values_to = "value") %>%
   mutate(
     feature = case_when(
       feature == "fishing_pressure" ~ "Historic annual landings \n(pounds per km² 2000-2006)",
-      feature == "habitat_diversity" ~ "Habitat diversity",
-      feature == "habitat_richness" ~ "Habitat richness",
+      feature == "habitat_diversity" ~ "Habitat diversity \n(Shannon-Wiener)",
+      feature == "habitat_richness" ~ "Habitat richness \n(no. habitats)",
       feature == "prop_rock" ~ "Proportion rock",
-      feature == "size" ~ "Size (km²)",
-      feature == "total_rock" ~ "Total rock (%)",
+      feature == "size" ~ "MPA size (km²)",
       # Add more renaming conditions as needed
       TRUE ~ feature  # Keep the original feature name if no renaming condition matches
     )
@@ -125,15 +124,16 @@ g <- ggplot(data = mpa_traits
    #                     tip_length = c(0.01, 0.01),
     #                    textsize=3)+
   #ylim(0,20)+
-  xlab("") +
+  xlab("Region") +
+  ylab("")+
   theme_classic()+
   my_theme+
   theme(legend.position = "none")
-
+g
 
 
 ggsave(g, filename=file.path(figdir, "FigSX_MPA_features.png"), 
-       width=4, height=4, units="in", dpi=600, bg="white")
+       width=5, height=5, units="in", dpi=600, bg="white")
 
 
 
