@@ -73,13 +73,19 @@ mpa_traits <- mpa_traits4 %>%
            affiliated_mpa == "anacapa island smr" |
            affiliated_mpa == "abalone cove smca"
            ) %>%
-  pivot_longer(cols = 5:9, names_to = "feature", values_to = "value") %>%
+  mutate(prop_rock = prop_rock*100)%>%
+  pivot_longer(cols = c("fishing_pressure",
+                        "habitat_diversity",
+                        "habitat_richness",
+                        "prop_rock",
+                        "size"
+                        ), names_to = "feature", values_to = "value") %>%
   mutate(
     feature = case_when(
       feature == "fishing_pressure" ~ "Historic annual landings \n(pounds per km² 2000-2006)",
       feature == "habitat_diversity" ~ "Habitat diversity \n(Shannon-Wiener)",
       feature == "habitat_richness" ~ "Habitat richness \n(no. habitats)",
-      feature == "prop_rock" ~ "Proportion rock",
+      feature == "prop_rock" ~ "Percent rock",
       feature == "size" ~ "MPA size (km²)",
       # Add more renaming conditions as needed
       TRUE ~ feature  # Keep the original feature name if no renaming condition matches
