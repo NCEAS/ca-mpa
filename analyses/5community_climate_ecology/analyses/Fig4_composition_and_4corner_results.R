@@ -215,6 +215,29 @@ coef_abs <- coef_abs %>%
   ungroup()
 
 
+base_theme <-  theme(axis.text=element_text(size=8),
+                   #axis.text.y = element_text(angle = 90, hjust = 0.5),
+                   axis.title=element_text(size=10),
+                   plot.tag=element_blank(), #element_text(size=8),
+                   plot.title =element_text(size=10, face="bold"),
+                   # Gridlines
+                   panel.grid.major = element_line(colour = "transparent"), 
+                   panel.grid.minor = element_line(colour = "transparent"), 
+                   panel.background = element_blank(), 
+                   axis.line = element_line(colour = "black"),
+                   axis.ticks = element_line(colour = "black"),
+                   # Legend
+                   legend.key = element_blank(),
+                   legend.text=element_text(size=8),
+                   legend.title=element_text(size=10),
+                   # legend.background = element_rect(fill=alpha('blue', 0)),
+                   #facets
+                   strip.text = element_text(size=7, hjust=0, face="bold"),
+                   strip.background = element_blank()
+                   #margins
+                   #plot.margin=unit(c(0.01,0.01,0.01,0.01),"cm")
+)
+
 # Plot four corner - rocky
 g1 <- ggplot(coef_abs %>% filter(habitat=="Rocky intertidal"),
              aes(x=indicator, y=guild, fill=beta)) +
@@ -361,7 +384,7 @@ g_final <- annotate_figure(g, left = textGrob("Thermal affinity", rot = 90, vjus
                 bottom = textGrob("Indicator", hjust=0.25, vjust=-1))
 
 
-ggsave(g_final, filename=file.path(plotdir, "FigSX_4corner_absolute.png"),
+ggsave(g_final, filename=file.path(plotdir, "FigS6_4corner_absolute.png"),
        width=5.5, height=6.5, units="in", dpi=600, bg="white")
 
 
