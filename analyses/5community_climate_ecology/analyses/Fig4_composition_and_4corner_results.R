@@ -216,7 +216,7 @@ coef_abs <- coef_abs %>%
 
 
 # Plot four corner - rocky
-g2 <- ggplot(coef_abs %>% filter(habitat=="Rocky intertidal"),
+g1 <- ggplot(coef_abs %>% filter(habitat=="Rocky intertidal"),
              aes(x=indicator, y=guild, fill=beta)) +
   facet_wrap(~habitat, ncol=1) +
   geom_raster() +
@@ -235,10 +235,10 @@ g2 <- ggplot(coef_abs %>% filter(habitat=="Rocky intertidal"),
         # axis.title = element_blank(),
         axis.text.x=element_blank(),
         axis.title.x=element_blank())
-g2
+g1
 
 # Plot four corner - kelp fish
-g3 <- ggplot(coef_abs %>% filter(habitat=="Kelp forest fish"),
+g2 <- ggplot(coef_abs %>% filter(habitat=="Kelp forest fish"),
              aes(x=indicator, y=guild, fill=beta)) +
   facet_wrap(~habitat, ncol=1) +
   geom_raster() +
@@ -256,10 +256,31 @@ g3 <- ggplot(coef_abs %>% filter(habitat=="Kelp forest fish"),
         legend.margin = margin(-5,0,0,0),
         axis.text.x=element_blank(),
         axis.title.x=element_blank())
-g3
+g2
 
 # Plot four corner - kelp inv/alg
-g4 <- ggplot(coef_abs %>% filter(habitat=="Kelp inv/alg (s)"),
+g3 <- ggplot(coef_abs %>% filter(habitat=="Kelp inv/alg (s)"),
+             aes(x=indicator, y=guild, fill=beta)) +
+  facet_wrap(~habitat, ncol=1) +
+  geom_raster() +
+  # Labels
+  labs(x="Indicator", y="Thermal affinity", tag=" ") +
+  # Legend
+  scale_fill_gradient2(name="Beta",
+                       midpoint=0,
+                       low="darkred", high="navy", mid="white") +
+  guides(fill = guide_colorbar(ticks.colour = "black", frame.colour = "black")) +
+  # Theme
+  theme_bw() + base_theme +
+  theme(legend.position = "right",
+        legend.key.size = unit(0.2, "cm"),
+        legend.margin = margin(-5,0,0,0),
+        axis.text.x=element_blank(),
+        axis.title.x=element_blank())
+g3
+
+# Plot four corner - kelp inv/alg (U)
+g4 <- ggplot(coef_abs %>% filter(habitat=="Kelp inv/alg (U)"),
              aes(x=indicator, y=guild, fill=beta)) +
   facet_wrap(~habitat, ncol=1) +
   geom_raster() +
@@ -320,6 +341,16 @@ g6 <- ggplot(coef_abs %>% filter(habitat=="Deep reef"),
         # axis.title = element_blank(),
         axis.text.x = element_text(angle = 45, hjust=1))
 g6
+
+#merge
+
+g <- gridExtra::grid.arrange(g1, g2, g3, g4, g5, g6, nrow = 2, ncol = 3)
+
+g
+
+
+
+
 
 # Merge
 lg <- 0.3
