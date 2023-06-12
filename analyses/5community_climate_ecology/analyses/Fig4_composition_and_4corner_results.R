@@ -11,7 +11,7 @@ library(tidyverse)
 library(patchwork)
 
 # Directories
-basedir <- "/Users/cfree/Library/CloudStorage/GoogleDrive-cfree@ucsb.edu/.shortcut-targets-by-id/1kCsF8rkm1yhpjh2_VMzf8ukSPf9d4tqO/MPA Network Assessment: Working Group Shared Folder/data/sync-data/" #Chris
+basedir <- "/Volumes/GoogleDrive/.shortcut-targets-by-id/1kCsF8rkm1yhpjh2_VMzf8ukSPf9d4tqO/MPA Network Assessment: Working Group Shared Folder/data/sync-data/" #Chris
 # basedir <- "/home/shares/ca-mpa/data/sync-data/" #Josh
 gisdir <- file.path(basedir, "gis_data/processed")
 plotdir <- "analyses/5community_climate_ecology/figures"
@@ -129,7 +129,7 @@ base_theme <-  theme(axis.text=element_text(size=8),
 # Plot composition
 g1 <- ggplot(comp, aes(x=year, y=prop, fill=guild)) +
   facet_wrap(~habitat, ncol=1) +
-  geom_bar(stat="identity", position = position_fill(reverse = TRUE), color="grey30", lwd=0.2) +
+  geom_bar(stat="identity", position = position_fill(reverse = TRUE), color="grey30", linewidth=0.2) +
   # Refence lines
   geom_vline(xintercept = c(2013.5, 2016.5), linetype="dashed") +
   # Labels
