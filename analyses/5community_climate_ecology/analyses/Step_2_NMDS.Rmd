@@ -624,7 +624,7 @@ scrs$mpa_designation <- factor(scrs$mpa_designation, level = c("smr","ref")) #se
 cent <- aggregate(cbind(NMDS1, NMDS2) ~ year+MHW+region4+mpa_designation, data = scrs, FUN = mean) #computes centroids by MHW and region
 
 my_theme <-  theme(axis.text=element_text(size=8),
-                   axis.text.y = element_text(angle = 90, hjust = 0.5),
+                   #axis.text.y = element_text(angle = 90, hjust = 0.5),
                    axis.title=element_text(size=10),
                    plot.tag=element_blank(), #element_text(size=8),
                    plot.title =element_text(size=9, face="bold"),
@@ -648,8 +648,8 @@ my_theme <-  theme(axis.text=element_text(size=8),
 
 CCFRP_trajectory<- ggplot(data=cent %>%
                             mutate(mpa_designation = recode(mpa_designation, 
-                                                            "smr" = "MPA",
-                                                            "ref" = "Reference"),
+                                                            "smr" = "Inside",
+                                                            "ref" = "Outside"),
                                    MHW = recode(MHW, 
                                                 "before" = "Before",
                                                 "during" = "During",
@@ -663,7 +663,7 @@ CCFRP_trajectory<- ggplot(data=cent %>%
   geom_path(aes(NMDS1, NMDS2, color= mpa_designation), size = 0.5, linetype=1 
             )+         
   ggtitle("Shallow reef")+
-  scale_color_manual(values=c('#D81B60','#1E88E5'))+
+  scale_color_manual(name = "Site type", values=c('#D81B60','#1E88E5'))+
   theme(strip.text = element_text(size=18, face="bold"))+
   theme(plot.title = element_text(size=16, face="bold"))+
   theme(text = element_text(20))+
@@ -699,8 +699,8 @@ cent <- aggregate(cbind(NMDS1, NMDS2) ~ year+MHW+region4+mpa_designation, data =
 
 kelp_invalg_trajectory<- ggplot(data=cent %>%
                             mutate(mpa_designation = recode(mpa_designation, 
-                                                            "smr" = "MPA",
-                                                            "ref" = "Reference"),
+                                                            "smr" = "Inside",
+                                                            "ref" = "Outside"),
                                    MHW = recode(MHW, 
                                                 "before" = "Before",
                                                 "during" = "During",
@@ -714,7 +714,7 @@ kelp_invalg_trajectory<- ggplot(data=cent %>%
   geom_path(aes(NMDS1, NMDS2, color= mpa_designation), size = 0.5, linetype=1 
             )+         
   ggtitle("Kelp forest inverts and algae")+
-  scale_color_manual(values=c('#D81B60','#1E88E5'))+
+  scale_color_manual(name = "Site type", values=c('#D81B60','#1E88E5'))+
   theme(strip.text = element_text(size=18, face="bold"))+
   theme(plot.title = element_text(size=16, face="bold"))+
   theme(text = element_text(20))+
@@ -751,8 +751,8 @@ cent <- aggregate(cbind(NMDS1, NMDS2) ~ year+MHW+region4+mpa_designation, data =
 
 kelp_fish_trajectory<- ggplot(data=cent %>%
                             mutate(mpa_designation = recode(mpa_designation, 
-                                                            "smr" = "MPA",
-                                                            "ref" = "Reference"),
+                                                            "smr" = "Inside",
+                                                            "ref" = "Outside"),
                                    MHW = recode(MHW, 
                                                 "before" = "Before",
                                                 "during" = "During",
@@ -766,7 +766,7 @@ kelp_fish_trajectory<- ggplot(data=cent %>%
   geom_path(aes(NMDS1, NMDS2, color= mpa_designation), size = 0.5, linetype=1 
             )+         
   ggtitle("Kelp forest fishes")+
-  scale_color_manual(values=c('#D81B60','#1E88E5'))+
+  scale_color_manual(name = "Site type", values=c('#D81B60','#1E88E5'))+
   theme(strip.text = element_text(size=18, face="bold"))+
   theme(plot.title = element_text(size=16, face="bold"))+
   theme(text = element_text(20))+
@@ -806,8 +806,8 @@ cent <- aggregate(cbind(NMDS1, NMDS2) ~ year+MHW+region4+mpa_designation, data =
 deep_reef_trajectory<- ggplot(data=cent %>%
                                 filter(year >=2008) %>%
                             mutate(mpa_designation = recode(mpa_designation, 
-                                                            "smr" = "MPA",
-                                                            "ref" = "Reference"),
+                                                            "smr" = "Inside",
+                                                            "ref" = "Outside"),
                                    MHW = recode(MHW, 
                                                 "before" = "Before",
                                                 "during" = "During",
@@ -821,7 +821,7 @@ deep_reef_trajectory<- ggplot(data=cent %>%
   geom_path(aes(NMDS1, NMDS2, color= mpa_designation), size = 0.5, linetype=1 
             )+         
   ggtitle("Deep reef")+
-  scale_color_manual(values=c('#D81B60','#1E88E5'))+
+  scale_color_manual(name = "Site type", values=c('#D81B60','#1E88E5'))+
   theme(strip.text = element_text(size=18, face="bold"))+
   theme(plot.title = element_text(size=16, face="bold"))+
   theme(text = element_text(20))+
@@ -857,8 +857,8 @@ cent <- aggregate(cbind(NMDS1, NMDS2) ~ year+MHW+region4+mpa_designation, data =
 
 rocky_trajectory<- ggplot(data=cent %>%
                             mutate(mpa_designation = recode(mpa_designation, 
-                                                            "smr" = "MPA",
-                                                            "ref" = "Reference"),
+                                                            "smr" = "Inside",
+                                                            "ref" = "Outside"),
                                    MHW = recode(MHW, 
                                                 "before" = "Before",
                                                 "during" = "During",
@@ -872,7 +872,7 @@ rocky_trajectory<- ggplot(data=cent %>%
   geom_path(aes(NMDS1, NMDS2, color= mpa_designation), size = 0.5, linetype=1 
             )+         
   ggtitle("Rocky intertidal")+
-  scale_color_manual(values=c('#D81B60','#1E88E5'))+
+  scale_color_manual(name = "Site type", values=c('#D81B60','#1E88E5'))+
   theme(strip.text = element_text(size=18, face="bold"))+
   theme(plot.title = element_text(size=16, face="bold"))+
   theme(text = element_text(20))+
