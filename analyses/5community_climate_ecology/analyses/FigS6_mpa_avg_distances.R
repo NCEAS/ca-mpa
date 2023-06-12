@@ -224,6 +224,32 @@ cen_distances$MPA_type <- factor(cen_distances$MPA_type, levels = c("REF", "SMR"
 mpa_colors <- c('#13A0DD','#EB6977')
 names(mpa_colors) <- levels(cen_distances$MPA_type)
 
+
+
+my_theme <-  theme(axis.text=element_text(size=7),
+                   #axis.text.y = element_text(angle = 90, hjust = 0.5),
+                   axis.title=element_text(size=9),
+                   plot.tag=element_text(size=8, face = "bold"),
+                   plot.title =element_text(size=8, face="bold",hjust=0),
+                   plot.title.position = "plot",
+                   # Gridlines 
+                   panel.grid.major = element_blank(), 
+                   panel.grid.minor = element_blank(),
+                   panel.background = element_blank(), 
+                   axis.line = element_line(colour = "black"),
+                   # Legend
+                   legend.key = element_blank(),
+                   legend.background = element_rect(fill=alpha('blue', 0)),
+                   legend.key.height = unit(1, "lines"), 
+                   legend.text = element_text(size = 7),
+                   legend.title = element_text(size = 8),
+                   #legend.spacing.y = unit(0.75, "cm"),
+                   #facets
+                   strip.background = element_blank(),
+                   strip.text = element_text(size = 8 ,face="bold", hjust=0),
+)
+
+
 # Create the boxplot
 g <- ggplot(cen_distances %>% mutate(group = recode(group, "CCFRP"= "Shallow reef",
                                            "deep reef" = "Deep reef",
@@ -243,7 +269,7 @@ g <- ggplot(cen_distances %>% mutate(group = recode(group, "CCFRP"= "Shallow ree
        aes(x = MHW, y = distance, fill = MPA_type)) +
   geom_boxplot(color = "black", lwd=0.2) +
   geom_point(position = position_dodge(width = 0.75), size = 1, alpha = 0.4) +  
-  scale_fill_manual(name = "MPA type", values = c('#13A0DD','#EB6977')) +
+  scale_fill_manual(name = "Site type", values = c('#13A0DD','#EB6977')) +
   facet_wrap(~ group, nrow = 1) +
   xlab("Heatwave period")+
   ylab("Distance (Bray-Curtis)")+
