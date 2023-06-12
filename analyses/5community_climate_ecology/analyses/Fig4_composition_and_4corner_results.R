@@ -225,7 +225,7 @@ g1 <- ggplot(coef_abs %>% filter(habitat=="Rocky intertidal"),
   # Legend
   scale_fill_gradient2(name="Beta",
                        midpoint=0,
-                       low="darkred", high="navy", mid="white") +
+                       low="navy", high="darkred", mid="white") +
   guides(fill = guide_colorbar(ticks.colour = "black", frame.colour = "black")) +
   # Theme
   theme_bw() + base_theme +
@@ -248,7 +248,7 @@ g2 <- ggplot(coef_abs %>% filter(habitat=="Kelp forest fish"),
   # Legend
   scale_fill_gradient2(name="Beta",
                        midpoint=0,
-                       low="darkred", high="navy", mid="white") +
+                       low="navy", high="darkred", mid="white") +
   guides(fill = guide_colorbar(ticks.colour = "black", frame.colour = "black")) +
   # Theme
   theme_bw() + base_theme +
@@ -271,7 +271,7 @@ g3 <- ggplot(coef_abs %>% filter(habitat=="Kelp inv/alg (s)"),
   # Legend
   scale_fill_gradient2(name="Beta",
                        midpoint=0,
-                       low="darkred", high="navy", mid="white") +
+                       low="navy", high="darkred", mid="white") +
   guides(fill = guide_colorbar(ticks.colour = "black", frame.colour = "black")) +
   # Theme
   theme_bw() + base_theme +
@@ -294,7 +294,7 @@ g4 <- ggplot(coef_abs %>% filter(habitat=="Kelp inv/alg (U)"),
   # Legend
   scale_fill_gradient2(name="Beta",
                        midpoint=0,
-                       low="darkred", high="navy", mid="white") +
+                       low="navy", high="darkred", mid="white") +
   guides(fill = guide_colorbar(ticks.colour = "black", frame.colour = "black")) +
   # Theme
   theme_bw() + base_theme +
@@ -317,7 +317,7 @@ g5 <- ggplot(coef_abs %>% filter(habitat=="Shallow reef"),
   # Legend
   scale_fill_gradient2(name="Beta",
                        midpoint=0,
-                       low="darkred", high="navy", mid="white") +
+                       low="navy", high="darkred", mid="white") +
   guides(fill = guide_colorbar(ticks.colour = "black", frame.colour = "black")) +
   # Theme
   theme_bw() + base_theme +
@@ -340,7 +340,7 @@ g6 <- ggplot(coef_abs %>% filter(habitat=="Deep reef"),
   # Legend
   scale_fill_gradient2(name="Beta",
                        midpoint=0,
-                       low="darkred", high="navy", mid="white") +
+                       low="navy", high="darkred", mid="white") +
   guides(fill = guide_colorbar(ticks.colour = "black", frame.colour = "black")) +
   # Theme
   theme_bw() + base_theme +
