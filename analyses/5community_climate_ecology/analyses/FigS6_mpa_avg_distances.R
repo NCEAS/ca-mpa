@@ -144,25 +144,26 @@ cen_distances2 <- cen_distances %>%
 
 
 
-my_theme <-  theme(axis.text=element_text(size=8),
-                   axis.text.y = element_text(angle = 90, hjust = 0.5),
-                   axis.title=element_text(size=10),
-                   plot.tag=element_blank(), #element_text(size=8),
-                   plot.title =element_text(size=9, face="bold"),
-                   # Gridlines
-                   #panel.grid.major = element_blank(), 
+my_theme <-  theme(axis.text=element_text(size=6),
+                   #axis.text.y = element_text(angle = 90, hjust = 0.5),
+                   axis.title=element_text(size=8),
+                   plot.tag=element_text(size=8, face = "bold"),
+                   plot.title =element_text(size=7, face="bold"),
+                   # Gridlines 
+                   panel.grid.major = element_blank(), 
                    panel.grid.minor = element_blank(),
                    panel.background = element_blank(), 
                    axis.line = element_line(colour = "black"),
                    # Legend
                    legend.key = element_blank(),
-                   legend.text=element_text(size=8),
-                   legend.title=element_text(size=10),
                    legend.background = element_rect(fill=alpha('blue', 0)),
+                   legend.key.height = unit(1, "lines"), 
+                   legend.text = element_text(size = 6),
+                   legend.title = element_text(size = 7),
+                   #legend.spacing.y = unit(0.75, "cm"),
                    #facets
-                   strip.text = element_text(size=6),
-                   #margins
-                   #plot.margin=unit(c(0.01,0.01,0.01,0.01),"cm")
+                   strip.background = element_blank(),
+                   strip.text = element_text(size = 6 ,face="bold"),
 )
 
 
@@ -210,7 +211,51 @@ g1
 ggsave(here::here("analyses", "5community_climate_ecology", "figures", "FigureS6.png"), g1, height=6, width = 9, units = "in", 
    dpi = 600, bg="white")
 
-
-
 a1 <- aov(cen_distances$distance ~ cen_distances$MHW + cen_distances$group + cen_distances$MPA_type)
 posthoc <- TukeyHSD(x=a1, conf.level=0.95)
+
+
+
+################################################################################
+#Plot using boxplot
+
+# Convert 'MPA_type' to a factor with custom colors
+cen_distances$MPA_type <- factor(cen_distances$MPA_type, levels = c("REF", "SMR"))
+mpa_colors <- c('#13A0DD','#EB6977')
+names(mpa_colors) <- levels(cen_distances$MPA_type)
+
+# Create the boxplot
+g <- ggplot(cen_distances %>% mutate(group = recode(group, "CCFRP"= "Shallow reef",
+                                           "deep reef" = "Deep reef",
+                                           "kelp fish" = "Kelp forest fish",
+                                           "kelp inverts and algae" = "Kelp inverts \nand algae",
+                                           "rocky intertidal" = "Rocky intertidal"),
+                            MHW = recode(MHW, "before" = "Before",
+                                         "during" = "During",
+                                         "after" = "After"),
+                            MPA_type = recode(MPA_type, "REF" = "Outside",
+                                              "SMR" = "Inside"))%>%
+         mutate(group = factor(group, levels = c("Rocky intertidal",
+                                                 "Kelp inverts \nand algae",
+                                                 "Kelp forest fish",
+                                                 "Shallow reef",
+                                                 "Deep reef"))),
+       aes(x = MHW, y = distance, fill = MPA_type)) +
+  geom_boxplot(color = "black", lwd=0.2) +
+  geom_point(position = position_dodge(width = 0.75), size = 1, alpha = 0.4) +  
+  scale_fill_manual(name = "MPA type", values = c('#13A0DD','#EB6977')) +
+  facet_wrap(~ group, nrow = 1) +
+  xlab("Heatwave period")+
+  ylab("Distance (Bray-Curtis)")+
+  theme_bw() + my_theme
+g
+
+ggsave(here::here("analyses", "5community_climate_ecology", "figures", "FigureS8_distance_boxplot.png"), g, height=4.5, width = 8, units = "in", 
+       dpi = 600, bg="white")
+
+
+
+
+
+
+
