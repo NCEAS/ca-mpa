@@ -221,7 +221,7 @@ g1 <- ggplot(coef_abs %>% filter(habitat=="Rocky intertidal"),
   facet_wrap(~habitat, ncol=1) +
   geom_raster() +
   # Labels
-  labs(x="Indicator", y=" ", tag="B") +
+  labs(x="", y="", tag=" ") +
   # Legend
   scale_fill_gradient2(name="Beta",
                        midpoint=0,
@@ -230,11 +230,12 @@ g1 <- ggplot(coef_abs %>% filter(habitat=="Rocky intertidal"),
   # Theme
   theme_bw() + base_theme +
   theme(legend.position = "right",
-        legend.key.size = unit(0.2, "cm"),
-        legend.margin = margin(-5,0,0,0),
+        legend.key.size = unit(0.3, "cm"),
+        legend.margin = margin(0,0,0,0),
         # axis.title = element_blank(),
-        axis.text.x=element_blank(),
-        axis.title.x=element_blank())
+        #axis.text.x=element_blank(),
+        axis.text.x = element_text(angle = 45, hjust=1)
+  )
 g1
 
 # Plot four corner - kelp fish
@@ -243,7 +244,7 @@ g2 <- ggplot(coef_abs %>% filter(habitat=="Kelp forest fish"),
   facet_wrap(~habitat, ncol=1) +
   geom_raster() +
   # Labels
-  labs(x="Indicator", y=" ", tag=" ") +
+  labs(x="", y="", tag=" ") +
   # Legend
   scale_fill_gradient2(name="Beta",
                        midpoint=0,
@@ -252,10 +253,12 @@ g2 <- ggplot(coef_abs %>% filter(habitat=="Kelp forest fish"),
   # Theme
   theme_bw() + base_theme +
   theme(legend.position = "right",
-        legend.key.size = unit(0.2, "cm"),
-        legend.margin = margin(-5,0,0,0),
-        axis.text.x=element_blank(),
-        axis.title.x=element_blank())
+        legend.key.size = unit(0.3, "cm"),
+        legend.margin = margin(0,0,0,0),
+        # axis.title = element_blank(),
+        #axis.text.x=element_blank(),
+        axis.text.x = element_text(angle = 45, hjust=1)
+  )
 g2
 
 # Plot four corner - kelp inv/alg
@@ -264,7 +267,7 @@ g3 <- ggplot(coef_abs %>% filter(habitat=="Kelp inv/alg (s)"),
   facet_wrap(~habitat, ncol=1) +
   geom_raster() +
   # Labels
-  labs(x="Indicator", y="Thermal affinity", tag=" ") +
+  labs(x="", y="", tag=" ") +
   # Legend
   scale_fill_gradient2(name="Beta",
                        midpoint=0,
@@ -273,10 +276,12 @@ g3 <- ggplot(coef_abs %>% filter(habitat=="Kelp inv/alg (s)"),
   # Theme
   theme_bw() + base_theme +
   theme(legend.position = "right",
-        legend.key.size = unit(0.2, "cm"),
-        legend.margin = margin(-5,0,0,0),
-        axis.text.x=element_blank(),
-        axis.title.x=element_blank())
+        legend.key.size = unit(0.3, "cm"),
+        legend.margin = margin(0,0,0,0),
+        # axis.title = element_blank(),
+        #axis.text.x=element_blank(),
+        axis.text.x = element_text(angle = 45, hjust=1)
+  )
 g3
 
 # Plot four corner - kelp inv/alg (U)
@@ -285,7 +290,7 @@ g4 <- ggplot(coef_abs %>% filter(habitat=="Kelp inv/alg (U)"),
   facet_wrap(~habitat, ncol=1) +
   geom_raster() +
   # Labels
-  labs(x="Indicator", y="Thermal affinity", tag=" ") +
+  labs(x="", y="", tag=" ") +
   # Legend
   scale_fill_gradient2(name="Beta",
                        midpoint=0,
@@ -294,10 +299,12 @@ g4 <- ggplot(coef_abs %>% filter(habitat=="Kelp inv/alg (U)"),
   # Theme
   theme_bw() + base_theme +
   theme(legend.position = "right",
-        legend.key.size = unit(0.2, "cm"),
-        legend.margin = margin(-5,0,0,0),
-        axis.text.x=element_blank(),
-        axis.title.x=element_blank())
+        legend.key.size = unit(0.3, "cm"),
+        legend.margin = margin(0,0,0,0),
+        # axis.title = element_blank(),
+        #axis.text.x=element_blank(),
+        axis.text.x = element_text(angle = 45, hjust=1)
+  )
 g4
 
 # Plot four corner - rocky reef
@@ -306,7 +313,7 @@ g5 <- ggplot(coef_abs %>% filter(habitat=="Shallow reef"),
   facet_wrap(~habitat, ncol=1) +
   geom_raster() +
   # Labels
-  labs(x="Indicator", y=" ", tag=" ") +
+  labs(x="", y="", tag=" ") +
   # Legend
   scale_fill_gradient2(name="Beta",
                        midpoint=0,
@@ -315,10 +322,12 @@ g5 <- ggplot(coef_abs %>% filter(habitat=="Shallow reef"),
   # Theme
   theme_bw() + base_theme +
   theme(legend.position = "right",
-        legend.key.size = unit(0.2, "cm"),
-        legend.margin = margin(-5,0,0,0),
-        axis.text.x=element_blank(),
-        axis.title.x=element_blank())
+        legend.key.size = unit(0.3, "cm"),
+        legend.margin = margin(0,0,0,0),
+        # axis.title = element_blank(),
+        #axis.text.x=element_blank(),
+        axis.text.x = element_text(angle = 45, hjust=1)
+  )
 g5
 
 # Plot four corner - deep reef
@@ -327,7 +336,7 @@ g6 <- ggplot(coef_abs %>% filter(habitat=="Deep reef"),
   facet_wrap(~habitat, ncol=1) +
   geom_raster() +
   # Labels
-  labs(x="Indicator\n \n \n", y=" ", tag=" ") +
+  labs(x="", y="", tag=" ") +
   # Legend
   scale_fill_gradient2(name="Beta",
                        midpoint=0,
@@ -336,40 +345,24 @@ g6 <- ggplot(coef_abs %>% filter(habitat=="Deep reef"),
   # Theme
   theme_bw() + base_theme +
   theme(legend.position = "right",
-        legend.key.size = unit(0.2, "cm"),
-        legend.margin = margin(-5,0,0,0),
+        legend.key.size = unit(0.3, "cm"),
+        legend.margin = margin(0,0,0,0),
         # axis.title = element_blank(),
-        axis.text.x = element_text(angle = 45, hjust=1))
+        #axis.text.x=element_blank(),
+        axis.text.x = element_text(angle = 45, hjust=1)
+  )
 g6
 
 #merge
 
-g <- gridExtra::grid.arrange(g1, g2, g3, g4, g5, g6, nrow = 2, ncol = 3)
+g <- gridExtra::grid.arrange(g1, g3, g4, g2, g5, g6, nrow = 3, ncol = 2)
 
-g
-
-
-
+g_final <- annotate_figure(g, left = textGrob("Thermal affinity", rot = 90, vjust = 1),
+                bottom = textGrob("Indicator", hjust=0.25, vjust=-1))
 
 
-# Merge
-lg <- 0.3
-sm <- (1-lg)/4
-layout_matrix <- matrix(data=c(1,2,
-                               1,3,
-                               1,4,
-                               1,5, 
-                               1,6), ncol=2, byrow=T)
-g_all2 <- gridExtra::grid.arrange(g1, g2, g3, g4, g5, g6, 
-                                  layout_matrix=layout_matrix,
-                                  widths=c(0.66,  0.34),
-                                  heights=c(rep(sm, 4), lg))
-g_all2
-
-
-# Export
-ggsave(g_all2, filename=file.path(plotdir, "FigSX_composition_and_4corner_absolute.png"),
-       width=6.5, height=6.5, units="in", dpi=600)
+ggsave(g_final, filename=file.path(plotdir, "FigSX_4corner_absolute.png"),
+       width=5.5, height=6.5, units="in", dpi=600, bg="white")
 
 
 
