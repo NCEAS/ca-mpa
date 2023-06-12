@@ -112,30 +112,97 @@ scrs$mpa_designation <- factor(scrs$mpa_designation, level = c("smr","ref")) #se
 cent <- aggregate(cbind(NMDS1, NMDS2, NMDS3) ~ MHW+region4+mpa_designation, data = scrs, FUN = mean) #computes centroids by MHW and region
 
 cent1 <- cent%>%
-          mutate(centroid_type = paste(mpa_designation, MHW))
+          mutate(centroid_type = paste(mpa_designation, MHW),
+                 centroid_type = recode(centroid_type,
+                                        "smr before" = "Inside (before)",
+                                        "ref before" = "Outside (before)",
+                                        "smr during" = "Inside (during)",
+                                        "ref during" = "Outside (during)",
+                                        "smr after" = "Inside (after)",
+                                        "ref after" = "Outside (after)"))
 
-ef <- envfit(kelp_fish_ord ~ SST + CUTI + BEUTI + MOCI, data = kelp_fish_envr_vars, choices=1:3, na.rm=TRUE)
-
-
+ef <- envfit(kelp_fish_ord ~ SST + BT + BEUTI + MOCI, data = kelp_fish_envr_vars, choices=1:3, na.rm=TRUE)
 
 rownames(cent1) <- cent1$centroid_type
 
-
+kelp_fish_group_vars$desig_state <- recode(kelp_fish_group_vars$desig_state,
+                                        "smr before" = "Inside (before)",
+                                        "ref before" = "Outside (before)",
+                                        "smr during" = "Inside (during)",
+                                        "ref during" = "Outside (during)",
+                                        "smr after" = "Inside (after)",
+                                        "ref after" = "Outside (after)")
 
 
 ################################################################################
 #plot
 
+rgl.open()
 ordirgl(cent1[,4:6], display = "sites", choices = 1:3, type = "t", col = cent1$MHW,
-ax.col = "#800000", arr.col = "#DAD308", envfit=ef, alpha=0.9)
+ax.col = "#800000", arr.col = "#FF7F00", envfit=ef, alpha=0.9)
 orgltext(cent1[,4:6], display = "sites", col=c("black"))
 with(kelp_fish_envr_vars, orglellipse(kelp_fish_ord, kelp_fish_group_vars$desig_state, kind = "se", conf = 0.95,
 scaling = "sites", alpha=0.2, col=c('#4c78b5','#44b89d','#f56969')))
-rgl.bg(color="grey")
+rgl.bg(color='#ADD8E6')
 rglwidget()
 
-htmlwidgets::saveWidget(rglwidget(),
-"/home/joshsmith/CA_MPA_Project/ca-mpa/analyses/5community_climate_ecology/figures/interactive_plots/kelp_fish_3d.html")
+#htmlwidgets::saveWidget(rglwidget(),
+#"/home/joshsmith/CA_MPA_Project/ca-mpa/analyses/5community_climate_ecology/figures/interactive_plots/kelp_fish_3d.html")
+
+###shiny version
+library(shiny)
+library(shinyRGL)
+library(vegan3d)
+
+ui <- fluidPage(
+  rglwidgetOutput("plot")
+)
+
+server <- function(input, output) {
+  output$plot <- renderRglwidget({
+    rgl.open()
+    ordirgl(cent1[,4:6], display = "sites", choices = 1:3, type = "t", col = cent1$MHW,
+            ax.col = "#800000", arr.col = "#FF7F00", envfit = ef, alpha = 0.9)
+    orgltext(cent1[,4:6], display = "sites", col = "black")
+    with(kelp_fish_envr_vars, orglellipse(kelp_fish_ord, kelp_fish_group_vars$desig_state, kind = "se",
+                                          conf = 0.95, scaling = "sites", alpha = 0.2,
+                                          col = c('#4c78b5','#44b89d','#f56969')))
+    rgl.bg(color = '#ADD8E6')
+    rglwidget()
+  })
+}
+
+shinyApp(ui, server)
+
+################################################################################
+#test improve Shiny
+
+library(shiny)
+library(shinyRGL)
+library(vegan3d)
+
+library(shiny)
+library(ggplot2)
+
+ui <- fluidPage(
+  plotOutput("plot")
+)
+
+server <- function(input, output) {
+  output$plot <- renderPlot({
+    ggplot(kelp_fish_group_vars, aes(x = x_var, y = y_var, color = desig_state, fill = desig_state)) +
+      geom_point() +
+      geom_text(aes(label = desig_state), color = "black") +
+      stat_ellipse(aes(fill = desig_state), geom = "polygon", alpha = 0.2) +
+      scale_fill_manual(values = c('#4c78b5', '#44b89d', '#f56969'), guide = FALSE) +
+      scale_color_manual(values = c('#4c78b5', '#44b89d', '#f56969')) +
+      theme_minimal()
+  })
+}
+
+shinyApp(ui, server)
+
+
 
 ```
 
