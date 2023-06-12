@@ -109,11 +109,11 @@ mpa_traits <- mpa_traits5 %>%
 
 ################################################################################
 # Theme
-my_theme <-  theme(axis.text=element_text(size=6),
-                   axis.text.y = element_text(angle = 90, hjust = 0.5),
-                   axis.title=element_text(size=8),
-                   plot.tag=element_text(size=8, face = "bold"),
-                   plot.title =element_text(size=7, face="bold"),
+my_theme <-  theme(axis.text=element_text(size=6,color = "black"),
+                   #axis.text.y = element_text(angle = 90, hjust = 0.5),
+                   axis.title=element_text(size=8,color = "black"),
+                   plot.tag=element_text(size=8, face = "bold", color = "black"),
+                   plot.title =element_text(size=7, face="bold",color = "black"),
                    # Gridlines 
                    panel.grid.major = element_blank(), 
                    panel.grid.minor = element_blank(),
@@ -123,12 +123,12 @@ my_theme <-  theme(axis.text=element_text(size=6),
                    legend.key = element_blank(),
                    legend.background = element_rect(fill=alpha('blue', 0)),
                    legend.key.height = unit(1, "lines"), 
-                   legend.text = element_text(size = 6),
-                   legend.title = element_text(size = 7),
+                   legend.text = element_text(size = 6,color = "black"),
+                   legend.title = element_text(size = 7,color = "black"),
                    #legend.spacing.y = unit(0.75, "cm"),
                    #facets
                    strip.background = element_blank(),
-                   strip.text = element_text(size = 6 ,face="bold"),
+                   strip.text = element_text(size = 6 ,face="bold", hjust=0,color = "black"),
 )
 
 
@@ -151,8 +151,8 @@ g <- ggplot(data = mpa_traits
 g
 
 
-ggsave(g, filename=file.path(figdir, "FigSX_MPA_features.png"), 
-       width=5, height=5, units="in", dpi=600, bg="white")
+ggsave(g, filename=file.path(figdir, "FigS2_MPA_features.png"), 
+       width=5.5, height=5, units="in", dpi=600, bg="white")
 
 
 
