@@ -26,6 +26,10 @@ library(here)
 basedir <- "/Volumes/GoogleDrive/.shortcut-targets-by-id/1kCsF8rkm1yhpjh2_VMzf8ukSPf9d4tqO/MPA Network Assessment: Working Group Shared Folder/data/sync-data/"
 datadir <- file.path(basedir, "monitoring/processed_data/community_climate_derived_data/Chris_file_share/")
 
+# Directories (both)
+outdir <- "analyses/5community_climate_ecology/output"
+plotdir <- "analyses/5community_climate_ecology/figures"
+
 # Read data
 comm_data <- load(file.path(datadir, "comm_data.rda"))
 nmds_scores <- load(file.path(datadir, "bray_nmds_scores.rda"))
@@ -33,6 +37,9 @@ env_fit_scores <- load(file.path(datadir, "env_fit_scores.rda"))
 group_vars <- load(file.path(datadir, "group_vars.rda"))
 envr_vars <- load(file.path(datadir, "envr_vars.rda"))
 eco_dist <- load(file.path(datadir, "distance_matrices_BC.rda"))
+
+# Read simulated data
+load(file.path(outdir, "simulated_ellipses.Rdata"))
 
 
 # Perform NMDS analysis
@@ -212,6 +219,11 @@ stress_all <- stress_all %>%
 # Plot data
 ################################################################################
 
+# Add stress tag
+# Fix arrow problem?
+# Add arrow labels
+# Merge with schematic figure
+
 # Theme
 my_theme <-  theme(axis.text=element_text(size=7),
                    axis.title=element_text(size=8),
@@ -230,7 +242,24 @@ my_theme <-  theme(axis.text=element_text(size=7),
                    legend.background = element_rect(fill=alpha('blue', 0)))
 
 # Plot data
-g <- ggplot(data=centroids_all, aes(x=NMDS1, y=NMDS2, color=period)) +
+g1 <- ggplot(data_sim, aes(x=x, y=y, color=period, linetype=site_type)) +
+  facet_wrap(~scenario, nrow=1) +
+  # Ellipses
+  geom_path(linewidth=0.2) +
+  geom_point(data_sim_pts, mapping=aes(x=x1, y=y1, color=period, shape=site_type), size=1.2) +
+  # Labels
+  labs(x="NMDS1", y="NMDS2", tag="A", title="Potential MPA outcomes") +
+  # Legends
+  scale_linetype_manual(name="Site type", values=c("solid", "dotted"), drop=F) +
+  scale_shape_manual(name="Site type", values=c(16, 17), drop=F) +
+  scale_color_manual(name="Period", values=c("darkgreen", "orange", "purple")) +
+  # Theme
+  theme_bw() + my_theme +
+  theme(legend.position = "none")
+g1
+
+# Plot data
+g2 <- ggplot(data=centroids_all, aes(x=NMDS1, y=NMDS2, color=period)) +
   # Facet
   facet_wrap(~habitat, ncol=3, scales="free") +
   # Ellipses
@@ -246,16 +275,21 @@ g <- ggplot(data=centroids_all, aes(x=NMDS1, y=NMDS2, color=period)) +
   # Labels
   labs(x="NMDS1", y="NMDS2", title="Observed MPA outcomes by habitat", tag="B") +
   # Legend
-  scale_color_manual(name="Period", values=c('1B9E77','#FF7F00','#984EA3')) +
+  scale_color_manual(name="Heatwave period", values=c('1B9E77','#FF7F00','#984EA3')) +
   scale_linetype_discrete(name="Site type") +
   scale_shape_discrete(name="Site type") +
   # Theme
   theme_bw() + my_theme +
   theme(legend.position = c(0.8, 0.2))
+g2
+
+# Merge plots
+g <- gridExtra::grid.arrange(g1, g2, nrow=2, heights=c(0.33, 0.67))
 g
 
-
-
+# Export plot
+ggsave(g, filename=file.path(plotdir, "Fig2_nmds_results.png"), 
+       width=6.5, height=6.5, units="in", dpi=600)
 
 
 

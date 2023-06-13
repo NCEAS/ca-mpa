@@ -10,6 +10,7 @@ rm(list = ls())
 library(tidyverse)
 
 # Directories
+outdir <- "analyses/5community_climate_ecology/output"
 plotdir <- "analyses/5community_climate_ecology/figures"
 
 
@@ -159,6 +160,10 @@ data_sim_pts <- bind_rows(outside_ell_pts_all, inside_par) %>%
   mutate(scenario=factor(scenario, levels=scenarios),
          period=factor(period, levels=c("Before", "During", "After")),
          site_type=factor(site_type, levels=c("Inside", "Outside")))
+
+# Save simulated data
+save(data_sim, data_sim_pts, 
+     file=file.path(outdir, "simulated_ellipses.Rdata"))
 
 
 # Plot data
