@@ -46,10 +46,11 @@ load(file.path(outdir, "simulated_ellipses.Rdata"))
 ################################################################################
 
 # Ordination objects
-habitats <- c("Shallow reef", "Kelp forest inverts and algae", "Kelp forest fishes", "Deep reef", "Rocky intertidal")
-list1 <- list(CCFRP_ord, kelp_invalg_ord, kelp_fish_ord, deep_reef_ord, rocky_ord)
-list2 <- list(CCFRP_en, kelp_invalg_en, kelp_fish_en, deep_reef_en, rocky_en)
-list3 <- list(CCFRP_group_vars, kelp_invalg_group_vars, kelp_fish_group_vars, deep_reef_group_vars, rocky_group_vars)
+habitats <- c("Rocky intertidal", "Kelp forest inverts and algae", "Kelp forest fishes", "Shallow reef", "Deep reef")
+arrow_scalars <- c(0.2, 0.25, 0.12, 1, 0.4)
+list1 <- list(rocky_ord, kelp_invalg_ord, kelp_fish_ord, CCFRP_ord, deep_reef_ord)
+list2 <- list(rocky_en, kelp_invalg_en, kelp_fish_en, CCFRP_en, deep_reef_en)
+list3 <- list(rocky_group_vars, kelp_invalg_group_vars, kelp_fish_group_vars, CCFRP_group_vars, deep_reef_group_vars)
 
 # Loop through objects
 i <- 1
@@ -63,11 +64,19 @@ for(i in 1:length(list1)){
   vars_do <- list3[[i]]
   
   # Extract arrows
-  en_coord_cont <- as.data.frame(vegan::scores(arrows_do, "vectors")) * vegan::ordiArrowMul(arrows_do, fill=0.05)
+  # The "fill" parameter dictates arrow length
+  arrow_scalar <- arrow_scalars[i]
+  arrows_orig <- as.data.frame(vegan::scores(arrows_do, "vectors")) * vegan::ordiArrowMul(arrows_do, fill=arrow_scalar)
   
   # Format arrows
-  # Relabel the "BT" row name as "SBT"
-  rownames(en_coord_cont)[rownames(en_coord_cont) == "BT"] <- "SBT"
+  arrows <- arrows_orig %>% 
+    # Add habitat
+    mutate(habitat=hab_do) %>% 
+    # Add variable
+    rownames_to_column(var="variable") %>% 
+    mutate(variable=recode(variable, "BT"="SBT")) %>% 
+    # Arrange
+    select(habitat, variable, everything())
   
   # Extract data
   data_orig <- as.data.frame(vegan::scores(ord_do, display="sites"))
@@ -175,11 +184,12 @@ for(i in 1:length(list1)){
     # Centroids
     geom_point(mapping=aes(shape=site_type)) +
     # Arrows
-    geom_segment(data = en_coord_cont, 
+    geom_segment(data = arrows, 
                  x = 0, y = 0, 
                  mapping=aes(xend = NMDS1, yend = NMDS2), 
                  size=0.5, alpha = 0.5,
                  arrow = arrow(length = unit(0.25, "cm")), colour = "grey30", lwd=0.5) +
+    geom_point(x=0, y=0, color="black", shape=16) +
     # Labels
     labs(x="NMDS1", y="NMDS2", title=hab_do) +
     # Legend
@@ -195,13 +205,16 @@ for(i in 1:length(list1)){
     ellipses_all <- ellipse_df
     centroids_all <- centroids
     stress_all <- stress
+    arrows_all <- arrows
   }else{
     ellipses_all <- rbind(ellipses_all, ellipse_df)
     centroids_all <- rbind(centroids_all, centroids)
     stress_all <- rbind(stress_all, stress)
+    arrows_all <- rbind(arrows_all, arrows)
   }
   
 }
+
 
 # Format data
 ################################################################################
@@ -215,6 +228,10 @@ ellipses_all <- ellipses_all %>%
 
 # Format centroids
 centroids_all <- centroids_all %>% 
+  mutate(habitat=factor(habitat, levels=habitat_order))
+
+# Format centroids
+arrows_all <- arrows_all %>% 
   mutate(habitat=factor(habitat, levels=habitat_order))
 
 # Stress coordinates
@@ -236,8 +253,6 @@ stress_all <- stress_all %>%
 # Plot data
 ################################################################################
 
-# Add stress tag
-# Fix arrow problem?
 # Add arrow labels
 
 # Plotting par
@@ -290,11 +305,13 @@ g2 <- ggplot(data=centroids_all, aes(x=NMDS1, y=NMDS2, color=period)) +
   # Centroids
   geom_point(mapping=aes(shape=site_type), size=pt_size) +
   # Arrows
-  geom_segment(data = en_coord_cont,
+  geom_segment(data = arrows_all,
                x = 0, y = 0,
                mapping=aes(xend = NMDS1, yend = NMDS2),
-               size=0.5, alpha = 0.5,
-               arrow = arrow(length = unit(0.25, "cm")), colour = "grey30", lwd=0.5) +
+               arrow = arrow(length = unit(0.25, "cm")), color = "grey60", linewidth=0.5) +
+  geom_point(x=0, y=0, color="grey60", shape=16) +
+  ggrepel::geom_text_repel(data=arrows_all, 
+            mapping=aes(x=NMDS1, y=NMDS2, label=variable), size=2.2, fontface="bold", inherit.aes = F) +
   # Add stress labels
   geom_text(data=stress_all, aes(x=NMDS1, y=NMDS2, label=stress), inherit.aes = F,
             hjust=1, size=2.2) +
@@ -318,11 +335,5 @@ g
 # Export plot
 ggsave(g, filename=file.path(plotdir, "Fig2_nmds_results.png"), 
        width=6.5, height=6.5, units="in", dpi=600)
-
-
-
-
-
-
 
 
