@@ -23,8 +23,11 @@ require(vegan)
 #load environmental data
 ```{r}
 
+#Old
+#envr_dat1 <- readRDS("/home/shares/ca-mpa/data/sync-data/environmental/processed/envr_anomalies_at_mpas.Rds")
+
 #load data and get mpa-year level means
-envr_dat <- readRDS("/home/shares/ca-mpa/data/sync-data/environmental/processed/envr_anomalies_at_mpas.Rds") %>%
+envr_dat1 <- readRDS("/home/shares/ca-mpa/data/sync-data/environmental/processed/envr_anomalies_at_mpas_new.Rds") %>%
             group_by(group, mpa_name, mpa_class, mpa_designation, mpa_defacto_class, mpa_defacto_designation,
                      region3, region4, year)%>%
             dplyr::summarise(across(c("sst_annual_baseline", "sst_monthly_baseline", "sst_annual_obs", "sst_monthly_obs", "sst_monthly_anom",       
