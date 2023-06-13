@@ -425,8 +425,8 @@ g_title <- ggpubr::annotate_figure(g, left = textGrob("Distance (Bray-Curtis)",
 
 
 
-ggsave(here::here("analyses", "5community_climate_ecology", "figures", "Fig3_centroid_shifts_revised_new.png"), g_title, height=4, width = 7, units = "in", 
-  dpi = 600, bg="white")
+#ggsave(here::here("analyses", "5community_climate_ecology", "figures", "Fig3_centroid_shifts_revised_new.png"), g_title, height=4, width = 7, units = "in", 
+#  dpi = 600, bg="white")
 
 
 ################################################################################
@@ -461,7 +461,10 @@ perm_tab <- sig_distance %>%
 #write.csv(perm_tab, file.path(tab_out, "pairwise_permanova.csv"))
 
 
-
+################################################################################
+################################################################################
+################################################################################
+#Supplementary analyses not included in Smith et al. 2023
 
 
 # calculate vector dist between centroids for each year ------------------------
@@ -540,40 +543,6 @@ cen_annual_distance<- cen_distances %>%
 
 #ggsave(here::here("analyses", "5community_climate_ecology", "figures", "cen_annual_distances.png"), cen_annual_distance, height=4, width = 8, units = "in", 
 #   dpi = 600, bg="white")
-
-
-#barplot mean distances before, during, after MHW
-
-cen_distances2 <- cen_distances %>% 
-                  mutate(MHW = ifelse(centroid_2 < 2015, "before",
-                                      ifelse(centroid_2 > 2017, "after",
-                                             "during")))
-cen_distances2$MHW <- factor(cen_distances2$MHW, levels = c("before", "during","after"))
-
-cen_distances3 <- cen_distances2 %>% 
-                    filter(centroid_2>=2010)%>%
-                    group_by(group, MHW) %>% 
-                                       dplyr::summarise(
-                                         n = n(),
-                                         m = mean(distance),
-                                         stdv = sd(distance),
-                                         se=stdv/sqrt(n),
-                                         ci=se * qt((1-0.05)/2 + .5, n-1)
-                                       )
-                                         
-
-dist_by_period <- cen_distances3 %>%
-  ggplot(aes(x=group, y=m, fill=MHW))+
-  geom_bar(position = "dodge", stat = "identity") +
-  geom_errorbar(aes(ymin=m-se, ymax=m+se),
-                width=.2,                    # Width of the error bars
-                position=position_dodge(.9))+
-  xlab("Group")+
-  ylab("Distance")+
-  scale_fill_manual(values=c('#44b89d','#f56969','#4c78b5'))
-  #theme_minimal()+theme(aspect.ratio = 1/1.5
-
-
 
 
 
@@ -713,14 +682,6 @@ dist_by_mpa_period <- cen_distances2 %>%
 
 #ggsave(here::here("analyses", "5community_climate_ecology", "figures", "dist_by_mpa_period_barplot.png"), dist_by_mpa_period, height=6, width = 8, units = "in", 
 #   dpi = 600, bg="white")
-
-
-
-a1 <- aov(cen_distances$distance ~ cen_distances$MHW + cen_distances$group + cen_distances$MPA_type)
-posthoc <- TukeyHSD(x=a1, conf.level=0.95)
-
-
-
 
 
 
