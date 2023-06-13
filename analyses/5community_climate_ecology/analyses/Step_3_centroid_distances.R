@@ -7,10 +7,8 @@ rm(list=ls())
 require(vegan)
 require(dplyr)
 require(tidyr)
-require(gridExtra)
 require(usedist)
 require(ggplot2)
-require(metafor)
 require(reshape2)
 require(ggfittext)
 require(pairwiseAdonis)
@@ -31,7 +29,8 @@ eco_dist <- load(file.path(data_path, "distance_matrices_BC.rda"))
 
 
 
-# Step 1 - examine hull shape and dispersion -----------------------------------
+################################################################################
+#Examine hull shape and dispersion
 
 
 CCFRP_disper <- betadisper(CCFRP_distmat, type="centroid", 
@@ -74,7 +73,15 @@ plot(rocky_disper, main="rocky", col=c('red','blue'))
 #calculate dist between centroids using betadisper output
 
 #create helper function to handle negative eigenvalues and
-#convert to square matrix
+#convert to square matrix. Here is a breakdown of the function:
+#1. Compute distances between centroids and square-root negative eig
+#2. Convert resulting distance matrix into a df 
+#3. Select the pairwise comparisons of interest (before-during, before-after)
+#4. Compute the standard deviation of distances to the centroid (sites to center)
+#5. Determine the number of sites used in calculated each centroid.
+#6. Combine into single df
+#7. Calculate the pooled standard error associated with the single distance value.
+#8. Select the distance, sd, and se as the final output
 
 eig_fun <- function(disper_mat) {
   #set positive-definite eigenvalues
@@ -171,6 +178,9 @@ mean_ref <- mean(dist_ref$value)
 
 ################################################################################
 #pairwise PERMANOVA to test for sig differences
+
+#Each PERMANOVA is conducted on the pairwise comparisons (before-during, before-after)
+#for each MPA type (SMR or REF)
 
 #pariwise permanova
 set.seed(1985)
