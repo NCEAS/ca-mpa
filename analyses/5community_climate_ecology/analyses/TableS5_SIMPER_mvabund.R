@@ -29,7 +29,7 @@ comm_data <- load(file.path(data_path, "comm_data.rda"))
 group_vars <- load(file.path(data_path, "group_vars.rda"))
 
 #load data with thermal affin
-load(file.path(datadir,"all_groups_mpa_level_means_long.rda"))
+load(file.path(data_path,"all_groups_mpa_level_means_long.rda"))
 
 tab_dir <- here::here("analyses","5community_climate_ecology","tables")
 

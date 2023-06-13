@@ -7,10 +7,8 @@ rm(list=ls())
 require(vegan)
 require(dplyr)
 require(tidyr)
-require(gridExtra)
 require(usedist)
 require(ggplot2)
-require(metafor)
 require(reshape2)
 require(ggfittext)
 require(pairwiseAdonis)
@@ -31,7 +29,8 @@ eco_dist <- load(file.path(data_path, "distance_matrices_BC.rda"))
 
 
 
-# Step 1 - examine hull shape and dispersion -----------------------------------
+################################################################################
+#Examine hull shape and dispersion
 
 
 CCFRP_disper <- betadisper(CCFRP_distmat, type="centroid", 
@@ -74,7 +73,15 @@ plot(rocky_disper, main="rocky", col=c('red','blue'))
 #calculate dist between centroids using betadisper output
 
 #create helper function to handle negative eigenvalues and
-#convert to square matrix
+#convert to square matrix. Here is a breakdown of the function:
+#1. Compute distances between centroids and square-root negative eig
+#2. Convert resulting distance matrix into a df 
+#3. Select the pairwise comparisons of interest (before-during, before-after)
+#4. Compute the standard deviation of distances to the centroid (sites to center)
+#5. Determine the number of sites used in calculated each centroid.
+#6. Combine into single df
+#7. Calculate the pooled standard error associated with the single distance value.
+#8. Select the distance, sd, and se as the final output
 
 eig_fun <- function(disper_mat) {
   #set positive-definite eigenvalues
@@ -171,6 +178,9 @@ mean_ref <- mean(dist_ref$value)
 
 ################################################################################
 #pairwise PERMANOVA to test for sig differences
+
+#Each PERMANOVA is conducted on the pairwise comparisons (before-during, before-after)
+#for each MPA type (SMR or REF)
 
 #pariwise permanova
 set.seed(1985)
@@ -425,8 +435,8 @@ g_title <- ggpubr::annotate_figure(g, left = textGrob("Distance (Bray-Curtis)",
 
 
 
-ggsave(here::here("analyses", "5community_climate_ecology", "figures", "Fig3_centroid_shifts_revised_new.png"), g_title, height=4, width = 7, units = "in", 
-  dpi = 600, bg="white")
+#ggsave(here::here("analyses", "5community_climate_ecology", "figures", "Fig3_centroid_shifts_revised_new.png"), g_title, height=4, width = 7, units = "in", 
+#  dpi = 600, bg="white")
 
 
 ################################################################################
@@ -461,7 +471,10 @@ perm_tab <- sig_distance %>%
 #write.csv(perm_tab, file.path(tab_out, "pairwise_permanova.csv"))
 
 
-
+################################################################################
+################################################################################
+################################################################################
+#Supplementary analyses not included in Smith et al. 2023
 
 
 # calculate vector dist between centroids for each year ------------------------
@@ -540,40 +553,6 @@ cen_annual_distance<- cen_distances %>%
 
 #ggsave(here::here("analyses", "5community_climate_ecology", "figures", "cen_annual_distances.png"), cen_annual_distance, height=4, width = 8, units = "in", 
 #   dpi = 600, bg="white")
-
-
-#barplot mean distances before, during, after MHW
-
-cen_distances2 <- cen_distances %>% 
-                  mutate(MHW = ifelse(centroid_2 < 2015, "before",
-                                      ifelse(centroid_2 > 2017, "after",
-                                             "during")))
-cen_distances2$MHW <- factor(cen_distances2$MHW, levels = c("before", "during","after"))
-
-cen_distances3 <- cen_distances2 %>% 
-                    filter(centroid_2>=2010)%>%
-                    group_by(group, MHW) %>% 
-                                       dplyr::summarise(
-                                         n = n(),
-                                         m = mean(distance),
-                                         stdv = sd(distance),
-                                         se=stdv/sqrt(n),
-                                         ci=se * qt((1-0.05)/2 + .5, n-1)
-                                       )
-                                         
-
-dist_by_period <- cen_distances3 %>%
-  ggplot(aes(x=group, y=m, fill=MHW))+
-  geom_bar(position = "dodge", stat = "identity") +
-  geom_errorbar(aes(ymin=m-se, ymax=m+se),
-                width=.2,                    # Width of the error bars
-                position=position_dodge(.9))+
-  xlab("Group")+
-  ylab("Distance")+
-  scale_fill_manual(values=c('#44b89d','#f56969','#4c78b5'))
-  #theme_minimal()+theme(aspect.ratio = 1/1.5
-
-
 
 
 
@@ -713,14 +692,6 @@ dist_by_mpa_period <- cen_distances2 %>%
 
 #ggsave(here::here("analyses", "5community_climate_ecology", "figures", "dist_by_mpa_period_barplot.png"), dist_by_mpa_period, height=6, width = 8, units = "in", 
 #   dpi = 600, bg="white")
-
-
-
-a1 <- aov(cen_distances$distance ~ cen_distances$MHW + cen_distances$group + cen_distances$MPA_type)
-posthoc <- TukeyHSD(x=a1, conf.level=0.95)
-
-
-
 
 
 

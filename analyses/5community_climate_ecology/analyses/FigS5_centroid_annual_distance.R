@@ -248,8 +248,8 @@ g <- ggplot(transform(traject_dist,
 g
 
 
-ggsave(g, filename=file.path(fig_dir, "FigS5_centroid_trajectory.png"), 
-       width=7, height=5.5, units="in", dpi=600, bg="white")
+#ggsave(g, filename=file.path(fig_dir, "FigS5_centroid_trajectory.png"), 
+ #      width=7, height=5.5, units="in", dpi=600, bg="white")
 
 
 
