@@ -208,12 +208,29 @@ for(i in 1:length(list1)){
 
 # Order habitats
 habitat_order <- c("Rocky intertidal",  "Kelp forest inverts and algae", "Kelp forest fishes", "Shallow reef", "Deep reef")
+
+# Format ellipses
 ellipses_all <- ellipses_all %>% 
   mutate(habitat=factor(habitat, levels=habitat_order))
+
+# Format centroids
 centroids_all <- centroids_all %>% 
   mutate(habitat=factor(habitat, levels=habitat_order))
+
+# Stress coordinates
+label_xy <- ellipses_all %>% 
+  group_by(habitat) %>% 
+  summarize(NMDS1=max(NMDS1),
+            NMDS2=max(NMDS2)) %>% 
+  ungroup()
+
+# Format stress
 stress_all <- stress_all %>% 
-  mutate(habitat=factor(habitat, levels=habitat_order))
+  # Order habiats
+  mutate(habitat=factor(habitat, levels=habitat_order)) %>% 
+  # Add coordinates
+  left_join(label_xy)
+
 
 
 # Plot data
@@ -222,7 +239,11 @@ stress_all <- stress_all %>%
 # Add stress tag
 # Fix arrow problem?
 # Add arrow labels
-# Merge with schematic figure
+
+# Plotting par
+colors <- c("darkgreen", "orange", "purple")
+pt_size <- 1.2
+line_size <- 0.3
 
 # Theme
 my_theme <-  theme(axis.text=element_text(size=7),
@@ -245,17 +266,19 @@ my_theme <-  theme(axis.text=element_text(size=7),
 g1 <- ggplot(data_sim, aes(x=x, y=y, color=period, linetype=site_type)) +
   facet_wrap(~scenario, nrow=1) +
   # Ellipses
-  geom_path(linewidth=0.2) +
-  geom_point(data_sim_pts, mapping=aes(x=x1, y=y1, color=period, shape=site_type), size=1.2) +
+  geom_path(linewidth=line_size) +
+  geom_point(data_sim_pts, mapping=aes(x=x1, y=y1, color=period, shape=site_type), size=pt_size) +
   # Labels
-  labs(x="NMDS1", y="NMDS2", tag="A", title="Potential MPA outcomes") +
+  labs(x="nMDS1", y="nMDS2", tag="A", title="Potential MPA outcomes") +
   # Legends
   scale_linetype_manual(name="Site type", values=c("solid", "dotted"), drop=F) +
   scale_shape_manual(name="Site type", values=c(16, 17), drop=F) +
-  scale_color_manual(name="Period", values=c("darkgreen", "orange", "purple")) +
+  scale_color_manual(name="Period", values=colors) +
   # Theme
   theme_bw() + my_theme +
-  theme(legend.position = "none")
+  theme(legend.position = "none",
+        axis.ticks = element_blank(),
+        axis.text=element_blank())
 g1
 
 # Plot data
@@ -263,24 +286,29 @@ g2 <- ggplot(data=centroids_all, aes(x=NMDS1, y=NMDS2, color=period)) +
   # Facet
   facet_wrap(~habitat, ncol=3, scales="free") +
   # Ellipses
-  geom_path(data=ellipses_all, mapping=aes(linetype=site_type)) +
+  geom_path(data=ellipses_all, mapping=aes(linetype=site_type), linewidth=line_size) +
   # Centroids
-  geom_point(mapping=aes(shape=site_type)) +
+  geom_point(mapping=aes(shape=site_type), size=pt_size) +
   # Arrows
   geom_segment(data = en_coord_cont,
                x = 0, y = 0,
                mapping=aes(xend = NMDS1, yend = NMDS2),
                size=0.5, alpha = 0.5,
                arrow = arrow(length = unit(0.25, "cm")), colour = "grey30", lwd=0.5) +
+  # Add stress labels
+  geom_text(data=stress_all, aes(x=NMDS1, y=NMDS2, label=stress), inherit.aes = F,
+            hjust=1, size=2.2) +
   # Labels
-  labs(x="NMDS1", y="NMDS2", title="Observed MPA outcomes by habitat", tag="B") +
+  labs(x="nMDS1", y="nMDS2", title="Observed MPA outcomes by habitat", tag="B") +
   # Legend
-  scale_color_manual(name="Heatwave period", values=c('1B9E77','#FF7F00','#984EA3')) +
+  scale_color_manual(name="Heatwave period", values=colors) +
   scale_linetype_discrete(name="Site type") +
   scale_shape_discrete(name="Site type") +
+  guides(color = guide_legend(order = 2), linetype = guide_legend(order = 1), shape=guide_legend(order=1)) +
   # Theme
   theme_bw() + my_theme +
-  theme(legend.position = c(0.8, 0.2))
+  theme(legend.position = c(0.8, 0.2),
+        legend.margin = margin(0, 0, 0, 0))
 g2
 
 # Merge plots
