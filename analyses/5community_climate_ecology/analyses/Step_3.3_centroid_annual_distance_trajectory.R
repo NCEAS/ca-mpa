@@ -187,7 +187,7 @@ traject_dist <- as.data.frame(rbind(ccfrp_ref,
                                       "deep_reef" = "Deep reef",
                                       "rocky_intertidal" = "Rocky intertidal"),
                        year = as.numeric(year),
-                       MPA_type = recode(MPA_type, "ref" = "Reference", "smr" = "MPA"),
+                       MPA_type = recode(MPA_type, "ref" = "Outside", "smr" = "Inside"),
                        MPA_type = as.factor(MPA_type),
                        group = factor(group, levels = c("Rocky intertidal",
                                                            "Kelp forest inverts and algae",
@@ -199,20 +199,28 @@ traject_dist <- as.data.frame(rbind(ccfrp_ref,
 ################################################################################
 #plot
 
-my_theme <-  theme(axis.text=element_text(size=7),
-                   axis.text.y = element_text(angle = 90, hjust = 0.5),
-                   axis.title=element_text(size=8),
+my_theme <-  theme(axis.text=element_text(size=8),
+                   #axis.text.y = element_text(angle = 90, hjust = 0.5),
+                   axis.title=element_text(size=10),
                    plot.tag=element_blank(), #element_text(size=8),
-                   plot.title =element_text(size=8, face="bold"),
+                   plot.title =element_text(size=10, face="bold"),
                    # Gridlines
-                   panel.grid.major = element_blank(), 
-                   panel.grid.minor = element_blank(),
+                   panel.grid.major = element_line(colour = "transparent"), 
+                   panel.grid.minor = element_line(colour = "transparent"), 
                    panel.background = element_blank(), 
                    axis.line = element_line(colour = "black"),
+                   axis.ticks = element_line(colour = "black"),
                    # Legend
-                   #legend.key = element_blank(),
-                   #legend.background = element_rect(fill=alpha('blue', 0))
-                   )
+                   legend.key = element_blank(),
+                   legend.text=element_text(size=8),
+                   legend.title=element_text(size=10),
+                  # legend.background = element_rect(fill=alpha('blue', 0)),
+                   #facets
+                   strip.text = element_text(size=6, hjust=0, face="bold"),
+                   #margins
+                   #plot.margin=unit(c(0.01,0.01,0.01,0.01),"cm")
+)
+
 
 g <- ggplot(transform(traject_dist,
                  group=factor(group,levels=c("Rocky intertidal",
@@ -230,8 +238,9 @@ g <- ggplot(transform(traject_dist,
   xlab("Year")+
   ylab("Distance to pre-heatwave centroid \n(Bray-Curtis)")+
   labs(color = "MPA type")+
-  scale_color_manual(name = "MPA Type",
-                    values=c('#EB6977','#13A0DD')
+  scale_color_manual(name = "Site type",
+                    values=c("Inside" = '#EB6977',
+                             "Outside" = '#13A0DD')
   )+
   my_theme + theme(legend.position = "top", 
                    legend.margin = margin(t = 0, r = 0, b = 10, l = 0))
@@ -239,9 +248,8 @@ g <- ggplot(transform(traject_dist,
 g
 
 
-
-ggsave(g, filename=file.path(fig_dir, "FigS4_centroid_trajectory.png"), 
-       width=7, height=5, units="in", dpi=600)
+ggsave(g, filename=file.path(fig_dir, "FigS5_centroid_trajectory.png"), 
+       width=7, height=5.5, units="in", dpi=600, bg="white")
 
 
 

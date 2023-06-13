@@ -88,33 +88,34 @@ rocky_alphadiv <- cbind(rocky_group_vars, rocky_richness,
 #plot
 
 
-my_theme <-  theme(axis.text=element_text(size=7),
-                   axis.text.y = element_text(angle = 90, hjust = 0.5),
-                   axis.title=element_text(size=10),
-                   plot.tag=element_blank(), #element_text(size=8),
-                   plot.title =element_text(size=7, face="bold"),
-                   # Gridlines
-                   panel.grid.major = element_blank(), 
-                   panel.grid.minor = element_blank(),
-                   panel.background = element_blank(), 
-                   axis.line = element_line(colour = "black"),
-                   # Legend
-                   legend.key = element_blank(),
-                   legend.text=element_text(size=6),
-                   legend.title=element_text(size=8),
-                   legend.background = element_rect(fill=alpha('blue', 0)),
-                   #facets
-                   strip.text = element_text(size=6),
-                   #margins
-                   plot.margin=unit(c(0.01,0.01,0.01,0.01),"cm")
+my_theme <- theme(axis.text=element_text(size=8),
+                                  #axis.text.y = element_text(angle = 90, hjust = 0.5),
+                                  axis.title=element_text(size=10),
+                                  plot.tag=element_blank(), #element_text(size=8),
+                                  plot.title =element_text(size=10, face="bold"),
+                                  # Gridlines
+                                  panel.grid.major = element_line(colour = "transparent"), 
+                                  panel.grid.minor = element_line(colour = "transparent"), 
+                                  panel.background = element_blank(), 
+                                  axis.line = element_line(colour = "black"),
+                                  axis.ticks = element_line(colour = "black"),
+                                  # Legend
+                                  legend.key = element_blank(),
+                                  legend.text=element_text(size=8),
+                                  legend.title=element_text(size=10),
+                                  # legend.background = element_rect(fill=alpha('blue', 0)),
+                                  #facets
+                                  strip.text = element_text(size=6, hjust=0, face="bold"),
+                                  #margins
+                                  #plot.margin=unit(c(0.01,0.01,0.01,0.01),"cm")
 )
 
 
-color_set <- c("MPA" = "#EB6977","Reference" = "#13A0DD")
+color_set <- c("Inside" = "#EB6977","Outside" = "#13A0DD")
 
 #richness plots
-ccfrp_alphadiv$mpa_designation <- recode_factor(ccfrp_alphadiv$mpa_designation, "smr"="MPA")
-ccfrp_alphadiv$mpa_designation <- recode_factor(ccfrp_alphadiv$mpa_designation, "ref"="Reference")
+ccfrp_alphadiv$mpa_designation <- recode_factor(ccfrp_alphadiv$mpa_designation, "smr"="Inside")
+ccfrp_alphadiv$mpa_designation <- recode_factor(ccfrp_alphadiv$mpa_designation, "ref"="Outside")
 r1 <-ggplot(ccfrp_alphadiv, aes(x = mpa_designation, y=S.obs))+
   geom_boxplot(aes(x=MHW, fill=mpa_designation))+
   #facet_wrap(~MHW)+
@@ -124,10 +125,10 @@ r1 <-ggplot(ccfrp_alphadiv, aes(x = mpa_designation, y=S.obs))+
        title="Shallow reef",
        tag = "Richness")+
   scale_fill_manual(values = color_set)+
-  guides(fill=guide_legend(title="MPA type"))
+  guides(fill=guide_legend(title="Site type"))
 
-kelp_fish_alphadiv$mpa_defacto_designation <- recode_factor(kelp_fish_alphadiv$mpa_defacto_designation, "smr"="MPA")
-kelp_fish_alphadiv$mpa_defacto_designation <- recode_factor(kelp_fish_alphadiv$mpa_defacto_designation, "ref"="Reference")
+kelp_fish_alphadiv$mpa_defacto_designation <- recode_factor(kelp_fish_alphadiv$mpa_defacto_designation, "smr"="Inside")
+kelp_fish_alphadiv$mpa_defacto_designation <- recode_factor(kelp_fish_alphadiv$mpa_defacto_designation, "ref"="Outside")
 r2 <- ggplot(kelp_fish_alphadiv, aes(x = mpa_defacto_designation, y=S.obs))+
   geom_boxplot(aes(x=MHW, fill=mpa_defacto_designation), show.legend = FALSE)+
   #facet_wrap(~MHW)+
@@ -137,8 +138,8 @@ r2 <- ggplot(kelp_fish_alphadiv, aes(x = mpa_defacto_designation, y=S.obs))+
        title="Kelp forest fishes")+
   scale_fill_manual(values = color_set)
 
-deep_reef_alphadiv$mpa_defacto_designation <- recode_factor(deep_reef_alphadiv$mpa_defacto_designation, "smr"="MPA")
-deep_reef_alphadiv$mpa_defacto_designation <- recode_factor(deep_reef_alphadiv$mpa_defacto_designation, "ref"="Reference")
+deep_reef_alphadiv$mpa_defacto_designation <- recode_factor(deep_reef_alphadiv$mpa_defacto_designation, "smr"="Inside")
+deep_reef_alphadiv$mpa_defacto_designation <- recode_factor(deep_reef_alphadiv$mpa_defacto_designation, "ref"="Outside")
 r3 <- ggplot(deep_reef_alphadiv, aes(x = mpa_defacto_designation, y=S.obs))+
   geom_boxplot(aes(x=MHW, fill=mpa_defacto_designation), show.legend = FALSE)+
   #facet_wrap(~MHW)+
@@ -148,20 +149,20 @@ r3 <- ggplot(deep_reef_alphadiv, aes(x = mpa_defacto_designation, y=S.obs))+
        title="Deep reef")+
   scale_fill_manual(values = color_set)
 
-kelp_swath_alphadiv$mpa_defacto_designation <- recode_factor(kelp_swath_alphadiv$mpa_defacto_designation, "smr"="MPA")
-kelp_swath_alphadiv$mpa_defacto_designation <- recode_factor(kelp_swath_alphadiv$mpa_defacto_designation, "ref"="Reference")
+kelp_swath_alphadiv$mpa_defacto_designation <- recode_factor(kelp_swath_alphadiv$mpa_defacto_designation, "smr"="Inside")
+kelp_swath_alphadiv$mpa_defacto_designation <- recode_factor(kelp_swath_alphadiv$mpa_defacto_designation, "ref"="Outside")
 r4 <- ggplot(kelp_swath_alphadiv, aes(x = mpa_defacto_designation, y=S.obs))+
   geom_boxplot(aes(x=MHW, fill=mpa_defacto_designation), show.legend = FALSE)+
   #facet_wrap(~MHW)+
   labs(x="", 
        y="", 
-       title="Kelp forest inverts and algae")+
+       title="Kelp forest inv/alg")+
   theme_bw()+my_theme+
   scale_fill_manual(values = color_set)
 
 
-rocky_alphadiv$mpa_designation <- recode_factor(rocky_alphadiv$mpa_designation, "smr"="MPA")
-rocky_alphadiv$mpa_designation <- recode_factor(rocky_alphadiv$mpa_designation, "ref"="Reference")
+rocky_alphadiv$mpa_designation <- recode_factor(rocky_alphadiv$mpa_designation, "smr"="Inside")
+rocky_alphadiv$mpa_designation <- recode_factor(rocky_alphadiv$mpa_designation, "ref"="Outside")
 r5 <- ggplot(rocky_alphadiv, aes(x = mpa_designation, y=S.obs),show.legend = FALSE)+
   geom_boxplot(aes(x=MHW, fill=mpa_designation), show.legend = FALSE)+
   #facet_wrap(~MHW)+
@@ -213,7 +214,7 @@ a4 <- ggplot(kelp_swath_alphadiv, aes(x = mpa_defacto_designation, y=kelp_swath_
   #facet_wrap(~MHW)+
   labs(x="", 
        y="", 
-       title="Kelp forest inverts and algae")+
+       title="Kelp forest inv/alg")+
   theme_bw()+my_theme+
   scale_fill_manual(values = color_set)
 
@@ -265,7 +266,7 @@ e4 <- ggplot(kelp_swath_alphadiv, aes(x = mpa_defacto_designation, y=kelp_swath_
   #facet_wrap(~MHW)+
   labs(x="", 
        y="", 
-       title="Kelp forest inverts and algae")+
+       title="Kelp forest inv/alg")+
   theme_bw()+my_theme+
   scale_fill_manual(values = color_set)
 
@@ -316,7 +317,7 @@ s4 <- ggplot(kelp_swath_alphadiv, aes(x = mpa_defacto_designation, y=kelp_swath_
   #facet_wrap(~MHW)+
   labs(x="", 
        y="", 
-       title="Kelp inverts and algae")+
+       title="Kelp forest inv/alg")+
   theme_bw()+my_theme+
   scale_fill_manual(values = color_set)
 
@@ -343,8 +344,8 @@ boxplots<-
             e5,e4,e2,e1,e3,
             s5,s4,s2,s1,s3, nrow=3, ncol=5, common.legend=TRUE)
 
-#ggsave(boxplots, filename=file.path(figdir, "FigS8_diversity.png"), 
- #      width=10, height=8.5, units="in", dpi=600, bg="white")
+ggsave(boxplots, filename=file.path(figdir, "FigS9_diversity.png"), 
+       width=10, height=8.5, units="in", dpi=600, bg="white")
 
 
 
