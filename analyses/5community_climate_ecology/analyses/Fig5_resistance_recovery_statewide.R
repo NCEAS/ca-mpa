@@ -16,8 +16,8 @@ datadir <- file.path(basedir, "monitoring/processed_data/community_climate_deriv
 plotdir <- "analyses/5community_climate_ecology/figures"
 
 # Josh Directories
-# basedir <- "/home/shares/ca-mpa/data/sync-data"
-# datadir <- file.path(basedir, "monitoring/processed_data/community_climate_derived_data/statewide_data")
+#basedir <- "/home/shares/ca-mpa/data/sync-data"
+ #datadir <- file.path(basedir, "monitoring/processed_data/community_climate_derived_data/statewide_data")
 # plotdir <- "analyses/5community_climate_ecology/figures"
 
 # Read data
@@ -296,7 +296,8 @@ base_theme <- theme(axis.text=element_text(size=7),
                     axis.title=element_blank(),
                     legend.text=element_text(size=6),
                     legend.title=element_text(size=7),
-                    strip.text=element_text(size=7),
+                    strip.text=element_text(size=7, face = "bold"),
+                    strip.background = element_blank(),
                     plot.tag=element_text(size=8),
                     plot.title=element_blank(),
                     # Gridlines
@@ -318,7 +319,7 @@ schem_theme <- theme_minimal() +
                      axis.text=element_text(size=6),
                      axis.title = element_blank(),
                      axis.text.x = element_blank(),
-                     axis.text.y=element_text(color=c("#377EB8", "#E41A1C")))
+                     axis.text.y=element_text(color=c("navy", "#E41A1C")))
 
 # Colors
 RColorBrewer::brewer.pal(3, "Set1")
@@ -331,7 +332,7 @@ schem1 <- ggplot(toy1, aes(y=site, yend=site, xend=distance, color=site)) +
   # Labels
   #labs(title = "MPA prevents shifts")+
   labs(title="Shift distance less in MPA", tag="A") +
-  scale_color_manual(values=c("#377EB8", "#E41A1C")) +
+  scale_color_manual(values=c("navy", "#E41A1C")) +
   # Limits
   lims(x=c(0, 0.8)) +
   # Theme
@@ -346,7 +347,7 @@ schem2 <- ggplot(toy2, aes(y=site, yend=site, xend=distance, color=site)) +
   # Labels
   #labs(title="MPA exacerbates shifts") +
   labs(title="Shift distance greater in MPA", tag="B") +
-  scale_color_manual(values=c( "#377EB8", "#E41A1C")) +
+  scale_color_manual(values=c( "navy", "#E41A1C")) +
   # Limits
   lims(x=c(0, 0.8)) +
   # Theme
@@ -354,7 +355,11 @@ schem2 <- ggplot(toy2, aes(y=site, yend=site, xend=distance, color=site)) +
 schem2
 
 # Plot data
-g1 <- ggplot(data2, aes(x=habitat, y=mpa, size=distance, fill=dist_perc, color="")) +
+g1 <- ggplot(data2 %>%
+             mutate(process = ifelse(process == "Resistance","Resistance \n(Before-to-during)","Recovery \n(Before-to-after)"),
+                    process = factor(process, levels = c("Resistance","Resistance \n(Before-to-during)", "Recovery \n(Before-to-after)"))
+                    )
+             , aes(x=habitat, y=mpa, size=distance, fill=dist_perc, color="")) +
   facet_grid(region~process, space="free", scale="free") +
   geom_point(pch=21, color="black") +
   # Labels
@@ -396,7 +401,7 @@ g1_full
 
 
 # Export
-cowplot::save_plot(g1_full, filename=file.path(plotdir, "Fig5_resistance_recovery_statewide_new.png"), 
+cowplot::save_plot(g1_full, filename=file.path(plotdir, "Fig5_resistance_recovery_statewide_new2.png"), 
      base_width=6.5, base_height=6.5, units="in", dpi=600, bg="white", base_asp=0.8)
 
 
