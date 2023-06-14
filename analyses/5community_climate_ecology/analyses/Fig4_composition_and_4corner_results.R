@@ -111,13 +111,13 @@ table(coef$habitat)
 ################################################################################
 
 # Theme
-base_theme <-  theme(axis.text=element_text(size=8),
-                     axis.title=element_text(size=9),
-                     legend.text=element_text(size=8),
-                     legend.title=element_text(size=9),
-                     strip.text=element_text(size=9),
-                     strip.background = element_rect(fill="white"),
-                     plot.tag=element_text(size=10),
+base_theme <-  theme(axis.text=element_text(size=7),
+                     axis.title=element_text(size=8),
+                     legend.text=element_text(size=7),
+                     legend.title=element_text(size=8),
+                     strip.text=element_text(size=8, hjust=0, face = "bold"),
+                     strip.background = element_blank(),
+                     plot.tag=element_text(size=9),
                      # Gridlines
                      panel.grid.major = element_blank(), 
                      panel.grid.minor = element_blank(),
@@ -144,6 +144,8 @@ g1 <- ggplot(comp, aes(x=year, y=prop, fill=guild)) +
   theme_bw() + base_theme +
   theme(legend.position = "bottom",
         legend.key.size = unit(0.2, "cm"),
+        legend.key.width = unit(0.2, "cm"),
+        legend.spacing.x = unit(0.25, "cm"),
         legend.margin = margin(-5,0,5,0), # 3 is to align x-axis of panels
         axis.text.x = element_text(angle = 45, hjust=1))
 g1
@@ -168,17 +170,18 @@ g_4corner <- ggplot(coef, aes(x=indicator, y=guild, fill=beta_sd)) +
   theme(legend.position = "bottom",
         legend.key.size = unit(0.2, "cm"),
         legend.margin = margin(-5,0,0,0),
+        axis.title.y = element_text(vjust = 4), 
         # axis.title = element_blank(),
         axis.text.x = element_text(angle = 45, hjust=1))
 g_4corner 
 
 # Merge
 g_all1 <- gridExtra::grid.arrange(g1, g_4corner,
-                                  widths=c(0.68,  0.32))
+                                  widths=c(0.62,  0.28))
 g_all1
 
 # Export
-ggsave(g_all1, filename=file.path(plotdir, "Fig4_composition_and_4corner_results4.png"),
+ggsave(g_all1, filename=file.path(plotdir, "Fig4_composition_and_4corner_results4_new.png"),
        width=6.5, height=7.5, units="in", dpi=600)
 
 
