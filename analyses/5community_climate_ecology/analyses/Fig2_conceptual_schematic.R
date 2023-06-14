@@ -55,10 +55,12 @@ ellipse_data <- create_ellipse_df(l, h, x1, y1, theta_deg, n = 100)
 # Outside ellipse parameters
 outside_par <- tibble(site_type="Outside", 
                       period=c("Before", "During", "After"),
-                      x1=c(0.6, 1, 1.4),
-                      y1=c(0.5, 1, 1.5),
-                      l=rep(0.8,3),
+                      x1=c(0.6, 1, 1.5),
+                      y1=c(0.5, 1, 1.4),
+                      #l=rep(0.8,3),
                       h=rep(0.3,3),
+                      l = c(0.6, 0.6, 0.6),  # Adjusted length (narrower)
+                      #h = c(0.2, 0.2, 0.2),  # Adjusted height (shorter)
                       theta=c(70, 50, 30))
 
 # Build outside ellipses
@@ -113,14 +115,17 @@ inside_par <- tibble(site_type="Inside",
                                 rep("MPA recovery", 3)),
                      period=rep(c("Before", "During", "After"), 4),
                      x1=c(0.3, 0.4, 0.65,
-                           0.4, 0.8, 1.2,
+                          # 0.4, 0.8, 1.2,
+                          0.4, 0.6, 1.2,  # Adjusted x1 (shifted left) for middle ellipse
                            0.35, 0.38, 0.33,
                            0.4, 0.7, 0.45),
                       y1=c(1.5, 1.6, 1.7,
-                           0.7, 1.2, 1.7,
+                           #0.7, 1.2, 1.7,
+                           0.7, 1.2, 1.7,  # Adjusted y1 (shifted up) for miffle ellipse
                            0.8, 0.82, 0.78, 
                            0.6, 1.2, 0.5),
-                      l=0.8,
+                      #l=0.8,
+                     l = 0.6, #adjust length narrower
                       h=0.3,
                       theta=rep(c(70, 50, 30), 4))
 
@@ -163,7 +168,7 @@ data_sim_pts <- bind_rows(outside_ell_pts_all, inside_par) %>%
 
 # Save simulated data
 save(data_sim, data_sim_pts, 
-     file=file.path(outdir, "simulated_ellipses.Rdata"))
+     file=file.path(outdir, "simulated_ellipses_new.Rdata"))
 
 
 # Plot data
@@ -204,8 +209,8 @@ g <- ggplot(data_sim, aes(x=x, y=y, color=period, linetype=site_type)) +
 g
 
 # Export
-ggsave(g, filename=file.path(plotdir, "Fig2_conceptual_schematic.png"), 
-       width=6.5, height=2.25, units="in", dpi=600)
+#ggsave(g, filename=file.path(plotdir, "Fig2_conceptual_schematic.png"), 
+ #      width=6.5, height=2.25, units="in", dpi=600)
 
 
 
