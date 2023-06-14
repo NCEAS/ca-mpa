@@ -116,6 +116,7 @@ base_theme <-  theme(axis.text=element_text(size=8),
                      legend.text=element_text(size=8),
                      legend.title=element_text(size=9),
                      strip.text=element_text(size=9),
+                     strip.background = element_rect(fill="white"),
                      plot.tag=element_text(size=10),
                      # Gridlines
                      panel.grid.major = element_blank(), 

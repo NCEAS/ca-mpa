@@ -11,7 +11,7 @@ library(tidyverse)
 library(patchwork)
 
 # Chris Directories
-basedir <- "/Users/cfree/Library/CloudStorage/GoogleDrive-cfree@ucsb.edu/.shortcut-targets-by-id/1kCsF8rkm1yhpjh2_VMzf8ukSPf9d4tqO/MPA Network Assessment: Working Group Shared Folder/data/sync-data" #Chris
+basedir <- "/Volumes/GoogleDrive/.shortcut-targets-by-id/1kCsF8rkm1yhpjh2_VMzf8ukSPf9d4tqO/MPA Network Assessment: Working Group Shared Folder/data/sync-data" #Chris
 datadir <- file.path(basedir, "monitoring/processed_data/community_climate_derived_data/statewide_data")
 plotdir <- "analyses/5community_climate_ecology/figures"
 
@@ -33,7 +33,6 @@ mpas_data <- readRDS(file.path(basedir, "mpa_traits/processed/CA_mpa_metadata.Rd
 #file is loaded above
 
 #load data 
-
 data_path <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data/statewide_data"
 
 #nmds_scores <- load(file.path(data_path, "bray_nmds_scores.rda"))

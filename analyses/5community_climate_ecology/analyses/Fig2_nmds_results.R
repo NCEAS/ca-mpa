@@ -248,16 +248,28 @@ stress_all <- stress_all %>%
   # Add coordinates
   left_join(label_xy)
 
+# Format simulated data
+data_sim <- data_sim %>% 
+  mutate(scenario=recode(scenario,
+                         "Heatwave impact"="i. Heatwave impact",
+                         "No MPA benefit"="ii. No MPA benefit",
+                         "MPA resistance"="iii. MPA resistance",
+                         "MPA recovery"="iv. MPA recovery"))
+data_sim_pts <- data_sim_pts %>% 
+  mutate(scenario=recode(scenario,
+                         "Heatwave impact"="i. Heatwave impact",
+                         "No MPA benefit"="ii. No MPA benefit",
+                         "MPA resistance"="iii. MPA resistance",
+                         "MPA recovery"="iv. MPA recovery"))
 
 
 # Plot data
 ################################################################################
 
-# Add arrow labels
 
 # Plotting par
-colors <- c("darkgreen", "orange", "purple")
-pt_size <- 1.2
+colors <- c('#1B9E77','#FF7F00','#984EA3')
+pt_size <- 1.3
 line_size <- 0.3
 
 # Theme
@@ -265,7 +277,8 @@ my_theme <-  theme(axis.text=element_text(size=7),
                    axis.title=element_text(size=8),
                    legend.text=element_text(size=7),
                    legend.title=element_text(size=8),
-                   strip.text=element_text(size=8),
+                   strip.text=element_text(size=8, hjust=0, face="bold"),
+                   strip.background = element_blank(),
                    plot.title=element_text(size=9),
                    plot.tag = element_text(size=9),
                    # Gridlines
@@ -286,7 +299,7 @@ g1 <- ggplot(data_sim, aes(x=x, y=y, color=period, linetype=site_type)) +
   # Labels
   labs(x="nMDS1", y="nMDS2", tag="A", title="Potential MPA outcomes") +
   # Legends
-  scale_linetype_manual(name="Site type", values=c("solid", "dotted"), drop=F) +
+  scale_linetype_discrete(name="Site type", drop=F) +
   scale_shape_manual(name="Site type", values=c(16, 17), drop=F) +
   scale_color_manual(name="Period", values=colors) +
   # Theme
