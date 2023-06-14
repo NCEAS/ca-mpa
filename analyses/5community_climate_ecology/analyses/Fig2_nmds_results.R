@@ -295,9 +295,9 @@ impact_labels <- data.frame(
   scenario = factor("i. Heatwave impact", levels = c("i. Heatwave impact", "ii. No MPA benefit", "iii. MPA resistance", "iv. MPA recovery")),
   site_type = factor("Inside", levels = c("Inside", "Outside")),
   period = factor("Before", levels = c("Before", "During", "After")),
-  x = c(1.5,0),
-  y = c(0.8,2),
-  label = c("Impact","No \nimpact")
+  x = c(1.5, 0),
+  y = c(0.8, 1.85),
+  label = c("Impact","No\nimpact")
 )
 
 # Plot data
@@ -323,11 +323,10 @@ g1 <- ggplot(data_sim, aes(x = x, y = y, color = period, linetype = site_type)) 
 
 # Add text on the first facet
 g1 <- g1 +
-  geom_text(data = impact_labels[1:2, ], aes(x = x, y = y, label = label), color = "black")
+  geom_text(data = impact_labels[1:2, ], aes(x = x, y = y, label = label), 
+            color = "black", fontface="bold", size=2.4)
 
 g1
-
-
 
 # Plot data
 g2 <- ggplot(data=centroids_all, aes(x=NMDS1, y=NMDS2, color=period)) +
