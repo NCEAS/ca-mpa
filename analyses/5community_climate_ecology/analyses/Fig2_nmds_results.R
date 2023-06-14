@@ -39,7 +39,7 @@ envr_vars <- load(file.path(datadir, "envr_vars.rda"))
 eco_dist <- load(file.path(datadir, "distance_matrices_BC.rda"))
 
 # Read simulated data
-load(file.path(outdir, "simulated_ellipses.Rdata"))
+load(file.path(outdir, "simulated_ellipses_new.Rdata"))
 
 
 # Perform NMDS analysis
@@ -291,23 +291,43 @@ my_theme <-  theme(axis.text=element_text(size=7),
                    legend.background = element_rect(fill=alpha('blue', 0)))
 
 # Plot data
-g1 <- ggplot(data_sim, aes(x=x, y=y, color=period, linetype=site_type)) +
-  facet_wrap(~scenario, nrow=1) +
+impact_labels <- data.frame(
+  scenario = factor("i. Heatwave impact", levels = c("i. Heatwave impact", "ii. No MPA benefit", "iii. MPA resistance", "iv. MPA recovery")),
+  site_type = factor("Inside", levels = c("Inside", "Outside")),
+  period = factor("Before", levels = c("Before", "During", "After")),
+  x = c(1.5,0),
+  y = c(0.8,2),
+  label = c("Impact","No \nimpact")
+)
+
+# Plot data
+g1 <- ggplot(data_sim, aes(x = x, y = y, color = period, linetype = site_type)) +
+  facet_wrap(~ scenario, nrow = 1) +
   # Ellipses
-  geom_path(linewidth=line_size) +
-  geom_point(data_sim_pts, mapping=aes(x=x1, y=y1, color=period, shape=site_type), size=pt_size) +
+  geom_path(data = data_sim, mapping = aes(group = interaction(period, site_type)), linewidth = line_size) +
+  geom_point(data = data_sim_pts, mapping = aes(x = x1, y = y1, color = period, shape = site_type), size = pt_size) +
   # Labels
-  labs(x="nMDS1", y="nMDS2", tag="A", title="Potential MPA outcomes") +
+  labs(x = "nMDS1", y = "nMDS2", tag = "A", title = "Potential MPA outcomes") +
   # Legends
-  scale_linetype_discrete(name="Site type", drop=F) +
-  scale_shape_manual(name="Site type", values=c(16, 17), drop=F) +
-  scale_color_manual(name="Period", values=colors) +
+  scale_linetype_discrete(name = "Site type", drop = FALSE) +
+  scale_shape_manual(name = "Site type", values = c(16, 17), drop = FALSE) +
+  scale_color_manual(name = "Period", values = colors) +
   # Theme
-  theme_bw() + my_theme +
-  theme(legend.position = "none",
-        axis.ticks = element_blank(),
-        axis.text=element_blank())
+  theme_bw() +
+  my_theme +
+  theme(
+    legend.position = "none",
+    axis.ticks = element_blank(),
+    axis.text = element_blank()
+  )
+
+# Add text on the first facet
+g1 <- g1 +
+  geom_text(data = impact_labels[1:2, ], aes(x = x, y = y, label = label), color = "black")
+
 g1
+
+
 
 # Plot data
 g2 <- ggplot(data=centroids_all, aes(x=NMDS1, y=NMDS2, color=period)) +
