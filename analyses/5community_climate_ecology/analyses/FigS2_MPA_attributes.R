@@ -16,7 +16,7 @@ mpa_attributes_hab <- readRDS("/home/shares/ca-mpa/data/sync-data/mpa_traits/pro
 mpa_attributes_hab_div <- readRDS("/home/shares/ca-mpa/data/sync-data/mpa_traits/processed/mpa_attributes_habitat_diversity.Rds")
 fishing_effort <- readRDS(here::here("analyses","2performance_fisheries","analyses","blocks","pre_mpa_fishing_pressure_by_mpa.Rds"))
 prop_rock <- readRDS("/home/shares/ca-mpa/data/sync-data/mpa_traits/processed/mpa_attributes_habitat_rock.Rds")
-mpa_attributes_cdfw <- read.csv("/home/shares/ca-mpa/data/sync-data/mpa_traits/processed/mpa_attributes_clean.csv")
+mpa_attributes_cdfw <-  readxl::read_excel("/home/shares/ca-mpa/data/sync-data/mpa_traits/raw/mpa_attributes_May_2022.xlsx", sheet = 1, skip = 3)
 
 #step 1 - merge habitat gen and diversity
 mpa_traits1 <- left_join(mpa_attributes_gen, mpa_attributes_hab, by="name")
@@ -190,7 +190,8 @@ g3 <- ggplot(data = mpa_traits %>% filter(feature == "Fishing pressure")
 g3
 
 g4 <- ggplot(data = mpa_traits %>% filter(feature == "Maximum depth")
-             , aes(x=network, y = value, fill = feature)) +
+             , aes(x=network, y = value / 3.281 #convert feet to meters
+                   , fill = feature)) +
   geom_boxplot(color = "black") +
   geom_jitter(width = 0.1, height = 0.3, alpha = 0.2, size=1) +
   facet_wrap(~feature, scales = "free")+
