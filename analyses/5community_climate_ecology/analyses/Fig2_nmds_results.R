@@ -295,9 +295,9 @@ impact_labels <- data.frame(
   scenario = factor("i. Heatwave impact", levels = c("i. Heatwave impact", "ii. No MPA benefit", "iii. MPA resistance", "iv. MPA recovery")),
   site_type = factor("Inside", levels = c("Inside", "Outside")),
   period = factor("Before", levels = c("Before", "During", "After")),
-  x = c(1.5,0),
-  y = c(0.8,2),
-  label = c("Impact","No \nimpact")
+  x = c(1.5, 0),
+  y = c(0.8, 1.85),
+  label = c("Impact","No\nimpact")
 )
 
 # Plot data
@@ -307,7 +307,7 @@ g1 <- ggplot(data_sim, aes(x = x, y = y, color = period, linetype = site_type)) 
   geom_path(data = data_sim, mapping = aes(group = interaction(period, site_type)), linewidth = line_size) +
   geom_point(data = data_sim_pts, mapping = aes(x = x1, y = y1, color = period, shape = site_type), size = pt_size) +
   # Labels
-  labs(x = "nMDS1", y = "nMDS2", tag = "A", title = "Potential MPA outcomes") +
+  labs(x = "nMDS1", y = "nMDS2", tag = "A", title = "Potential shifts in community structure") +
   # Legends
   scale_linetype_discrete(name = "Site type", drop = FALSE) +
   scale_shape_manual(name = "Site type", values = c(16, 17), drop = FALSE) +
@@ -323,11 +323,10 @@ g1 <- ggplot(data_sim, aes(x = x, y = y, color = period, linetype = site_type)) 
 
 # Add text on the first facet
 g1 <- g1 +
-  geom_text(data = impact_labels[1:2, ], aes(x = x, y = y, label = label), color = "black")
+  geom_text(data = impact_labels[1:2, ], aes(x = x, y = y, label = label), 
+            color = "black", fontface="bold", size=2.4)
 
 g1
-
-
 
 # Plot data
 g2 <- ggplot(data=centroids_all, aes(x=NMDS1, y=NMDS2, color=period)) +
@@ -349,7 +348,7 @@ g2 <- ggplot(data=centroids_all, aes(x=NMDS1, y=NMDS2, color=period)) +
   geom_text(data=stress_all, aes(x=NMDS1, y=NMDS2, label=stress), inherit.aes = F,
             hjust=1, size=2.2) +
   # Labels
-  labs(x="nMDS1", y="nMDS2", title="Observed MPA outcomes by habitat", tag="B") +
+  labs(x="nMDS1", y="nMDS2", title="Observed shifts in community structure", tag="B") +
   # Legend
   scale_color_manual(name="Heatwave period", values=colors) +
   scale_linetype_discrete(name="Site type") +
