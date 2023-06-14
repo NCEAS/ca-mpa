@@ -93,13 +93,16 @@ mpa_traits <- mpa_traits5 %>%
                         ), names_to = "feature", values_to = "value") %>%
   mutate(
     feature = case_when(
-      feature == "fishing_pressure" ~ "Historic annual landings \n(pounds per km² 2000-2006)",
-      feature == "habitat_diversity" ~ "Habitat diversity \n(Shannon-Wiener)",
-      feature == "habitat_richness" ~ "Habitat richness \n(no. habitats)",
+      #feature == "fishing_pressure" ~ "Historic annual landings \n(pounds per km² 2000-2006)",
+      feature == "fishing_pressure" ~ "Fishing pressure",
+      #feature == "habitat_diversity" ~ "Habitat diversity \n(Shannon-Wiener)",
+      feature == "habitat_diversity" ~ "Habitat diversity",
+      #feature == "habitat_richness" ~ "Habitat richness \n(no. habitats)",
+      feature == "habitat_richness" ~ "Habitat richness",
       feature == "prop_rock" ~ "Percent rock",
-      feature == "max_depth_m" ~ "Maximum depth (m)",
+      feature == "max_depth_m" ~ "Maximum depth",
       #feature == "depth_range_m" ~ "Depth range (m)",
-      feature == "size" ~ "MPA size (km²)",
+      feature == "size" ~ "MPA size",
       # Add more renaming conditions as needed
       TRUE ~ feature  # Keep the original feature name if no renaming condition matches
     )
@@ -132,28 +135,120 @@ my_theme <-  theme(axis.text=element_text(size=6,color = "black"),
 )
 
 
-g <- ggplot(data = mpa_traits 
-       , aes(x=network, y = value, fill = feature)) +
+g1 <- ggplot(data = mpa_traits %>% filter(feature == "Habitat diversity")
+            , aes(x=network, y = value, fill = feature)) +
   geom_boxplot(color = "black") +
   geom_jitter(width = 0.1, height = 0.3, alpha = 0.2, size=1) +
   facet_wrap(~feature, scales = "free")+
-  scale_fill_brewer(palette = "Dark2")+
- # ggsignif::geom_signif(comparisons = list(c("resistant", "transitioned")),
+  scale_fill_manual(values = "#1B9E77")+
+  # ggsignif::geom_signif(comparisons = list(c("resistant", "transitioned")),
   #                      map_signif_level = TRUE,
-   #                     tip_length = c(0.01, 0.01),
-    #                    textsize=3)+
+  #                     tip_length = c(0.01, 0.01),
+  #                    textsize=3)+
   #ylim(0,20)+
-  xlab("Region") +
-  ylab("")+
+  xlab("") +
+  ylab("Habitat diversity \n(Shannon-Wiener)")+
   theme_classic()+
   my_theme+
   theme(legend.position = "none")
-g
+g1
+
+g2 <- ggplot(data = mpa_traits %>% filter(feature == "Habitat richness")
+             , aes(x=network, y = value, fill = feature)) +
+  geom_boxplot(color = "black") +
+  geom_jitter(width = 0.1, height = 0.3, alpha = 0.2, size=1) +
+  facet_wrap(~feature, scales = "free")+
+  scale_fill_manual(values = "#D95F02")+
+  # ggsignif::geom_signif(comparisons = list(c("resistant", "transitioned")),
+  #                      map_signif_level = TRUE,
+  #                     tip_length = c(0.01, 0.01),
+  #                    textsize=3)+
+  #ylim(0,20)+
+  xlab("") +
+  ylab("Habitat richness \n(no. habitats)")+
+  theme_classic()+
+  my_theme+
+  theme(legend.position = "none")
+g2
+
+g3 <- ggplot(data = mpa_traits %>% filter(feature == "Fishing pressure")
+             , aes(x=network, y = value, fill = feature)) +
+  geom_boxplot(color = "black") +
+  geom_jitter(width = 0.1, height = 0.3, alpha = 0.2, size=1) +
+  facet_wrap(~feature, scales = "free")+
+  scale_fill_manual(values = "#7570B3")+
+  # ggsignif::geom_signif(comparisons = list(c("resistant", "transitioned")),
+  #                      map_signif_level = TRUE,
+  #                     tip_length = c(0.01, 0.01),
+  #                    textsize=3)+
+  #ylim(0,20)+
+  xlab("") +
+  ylab("Historic annual landings \n(pounds per km² 2000-2006)")+
+  theme_classic()+
+  my_theme+
+  theme(legend.position = "none")
+g3
+
+g4 <- ggplot(data = mpa_traits %>% filter(feature == "Maximum depth")
+             , aes(x=network, y = value, fill = feature)) +
+  geom_boxplot(color = "black") +
+  geom_jitter(width = 0.1, height = 0.3, alpha = 0.2, size=1) +
+  facet_wrap(~feature, scales = "free")+
+  scale_fill_manual(values = "#E7298A")+
+  # ggsignif::geom_signif(comparisons = list(c("resistant", "transitioned")),
+  #                      map_signif_level = TRUE,
+  #                     tip_length = c(0.01, 0.01),
+  #                    textsize=3)+
+  #ylim(0,20)+
+  xlab("") +
+  ylab("Maximum depth (m)")+
+  theme_classic()+
+  my_theme+
+  theme(legend.position = "none")
+g4
+
+g5 <- ggplot(data = mpa_traits %>% filter(feature == "MPA size")
+             , aes(x=network, y = value, fill = feature)) +
+  geom_boxplot(color = "black") +
+  geom_jitter(width = 0.1, height = 0.3, alpha = 0.2, size=1) +
+  facet_wrap(~feature, scales = "free")+
+  scale_fill_manual(values = "#66A61E")+
+  # ggsignif::geom_signif(comparisons = list(c("resistant", "transitioned")),
+  #                      map_signif_level = TRUE,
+  #                     tip_length = c(0.01, 0.01),
+  #                    textsize=3)+
+  #ylim(0,20)+
+  xlab("") +
+  ylab("MPA size (km²)")+
+  theme_classic()+
+  my_theme+
+  theme(legend.position = "none")
+g5
+
+
+g6 <- ggplot(data = mpa_traits %>% filter(feature == "Percent rock")
+             , aes(x=network, y = value, fill = feature)) +
+  geom_boxplot(color = "black") +
+  geom_jitter(width = 0.1, height = 0.3, alpha = 0.2, size=1) +
+  facet_wrap(~feature, scales = "free")+
+  scale_fill_manual(values = "#E6AB02")+
+  # ggsignif::geom_signif(comparisons = list(c("resistant", "transitioned")),
+  #                      map_signif_level = TRUE,
+  #                     tip_length = c(0.01, 0.01),
+  #                    textsize=3)+
+  #ylim(0,20)+
+  xlab("") +
+  ylab("Percent rock")+
+  theme_classic()+
+  my_theme+
+  theme(legend.position = "none")
+g6
+
+g_merge <- ggpubr::ggarrange(g1, g2, g3, g4, g5, g6, ncol=3, nrow=2) 
+g <- annotate_figure(g_merge, bottom = textGrob("Region", vjust=-1.5, hjust=0, gp = gpar(cex = 0.7)))
 
 
 ggsave(g, filename=file.path(figdir, "FigS2_MPA_features.png"), 
-       width=5.5, height=5, units="in", dpi=600, bg="white")
-
-
+      width=5.5, height=5, units="in", dpi=600, bg="white")
 
 
