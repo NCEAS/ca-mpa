@@ -101,10 +101,11 @@ str(data)
 ################################################################################
 
 # Theme
-base_theme <- theme(axis.text=element_text(size=6),
+base_theme <- theme(axis.text=element_text(size=6, color = "black"),
                     axis.title=element_blank(),
-                    strip.text=element_text(size=7),
-                    axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+                    strip.text=element_text(size=7, color = "black", face = "bold"),
+                    strip.background = element_blank(),
+                    axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1,color = "black",),
                     # Gridlines
                     panel.grid.major = element_blank(), 
                     panel.grid.minor = element_blank(),
@@ -117,7 +118,7 @@ base_theme <- theme(axis.text=element_text(size=6),
 # Plot data
 g <- ggplot(data, aes(x=year, y=mpa)) +
   facet_grid(region ~ habitat, scales="free_y", space="free_y") +
-  geom_tile(fill="lightblue") +
+  geom_tile(fill="SteelBlue") +
   # Reference lines
   geom_vline(xintercept = c(2013.5, 2016.5), linetype="dashed") +
   # Labels
@@ -128,7 +129,7 @@ g <- ggplot(data, aes(x=year, y=mpa)) +
 g
 
 # Export
-ggsave(g, filename=file.path(plotdir, "FigS1_data_availability.png"), 
+ggsave(g, filename=file.path(plotdir, "FigS1_data_availability_new.png"), 
        width=6.5, height=6, units="in", dpi=600)
 
 
