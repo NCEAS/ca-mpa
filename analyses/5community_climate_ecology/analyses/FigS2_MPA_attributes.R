@@ -18,6 +18,49 @@ fishing_effort <- readRDS(here::here("analyses","2performance_fisheries","analys
 prop_rock <- readRDS("/home/shares/ca-mpa/data/sync-data/mpa_traits/processed/mpa_attributes_habitat_rock.Rds")
 mpa_attributes_cdfw <-  readxl::read_excel("/home/shares/ca-mpa/data/sync-data/mpa_traits/raw/mpa_attributes_May_2022.xlsx", sheet = 1, skip = 3)
 
+################################################################################
+#process cdfw attribute table
+
+cdfw_build1 <- mpa_attributes_cdfw %>%
+  janitor::clean_names()%>%
+  # Remove entries for "-old" calculations
+  filter(!(str_detect(mpa_name, "-old"))) %>% 
+  # Remove the remaining "-new" tag from the MPA names
+  mutate(mpa_name = str_remove(mpa_name, "-new")) %>% 
+  # Drop the special closures
+  filter(!(designation == "Special Closure")) %>%
+  # Rename "rcky_inter_km" to "rocky_inter_km"
+  rename(rocky_inter_km = rcky_inter_km) %>% 
+  # Rename the "rocky_reef" columns to hard substrate
+  rename_with(~ gsub("rocky_reef", "hard_substrate", .x, fixed = TRUE)) %>% 
+  # Rename the "soft_bottom" columns to soft substrate
+  rename_with(~ gsub("soft_bottom", "soft_substrate", .x, fixed = TRUE)) %>%
+  # Correct depths so that all say "m" 
+  rename_with(~ gsub("100_k", "100m_k", .x, fixed = TRUE)) %>% 
+  rename_with(~ gsub("200_k", "200m_k", .x, fixed = TRUE)) %>% 
+  rename_with(~ gsub("3000_k", "3000m_k", .x, fixed = TRUE)) %>% 
+  rename_with(~ gsub("200m_3", "200_3", .x, fixed = TRUE)) %>% 
+  # Create full name (name + designation) 
+  mutate(name = paste(mpa_name, designation, sep = " ")) %>%
+  # Rename name column to name_short
+  rename(name_short = mpa_name) %>% 
+  # Create affiliated mpa column (name + designation, all lowercase)
+  mutate(affiliated_mpa = str_to_lower(name)) %>% 
+  # Make region a factor and correct the name
+  mutate(bioregion = recode_factor(bioregion,
+                                   "NorCal" = "North",
+                                   "CenCal" = "Central",
+                                   "SoCal" = "South"))%>%
+  #replace odd characters
+  mutate(across(everything(), as.character)) %>%  # Convert all columns to character type
+  mutate_all(~na_if(., ".")) %>%
+  #select variables
+  dplyr::select(name, maximum_depth_m, mpa_age, cdfw_size = size_km2)
+
+
+################################################################################
+#merge MPA features
+
 #step 1 - merge habitat gen and diversity
 mpa_traits1 <- left_join(mpa_attributes_gen, mpa_attributes_hab, by="name")
 mpa_traits2 <- left_join(mpa_traits1, mpa_attributes_hab_div, by="name")
@@ -29,13 +72,8 @@ mpa_traits3 <- left_join(mpa_traits2, prop_rock, by="name")
 mpa_traits4 <- left_join(mpa_traits3, fishing_effort, by="name")
 
 #step 4 - join with CDFW attributes
-mpa_traits_cdfw <- mpa_attributes_cdfw %>%
-  dplyr::select(affiliated_mpa = name, min_depth_m,
-                max_depth_m) %>%
-  mutate(depth_range_m = max_depth_m - min_depth_m)
 
-
-mpa_traits5 <- left_join(mpa_traits4, mpa_traits_cdfw, by="affiliated_mpa")
+mpa_traits5 <- left_join(mpa_traits4, cdfw_build1, by="name")
 
 #step 4 - clean up
 
@@ -44,7 +82,7 @@ mpa_traits <- mpa_traits5 %>%
   dplyr::select(region = bioregion.x, affiliated_mpa, designation, implementation_date, size=size_km2.x,
                 habitat_richness, habitat_diversity=habitat_diversity_sw, 
                 prop_rock, fishing_pressure = annual_avg_lb_sqkm_20002006,
-                max_depth_m)%>%
+                maximum_depth_m, mpa_age, cdfw_size)%>%
   mutate(affiliated_mpa = recode(affiliated_mpa,
                                  "año nuevo smr" = "ano nuevo smr"))%>%
   #assign region based on Figure 5
@@ -83,12 +121,17 @@ mpa_traits <- mpa_traits5 %>%
            affiliated_mpa == "abalone cove smca"
            ) %>%
   mutate(prop_rock = prop_rock*100)%>%
+  mutate(maximum_depth_m = as.numeric(maximum_depth_m),
+         mpa_age = as.numeric(mpa_age),
+         cdfw_size = as.numeric(cdfw_size)) %>%
   pivot_longer(cols = c("fishing_pressure",
                         "habitat_diversity",
                         "habitat_richness",
                         "prop_rock",
                         "size",
-                        "max_depth_m",
+                        "maximum_depth_m",
+                        "mpa_age",
+                        "cdfw_size"
                         #"depth_range_m",
                         ), names_to = "feature", values_to = "value") %>%
   mutate(
@@ -100,7 +143,8 @@ mpa_traits <- mpa_traits5 %>%
       #feature == "habitat_richness" ~ "Habitat richness \n(no. habitats)",
       feature == "habitat_richness" ~ "Habitat richness",
       feature == "prop_rock" ~ "Percent rock",
-      feature == "max_depth_m" ~ "Maximum depth",
+      feature == "maximum_depth_m" ~ "Maximum depth",
+      #feature = "mpa_age" ~ "Age",
       #feature == "depth_range_m" ~ "Depth range (m)",
       feature == "size" ~ "MPA size",
       # Add more renaming conditions as needed
@@ -114,7 +158,7 @@ mpa_traits <- mpa_traits5 %>%
 # Theme
 my_theme <-  theme(axis.text=element_text(size=6,color = "black"),
                    #axis.text.y = element_text(angle = 90, hjust = 0.5),
-                   axis.title=element_text(size=8,color = "black"),
+                   axis.title=element_text(size=7,color = "black"),
                    plot.tag=element_text(size=8, face = "bold", color = "black"),
                    plot.title =element_text(size=7, face="bold",color = "black"),
                    # Gridlines 
@@ -190,7 +234,7 @@ g3 <- ggplot(data = mpa_traits %>% filter(feature == "Fishing pressure")
 g3
 
 g4 <- ggplot(data = mpa_traits %>% filter(feature == "Maximum depth")
-             , aes(x=network, y = value / 3.281 #convert feet to meters
+             , aes(x=network, y = value  
                    , fill = feature)) +
   geom_boxplot(color = "black") +
   geom_jitter(width = 0.1, height = 0.3, alpha = 0.2, size=1) +
@@ -225,7 +269,6 @@ g5 <- ggplot(data = mpa_traits %>% filter(feature == "MPA size")
   my_theme+
   theme(legend.position = "none")
 g5
-
 
 g6 <- ggplot(data = mpa_traits %>% filter(feature == "Percent rock")
              , aes(x=network, y = value, fill = feature)) +
