@@ -7,7 +7,8 @@ require(tidyverse)
 require(mvabund)
 
 #set directories
-datadir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data"
+#datadir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data" #old
+datadir <- here::here("analyses","5community_climate_ecology","output")
 figdir <- here::here("analyses", "5community_climate_ecology", "figures")
 
 
@@ -259,6 +260,7 @@ nrow(kelp_swath_Q)
 rocky_join2 <- rocky_join1 %>%
   dplyr::select(year, group, region3, region4, affiliated_mpa,
                  mpa_designation, sst_monthly_anom, sst_monthly_obs,
+                AT_anom, AT_abs,
                beuti_monthly_anom, beuti_monthly_obs, annual_MOCI,
                 species, counts, thermal_affinity)%>%
   filter(year>=2007)%>%
@@ -269,7 +271,7 @@ rocky_L <- rocky_join2 %>%
   drop_na(thermal_affinity)%>%
   select(!(c(thermal_affinity)))%>%
   pivot_wider(names_from="species", values_from = "counts")%>%
-  select(12:ncol(.))%>%
+  select(14:ncol(.))%>%
   replace(is.na(.),0)%>%
   as.data.frame()
 
@@ -279,7 +281,9 @@ rocky_R <- rocky_join2 %>%
   select(!(c(thermal_affinity)))%>%
   pivot_wider(names_from="species", values_from = "counts")%>%
   #select envr vars, note mvabund does not take function formula
-  dplyr::select(sst_monthly_anom,
+  dplyr::select(AT_anom,
+                AT_abs,
+    sst_monthly_anom,
                 sst_monthly_obs,
                # bottomT_monthly_anom,
                 beuti_monthly_anom,
@@ -433,8 +437,8 @@ ft_kelp_swath_abs <- traitglm(kelp_swath_L, kelp_swath_abs, kelp_swath_Q,
 
 #============================rocky intertidal===================================
 
-rocky_anom <- rocky_R %>% dplyr::select(sst_monthly_anom, beuti_monthly_anom, annual_MOCI)
-rocky_abs <- rocky_R %>% dplyr::select(sst_monthly_obs,  beuti_monthly_obs, annual_MOCI)
+rocky_anom <- rocky_R %>% dplyr::select(AT_anom, sst_monthly_anom, beuti_monthly_anom, annual_MOCI)
+rocky_abs <- rocky_R %>% dplyr::select(AT_abs, sst_monthly_obs,  beuti_monthly_obs, annual_MOCI)
 
 rocky_L_100 <- ceiling(rocky_L*100)
 
@@ -463,6 +467,7 @@ ft_kelp_upc_abs <- traitglm(kelp_upc_L_round, kelp_upc_abs, kelp_upc_Q,
 coef_ccfrp <- ft_ccfrp_anom$fourth %>%
               as.data.frame()%>%
               rownames_to_column(var="Thermal affinity")%>%
+              mutate(AT = NA)%>%
               rename(SST = "sst_monthly_anom",
                      BT = "bottomT_monthly_anom",
                      BEUTI = "beuti_monthly_anom",
@@ -485,7 +490,8 @@ coef_kelp_fish <- ft_kelp_fish_anom$fourth %>%
                                      "thermal_affinitysubtropical" = "Subtropical",
                                      "thermal_affinitywarm temperate"="Warm temperate",
                                      "thermal_affinitycosmopolitan" = "Cosmopolitan"))%>%
-  mutate(Group = "Kelp forest fish")
+  mutate(AT = NA,
+    Group = "Kelp forest fish")
 
 
 coef_deep_reef <- ft_deep_reef_anom$fourth %>%
@@ -499,7 +505,8 @@ coef_deep_reef <- ft_deep_reef_anom$fourth %>%
                                      "thermal_affinitycold temperate" = "Cold temperate",
                                      "thermal_affinitysubtropical" = "Subtropical",
                                      "thermal_affinitywarm temperate"="Warm temperate"))%>%
-  mutate(Group = "Deep reef fish")
+  mutate(AT = NA,
+    Group = "Deep reef fish")
 
 coef_kelp_swath <- ft_kelp_swath_anom$fourth %>%
   as.data.frame()%>%
@@ -513,7 +520,8 @@ coef_kelp_swath <- ft_kelp_swath_anom$fourth %>%
                                      "thermal_affinitysubtropical" = "Subtropical",
                                      "thermal_affinitywarm temperate"="Warm temperate",
                                      "thermal_affinitycosmopolitan" = "Cosmopolitan"))%>%
-  mutate(Group = "Kelp forest inverts and algae (swath)")
+  mutate(AT=NA,
+    Group = "Kelp forest inverts and algae (swath)")
 
 
 coef_kelp_upc <- ft_kelp_upc_anom$fourth %>%
@@ -529,13 +537,15 @@ coef_kelp_upc <- ft_kelp_upc_anom$fourth %>%
                                      "thermal_affinitywarm temperate"="Warm temperate",
                                      "therma_affinitytropical" = "Tropical",
                                      "thermal_affinitycosmopolitan" = "Cosmopolitan"))%>%
-  mutate(Group = "Kelp forest inverts and algae (upc)")
+  mutate(AT = NA,
+    Group = "Kelp forest inverts and algae (upc)")
 
 coef_rocky <- rocky_corner_anom$fourth %>%
   as.data.frame()%>%
   rownames_to_column(var="Thermal affinity")%>%
   mutate(BT = NA)%>%
-  rename(SST = "sst_monthly_anom",
+  rename(AT = "AT_anom",
+    SST = "sst_monthly_anom",
          BEUTI = "beuti_monthly_anom",
          MOCI = "annual_MOCI")%>%
   mutate(`Thermal affinity` = recode(`Thermal affinity`,
@@ -551,17 +561,15 @@ coef_rocky <- rocky_corner_anom$fourth %>%
 
 coef_out <- rbind(coef_ccfrp, coef_kelp_fish, coef_deep_reef, coef_kelp_swath,
                   coef_rocky, coef_kelp_upc)%>%
-            pivot_longer(cols=c("SST","BT","BEUTI","MOCI"),
+            pivot_longer(cols=c("AT","SST","BT","BEUTI","MOCI"),
                                 names_to = "Environmental Variables",
                                 values_to = "Beta")
 
 View(coef_out)
 
-
-################################################################################
 #Save model output
 
-#save(coef_out, file="/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data/four_corner_output_anom_run2.rda")
+save(coef_out, file=here::here("analyses","5community_climate_ecology","output","four_corner_output_anom_run2.rda"))
 
 
 
@@ -579,7 +587,8 @@ coef_ccfrp <- ft_ccfrp_abs$fourth %>%
                                      "thermal_affinitycold temperate" = "Cold temperate",
                                      "thermal_affinitysubtropical" = "Subtropical",
                                      "thermal_affinitywarm temperate"="Warm temperate"))%>%
-  mutate(Group = "Rocky reef fish")
+  mutate(AT = NA,
+    Group = "Rocky reef fish")
 
 coef_kelp_fish <- ft_kelp_fish_abs$fourth %>%
   as.data.frame()%>%
@@ -593,7 +602,8 @@ coef_kelp_fish <- ft_kelp_fish_abs$fourth %>%
                                      "thermal_affinitysubtropical" = "Subtropical",
                                      "thermal_affinitywarm temperate"="Warm temperate",
                                      "thermal_affinitycosmopolitan" = "Cosmopolitan"))%>%
-  mutate(Group = "Kelp forest fish")
+  mutate(AT = NA,
+    Group = "Kelp forest fish")
 
 
 coef_deep_reef <- ft_deep_reef_abs$fourth %>%
@@ -607,7 +617,8 @@ coef_deep_reef <- ft_deep_reef_abs$fourth %>%
                                      "thermal_affinitycold temperate" = "Cold temperate",
                                      "thermal_affinitysubtropical" = "Subtropical",
                                      "thermal_affinitywarm temperate"="Warm temperate"))%>%
-  mutate(Group = "Deep reef fish")
+  mutate(AT = NA,
+    Group = "Deep reef fish")
 
 coef_kelp_swath <- ft_kelp_swath_abs$fourth %>%
   as.data.frame()%>%
@@ -621,7 +632,8 @@ coef_kelp_swath <- ft_kelp_swath_abs$fourth %>%
                                      "thermal_affinitysubtropical" = "Subtropical",
                                      "thermal_affinitywarm temperate"="Warm temperate",
                                      "thermal_affinitycosmopolitan" = "Cosmopolitan"))%>%
-  mutate(Group = "Kelp forest inverts and algae (swath)")
+  mutate(AT = NA,
+    Group = "Kelp forest inverts and algae (swath)")
 
 
 coef_kelp_upc <- ft_kelp_upc_abs$fourth %>%
@@ -637,13 +649,15 @@ coef_kelp_upc <- ft_kelp_upc_abs$fourth %>%
                                      "thermal_affinitywarm temperate"="Warm temperate",
                                      "therma_affinitytropical" = "Tropical",
                                      "thermal_affinitycosmopolitan" = "Cosmopolitan"))%>%
-  mutate(Group = "Kelp forest inverts and algae (upc)")
+  mutate(AT = NA,
+    Group = "Kelp forest inverts and algae (upc)")
 
 coef_rocky <- rocky_corner_abs$fourth %>%
   as.data.frame()%>%
   rownames_to_column(var="Thermal affinity")%>%
   mutate(BT = NA)%>%
-  rename(SST = "sst_monthly_obs",
+  rename(AT = "AT_abs",
+    SST = "sst_monthly_obs",
          BEUTI = "beuti_monthly_obs",
          MOCI = "annual_MOCI")%>%
   mutate(`Thermal affinity` = recode(`Thermal affinity`,
@@ -651,7 +665,8 @@ coef_rocky <- rocky_corner_abs$fourth %>%
                                      "thermal_affinitysubtropical" = "Subtropical",
                                      "thermal_affinitywarm temperate"="Warm temperate",
                                      "thermal_affinitycosmopolitan" = "Cosmopolitan"))%>%
-  mutate(Group = "Rocky intertidal")
+  mutate(AT = NA,
+    Group = "Rocky intertidal")
 
 
 
@@ -659,18 +674,16 @@ coef_rocky <- rocky_corner_abs$fourth %>%
 
 coef_out <- rbind(coef_ccfrp, coef_kelp_fish, coef_deep_reef, coef_kelp_swath,
                   coef_rocky, coef_kelp_upc)%>%
-  pivot_longer(cols=c("SST","BT","BEUTI","MOCI"),
+  pivot_longer(cols=c("AT","SST","BT","BEUTI","MOCI"),
                names_to = "Environmental Variables",
                values_to = "Beta")
 
 View(coef_out)
 
 
-################################################################################
 #Save model output
 
-save(coef_out, file="/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data/four_corner_output_abs.rda")
-
+save(coef_out, file=here::here("analyses","5community_climate_ecology","output","four_corner_output_abs.rda"))
 
 
 
