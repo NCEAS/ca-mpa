@@ -19,7 +19,7 @@ gisdir <- file.path(basedir, "gis_data/processed")
 plotdir <- "analyses/5community_climate_ecology/figures"
 
 # Read composition data
-load(file.path(basedir, "monitoring/processed_data/comp_data.rda"))
+load(file.path(basedir, "comp_data.rda"))
 comp_orig <- comp_data
 rm(comp_data)
 
@@ -223,9 +223,9 @@ coef_abs <- coef_abs %>%
 
 base_theme <-  theme(axis.text=element_text(size=8),
                    #axis.text.y = element_text(angle = 90, hjust = 0.5),
-                   axis.title=element_text(size=10),
+                   axis.title=element_text(size=9),
                    plot.tag=element_blank(), #element_text(size=8),
-                   plot.title =element_text(size=10, face="bold"),
+                   plot.title =element_text(size=9, face="bold"),
                    # Gridlines
                    panel.grid.major = element_line(colour = "transparent"), 
                    panel.grid.minor = element_line(colour = "transparent"), 
