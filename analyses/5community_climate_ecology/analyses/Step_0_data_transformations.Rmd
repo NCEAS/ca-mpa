@@ -129,7 +129,8 @@ kelp_check <-  anti_join(kelp_swath_stan1, kelp_upc_stan2, by=c("year",
 
 
 #path_aurora <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data"
-#write.csv(kelp_stan, file.path(path_aurora, "kelp_swath_upc_mpa_year.csv"), row.names = FALSE)
+#path_relative <- here::here("analyses","5community_climate_ecology","output")
+#write.csv(kelp_stan, file.path(path_relative, "kelp_swath_upc_mpa_year.csv"), row.names = FALSE)
 ```
 
 
@@ -439,7 +440,10 @@ rocky_distmat <-
 
 ###save group vars
 #output_path <-  "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data/reprocessed_data_20230615" #new
-#output_path <-  "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data/reprocessed_data_20230615" #old
+#output_path <-  "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data/" #old
+
+output_path <- here::here("analyses","5community_climate_ecology","output")
+
 
 #save(CCFRP_group_vars,kelp_invalg_group_vars,kelp_fish_group_vars,
 #     kelp_swath_group_vars, kelp_upc_group_vars,
@@ -448,22 +452,22 @@ rocky_distmat <-
 
 #save community matrices
 #save(CCFRP_ord_data,kelp_invalg_ord_data,kelp_fish_ord_data,
- #    kelp_swath_ord_data, kelp_upc_ord_data,
-  # deep_reef_ord_data,rocky_ord_data,
-  # file = file.path(output_path, "comm_data.rda"))
+#    kelp_swath_ord_data, kelp_upc_ord_data,
+#   deep_reef_ord_data,rocky_ord_data,
+#   file = file.path(output_path, "comm_data.rda"))
 
 
 #save envr vars 
 #save(CCFRP_envr_vars,kelp_invalg_envr_vars,kelp_fish_envr_vars,
- #    kelp_swath_envr_vars, kelp_upc_envr_vars,
+#     kelp_swath_envr_vars, kelp_upc_envr_vars,
 #  deep_reef_envr_vars, rocky_envr_vars,
-#    file = file.path(output_path, "envr_vars.rda"))
+#   file = file.path(output_path, "envr_vars.rda"))
 
 #save distance matrices
 #save(CCFRP_distmat,kelp_invalg_distmat,kelp_fish_distmat,
  #   kelp_swath_distmat, kelp_upc_distmat,
   #   deep_reef_distmat,rocky_distmat,
-  #  file = file.path(output_path, "distance_matrices_BC.rda"))
+   # file = file.path(output_path, "distance_matrices_BC.rda"))
 ```
 
 
@@ -515,9 +519,9 @@ message("Done processing rocky_ord")
 
 
 #export to .RData
-#save(CCFRP_ord, kelp_invalg_ord, kelp_fish_ord, deep_reef_ord, rocky_ord, file = file.path(output_path, "bray_nmds_scores.rda"))
+save(CCFRP_ord, kelp_invalg_ord, kelp_fish_ord, deep_reef_ord, rocky_ord, file = file.path(output_path, "bray_nmds_scores.rda"))
 
-#save(CCFRP_en, kelp_invalg_en, kelp_fish_en, deep_reef_en, rocky_en, file = file.path(output_path, "env_fit_scores_with_absolutes.rda"))
+save(CCFRP_en, kelp_invalg_en, kelp_fish_en, deep_reef_en, rocky_en, file = file.path(output_path, "env_fit_scores_with_absolutes.rda"))
 
 ```
 
@@ -548,6 +552,7 @@ kelp_combined <- read.csv(file.path(dat_dir, "kelp_swath_upc_mpa_year.csv"))
 kelp_fish <- read.csv(file.path(dat_dir, "kelp_fish_mpa_year.csv"))
 deep_reef <- read.csv(file.path(dat_dir, "deep_reef_mpa_year.csv"))
 rocky <- read.csv(file.path(dat_dir, "rocky_mpa_year.csv"))
+rocky_airtemp <- readRDS("/home/shares/ca-mpa/data/sync-data/environmental/processed/air_temp_intertidal_sites.rds")
 
 ```
 
@@ -585,8 +590,16 @@ deep_reef_long <- deep_reef %>%
                            values_to = "counts")%>%
               filter(year >= 2007)
 
+rocky_Tair <- rocky_airtemp %>% mutate(marine_site_name = tolower(marine_site_name)) %>%
+              ungroup() %>%
+              select(!c(georegion, site_code))
 rocky_long <- rocky %>%
-              pivot_longer(cols=24:ncol(.), names_to="species",
+                #join air temp data
+                left_join(rocky_Tair, by= c("site"="marine_site_name","year")) %>%
+                dplyr::select(year, group, region3, region4, site, mpa_designation, affiliated_mpa, AT_anom, 
+                              AT_abs, everything()) %>%
+              #make longer
+              pivot_longer(cols=26:ncol(.), names_to="species",
                            values_to = "counts")%>%
               filter(year >= 2007)
 ```
@@ -926,7 +939,7 @@ save(CCFRP_join1, kelp_combined_join1,
      kelp_fish_join1,
         deep_reef_join1, 
      rocky_join1,
-     file= file.path("/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data","all_groups_mpa_level_means_long.rda"))
+     file= file.path(here::here("analyses","5community_climate_ecology","output","all_groups_mpa_level_means_long.rda")))
 
 ```
 

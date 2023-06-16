@@ -665,8 +665,7 @@ coef_rocky <- rocky_corner_abs$fourth %>%
                                      "thermal_affinitysubtropical" = "Subtropical",
                                      "thermal_affinitywarm temperate"="Warm temperate",
                                      "thermal_affinitycosmopolitan" = "Cosmopolitan"))%>%
-  mutate(AT = NA,
-    Group = "Rocky intertidal")
+  mutate(Group = "Rocky intertidal")
 
 
 
