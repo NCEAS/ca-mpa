@@ -11,8 +11,10 @@ library(tidyverse)
 library(patchwork)
 
 # Directories
-basedir <- "/Volumes/GoogleDrive/.shortcut-targets-by-id/1kCsF8rkm1yhpjh2_VMzf8ukSPf9d4tqO/MPA Network Assessment: Working Group Shared Folder/data/sync-data/" #Chris
+# basedir <- "/Volumes/GoogleDrive/.shortcut-targets-by-id/1kCsF8rkm1yhpjh2_VMzf8ukSPf9d4tqO/MPA Network Assessment: Working Group Shared Folder/data/sync-data/" #Chris
 # basedir <- "/home/shares/ca-mpa/data/sync-data/" #Josh
+
+basedir <- here::here("analyses","5community_climate_ecology","output")
 gisdir <- file.path(basedir, "gis_data/processed")
 plotdir <- "analyses/5community_climate_ecology/figures"
 
@@ -22,11 +24,11 @@ comp_orig <- comp_data
 rm(comp_data)
 
 # Read four-corner data
-load(file.path(basedir,"monitoring/processed_data/community_climate_derived_data/four_corner_output_anom.rda"))
+load(file.path(basedir,"four_corner_output_anom_run2.rda"))
 coef_anom <- coef_out
 rm(coef_out)
 
-load(file.path(basedir,"monitoring/processed_data/community_climate_derived_data/four_corner_output_abs.rda"))
+load(file.path(basedir,"four_corner_output_abs.rda"))
 coef_abs <- coef_out
 rm(coef_out)
 
@@ -36,7 +38,7 @@ rm(coef_out)
 
 # Parameters
 guilds <- c("Cold temp.", "Warm temp.", "Subtropical", "Tropical", "Cosmopolitan")
-indicators <- c("SST", "SBT", "MOCI", "BEUTI")
+indicators <- c("AT", "SST", "SBT", "MOCI", "BEUTI")
 
 # Composition
 ##########################################
@@ -181,8 +183,8 @@ g_all1 <- gridExtra::grid.arrange(g1, g_4corner,
 g_all1
 
 # Export
-ggsave(g_all1, filename=file.path(plotdir, "Fig4_composition_and_4corner_results4_new.png"),
-       width=6.5, height=7.5, units="in", dpi=600)
+ggsave(g_all1, filename=file.path(plotdir, "Fig4_composition_and_4corner_results4_new2.png"),
+       width=6.5, height=8, units="in", dpi=600)
 
 
 # Plot data - indiv 4corner plot approach for absolute temp as supp fig
