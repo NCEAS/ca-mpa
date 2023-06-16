@@ -20,7 +20,7 @@ library(usedist)
 library(here)
 
 # Directories (Josh)
-# datadir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data" # Josh
+ datadir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data/reprocessed_data_20230615" # Josh
 
 # Directories (Chris)
 basedir <- "/Volumes/GoogleDrive/.shortcut-targets-by-id/1kCsF8rkm1yhpjh2_VMzf8ukSPf9d4tqO/MPA Network Assessment: Working Group Shared Folder/data/sync-data/"
@@ -33,7 +33,7 @@ plotdir <- "analyses/5community_climate_ecology/figures"
 # Read data
 comm_data <- load(file.path(datadir, "comm_data.rda"))
 nmds_scores <- load(file.path(datadir, "bray_nmds_scores.rda"))
-env_fit_scores <- load(file.path(datadir, "env_fit_scores.rda"))
+env_fit_scores <- load(file.path(datadir, "env_fit_scores_with_absolutes.rda"))
 group_vars <- load(file.path(datadir, "group_vars.rda"))
 envr_vars <- load(file.path(datadir, "envr_vars.rda"))
 eco_dist <- load(file.path(datadir, "distance_matrices_BC.rda"))
@@ -47,10 +47,11 @@ load(file.path(outdir, "simulated_ellipses_new.Rdata"))
 
 # Ordination objects
 habitats <- c("Rocky intertidal", "Kelp forest inverts and algae", "Kelp forest fishes", "Shallow reef", "Deep reef")
-arrow_scalars <- c(0.2, 0.25, 0.12, 1, 0.4)
-list1 <- list(rocky_ord, kelp_invalg_ord, kelp_fish_ord, CCFRP_ord, deep_reef_ord)
+arrow_scalars <- c(0.4, 0.25, 0.12, 0.4, 0.4)
+list1 <- list(rocky_ord, kelp_invalg_ord, kelp_fish_ord, CCFRP_ord, deep_reef_ord) 
 list2 <- list(rocky_en, kelp_invalg_en, kelp_fish_en, CCFRP_en, deep_reef_en)
 list3 <- list(rocky_group_vars, kelp_invalg_group_vars, kelp_fish_group_vars, CCFRP_group_vars, deep_reef_group_vars)
+
 
 # Loop through objects
 i <- 1
@@ -261,6 +262,18 @@ data_sim_pts <- data_sim_pts %>%
                          "No MPA benefit"="ii. No MPA benefit",
                          "MPA resistance"="iii. MPA resistance",
                          "MPA recovery"="iv. MPA recovery"))
+#select vectors to plot
+arrows_filtered <- arrows_all %>% 
+                dplyr::filter(variable == "SST_anom" |
+                                variable == "BEUTI_anom"|
+                                variable == "MOCI"|
+                                variable == "AT_anom" |
+                                variable == "BT_anom")%>%
+                mutate(variable = recode_factor(variable,
+                                                "SST_anom" = "SST",
+                                                "BEUTI_anom" = "BEUTI",
+                                                "AT_anom" = "AT",
+                                                "BT_anom" = "SBT"))
 
 
 # Plot data
@@ -295,7 +308,7 @@ impact_labels <- data.frame(
   scenario = factor("i. Heatwave impact", levels = c("i. Heatwave impact", "ii. No MPA benefit", "iii. MPA resistance", "iv. MPA recovery")),
   site_type = factor("Inside", levels = c("Inside", "Outside")),
   period = factor("Before", levels = c("Before", "During", "After")),
-  x = c(1.5, 0),
+  x = c(1.6, 0),
   y = c(0.8, 1.85),
   label = c("Impact","No\nimpact")
 )
@@ -337,15 +350,15 @@ g2 <- ggplot(data=centroids_all, aes(x=NMDS1, y=NMDS2, color=period)) +
   # Centroids
   geom_point(mapping=aes(shape=site_type), size=pt_size) +
   # Arrows
-  geom_segment(data = arrows_all,
+  geom_segment(data = arrows_filtered,
                x = 0, y = 0,
                mapping=aes(xend = NMDS1, yend = NMDS2),
                arrow = arrow(length = unit(0.25, "cm")), color = "grey60", linewidth=0.5) +
   geom_point(x=0, y=0, color="grey60", shape=16) +
-  ggrepel::geom_text_repel(data=arrows_all, 
+  ggrepel::geom_text_repel(data=arrows_filtered, 
             mapping=aes(x=NMDS1, y=NMDS2, label=variable), size=2.2, fontface="bold", inherit.aes = F) +
   # Add stress labels
-  geom_text(data=stress_all, aes(x=NMDS1, y=NMDS2, label=stress), inherit.aes = F,
+  geom_text(data=stress_all, aes(x=NMDS1, y=NMDS2, label=paste("Stress:",stress)), inherit.aes = F,
             hjust=1, size=2.2) +
   # Labels
   labs(x="nMDS1", y="nMDS2", title="Observed shifts in community structure", tag="B") +
@@ -365,7 +378,7 @@ g <- gridExtra::grid.arrange(g1, g2, nrow=2, heights=c(0.33, 0.67))
 g
 
 # Export plot
-ggsave(g, filename=file.path(plotdir, "Fig2_nmds_results.png"), 
-       width=6.5, height=6.5, units="in", dpi=600)
+ggsave(g, filename=file.path(plotdir, "Fig2_nmds_results_new.png"), 
+       width=7, height=7.5, units="in", dpi=600)
 
 
