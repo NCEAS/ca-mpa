@@ -349,7 +349,7 @@ g3 <- ggplot(data=envi %>% filter(indicator=="SST"), aes(x=year, y=value_avg)) +
   # Reference line
   geom_hline(yintercept = 0, linetype="dashed", color="grey40") +
   # Labels
-  labs(x="", y="SST anamoly (°C)", tag="C") +
+  labs(x="", y="SST anomaly (°C)", tag="C") +
   scale_x_continuous(breaks=seq(2000, 2020, 5)) +
   # scale_y_continuous(breaks=seq(-1.5, 1.5, 0.5), lim=c(-1.5, 1.5)) +
   # Theme
@@ -378,7 +378,7 @@ g4 <- ggplot(data=envi %>% filter(indicator=="Bottom temp"), aes(x=year, y=value
   # Reference line
   geom_hline(yintercept = 0, linetype="dashed", color="grey40") +
   # Labels
-  labs(x="Year", y="SBT anamoly (°C)", tag="D") +
+  labs(x="Year", y="SBT anomaly (°C)", tag="D") +
   scale_x_continuous(breaks=seq(2000, 2020, 5)) +
   # scale_y_continuous(breaks=seq(-1.5, 1.5, 0.5), lim=c(-1.5, 1.5)) +
   # Theme
