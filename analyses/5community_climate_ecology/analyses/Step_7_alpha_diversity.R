@@ -344,7 +344,7 @@ boxplots<-
             e5,e4,e2,e1,e3,
             s5,s4,s2,s1,s3, nrow=3, ncol=5, common.legend=TRUE)
 
-ggsave(boxplots, filename=file.path(figdir, "FigS9_diversity.png"), 
+ggsave(boxplots, filename=file.path(figdir, "FigS10_diversity.png"), 
        width=10, height=8.5, units="in", dpi=600, bg="white")
 
 
