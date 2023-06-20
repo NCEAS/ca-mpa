@@ -176,6 +176,7 @@ RR_dat_full <- left_join(RR_dat_join, settle_dat1, by=c("MPA","habitat_short"))
 RR_dat_full1 <- left_join(RR_dat_full, biomass_RR, by=c("habitat","MPA"="affiliated_mpa"))
 
 
+
 #-------------------------------------------------------------------------------
 #build model for kelp forest fishes
 
@@ -406,7 +407,8 @@ RR_dat_full <- left_join(RR_logit_join, settle_dat1, by=c("MPA","habitat_short")
 #join biomass slopes for KF fishes
 
 RR_dat_full1 <- left_join(RR_dat_full, biomass_RR, by=c("habitat","MPA"="affiliated_mpa")) %>%
-                  mutate(stability = ifelse(stability == "no",0,1))
+                  mutate(stability = ifelse(stability == "no",0,1),
+                         relative_age = 2020-implementation_year)
 
 
 
@@ -426,12 +428,13 @@ kf_fish_resil <- RR_dat_full1 %>%
 #resistance 
 kf_fish_resist_mod <-glm(stability ~ size + 
                            habitat_diversity + prop_rock + 
-                           log(fishing_pressure) + settlement, 
+                           log(fishing_pressure) + settlement,
                          data = kf_fish_resist, #add region or lat?
                          family="binomial", 
-                         na.action = na.exclude) %>% stepAIC()
+                         na.action = na.exclude) 
                         
 summary(kf_fish_resist_mod)
+
 
 
 #resilience
@@ -442,9 +445,133 @@ kf_fish_resil_mod <- glm(stability ~ size + habitat_richness +
                            sqrt(fishing_pressure),
                          data = kf_fish_resil, #add region or lat?
                          family="binomial", 
-                         na.action = na.exclude) %>% stepAIC()
+                         na.action = na.exclude) 
 
 summary(kf_fish_resil_mod)
+
+
+################################################################################
+#Plot kelp fish
+
+# Create a data frame with the combined data for both models
+data_combined <- rbind(
+  data.frame(
+    model = "resistance",
+    stability = kf_fish_resist$stability,
+    size = kf_fish_resist$size,
+    habitat_diversity = kf_fish_resist$habitat_diversity,
+    prop_rock = kf_fish_resist$prop_rock,
+    fishing_pressure = log(kf_fish_resist$fishing_pressure),
+    settlement = kf_fish_resist$settlement
+  ),
+  data.frame(
+    model = "recovery",
+    stability = kf_fish_resil$stability,
+    size = kf_fish_resil$size,
+    habitat_diversity = kf_fish_resil$habitat_diversity,
+    prop_rock = kf_fish_resil$prop_rock,
+    fishing_pressure = sqrt(kf_fish_resil$fishing_pressure),
+    settlement = kf_fish_resil$settlement
+  )
+)
+
+base_theme <-  theme(axis.text=element_text(size=8),
+                     #axis.text.y = element_text(angle = 90, hjust = 0.5),
+                     axis.title=element_text(size=9),
+                     plot.tag=element_blank(), #element_text(size=8),
+                     plot.title =element_text(size=9, face="bold"),
+                     # Gridlines
+                     panel.grid.major = element_line(colour = "transparent"), 
+                     panel.grid.minor = element_line(colour = "transparent"), 
+                     panel.background = element_blank(), 
+                     axis.line = element_line(colour = "black"),
+                     axis.ticks = element_line(colour = "black"),
+                     # Legend
+                     legend.key = element_blank(),
+                     legend.text=element_text(size=8),
+                     legend.title=element_text(size=10),
+                     # legend.background = element_rect(fill=alpha('blue', 0)),
+                     #facets
+                     strip.text = element_text(size=7, hjust=0, face="bold"),
+                     strip.background = element_blank()
+                     #margins
+                     #plot.margin=unit(c(0.01,0.01,0.01,0.01),"cm")
+)
+
+
+
+library(RColorBrewer)
+
+# Define the color palette
+colors <- brewer.pal(8, "Dark2")
+
+# Perform logistic regression for each model separately
+resist_model <- glm(stability ~ size + habitat_diversity + prop_rock + log(fishing_pressure) + settlement,
+                    data = kf_fish_resist,
+                    family = "binomial",
+                    na.action = na.exclude)
+recov_model <- glm(stability ~ size + habitat_richness + habitat_diversity + prop_rock + settlement + sqrt(fishing_pressure),
+                   data = kf_fish_resil,
+                   family = "binomial",
+                   na.action = na.exclude) 
+
+# Get the p-values for each model
+p_values <- list()
+for (var in names(data)[-c(1, 2)]) {  # Exclude "model" and "stability" variables
+  resist_p_value <- ifelse(var %in% rownames(summary(resist_model)$coefficients),
+                           summary(resist_model)$coefficients[rownames(summary(resist_model)$coefficients) == var, "Pr(>|z|)"],
+                           NA)
+  resil_p_value <- ifelse(var %in% rownames(summary(recov_model)$coefficients),
+                          summary(recov_model)$coefficients[rownames(summary(recov_model)$coefficients) == var, "Pr(>|z|)"],
+                          NA)
+  p_values[[var]] <- list(resistance = resist_p_value, resilience = resil_p_value)
+}
+
+kelp_fish_plots <- lapply(names(data)[-c(1, 2)], function(var) {  # Exclude "model" and "stability" variables
+  ggplot(data_combined, aes_string(x = var, y = "stability", color = "model")) +
+    geom_smooth(method = "glm", method.args = list(family = "binomial"), aes(fill = model), alpha = 0.2) +
+    geom_point() +
+    labs(x = ifelse(var == "habitat_diversity", "Habitat diversity",
+                    ifelse(var == "prop_rock", "Proportion rock",
+                           ifelse(var == "fishing_pressure", "Historic fishing pressure",
+                                  ifelse(var == "settlement", "MPA connectivity", var)
+                           )
+                    )
+    ),
+    y = "") +
+    scale_color_manual(values = colors[1:2], labels = c("Resistance", "Recovery"),
+                       guide = guide_legend(title = "Resilience component",
+                                            override.aes = list(color = colors[1:2]))) +
+    scale_fill_manual(values = colors[1:2], labels = c("Resistance", "Recovery"),
+                      guide = guide_legend(title = "Resilience component",
+                                           override.aes = list(fill = colors[1:2]))) +
+    theme_bw() + base_theme +
+    annotate("text", x = max(data_combined[[var]]) * 0.9, y = max(data_combined$stability) * 0.9,
+             label = paste0("p-val (resist): ", ifelse(is.na(p_values[[var]]$resistance), "NA", round(p_values[[var]]$resistance, 3))),
+             size = 3) +
+    annotate("text", x = max(data_combined[[var]]) * 0.9, y = max(data_combined$stability) * 0.8,
+             label = paste0("p-value (recov): ", ifelse(is.na(p_values[[var]]$resilience), "NA", round(p_values[[var]]$resilience, 3))),
+             size = 3)
+})
+
+
+
+
+# Remove legends from individual plots
+plots_nolegend <- lapply(plots, function(plot) plot + theme(legend.position = "none"))
+
+# Arrange the plots in a grid layout without individual legends
+g_merge <- grid.arrange(grobs = plots_nolegend, ncol = 2)
+
+# Create a common legend
+legend <- cowplot::get_legend(plots[[1]])
+
+# Add the legend to the combined plot
+g_with_legend <- cowplot::plot_grid(g_merge, legend, nrow = 1, rel_widths = c(0.8, 0.2))
+
+# Annotate the figure
+g_with_legend_kelp_fish <- annotate_figure(g_with_legend, bottom = textGrob("MPA feature"), left = textGrob("Probability of resistance or resilience", rot = 90))
+
 
 #-------------------------------------------------------------------------------
 #build model for invalg
@@ -463,22 +590,153 @@ kf_invalg_resil <- RR_dat_full1 %>%
 #resistance 
 kf_invalg_resist_mod <-glm(stability ~ size + 
                            habitat_diversity + prop_rock + 
-                           fishing_pressure + region, 
+                           fishing_pressure + region + settlement + relative_age, 
                          data = kf_invalg_resist, #add region or lat?
                          family="binomial", 
-                         na.action = na.exclude) %>% stepAIC()
+                         na.action = na.exclude) 
 summary(kf_invalg_resist_mod)
 
 #resilience
 
 kf_invalg_resil_mod <- glm(stability ~ size + habitat_richness +
                            habitat_diversity + prop_rock + 
-                           fishing_pressure + settlement + region, 
+                           fishing_pressure + settlement + settlement + relative_age, 
                          data = kf_invalg_resil, 
                          family="binomial", 
                          na.action = na.exclude) %>% stepAIC()
 
 summary(kf_invalg_resil_mod)
+
+################################################################################
+#Plot kelp invalg
+
+# Create a data frame with the combined data for both models
+data_combined <- rbind(
+  data.frame(
+    model = "resistance",
+    stability = kf_invalg_resist$stability,
+    size = kf_invalg_resist$size,
+    habitat_diversity = kf_invalg_resist$habitat_diversity,
+    prop_rock = kf_invalg_resist$prop_rock,
+    fishing_pressure = log(as.numeric(kf_invalg_resist$fishing_pressure)),
+    settlement = kf_invalg_resist$settlement,
+    age = kf_invalg_resist$relative_age
+  ),
+  data.frame(
+    model = "recovery",
+    stability = kf_invalg_resil$stability,
+    size = kf_invalg_resil$size,
+    habitat_diversity = kf_invalg_resil$habitat_diversity,
+    prop_rock = kf_invalg_resil$prop_rock,
+    fishing_pressure = log(as.numeric(kf_invalg_resil$fishing_pressure)),
+    settlement = kf_invalg_resil$settlement,
+    age = kf_invalg_resil$relative_age
+  )
+)
+
+base_theme <-  theme(axis.text=element_text(size=8),
+                     #axis.text.y = element_text(angle = 90, hjust = 0.5),
+                     axis.title=element_text(size=9),
+                     plot.tag=element_blank(), #element_text(size=8),
+                     plot.title =element_text(size=9, face="bold"),
+                     # Gridlines
+                     panel.grid.major = element_line(colour = "transparent"), 
+                     panel.grid.minor = element_line(colour = "transparent"), 
+                     panel.background = element_blank(), 
+                     axis.line = element_line(colour = "black"),
+                     axis.ticks = element_line(colour = "black"),
+                     # Legend
+                     legend.key = element_blank(),
+                     legend.text=element_text(size=8),
+                     legend.title=element_text(size=10),
+                     # legend.background = element_rect(fill=alpha('blue', 0)),
+                     #facets
+                     strip.text = element_text(size=7, hjust=0, face="bold"),
+                     strip.background = element_blank()
+                     #margins
+                     #plot.margin=unit(c(0.01,0.01,0.01,0.01),"cm")
+)
+
+
+
+library(RColorBrewer)
+
+# Define the color palette
+colors <- brewer.pal(8, "Dark2")
+
+# Perform logistic regression for each model separately
+resist_model <- glm(stability ~ size + 
+                      habitat_diversity + prop_rock + 
+                      fishing_pressure + settlement + relative_age, 
+                    data = kf_invalg_resist, #add region or lat?
+                    family="binomial", 
+                    na.action = na.exclude) 
+recov_model <-  glm(stability ~ size + 
+                      habitat_diversity + prop_rock + 
+                      fishing_pressure + settlement + relative_age, 
+                    data = kf_invalg_resil, 
+                    family="binomial", 
+                    na.action = na.exclude)
+
+# Get the p-values for each model
+p_values <- list()
+for (var in names(data)[-c(1)]) {  # Exclude "model" and "stability" variables
+  resist_p_value <- ifelse(var %in% rownames(summary(resist_model)$coefficients),
+                           summary(resist_model)$coefficients[rownames(summary(resist_model)$coefficients) == var, "Pr(>|z|)"],
+                           NA)
+  resil_p_value <- ifelse(var %in% rownames(summary(recov_model)$coefficients),
+                          summary(recov_model)$coefficients[rownames(summary(recov_model)$coefficients) == var, "Pr(>|z|)"],
+                          NA)
+  p_values[[var]] <- list(resistance = resist_p_value, resilience = resil_p_value)
+}
+
+kelp_invalg_plots <- lapply(names(data)[-c(1)], function(var) {  # Exclude "model" and "stability" variables
+  ggplot(data_combined, aes_string(x = var, y = "stability", color = "model")) +
+    geom_smooth(method = "glm", method.args = list(family = "binomial"), aes(fill = model), alpha = 0.2) +
+    geom_point() +
+    labs(x = ifelse(var == "habitat_diversity", "Habitat diversity",
+                    ifelse(var == "prop_rock", "Proportion rock",
+                           ifelse(var == "fishing_pressure", "Historic fishing pressure",
+                                  ifelse(var == "settlement", "MPA connectivity",
+                                         ifelse(var == "relative_age", "Relative age", var)
+                                  )
+                           )
+                    )
+    ),
+    y = "") +
+    scale_color_manual(values = colors[1:2], labels = c("Resistance", "Recovery"),
+                       guide = guide_legend(title = "Resilience component",
+                                            override.aes = list(color = colors[1:2]))) +
+    scale_fill_manual(values = colors[1:2], labels = c("Resistance", "Recovery"),
+                      guide = guide_legend(title = "Resilience component",
+                                           override.aes = list(fill = colors[1:2]))) +
+    theme_bw() + base_theme +
+    annotate("text", x = max(data_combined[[var]]) * 0.9, y = max(data_combined$stability) * 0.9,
+             label = paste0("p-val (resist): ", ifelse(is.na(p_values[[var]]$resistance), "NA", round(p_values[[var]]$resistance, 3))),
+             size = 3) +
+    annotate("text", x = max(data_combined[[var]]) * 0.9, y = max(data_combined$stability) * 0.8,
+             label = paste0("p-value (recov): ", ifelse(is.na(p_values[[var]]$resilience), "NA", round(p_values[[var]]$resilience, 3))),
+             size = 3)
+})
+
+
+
+# Remove legends from individual plots
+plots_nolegend <- lapply(kelp_invalg_plots, function(plot) plot + theme(legend.position = "none"))
+
+# Arrange the plots in a grid layout without individual legends
+g_merge <- grid.arrange(grobs = plots_nolegend, ncol = 2)
+
+# Create a common legend
+legend <- cowplot::get_legend(kelp_invalg_plots[[1]])
+
+# Add the legend to the combined plot
+g_with_legend <- cowplot::plot_grid(g_merge, legend, nrow = 1, rel_widths = c(0.8, 0.2))
+
+# Annotate the figure
+g_with_legend_kelp_invalg <- annotate_figure(g_with_legend, bottom = textGrob("MPA feature"), left = textGrob("Probability of resistance or resilience", rot = 90))
+
+
 
 
 #-------------------------------------------------------------------------------
