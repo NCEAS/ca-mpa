@@ -278,7 +278,7 @@ base_theme <-  theme(axis.text=element_text(size=8),
                      legend.title=element_text(size=10),
                      # legend.background = element_rect(fill=alpha('blue', 0)),
                      #facets
-                     strip.text = element_text(size=7, hjust=0, face="bold"),
+                     strip.text = element_text(size=7, hjust=0),
                      strip.background = element_blank()
                      #margins
                      #plot.margin=unit(c(0.01,0.01,0.01,0.01),"cm")
@@ -286,9 +286,9 @@ base_theme <-  theme(axis.text=element_text(size=8),
 
 # Plot partial regression lines with points and smoothed curves
 # Define custom labels for predictor variables
-label_names <- c("fishing_pressure" = "Historic annual landing \n(pounds per km² 2000-2006)",
+label_names <- c("fishing_pressure" = "Annual landings \n(pounds per km² 2000-2006)",
                  "habitat_diversity" = "Habitat diversity \n(Shannon-Wiener)",
-                 "prop_rock" = "Proportion rock \n(relative to other substrate types)",
+                 "prop_rock" = "Proportion rock \n(relative substrate)",
                  "relative_age" = "MPA age \n(years)",
                  "settlement" = "MPA connectivity \n(settlement contribution)",
                  "size" = "MPA Size \n(km²)")
@@ -306,7 +306,7 @@ df_with_pval <- left_join(kf_invalg_dat_pivot, p_value_df, by = "predictor")
 
 # Plot with p-values
 g2 <- ggplot(df_with_pval, aes(x = value, y = stability)) +
-  geom_point(aes(color = period, fill = period), size = 2, position = position_jitter(height = 0.001)) +
+  geom_point(aes(color = period, fill = period), size = 2, alpha=0.3, position = position_jitter(height = 0.001)) +
   stat_smooth(
     aes(y = predicted_stability, color = period, fill = period),
     method = "glm",
@@ -317,24 +317,24 @@ g2 <- ggplot(df_with_pval, aes(x = value, y = stability)) +
   ) +
   labs(
     title = "Kelp forest inverts and algae",
-    y = "Probability of resistance or recovery"
+    y = ""
   ) +
   scale_color_manual(values = colors, name = "Resilience \nattribute", labels = c("Resistance", "Recovery")) +
   scale_fill_manual(values = colors, name = "Resilience \nattribute", labels = c("Resistance", "Recovery")) +
   theme_minimal() +
-  facet_wrap(~ predictor, scales = "free", labeller = labeller(predictor = label_names)) +
+  facet_wrap(~ predictor, scales = "free", labeller = labeller(predictor = label_names), ncol=3) +
   theme_bw() + base_theme +
-  xlab("Predictor value") +
+  xlab("") +
   geom_text(
     data = df_with_pval %>% filter(period == "resistance") %>% distinct(predictor, .keep_all = TRUE),
     aes(label = sprintf("p-val (resist): %.3f", resistance_p_value)),
-    x = Inf, y = Inf, hjust = 1, vjust = 1, size = 2
+    x = Inf, y = Inf, hjust = 1.1, vjust = 1.5, size = 2
   ) +
   geom_text(
     data = df_with_pval %>% filter(period == "recovery") %>% distinct(predictor, .keep_all = TRUE),
     aes(label = sprintf("p-val (recov): %.3f", recovery_p_value)),
-    x = Inf, y = Inf, hjust = 1, vjust = 3, size = 2
-  )
+    x = Inf, y = Inf, hjust = 1.1, vjust = 3.5, size = 2
+  )  # +scale_y_continuous(expand = expansion(mult = c(0.4, 0.4)))
 
 g2
 
@@ -385,34 +385,11 @@ library(RColorBrewer)
 # Define color palette
 colors <- brewer.pal(8, "Dark2")[c(2, 3)]
 
-base_theme <-  theme(axis.text=element_text(size=8),
-                     #axis.text.y = element_text(angle = 90, hjust = 0.5),
-                     axis.title=element_text(size=9),
-                     plot.tag=element_blank(), #element_text(size=8),
-                     plot.title =element_text(size=9, face="bold"),
-                     # Gridlines
-                     panel.grid.major = element_line(colour = "transparent"), 
-                     panel.grid.minor = element_line(colour = "transparent"), 
-                     panel.background = element_blank(), 
-                     axis.line = element_line(colour = "black"),
-                     axis.ticks = element_line(colour = "black"),
-                     # Legend
-                     legend.key = element_blank(),
-                     legend.text=element_text(size=8),
-                     legend.title=element_text(size=10),
-                     # legend.background = element_rect(fill=alpha('blue', 0)),
-                     #facets
-                     strip.text = element_text(size=7, hjust=0, face="bold"),
-                     strip.background = element_blank()
-                     #margins
-                     #plot.margin=unit(c(0.01,0.01,0.01,0.01),"cm")
-)
-
 # Plot partial regression lines with points and smoothed curves
 # Define custom labels for predictor variables
-label_names <- c("fishing_pressure" = "Historic annual landing \n(pounds per km² 2000-2006)",
+label_names <- c("fishing_pressure" = "Annual landings \n(pounds per km² 2000-2006)",
                  "habitat_diversity" = "Habitat diversity \n(Shannon-Wiener)",
-                 "prop_rock" = "Proportion rock \n(relative to other substrate types)",
+                 "prop_rock" = "Proportion rock \n(relative substrate)",
                  "relative_age" = "MPA age \n(years)",
                  #"settlement" = "MPA connectivity \n(settlement contribution)",
                  "size" = "MPA Size \n(km²)")
@@ -429,8 +406,8 @@ p_value_df <- data.frame(predictor = names(resist_p_value)[-1], # Exclude "(Inte
 df_with_pval <- left_join(kf_fish_dat_pivot, p_value_df, by = "predictor")
 
 # Plot with p-values
-g2 <- ggplot(df_with_pval, aes(x = value, y = stability)) +
-  geom_point(aes(color = period, fill = period), size = 2, position = position_jitter(height = 0.001)) +
+g3 <- ggplot(df_with_pval, aes(x = value, y = stability)) +
+  geom_point(aes(color = period, fill = period), size = 2,alpha=0.3, position = position_jitter(height = 0.001)) +
   stat_smooth(
     aes(y = predicted_stability, color = period, fill = period),
     method = "glm",
@@ -441,26 +418,26 @@ g2 <- ggplot(df_with_pval, aes(x = value, y = stability)) +
   ) +
   labs(
     title = "Kelp forest fishes",
-    y = "Probability of resistance or recovery"
+    y = ""
   ) +
   scale_color_manual(values = colors, name = "Resilience \nattribute", labels = c("Resistance", "Recovery")) +
   scale_fill_manual(values = colors, name = "Resilience \nattribute", labels = c("Resistance", "Recovery")) +
   theme_minimal() +
-  facet_wrap(~ predictor, scales = "free", labeller = labeller(predictor = label_names)) +
+  facet_wrap(~ predictor, scales = "free", labeller = labeller(predictor = label_names), ncol=3) +
   theme_bw() + base_theme +
-  xlab("Predictor value") +
+  xlab("") +
   geom_text(
     data = df_with_pval %>% filter(period == "resistance") %>% distinct(predictor, .keep_all = TRUE),
     aes(label = sprintf("p-val (resist): %.3f", resistance_p_value)),
-    x = Inf, y = Inf, hjust = 1, vjust = 1, size = 2
+    x = Inf, y = Inf, hjust = 1.1, vjust = 1.5, size = 2
   ) +
   geom_text(
     data = df_with_pval %>% filter(period == "recovery") %>% distinct(predictor, .keep_all = TRUE),
     aes(label = sprintf("p-val (recov): %.3f", recovery_p_value)),
-    x = Inf, y = Inf, hjust = 1, vjust = 3, size = 2
-  )
+    x = Inf, y = Inf, hjust = 1.1, vjust = 3.5, size = 2
+  ) + theme(legend.position = "none") # +scale_y_continuous(expand = expansion(mult = c(0.4, 0.4)))
 
-g2
+g3
 
 ################################################################################
 #perform logistic regression for rocky intertidal
@@ -507,34 +484,12 @@ library(RColorBrewer)
 # Define color palette
 colors <- brewer.pal(8, "Dark2")[c(2, 3)]
 
-base_theme <-  theme(axis.text=element_text(size=8),
-                     #axis.text.y = element_text(angle = 90, hjust = 0.5),
-                     axis.title=element_text(size=9),
-                     plot.tag=element_blank(), #element_text(size=8),
-                     plot.title =element_text(size=9, face="bold"),
-                     # Gridlines
-                     panel.grid.major = element_line(colour = "transparent"), 
-                     panel.grid.minor = element_line(colour = "transparent"), 
-                     panel.background = element_blank(), 
-                     axis.line = element_line(colour = "black"),
-                     axis.ticks = element_line(colour = "black"),
-                     # Legend
-                     legend.key = element_blank(),
-                     legend.text=element_text(size=8),
-                     legend.title=element_text(size=10),
-                     # legend.background = element_rect(fill=alpha('blue', 0)),
-                     #facets
-                     strip.text = element_text(size=7, hjust=0, face="bold"),
-                     strip.background = element_blank()
-                     #margins
-                     #plot.margin=unit(c(0.01,0.01,0.01,0.01),"cm")
-)
 
 # Plot partial regression lines with points and smoothed curves
 # Define custom labels for predictor variables
-label_names <- c(#"fishing_pressure" = "Historic annual landing \n(pounds per km² 2000-2006)",
+label_names <- c(#"fishing_pressure" = "Annual landings \n(pounds per km² 2000-2006)",
                  "habitat_diversity" = "Habitat diversity \n(Shannon-Wiener)",
-                 "prop_rock" = "Proportion rock \n(relative to other substrate types)",
+                 "prop_rock" = "Proportion rock \n(relative substrate)",
                  #"relative_age" = "MPA age \n(years)",
                  "settlement" = "MPA connectivity \n(settlement contribution)",
                  "size" = "MPA Size \n(km²)")
@@ -551,8 +506,8 @@ p_value_df <- data.frame(predictor = names(resist_p_value)[-1], # Exclude "(Inte
 df_with_pval <- left_join(rocky_dat_pivot, p_value_df, by = "predictor")
 
 # Plot with p-values
-g2 <- ggplot(df_with_pval, aes(x = value, y = stability)) +
-  geom_point(aes(color = period, fill = period), size = 2, position = position_jitter(height = 0.001)) +
+g1 <- ggplot(df_with_pval, aes(x = value, y = stability)) +
+  geom_point(aes(color = period, fill = period), size = 2, alpha=0.3, position = position_jitter(height = 0.001)) +
   stat_smooth(
     aes(y = predicted_stability, color = period, fill = period),
     method = "glm",
@@ -563,25 +518,58 @@ g2 <- ggplot(df_with_pval, aes(x = value, y = stability)) +
   ) +
   labs(
     title = "Rocky intertidal",
-    y = "Probability of resistance or recovery"
+    y = ""
   ) +
   scale_color_manual(values = colors, name = "Resilience \nattribute", labels = c("Resistance", "Recovery")) +
   scale_fill_manual(values = colors, name = "Resilience \nattribute", labels = c("Resistance", "Recovery")) +
   theme_minimal() +
-  facet_wrap(~ predictor, scales = "free", labeller = labeller(predictor = label_names)) +
+  facet_wrap(~ predictor, scales = "free", labeller = labeller(predictor = label_names), ncol=3) +
   theme_bw() + base_theme +
-  xlab("Predictor value") +
+  xlab("") +
   geom_text(
     data = df_with_pval %>% filter(period == "resistance") %>% distinct(predictor, .keep_all = TRUE),
     aes(label = sprintf("p-val (resist): %.3f", resistance_p_value)),
-    x = Inf, y = Inf, hjust = 1, vjust = 1, size = 2
+    x = Inf, y = Inf, hjust = 1.1, vjust = 1.5, size = 2
   ) +
   geom_text(
     data = df_with_pval %>% filter(period == "recovery") %>% distinct(predictor, .keep_all = TRUE),
     aes(label = sprintf("p-val (recov): %.3f", recovery_p_value)),
-    x = Inf, y = Inf, hjust = 1, vjust = 3, size = 2
-  )
+    x = Inf, y = Inf, hjust = 1.1, vjust = 3.5, size = 2
+  ) + theme(legend.position = "none") # +scale_y_continuous(expand = expansion(mult = c(0.4, 0.4)))
 
-g2
+g1
+
+
+# Create an empty data frame with the same variables as g1 and g3
+dummy_data <- data.frame(variable1 = character(),
+                         variable2 = character())
+
+# Create a blank plot with the dummy data
+blank_plot <- ggplot(dummy_data) + theme_void()
+
+# Add the blank plot to g1 and g3
+g1_combined <- g1 + blank_plot
+g3_combined <- g3 + blank_plot
+
+# Arrange the plots using ggarrange
+arranged_plots <- ggarrange(g1, g2, g3,
+                            ncol = 1, heights = c(1,1,1),
+                            widths = c(1,1,1),
+                            common.legend = TRUE,
+                            legend = "right")
+
+g <- ggpubr::annotate_figure(arranged_plots, left = textGrob("Probability of resistance or recovery", 
+                                           rot = 90, vjust = 2, hjust=0.5, gp = gpar(cex = 0.8)
+                                           ),
+                        bottom = textGrob("Predictor value", hjust=0.8, vjust=-1, gp = gpar(cex = 0.8)
+                                          ))
+
+# Print the arranged plots
+#print(g)
+
+
+
+ggsave(g, filename=file.path(figdir, "FigSX_MPA_features_logistic.png"),
+       width=7, height=10, units="in", dpi=600, bg="white")
 
 
