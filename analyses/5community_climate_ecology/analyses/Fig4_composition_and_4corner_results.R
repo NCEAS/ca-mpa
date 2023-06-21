@@ -113,13 +113,13 @@ table(coef$habitat)
 ################################################################################
 
 # Theme
-base_theme <-  theme(axis.text=element_text(size=7),
-                     axis.title=element_text(size=8),
-                     legend.text=element_text(size=7),
-                     legend.title=element_text(size=8),
-                     strip.text=element_text(size=8, hjust=0, face = "bold"),
+base_theme <-  theme(axis.text=element_text(size=7, color = "black"),
+                     axis.title=element_text(size=8, color = "black"),
+                     legend.text=element_text(size=7, color = "black"),
+                     legend.title=element_text(size=8, color = "black"),
+                     strip.text=element_text(size=8, hjust=0, face = "bold", color = "black"),
                      strip.background = element_blank(),
-                     plot.tag=element_text(size=9),
+                     plot.tag=element_text(size=9, color = "black"),
                      # Gridlines
                      panel.grid.major = element_blank(), 
                      panel.grid.minor = element_blank(),
@@ -183,7 +183,7 @@ g_all1 <- gridExtra::grid.arrange(g1, g_4corner,
 g_all1
 
 # Export
-ggsave(g_all1, filename=file.path(plotdir, "Fig4_composition_and_4corner_results4_new2.png"),
+ggsave(g_all1, filename=file.path(plotdir, "Fig4_composition_and_4corner_results4_new3.png"),
        width=6.5, height=8, units="in", dpi=600)
 
 
