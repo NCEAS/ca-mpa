@@ -11,14 +11,14 @@ library(tidyverse)
 library(patchwork)
 
 # Chris Directories
-basedir <- "/Volumes/GoogleDrive/.shortcut-targets-by-id/1kCsF8rkm1yhpjh2_VMzf8ukSPf9d4tqO/MPA Network Assessment: Working Group Shared Folder/data/sync-data" #Chris
-datadir <- file.path(basedir, "monitoring/processed_data/community_climate_derived_data/statewide_data")
-plotdir <- "analyses/5community_climate_ecology/figures"
+#basedir <- "/Volumes/GoogleDrive/.shortcut-targets-by-id/1kCsF8rkm1yhpjh2_VMzf8ukSPf9d4tqO/MPA Network Assessment: Working Group Shared Folder/data/sync-data" #Chris
+#datadir <- file.path(basedir, "monitoring/processed_data/community_climate_derived_data/statewide_data")
+#plotdir <- "analyses/5community_climate_ecology/figures"
 
 # Josh Directories
-#basedir <- "/home/shares/ca-mpa/data/sync-data"
- #datadir <- file.path(basedir, "monitoring/processed_data/community_climate_derived_data/statewide_data")
-# plotdir <- "analyses/5community_climate_ecology/figures"
+basedir <- "/home/shares/ca-mpa/data/sync-data"
+ datadir <- file.path(basedir, "monitoring/processed_data/community_climate_derived_data/statewide_data")
+ plotdir <- "analyses/5community_climate_ecology/figures"
 
 # Read data
 data_orig2 <- read.csv(file.path(datadir, "mpa_betadisp_mod_run2.csv"), as.is=T)
@@ -242,14 +242,14 @@ data <- data_orig2 %>%
                     "Campus Point SMCA"="Campus Point SMCA (No-Take)",
                     "Point Vicente SMCA"="Point Vicente SMCA (No-Take)")) %>% 
   # Add region
-  left_join(mpas_data %>% select(mpa, region, lat_dd), by="mpa") %>% 
+  left_join(mpas_data %>% dplyr::select(mpa, region, lat_dd), by="mpa") %>% 
   # Create type
   mutate(period=paste(period_1, period_2, sep="-"),
          process=recode_factor(period,
                                "before-during"="Resistance",
                                "before-after"="Recovery")) %>% 
   # Arrange
-  select(habitat, region, lat_dd, mpa, site_type, process, period, distance) %>% 
+  dplyr::select(habitat, region, lat_dd, mpa, site_type, process, period, distance) %>% 
   # Spread
   spread(key="site_type", value="distance") %>% 
   rename(dist_ref=ref, dist_mpa=smr) %>% 
@@ -292,13 +292,13 @@ data2 <- data %>%
 ################################################################################
 
 # Base theme
-base_theme <- theme(axis.text=element_text(size=7),
+base_theme <- theme(axis.text=element_text(size=7, color = "black"),
                     axis.title=element_blank(),
-                    legend.text=element_text(size=6),
-                    legend.title=element_text(size=7),
-                    strip.text=element_text(size=7, face = "bold"),
+                    legend.text=element_text(size=6,color = "black"),
+                    legend.title=element_text(size=7,color = "black"),
+                    strip.text=element_text(size=7, face = "bold",color = "black"),
                     strip.background = element_blank(),
-                    plot.tag=element_text(size=8),
+                    plot.tag=element_text(size=8,color = "black"),
                     plot.title=element_blank(),
                     # Gridlines
                     panel.grid.major = element_blank(), 
@@ -314,9 +314,9 @@ schem_theme <- theme_minimal() +
                theme(legend.position="none", 
                      panel.grid.major = element_blank(), 
                      panel.grid.minor = element_blank(),
-                     plot.tag=element_text(size=8),
-                     plot.title = element_text(size=7),
-                     axis.text=element_text(size=6),
+                     plot.tag=element_text(size=8,color = "black"),
+                     plot.title = element_text(size=7,color = "black"),
+                     axis.text=element_text(size=6,color = "black"),
                      axis.title = element_blank(),
                      axis.text.x = element_blank(),
                      axis.text.y=element_text(color=c("navy", "#E41A1C")))
@@ -401,7 +401,7 @@ g1_full
 
 
 # Export
-cowplot::save_plot(g1_full, filename=file.path(plotdir, "Fig5_resistance_recovery_statewide_new2.png"), 
+cowplot::save_plot(g1_full, filename=file.path(plotdir, "Fig5_resistance_recovery_statewide_new3.png"), 
      base_width=6.5, base_height=6.5, units="in", dpi=600, bg="white", base_asp=0.8)
 
 
