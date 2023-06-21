@@ -47,7 +47,7 @@ load(file.path(outdir, "simulated_ellipses_new.Rdata"))
 
 # Ordination objects
 habitats <- c("Rocky intertidal", "Kelp forest inverts and algae", "Kelp forest fishes", "Shallow reef", "Deep reef")
-arrow_scalars <- c(0.4, 0.25, 0.12, 0.4, 0.4)
+arrow_scalars <- c(0.4, 0.25, 0.11, 0.4, 0.4)
 list1 <- list(rocky_ord, kelp_invalg_ord, kelp_fish_ord, CCFRP_ord, deep_reef_ord) 
 list2 <- list(rocky_en, kelp_invalg_en, kelp_fish_en, CCFRP_en, deep_reef_en)
 list3 <- list(rocky_group_vars, kelp_invalg_group_vars, kelp_fish_group_vars, CCFRP_group_vars, deep_reef_group_vars)
@@ -77,7 +77,7 @@ for(i in 1:length(list1)){
     rownames_to_column(var="variable") %>% 
     mutate(variable=recode(variable, "BT"="SBT")) %>% 
     # Arrange
-    select(habitat, variable, everything())
+    dplyr::select(habitat, variable, everything())
   
   # Extract data
   data_orig <- as.data.frame(vegan::scores(ord_do, display="sites"))
@@ -150,8 +150,8 @@ for(i in 1:length(list1)){
                                 "during"="During", 
                                 "after"="After")) %>% 
     # Arrange
-    select(-group) %>% 
-    select(habitat, period, site_type, NMDS1, NMDS2, everything())
+    dplyr::select(-group) %>% 
+    dplyr::select(habitat, period, site_type, NMDS1, NMDS2, everything())
   
   # Format data centroids
   centroids <- centroids_orig %>% 
@@ -169,7 +169,7 @@ for(i in 1:length(list1)){
                                 "during"="During", 
                                 "after"="After")) %>% 
     # Arrange
-    select(habitat, period, site_type, region4, everything())
+    dplyr::select(habitat, period, site_type, region4, everything())
 
   # Compute stress
   stress <- as.data.frame(ord_do[["stress"]]) %>% 
@@ -286,14 +286,14 @@ pt_size <- 1.3
 line_size <- 0.3
 
 # Theme
-my_theme <-  theme(axis.text=element_text(size=7),
-                   axis.title=element_text(size=8),
-                   legend.text=element_text(size=7),
-                   legend.title=element_text(size=8),
-                   strip.text=element_text(size=8, hjust=0, face="bold"),
+my_theme <-  theme(axis.text=element_text(size=7, color = "black"),
+                   axis.title=element_text(size=8,color = "black"),
+                   legend.text=element_text(size=7,color = "black"),
+                   legend.title=element_text(size=8,color = "black"),
+                   strip.text=element_text(size=8, hjust=0, face="bold",color = "black"),
                    strip.background = element_blank(),
-                   plot.title=element_text(size=9),
-                   plot.tag = element_text(size=9),
+                   plot.title=element_text(size=9,color = "black"),
+                   plot.tag = element_text(size=9,color = "black"),
                    # Gridlines
                    panel.grid.major = element_blank(), 
                    panel.grid.minor = element_blank(),
@@ -378,7 +378,7 @@ g <- gridExtra::grid.arrange(g1, g2, nrow=2, heights=c(0.33, 0.67))
 g
 
 # Export plot
-ggsave(g, filename=file.path(plotdir, "Fig2_nmds_results_new.png"), 
+ggsave(g, filename=file.path(plotdir, "Fig2_nmds_results_new2.png"), 
        width=7, height=7.5, units="in", dpi=600)
 
 
