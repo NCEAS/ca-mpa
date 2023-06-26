@@ -7,6 +7,7 @@
 rm(list = ls())
 
 # Packages
+library(dplyr)
 library(tidyverse)
 library(patchwork)
 
@@ -37,9 +38,9 @@ foreign <- rnaturalearth::ne_countries(country=c("Canada", "Mexico"), returnclas
 
 # Reduce to MPAs of interest
 mpas <- mpas_orig %>% 
-  left_join(mpas_data %>% select(mpa, mlpa), by=c("name"="mpa")) %>% 
+  left_join(mpas_data %>% dplyr::select(mpa, mlpa), by=c("name"="mpa")) %>% 
   filter(mlpa=="MLPA" & region=="CCSR") %>% 
-  select(name, lat_dd, long_dd, type)
+  dplyr::select(name, lat_dd, long_dd, type)
 
 # Habitat stats
 hab_stats <- sites %>% 
@@ -55,7 +56,7 @@ hab_key <- expand.grid(mpa=mpa_names, habitat=habitats) %>%
   left_join(hab_stats) %>% 
   mutate(data_yn=!is.na(n)) %>% 
   # Add lat/long
-  left_join(mpas_data %>% select(mpa, lat_dd, long_dd), by="mpa") %>% 
+  left_join(mpas_data %>% dplyr::select(mpa, lat_dd, long_dd), by="mpa") %>% 
   # Order habitats
   mutate(habitat=factor(habitat, c("Rocky intertidal", 
                                    "Kelp forest", "Shallow reef", "Deep reef")),
@@ -95,7 +96,7 @@ hab_key <- expand.grid(mpa=mpa_names, habitat=habitats) %>%
                               T ~ lat_dd)) %>% 
   # Arrange
   arrange(mpa, habitat) %>% 
-  select(mpa, habitat, habitat_num, data_yn, n, lat_dd, long_dd, everything()) %>% 
+  dplyr::select(mpa, habitat, habitat_num, data_yn, n, lat_dd, long_dd, everything()) %>% 
   # Reduce to only available habitats
   filter(data_yn==T) %>% 
   group_by(mpa) %>% 
@@ -193,7 +194,7 @@ base_theme <-  theme(axis.text=element_text(size=7,colour = "black"),
                      axis.title=element_text(size=8,colour = "black"),
                      legend.text=element_text(size=7,colour = "black"),
                      legend.title=element_text(size=8,colour = "black"),
-                     plot.tag=element_text(size=8,colour = "black"),
+                     plot.tag=element_text(size=8,colour = "black", face = "bold"),
                      # Gridlines
                      panel.grid.major = element_blank(), 
                      panel.grid.minor = element_blank(),
@@ -260,7 +261,7 @@ g1 <- ggplot() +
   geom_text(data=cities, mapping=aes(x=long_dd, y=lat_dd, label=city, hjust=hjust, vjust=vjust),
             size=2.6) +
   # Labels
-  labs(x="", y="", tag="A") +
+  labs(x="", y="", tag="(a)") +
   # Legend
   scale_color_manual(name="Habitat", values=c( "#f2cc8f", "#81b29a", "#e07a5f", "#3d405b")) +
   scale_shape_manual(name="Monitoring data?", values=c(1, 16)) +
@@ -319,7 +320,7 @@ g2 <- ggplot() +
   annotate(geom="text", label="MHW", x=2008, y=ymax , size=2.5) +
   annotate("segment", x = 2010.5, y = ymax, xend = 2013.5, yend = ymax,
            arrow = arrow(type = "closed", length = unit(0.02, "npc")))+
-  labs(x = "Year", y = "AT anomaly (°C)",tag="B") +
+  labs(x = "Year", y = "AT anomaly (°C)",tag="(b)") +
   scale_x_continuous(breaks = seq(2000, 2020, 5)) +
   scale_y_continuous() +
   theme_bw() + base_theme +
@@ -349,7 +350,7 @@ g3 <- ggplot(data=envi %>% filter(indicator=="SST"), aes(x=year, y=value_avg)) +
   # Reference line
   geom_hline(yintercept = 0, linetype="dashed", color="grey40") +
   # Labels
-  labs(x="", y="SST anomaly (°C)", tag="C") +
+  labs(x="", y="SST anomaly (°C)", tag="(c)") +
   scale_x_continuous(breaks=seq(2000, 2020, 5)) +
   # scale_y_continuous(breaks=seq(-1.5, 1.5, 0.5), lim=c(-1.5, 1.5)) +
   # Theme
@@ -378,7 +379,7 @@ g4 <- ggplot(data=envi %>% filter(indicator=="Bottom temp"), aes(x=year, y=value
   # Reference line
   geom_hline(yintercept = 0, linetype="dashed", color="grey40") +
   # Labels
-  labs(x="Year", y="SBT anomaly (°C)", tag="D") +
+  labs(x="Year", y="SBT anomaly (°C)", tag="(d)") +
   scale_x_continuous(breaks=seq(2000, 2020, 5)) +
   # scale_y_continuous(breaks=seq(-1.5, 1.5, 0.5), lim=c(-1.5, 1.5)) +
   # Theme
@@ -406,7 +407,7 @@ g5 <- ggplot(data=envi %>% filter(indicator=="MOCI"), aes(x=year, y=value_avg)) 
   # Reference line
   geom_hline(yintercept = 0, linetype="dashed", color="grey40") +
   # Labels
-  labs(x="Year", y="MOCI", tag="E") +
+  labs(x="Year", y="MOCI", tag="(e)") +
   scale_x_continuous(breaks=seq(2000, 2020, 5)) +
   # scale_y_continuous(breaks=seq(-1.5, 1.5, 0.5), lim=c(-1.5, 1.5)) +
   # Theme
@@ -435,7 +436,7 @@ g6 <- ggplot(data=envi %>% filter(indicator=="BEUTI"), aes(x=year, y=value_avg))
   geom_hline(yintercept = 0, linetype="dashed", color="grey40") +
   # Labels
   #labs(x = "", y = expression("BEUTI anomaly\n"~(mmol~m^{-1}~s^{-1})), tag="E")+
-  labs(x = "Year", y = "BEUTI anomaly \n(mmol m\u207B\u00B9 s\u207B\u00B9)", tag="F")+
+  labs(x = "Year", y = "BEUTI anomaly \n(mmol m\u207B\u00B9 s\u207B\u00B9)", tag="(f)")+
   scale_x_continuous(breaks=seq(2000, 2020, 5)) +
   # scale_y_continuous(breaks=seq(-1.5, 1.5, 0.5), lim=c(-1.5, 1.5)) +
   # Theme
