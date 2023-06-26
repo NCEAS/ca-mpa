@@ -283,7 +283,7 @@ my_theme <-  theme(axis.text=element_text(size=7),
                                               hjust = 0.5, color = "black"),
                    axis.text.x = element_text(color = "black"),
                    axis.title=element_text(size=6),
-                   plot.tag=element_text(size=7, color = "black"),
+                   plot.tag=element_text(size=7, color = "black", face = "bold"),
                    plot.title =element_text(size=7, face="bold"),
                    # Gridlines
                    panel.grid.major = element_blank(), 
@@ -350,7 +350,7 @@ p1 <-
            stringr::str_wrap(x, width = 9), 
            stringr::str_wrap(x, width = 8))
   })+
- labs(color = "Site type", tag = "A")+
+ labs(color = "Site type", tag = "(a)")+
   scale_color_brewer(palette="Set1") +
   #geom_vline(xintercept=c(1.5, 2.5,3.5,4.5), color="grey",alpha=.4)+
   #coord_flip()+
@@ -410,7 +410,7 @@ p2 <-
            stringr::str_wrap(x, width = 9), 
            stringr::str_wrap(x, width = 8))
   })+
-  labs(color = "Site type", tag="B")+
+  labs(color = "Site type", tag="(b)")+
   scale_color_brewer(palette="Set1") +
   #geom_vline(xintercept=c(1.5, 2.5,3.5,4.5), color="grey",alpha=.4)+
   #coord_flip()+
@@ -435,8 +435,8 @@ g_title <- ggpubr::annotate_figure(g, left = textGrob("Distance (Bray-Curtis)",
 
 
 
-#ggsave(here::here("analyses", "5community_climate_ecology", "figures", "Fig3_centroid_shifts_revised_new.png"), g_title, height=4, width = 7, units = "in", 
-#  dpi = 600, bg="white")
+ggsave(here::here("analyses", "5community_climate_ecology", "figures", "Fig3_centroid_shifts.png"), g_title, height=4, width = 7, units = "in", 
+  dpi = 800, bg="white")
 
 
 ################################################################################
