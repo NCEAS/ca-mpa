@@ -298,7 +298,7 @@ base_theme <- theme(axis.text=element_text(size=7, color = "black"),
                     legend.title=element_text(size=7,color = "black"),
                     strip.text=element_text(size=7, face = "bold",color = "black"),
                     strip.background = element_blank(),
-                    plot.tag=element_text(size=8,color = "black"),
+                    plot.tag=element_text(size=8,color = "black", face = "bold"),
                     plot.title=element_blank(),
                     # Gridlines
                     panel.grid.major = element_blank(), 
@@ -314,7 +314,7 @@ schem_theme <- theme_minimal() +
                theme(legend.position="none", 
                      panel.grid.major = element_blank(), 
                      panel.grid.minor = element_blank(),
-                     plot.tag=element_text(size=8,color = "black"),
+                     plot.tag=element_text(size=8,color = "black", face = "bold"),
                      plot.title = element_text(size=7,color = "black"),
                      axis.text=element_text(size=6,color = "black"),
                      axis.title = element_blank(),
@@ -331,7 +331,7 @@ schem1 <- ggplot(toy1, aes(y=site, yend=site, xend=distance, color=site)) +
   geom_segment(x=0, arrow = arrow(length=unit(0.30, "cm"))) +
   # Labels
   #labs(title = "MPA prevents shifts")+
-  labs(title="Shift distance less in MPA", tag="A") +
+  labs(title="Shift distance less in MPA", tag="(a)") +
   scale_color_manual(values=c("navy", "#E41A1C")) +
   # Limits
   lims(x=c(0, 0.8)) +
@@ -346,7 +346,7 @@ schem2 <- ggplot(toy2, aes(y=site, yend=site, xend=distance, color=site)) +
   geom_segment(x=0, arrow = arrow(length=unit(0.30, "cm"))) +
   # Labels
   #labs(title="MPA exacerbates shifts") +
-  labs(title="Shift distance greater in MPA", tag="B") +
+  labs(title="Shift distance greater in MPA", tag="(b)") +
   scale_color_manual(values=c( "navy", "#E41A1C")) +
   # Limits
   lims(x=c(0, 0.8)) +
@@ -363,7 +363,7 @@ g1 <- ggplot(data2 %>%
   facet_grid(region~process, space="free", scale="free") +
   geom_point(pch=21, color="black") +
   # Labels
-  labs(x="", y="", tag="C") +
+  labs(x="", y="", tag="(c)") +
   # Legend
   scale_size_continuous(name="Shift distance\n(smaller = more resilient)") +
   scale_fill_gradient2(name="Percent of shift\nexacerbated (red)\nor reduced (blue)",
@@ -401,7 +401,7 @@ g1_full
 
 
 # Export
-cowplot::save_plot(g1_full, filename=file.path(plotdir, "Fig5_resistance_recovery_statewide_new3.png"), 
+cowplot::save_plot(g1_full, filename=file.path(plotdir, "Fig5_resistance_recovery_statewide.png"), 
      base_width=6.5, base_height=6.5, units="in", dpi=600, bg="white", base_asp=0.8)
 
 
