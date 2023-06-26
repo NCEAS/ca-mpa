@@ -119,7 +119,7 @@ base_theme <-  theme(axis.text=element_text(size=7, color = "black"),
                      legend.title=element_text(size=8, color = "black"),
                      strip.text=element_text(size=8, hjust=0, face = "bold", color = "black"),
                      strip.background = element_blank(),
-                     plot.tag=element_text(size=9, color = "black"),
+                     plot.tag=element_text(size=9, color = "black", face = "bold"),
                      # Gridlines
                      panel.grid.major = element_blank(), 
                      panel.grid.minor = element_blank(),
@@ -136,7 +136,7 @@ g1 <- ggplot(comp, aes(x=year, y=prop, fill=guild)) +
   # Refence lines
   geom_vline(xintercept = c(2013.5, 2016.5), linetype="dashed") +
   # Labels
-  labs(x="Year\n", y="Percent of community", tag="A") +
+  labs(x="Year\n", y="Percent of community", tag="(a)") +
   scale_x_continuous(breaks=2007:2020) +
   scale_y_continuous(labels=scales::percent) +
   # Legend
@@ -147,9 +147,10 @@ g1 <- ggplot(comp, aes(x=year, y=prop, fill=guild)) +
   theme(legend.position = "bottom",
         legend.key.size = unit(0.2, "cm"),
         legend.key.width = unit(0.2, "cm"),
-        legend.spacing.x = unit(0.25, "cm"),
+        legend.spacing.x = unit(0.1, "cm"),
         legend.margin = margin(-5,0,5,0), # 3 is to align x-axis of panels
-        axis.text.x = element_text(angle = 45, hjust=1))
+        axis.text.x = element_text(angle = 45, hjust=1),
+        legend.text = element_text(margin = margin(r = 10, unit = "pt"))) #to adjust space between text and next item
 g1
 
 # Plot all four corner results
@@ -159,7 +160,7 @@ g_4corner <- ggplot(coef, aes(x=indicator, y=guild, fill=beta_sd)) +
   # Plot 0s (no interaction term)
   geom_point(data=coef %>% filter(beta==0), shape="x") +
   # Labels
-  labs(x="Indicator", y="Thermal affinity", tag="B") +
+  labs(x="Indicator", y="Thermal affinity", tag="(b)") +
   # Legend
   scale_fill_gradient2(name="Effect",
                        midpoint=0,
@@ -183,8 +184,8 @@ g_all1 <- gridExtra::grid.arrange(g1, g_4corner,
 g_all1
 
 # Export
-ggsave(g_all1, filename=file.path(plotdir, "Fig4_composition_and_4corner_results4_new3.png"),
-       width=6.5, height=8, units="in", dpi=600)
+ggsave(g_all1, filename=file.path(plotdir, "Fig4_composition_and_4corner.png"),
+       width=7.5, height=8, units="in", dpi=600)
 
 
 # Plot data - indiv 4corner plot approach for absolute temp as supp fig
