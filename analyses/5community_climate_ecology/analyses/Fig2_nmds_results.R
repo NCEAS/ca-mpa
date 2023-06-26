@@ -293,7 +293,7 @@ my_theme <-  theme(axis.text=element_text(size=7, color = "black"),
                    strip.text=element_text(size=8, hjust=0, face="bold",color = "black"),
                    strip.background = element_blank(),
                    plot.title=element_text(size=9,color = "black"),
-                   plot.tag = element_text(size=9,color = "black"),
+                   plot.tag = element_text(size=9,color = "black", face = 'bold'),
                    # Gridlines
                    panel.grid.major = element_blank(), 
                    panel.grid.minor = element_blank(),
@@ -320,7 +320,7 @@ g1 <- ggplot(data_sim, aes(x = x, y = y, color = period, linetype = site_type)) 
   geom_path(data = data_sim, mapping = aes(group = interaction(period, site_type)), linewidth = line_size) +
   geom_point(data = data_sim_pts, mapping = aes(x = x1, y = y1, color = period, shape = site_type), size = pt_size) +
   # Labels
-  labs(x = "nMDS1", y = "nMDS2", tag = "A", title = "Potential shifts in community structure") +
+  labs(x = "nMDS1", y = "nMDS2", tag = "(a)", title = "Potential shifts in community structure") +
   # Legends
   scale_linetype_discrete(name = "Site type", drop = FALSE) +
   scale_shape_manual(name = "Site type", values = c(16, 17), drop = FALSE) +
@@ -361,7 +361,7 @@ g2 <- ggplot(data=centroids_all, aes(x=NMDS1, y=NMDS2, color=period)) +
   geom_text(data=stress_all, aes(x=NMDS1, y=NMDS2, label=paste("Stress:",stress)), inherit.aes = F,
             hjust=1, size=2.2) +
   # Labels
-  labs(x="nMDS1", y="nMDS2", title="Observed shifts in community structure", tag="B") +
+  labs(x="nMDS1", y="nMDS2", title="Observed shifts in community structure", tag="(b)") +
   # Legend
   scale_color_manual(name="Heatwave period", values=colors) +
   scale_linetype_discrete(name="Site type") +
@@ -378,7 +378,7 @@ g <- gridExtra::grid.arrange(g1, g2, nrow=2, heights=c(0.33, 0.67))
 g
 
 # Export plot
-ggsave(g, filename=file.path(plotdir, "Fig2_nmds_results_new2.png"), 
-       width=7, height=7.5, units="in", dpi=600)
+ggsave(g, filename=file.path(plotdir, "Fig2_nmds_results.png"), 
+       width=7.54, height=8, units="in", dpi=600)
 
 
