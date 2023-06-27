@@ -23,8 +23,13 @@ basedir <- "/home/shares/ca-mpa/data/sync-data"
 # Read data
 data_orig2 <- read.csv(file.path(datadir, "mpa_betadisp_mod_run2.csv"), as.is=T)
 
+
 # Read MPA metadata
 mpas_data <- readRDS(file.path(basedir, "mpa_traits/processed/CA_mpa_metadata.Rds"))
+
+#check sample size
+
+mpa_samp <- data_orig2 %>% filter(MPA_type =="smr") %>% distinct(MPA)
 
 # Processing script
 ################################################################################
@@ -103,7 +108,7 @@ eig_fun <- function(disper_mat) {
     mutate(MPA_type = factor(word(Var1, -2)),
            MPA_period = factor(word(Var1, -1)),
            MPA = factor(word(Var1 , 1  , -3)))%>%
-    select(!(Var1))%>%
+    dplyr::select(!(Var1))%>%
     pivot_wider(names_from='MPA_period', values_from = c('s_d','n'))%>%
     mutate(sd_pooled_before_after = sqrt(
       ((`n_before`-1)*`s_d_before`^2 + (`n_after`-1)*`s_d_after`^2)/
@@ -120,7 +125,7 @@ eig_fun <- function(disper_mat) {
            MPA_period1 =factor(word(sub, -2, sep = ' ')),
            MPA_period2 = factor(word(sub, -1)),
            join_ID = paste(MPA, MPA_type, MPA_period1, MPA_period2))%>%
-    select(join_ID, sd_pooled)
+    dplyr::select(join_ID, sd_pooled)
   
   left_join(x3, e_hat, by='join_ID')
 }
