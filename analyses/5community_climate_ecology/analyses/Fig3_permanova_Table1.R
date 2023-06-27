@@ -27,6 +27,18 @@ group_vars <- load(file.path(data_path, "group_vars.rda"))
 envr_vars <- load(file.path(data_path, "envr_vars.rda"))
 eco_dist <- load(file.path(data_path, "distance_matrices_BC.rda"))
 
+################################################################################
+#Check number of MPAs
+
+kelp_fish_MPAs <- kelp_fish_group_vars %>% filter(mpa_defacto_designation == "smr") %>% dplyr::select(group, affiliated_mpa) 
+kelp_invalg_MPAs <- kelp_invalg_group_vars %>% filter(mpa_defacto_designation == "smr") %>% dplyr::select(group, affiliated_mpa) 
+kelp_upc_MPAs <- kelp_upc_group_vars %>% filter(mpa_defacto_designation == "smr") %>% dplyr::select(group, affiliated_mpa) 
+rocky_MPAs <-rocky_group_vars %>% filter(mpa_designation == "smr") %>% dplyr::select(group, affiliated_mpa) 
+shallow_MPAs <- CCFRP_group_vars %>% filter(mpa_designation == "smr") %>% dplyr::select(group, affiliated_mpa) 
+deep_MPAs <- deep_reef_group_vars %>% filter(mpa_defacto_designation == "smr") %>% dplyr::select(group, affiliated_mpa) 
+
+distinct_MPAs <- rbind(kelp_fish_MPAs, rocky_MPAs, shallow_MPAs, deep_MPAs,
+                       kelp_invalg_MPAs, kelp_upc_MPAs) %>% distinct(affiliated_mpa)
 
 
 ################################################################################

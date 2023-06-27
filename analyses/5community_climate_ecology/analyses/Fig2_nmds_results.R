@@ -41,6 +41,14 @@ eco_dist <- load(file.path(datadir, "distance_matrices_BC.rda"))
 # Read simulated data
 load(file.path(outdir, "simulated_ellipses_new.Rdata"))
 
+#Check number of MPAs
+
+kelp_fish_MPAs <- kelp_fish_group_vars %>% filter(mpa_defacto_designation == "smr") %>% dplyr::select(group, affiliated_mpa) 
+rocky_MPAs <-rocky_group_vars %>% filter(mpa_designation == "smr") %>% dplyr::select(group, affiliated_mpa) 
+shallow_MPAs <- CCFRP_group_vars %>% filter(mpa_designation == "smr") %>% dplyr::select(group, affiliated_mpa) 
+deep_MPAs <- deep_reef_group_vars %>% filter(mpa_defacto_designation == "smr") %>% dplyr::select(group, affiliated_mpa) 
+
+distinct_MPAs <- rbind(kelp_fish_MPAs, rocky_MPAs, shallow_MPAs, deep_MPAs) %>% distinct(affiliated_mpa)
 
 # Perform NMDS analysis
 ################################################################################
