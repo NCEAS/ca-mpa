@@ -6,13 +6,15 @@ rm(list=ls())
 librarian::shelf(reshape2, tidyverse, vegan, lmtest, dynlm)
 
 #set directories
-data_path <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data"
+#data_path <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data" #old
+data_path <-  here::here("analyses", "5community_climate_ecology", "output")
 figdir <- here::here("analyses", "5community_climate_ecology", "figures")
 tabdir <- here::here("analyses", "5community_climate_ecology", "tables")
 
+
 comm_data <- load(file.path(data_path, "comm_data.rda"))
 nmds_scores <- load(file.path(data_path, "bray_nmds_scores.rda"))
-env_fit_scores <- load(file.path(data_path, "env_fit_scores.rda"))
+env_fit_scores <- load(file.path(data_path, "env_fit_scores_with_absolutes.rda"))
 group_vars <- load(file.path(data_path, "group_vars.rda"))
 envr_vars <- load(file.path(data_path, "envr_vars.rda"))
 eco_dist <- load(file.path(data_path, "distance_matrices_BC.rda"))
@@ -74,7 +76,7 @@ kelp_invalg_mean_dist3 <- melt(kelp_invalg_mean_dist) %>% #melt to three column 
   filter(year_1 == 2007 & year_2 >=2008 &
            MPA_type1 == MPA_type2) %>% #extract dissimilarities relative to 2007
   #distinct(year_2, .keep_all=TRUE)%>% #grab distinct disimilarities
-  select(group, year = year_2,  MPA_type = MPA_type2, 
+  dplyr::select(group, year = year_2,  MPA_type = MPA_type2, 
          dissim = value)
 
 
@@ -91,7 +93,7 @@ kelp_fish_mean_dist3 <- melt(kelp_fish_mean_dist) %>% #melt to three column colu
   filter(year_1 == 2007 & year_2 >=2008 &
            MPA_type1 == MPA_type2) %>% #extract dissimilarities relative to 2007
   #distinct(year_2, .keep_all=TRUE)%>% #grab distinct disimilarities
-  select(group, year = year_2, MPA_type = MPA_type2, 
+  dplyr::select(group, year = year_2, MPA_type = MPA_type2, 
          dissim = value)
 
 
@@ -109,7 +111,7 @@ deep_reef_mean_dist3 <- melt(deep_reef_mean_dist) %>% #melt to three column colu
   filter(year_1 == 2008 & year_2 >=2009 &
            MPA_type1 == MPA_type2) %>% #extract dissimilarities relative to 2007
   #distinct(year_2, .keep_all=TRUE)%>% #grab distinct disimilarities
-  select(group, year = year_2, MPA_type = MPA_type2, 
+  dplyr::select(group, year = year_2, MPA_type = MPA_type2, 
          dissim = value)
 
 
@@ -127,7 +129,7 @@ rocky_mean_dist3 <- melt(rocky_mean_dist) %>% #melt to three column columns
   filter(year_1 == 2007 & year_2 >=2008 &
            MPA_type1 == MPA_type2) %>% #extract dissimilarities relative to 2007
   #distinct(year_2, .keep_all=TRUE)%>% #grab distinct disimilarities
-  select(group, year = year_2, MPA_type = MPA_type2, 
+  dplyr::select(group, year = year_2, MPA_type = MPA_type2, 
          dissim = value)
 
 
@@ -145,9 +147,9 @@ full_df <- rbind(CCFRP_mean_dist3, kelp_invalg_mean_dist3,
 
 CCFRP_envr_dat <- cbind(CCFRP_group_vars, CCFRP_envr_vars) %>%
   group_by(year, mpa_designation) %>%
-  summarize(mean_SST = mean(SST, na.rm=TRUE),
-            mean_BT = mean(BT,na.rm=TRUE),
-            mean_BEUTI = mean(BEUTI,na.rm=TRUE),
+  summarize(mean_SST = mean(SST_anom, na.rm=TRUE),
+            mean_BT = mean(BT_anom,na.rm=TRUE),
+            mean_BEUTI = mean(BEUTI_anom,na.rm=TRUE),
             mean_MOCI = mean(MOCI,na.rm=TRUE)) %>%
   mutate(group = "Rocky reef fishes")%>%
   dplyr::select(group, year, mpa_designation,
@@ -155,19 +157,19 @@ CCFRP_envr_dat <- cbind(CCFRP_group_vars, CCFRP_envr_vars) %>%
 
 rocky_envr_dat <- cbind(rocky_group_vars, rocky_envr_vars) %>%
   group_by(year, mpa_designation) %>%
-  summarize(mean_SST = mean(SST, na.rm=TRUE),
-            #mean_BT = mean(BT,na.rm=TRUE),
-            mean_BEUTI = mean(BEUTI,na.rm=TRUE),
+  summarize(mean_AT = mean(AT_anom,na.rm=TRUE),
+            mean_SST = mean(SST_anom, na.rm=TRUE),
+            mean_BEUTI = mean(BEUTI_anom,na.rm=TRUE),
             mean_MOCI = mean(MOCI,na.rm=TRUE)) %>%
   mutate(group = "Rocky intertidal")%>%
   dplyr::select(group, year, mpa_designation,
-                mean_SST, mean_BEUTI, mean_MOCI)
+                mean_AT, mean_SST, mean_BEUTI, mean_MOCI)
 
 kelp_invalg_envr_dat <- cbind(kelp_invalg_group_vars, kelp_invalg_envr_vars) %>%
   group_by(year, mpa_defacto_designation) %>%
-  summarize(mean_SST = mean(SST, na.rm=TRUE),
-            mean_BT = mean(BT,na.rm=TRUE),
-            mean_BEUTI = mean(BEUTI,na.rm=TRUE),
+  summarize(mean_SST = mean(SST_anom, na.rm=TRUE),
+            mean_BT = mean(BT_anom,na.rm=TRUE),
+            mean_BEUTI = mean(BEUTI_anom,na.rm=TRUE),
             mean_MOCI = mean(MOCI,na.rm=TRUE)) %>%
   mutate(group = "Kelp forest inverts and algae")%>%
   dplyr::select(group, year, mpa_designation = mpa_defacto_designation,
@@ -175,9 +177,9 @@ kelp_invalg_envr_dat <- cbind(kelp_invalg_group_vars, kelp_invalg_envr_vars) %>%
 
 kelp_fish_envr_dat <- cbind(kelp_fish_group_vars, kelp_fish_envr_vars) %>%
   group_by(year, mpa_defacto_designation) %>%
-  summarize(mean_SST = mean(SST, na.rm=TRUE),
-            mean_BT = mean(BT,na.rm=TRUE),
-            mean_BEUTI = mean(BEUTI,na.rm=TRUE),
+  summarize(mean_SST = mean(SST_anom, na.rm=TRUE),
+            mean_BT = mean(BT_anom,na.rm=TRUE),
+            mean_BEUTI = mean(BEUTI_anom,na.rm=TRUE),
             mean_MOCI = mean(MOCI,na.rm=TRUE)) %>%
   mutate(group = "Kelp forest fishes")%>%
   dplyr::select(group, year, mpa_designation = mpa_defacto_designation,
@@ -185,9 +187,9 @@ kelp_fish_envr_dat <- cbind(kelp_fish_group_vars, kelp_fish_envr_vars) %>%
 
 deep_reef_envr_dat <- cbind(deep_reef_group_vars, deep_reef_envr_vars) %>%
   group_by(year, mpa_defacto_designation) %>%
-  summarize(mean_SST = mean(SST, na.rm=TRUE),
-            mean_BT = mean(BT,na.rm=TRUE),
-            mean_BEUTI = mean(BEUTI,na.rm=TRUE),
+  summarize(mean_SST = mean(SST_anom, na.rm=TRUE),
+            mean_BT = mean(BT_anom,na.rm=TRUE),
+            mean_BEUTI = mean(BEUTI_anom,na.rm=TRUE),
             mean_MOCI = mean(MOCI,na.rm=TRUE)) %>%
   mutate(group = "Deep reef fishes")%>%
   dplyr::select(group, year, mpa_designation = mpa_defacto_designation,
@@ -214,7 +216,15 @@ contrast_fun <- function(data, order, group) {
   ref_dat <- data %>% filter(MPA_type == "ref")
   smr_dat <- data %>% filter(MPA_type == "smr")
   
-  sst_ref <- grangertest(ref_dat$mean_SST ~ ref_dat$dissim,
+  at_ref <- lmtest::grangertest(ref_dat$mean_AT ~ ref_dat$dissim,
+                        order=order, na.action = na.omit) %>%
+  data.frame()%>%
+    mutate(MPA_type = "Reference",
+           test = "AT") %>%
+    dplyr::slice(.,2) %>%
+    rename("P" = Pr..F.)
+  
+  sst_ref <- lmtest::grangertest(ref_dat$mean_SST ~ ref_dat$dissim,
                               order=order, na.action = na.omit) %>%
             data.frame()%>%
             mutate(MPA_type = "Reference",
@@ -222,15 +232,15 @@ contrast_fun <- function(data, order, group) {
             dplyr::slice(.,2) %>%
             rename("P" = Pr..F.)
   
-  bt_ref <- grangertest(ref_dat$mean_BT ~ ref_dat$dissim,
-                     order=order, na.action = na.omit) %>%
-    data.frame()%>%
-   mutate(MPA_type = "Reference",
-           test = "BT") %>%
-    dplyr::slice(.,2) %>%
-    rename("P" = Pr..F.)
+ # bt_ref <- lmtest::grangertest(ref_dat$mean_BT ~ ref_dat$dissim,
+  #                   order=order, na.action = na.omit) %>%
+  #  data.frame()%>%
+  # mutate(MPA_type = "Reference",
+   #        test = "BT") %>%
+  #  dplyr::slice(.,2) %>%
+  #  rename("P" = Pr..F.)
   
-  beuti_ref <- grangertest(ref_dat$mean_BEUTI ~ ref_dat$dissim,
+  beuti_ref <- lmtest::grangertest(ref_dat$mean_BEUTI ~ ref_dat$dissim,
                      order=order, na.action = na.omit) %>%
     data.frame()%>%
     mutate(MPA_type = "Reference",
@@ -238,7 +248,7 @@ contrast_fun <- function(data, order, group) {
     dplyr::slice(.,2) %>%
     rename("P" = Pr..F.)
   
-  moci_ref <- grangertest(ref_dat$mean_MOCI ~ ref_dat$dissim,
+  moci_ref <- lmtest::grangertest(ref_dat$mean_MOCI ~ ref_dat$dissim,
                      order=order, na.action = na.omit) %>%
     data.frame()%>%
     mutate(MPA_type = "Reference",
@@ -246,7 +256,15 @@ contrast_fun <- function(data, order, group) {
     dplyr::slice(.,2) %>%
     rename("P" = Pr..F.)
   
-  sst_smr <- grangertest(smr_dat$mean_SST ~ smr_dat$dissim,
+  at_smr <- lmtest::grangertest(ref_dat$mean_AT ~ ref_dat$dissim,
+                        order=order, na.action = na.omit) %>%
+    data.frame()%>%
+    mutate(MPA_type = "MPA",
+           test = "AT") %>%
+    dplyr::slice(.,2) %>%
+   rename("P" = Pr..F.)
+  
+  sst_smr <- lmtest::grangertest(smr_dat$mean_SST ~ smr_dat$dissim,
                          order=order, na.action = na.omit) %>%
     data.frame()%>%
     mutate(MPA_type = "MPA",
@@ -254,15 +272,15 @@ contrast_fun <- function(data, order, group) {
     dplyr::slice(.,2) %>%
     rename("P" = Pr..F.)
   
-  bt_smr <- grangertest(smr_dat$mean_BT ~ smr_dat$dissim,
-                        order=order, na.action = na.omit) %>%
-    data.frame()%>%
-    mutate(MPA_type = "MPA",
-           test = "BT") %>%
-    dplyr::slice(.,2) %>%
-   rename("P" = Pr..F.)
+#  bt_smr <- lmtest::grangertest(smr_dat$mean_BT ~ smr_dat$dissim,
+ #                       order=order, na.action = na.omit) %>%
+#    data.frame()%>%
+ #   mutate(MPA_type = "MPA",
+  #         test = "BT") %>%
+  #  dplyr::slice(.,2) %>%
+  # rename("P" = Pr..F.)
   
-  beuti_smr <- grangertest(smr_dat$mean_BEUTI ~ smr_dat$dissim,
+  beuti_smr <- lmtest::grangertest(smr_dat$mean_BEUTI ~ smr_dat$dissim,
                            order=order, na.action = na.omit) %>%
     data.frame()%>%
     mutate(MPA_type = "MPA",
@@ -270,7 +288,7 @@ contrast_fun <- function(data, order, group) {
     dplyr::slice(.,2) %>%
     rename("P" = Pr..F.)
   
-  moci_smr <- grangertest(smr_dat$mean_MOCI ~ smr_dat$dissim,
+  moci_smr <- lmtest::grangertest(smr_dat$mean_MOCI ~ smr_dat$dissim,
                           order=order, na.action = na.omit) %>%
     data.frame()%>%
     mutate(MPA_type = "MPA",
@@ -278,8 +296,11 @@ contrast_fun <- function(data, order, group) {
     dplyr::slice(.,2) %>%
     rename("P" = Pr..F.)
   
-  x <- rbind(sst_ref, bt_ref, beuti_ref, moci_ref,
-             sst_smr, bt_smr, beuti_smr, moci_smr)
+  x <- rbind(sst_ref, #bt_ref,
+             beuti_ref, moci_ref,
+             sst_smr, #bt_smr, 
+             beuti_smr, moci_smr,
+             at_smr, at_ref)
   x$group <- group
   
   print(x)
@@ -287,6 +308,7 @@ contrast_fun <- function(data, order, group) {
 
 
 #run granger tests
+#### TURN OFF 'at_smr' and 'at_ref'from function to run subtidal habitats
 rocky_reef_dat <- con_dat1 %>% filter(group =="Rocky reef fishes")
 rocky_reef_g <- contrast_fun(rocky_reef_dat,3, "Rocky reef fishes")
 
@@ -311,7 +333,5 @@ granger_contrasts <- rbind(intertidal_g, kelp_invalg_g, kelp_fish_g,
 
 write.csv(granger_contrasts, file.path(tabdir, "granger_test.csv"),
           row.names = FALSE)
-
-
 
 

@@ -103,7 +103,7 @@ str(data)
 # Theme
 base_theme <- theme(axis.text=element_text(size=6, color = "black"),
                     axis.title=element_blank(),
-                    strip.text=element_text(size=7, color = "black", face = "bold"),
+                    strip.text=element_text(size=6.5, color = "black", face = "bold"),
                     strip.background = element_blank(),
                     axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1,color = "black",),
                     # Gridlines

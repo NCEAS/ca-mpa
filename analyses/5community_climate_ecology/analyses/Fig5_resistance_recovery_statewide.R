@@ -11,20 +11,25 @@ library(tidyverse)
 library(patchwork)
 
 # Chris Directories
-basedir <- "/Volumes/GoogleDrive/.shortcut-targets-by-id/1kCsF8rkm1yhpjh2_VMzf8ukSPf9d4tqO/MPA Network Assessment: Working Group Shared Folder/data/sync-data" #Chris
-datadir <- file.path(basedir, "monitoring/processed_data/community_climate_derived_data/statewide_data")
-plotdir <- "analyses/5community_climate_ecology/figures"
+#basedir <- "/Volumes/GoogleDrive/.shortcut-targets-by-id/1kCsF8rkm1yhpjh2_VMzf8ukSPf9d4tqO/MPA Network Assessment: Working Group Shared Folder/data/sync-data" #Chris
+#datadir <- file.path(basedir, "monitoring/processed_data/community_climate_derived_data/statewide_data")
+#plotdir <- "analyses/5community_climate_ecology/figures"
 
 # Josh Directories
-#basedir <- "/home/shares/ca-mpa/data/sync-data"
- #datadir <- file.path(basedir, "monitoring/processed_data/community_climate_derived_data/statewide_data")
-# plotdir <- "analyses/5community_climate_ecology/figures"
+basedir <- "/home/shares/ca-mpa/data/sync-data"
+ datadir <- file.path(basedir, "monitoring/processed_data/community_climate_derived_data/statewide_data")
+ plotdir <- "analyses/5community_climate_ecology/figures"
 
 # Read data
 data_orig2 <- read.csv(file.path(datadir, "mpa_betadisp_mod_run2.csv"), as.is=T)
 
+
 # Read MPA metadata
 mpas_data <- readRDS(file.path(basedir, "mpa_traits/processed/CA_mpa_metadata.Rds"))
+
+#check sample size
+
+mpa_samp <- data_orig2 %>% filter(MPA_type =="smr") %>% distinct(MPA)
 
 # Processing script
 ################################################################################
@@ -103,7 +108,7 @@ eig_fun <- function(disper_mat) {
     mutate(MPA_type = factor(word(Var1, -2)),
            MPA_period = factor(word(Var1, -1)),
            MPA = factor(word(Var1 , 1  , -3)))%>%
-    select(!(Var1))%>%
+    dplyr::select(!(Var1))%>%
     pivot_wider(names_from='MPA_period', values_from = c('s_d','n'))%>%
     mutate(sd_pooled_before_after = sqrt(
       ((`n_before`-1)*`s_d_before`^2 + (`n_after`-1)*`s_d_after`^2)/
@@ -120,7 +125,7 @@ eig_fun <- function(disper_mat) {
            MPA_period1 =factor(word(sub, -2, sep = ' ')),
            MPA_period2 = factor(word(sub, -1)),
            join_ID = paste(MPA, MPA_type, MPA_period1, MPA_period2))%>%
-    select(join_ID, sd_pooled)
+    dplyr::select(join_ID, sd_pooled)
   
   left_join(x3, e_hat, by='join_ID')
 }
@@ -242,14 +247,14 @@ data <- data_orig2 %>%
                     "Campus Point SMCA"="Campus Point SMCA (No-Take)",
                     "Point Vicente SMCA"="Point Vicente SMCA (No-Take)")) %>% 
   # Add region
-  left_join(mpas_data %>% select(mpa, region, lat_dd), by="mpa") %>% 
+  left_join(mpas_data %>% dplyr::select(mpa, region, lat_dd), by="mpa") %>% 
   # Create type
   mutate(period=paste(period_1, period_2, sep="-"),
          process=recode_factor(period,
                                "before-during"="Resistance",
                                "before-after"="Recovery")) %>% 
   # Arrange
-  select(habitat, region, lat_dd, mpa, site_type, process, period, distance) %>% 
+  dplyr::select(habitat, region, lat_dd, mpa, site_type, process, period, distance) %>% 
   # Spread
   spread(key="site_type", value="distance") %>% 
   rename(dist_ref=ref, dist_mpa=smr) %>% 
@@ -292,13 +297,13 @@ data2 <- data %>%
 ################################################################################
 
 # Base theme
-base_theme <- theme(axis.text=element_text(size=7),
+base_theme <- theme(axis.text=element_text(size=7, color = "black"),
                     axis.title=element_blank(),
-                    legend.text=element_text(size=6),
-                    legend.title=element_text(size=7),
-                    strip.text=element_text(size=7, face = "bold"),
+                    legend.text=element_text(size=6,color = "black"),
+                    legend.title=element_text(size=7,color = "black"),
+                    strip.text=element_text(size=7, face = "bold",color = "black"),
                     strip.background = element_blank(),
-                    plot.tag=element_text(size=8),
+                    plot.tag=element_text(size=8,color = "black", face = "bold"),
                     plot.title=element_blank(),
                     # Gridlines
                     panel.grid.major = element_blank(), 
@@ -314,9 +319,9 @@ schem_theme <- theme_minimal() +
                theme(legend.position="none", 
                      panel.grid.major = element_blank(), 
                      panel.grid.minor = element_blank(),
-                     plot.tag=element_text(size=8),
-                     plot.title = element_text(size=7),
-                     axis.text=element_text(size=6),
+                     plot.tag=element_text(size=8,color = "black", face = "bold"),
+                     plot.title = element_text(size=7,color = "black"),
+                     axis.text=element_text(size=6,color = "black"),
                      axis.title = element_blank(),
                      axis.text.x = element_blank(),
                      axis.text.y=element_text(color=c("navy", "#E41A1C")))
@@ -331,7 +336,7 @@ schem1 <- ggplot(toy1, aes(y=site, yend=site, xend=distance, color=site)) +
   geom_segment(x=0, arrow = arrow(length=unit(0.30, "cm"))) +
   # Labels
   #labs(title = "MPA prevents shifts")+
-  labs(title="Shift distance less in MPA", tag="A") +
+  labs(title="Shift distance less in MPA", tag="(a)") +
   scale_color_manual(values=c("navy", "#E41A1C")) +
   # Limits
   lims(x=c(0, 0.8)) +
@@ -346,7 +351,7 @@ schem2 <- ggplot(toy2, aes(y=site, yend=site, xend=distance, color=site)) +
   geom_segment(x=0, arrow = arrow(length=unit(0.30, "cm"))) +
   # Labels
   #labs(title="MPA exacerbates shifts") +
-  labs(title="Shift distance greater in MPA", tag="B") +
+  labs(title="Shift distance greater in MPA", tag="(b)") +
   scale_color_manual(values=c( "navy", "#E41A1C")) +
   # Limits
   lims(x=c(0, 0.8)) +
@@ -363,7 +368,7 @@ g1 <- ggplot(data2 %>%
   facet_grid(region~process, space="free", scale="free") +
   geom_point(pch=21, color="black") +
   # Labels
-  labs(x="", y="", tag="C") +
+  labs(x="", y="", tag="(c)") +
   # Legend
   scale_size_continuous(name="Shift distance\n(smaller = more resilient)") +
   scale_fill_gradient2(name="Percent of shift\nexacerbated (red)\nor reduced (blue)",
@@ -401,7 +406,7 @@ g1_full
 
 
 # Export
-cowplot::save_plot(g1_full, filename=file.path(plotdir, "Fig5_resistance_recovery_statewide_new2.png"), 
+cowplot::save_plot(g1_full, filename=file.path(plotdir, "Fig5_resistance_recovery_statewide.png"), 
      base_width=6.5, base_height=6.5, units="in", dpi=600, bg="white", base_asp=0.8)
 
 

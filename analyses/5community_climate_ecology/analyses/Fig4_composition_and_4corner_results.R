@@ -11,22 +11,24 @@ library(tidyverse)
 library(patchwork)
 
 # Directories
-basedir <- "/Volumes/GoogleDrive/.shortcut-targets-by-id/1kCsF8rkm1yhpjh2_VMzf8ukSPf9d4tqO/MPA Network Assessment: Working Group Shared Folder/data/sync-data/" #Chris
+# basedir <- "/Volumes/GoogleDrive/.shortcut-targets-by-id/1kCsF8rkm1yhpjh2_VMzf8ukSPf9d4tqO/MPA Network Assessment: Working Group Shared Folder/data/sync-data/" #Chris
 # basedir <- "/home/shares/ca-mpa/data/sync-data/" #Josh
+
+basedir <- here::here("analyses","5community_climate_ecology","output")
 gisdir <- file.path(basedir, "gis_data/processed")
 plotdir <- "analyses/5community_climate_ecology/figures"
 
 # Read composition data
-load(file.path(basedir, "monitoring/processed_data/comp_data.rda"))
+load(file.path(basedir, "comp_data.rda"))
 comp_orig <- comp_data
 rm(comp_data)
 
 # Read four-corner data
-load(file.path(basedir,"monitoring/processed_data/community_climate_derived_data/four_corner_output_anom.rda"))
+load(file.path(basedir,"four_corner_output_anom_run2.rda"))
 coef_anom <- coef_out
 rm(coef_out)
 
-load(file.path(basedir,"monitoring/processed_data/community_climate_derived_data/four_corner_output_abs.rda"))
+load(file.path(basedir,"four_corner_output_abs.rda"))
 coef_abs <- coef_out
 rm(coef_out)
 
@@ -36,7 +38,7 @@ rm(coef_out)
 
 # Parameters
 guilds <- c("Cold temp.", "Warm temp.", "Subtropical", "Tropical", "Cosmopolitan")
-indicators <- c("SST", "SBT", "MOCI", "BEUTI")
+indicators <- c("AT", "SST", "SBT", "MOCI", "BEUTI")
 
 # Composition
 ##########################################
@@ -111,13 +113,13 @@ table(coef$habitat)
 ################################################################################
 
 # Theme
-base_theme <-  theme(axis.text=element_text(size=7),
-                     axis.title=element_text(size=8),
-                     legend.text=element_text(size=7),
-                     legend.title=element_text(size=8),
-                     strip.text=element_text(size=8, hjust=0, face = "bold"),
+base_theme <-  theme(axis.text=element_text(size=7, color = "black"),
+                     axis.title=element_text(size=8, color = "black"),
+                     legend.text=element_text(size=7, color = "black"),
+                     legend.title=element_text(size=8, color = "black"),
+                     strip.text=element_text(size=8, hjust=0, face = "bold", color = "black"),
                      strip.background = element_blank(),
-                     plot.tag=element_text(size=9),
+                     plot.tag=element_text(size=9, color = "black", face = "bold"),
                      # Gridlines
                      panel.grid.major = element_blank(), 
                      panel.grid.minor = element_blank(),
@@ -134,7 +136,7 @@ g1 <- ggplot(comp, aes(x=year, y=prop, fill=guild)) +
   # Refence lines
   geom_vline(xintercept = c(2013.5, 2016.5), linetype="dashed") +
   # Labels
-  labs(x="Year\n", y="Percent of community", tag="A") +
+  labs(x="Year\n", y="Percent of community", tag="(a)") +
   scale_x_continuous(breaks=2007:2020) +
   scale_y_continuous(labels=scales::percent) +
   # Legend
@@ -145,9 +147,10 @@ g1 <- ggplot(comp, aes(x=year, y=prop, fill=guild)) +
   theme(legend.position = "bottom",
         legend.key.size = unit(0.2, "cm"),
         legend.key.width = unit(0.2, "cm"),
-        legend.spacing.x = unit(0.25, "cm"),
+        legend.spacing.x = unit(0.1, "cm"),
         legend.margin = margin(-5,0,5,0), # 3 is to align x-axis of panels
-        axis.text.x = element_text(angle = 45, hjust=1))
+        axis.text.x = element_text(angle = 45, hjust=1),
+        legend.text = element_text(margin = margin(r = 10, unit = "pt"))) #to adjust space between text and next item
 g1
 
 # Plot all four corner results
@@ -157,7 +160,7 @@ g_4corner <- ggplot(coef, aes(x=indicator, y=guild, fill=beta_sd)) +
   # Plot 0s (no interaction term)
   geom_point(data=coef %>% filter(beta==0), shape="x") +
   # Labels
-  labs(x="Indicator", y="Thermal affinity", tag="B") +
+  labs(x="Indicator", y="Thermal affinity", tag="(b)") +
   # Legend
   scale_fill_gradient2(name="Effect",
                        midpoint=0,
@@ -181,8 +184,8 @@ g_all1 <- gridExtra::grid.arrange(g1, g_4corner,
 g_all1
 
 # Export
-ggsave(g_all1, filename=file.path(plotdir, "Fig4_composition_and_4corner_results4_new.png"),
-       width=6.5, height=7.5, units="in", dpi=600)
+ggsave(g_all1, filename=file.path(plotdir, "Fig4_composition_and_4corner.png"),
+       width=7.5, height=8, units="in", dpi=600)
 
 
 # Plot data - indiv 4corner plot approach for absolute temp as supp fig
@@ -221,9 +224,9 @@ coef_abs <- coef_abs %>%
 
 base_theme <-  theme(axis.text=element_text(size=8),
                    #axis.text.y = element_text(angle = 90, hjust = 0.5),
-                   axis.title=element_text(size=10),
+                   axis.title=element_text(size=9),
                    plot.tag=element_blank(), #element_text(size=8),
-                   plot.title =element_text(size=10, face="bold"),
+                   plot.title =element_text(size=9, face="bold"),
                    # Gridlines
                    panel.grid.major = element_line(colour = "transparent"), 
                    panel.grid.minor = element_line(colour = "transparent"), 

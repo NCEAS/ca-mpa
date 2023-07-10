@@ -20,7 +20,7 @@ library(usedist)
 library(here)
 
 # Directories (Josh)
-# datadir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data" # Josh
+ datadir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data/reprocessed_data_20230615" # Josh
 
 # Directories (Chris)
 basedir <- "/Volumes/GoogleDrive/.shortcut-targets-by-id/1kCsF8rkm1yhpjh2_VMzf8ukSPf9d4tqO/MPA Network Assessment: Working Group Shared Folder/data/sync-data/"
@@ -33,7 +33,7 @@ plotdir <- "analyses/5community_climate_ecology/figures"
 # Read data
 comm_data <- load(file.path(datadir, "comm_data.rda"))
 nmds_scores <- load(file.path(datadir, "bray_nmds_scores.rda"))
-env_fit_scores <- load(file.path(datadir, "env_fit_scores.rda"))
+env_fit_scores <- load(file.path(datadir, "env_fit_scores_with_absolutes.rda"))
 group_vars <- load(file.path(datadir, "group_vars.rda"))
 envr_vars <- load(file.path(datadir, "envr_vars.rda"))
 eco_dist <- load(file.path(datadir, "distance_matrices_BC.rda"))
@@ -41,16 +41,25 @@ eco_dist <- load(file.path(datadir, "distance_matrices_BC.rda"))
 # Read simulated data
 load(file.path(outdir, "simulated_ellipses_new.Rdata"))
 
+#Check number of MPAs
+
+kelp_fish_MPAs <- kelp_fish_group_vars %>% filter(mpa_defacto_designation == "smr") %>% dplyr::select(group, affiliated_mpa) 
+rocky_MPAs <-rocky_group_vars %>% filter(mpa_designation == "smr") %>% dplyr::select(group, affiliated_mpa) 
+shallow_MPAs <- CCFRP_group_vars %>% filter(mpa_designation == "smr") %>% dplyr::select(group, affiliated_mpa) 
+deep_MPAs <- deep_reef_group_vars %>% filter(mpa_defacto_designation == "smr") %>% dplyr::select(group, affiliated_mpa) 
+
+distinct_MPAs <- rbind(kelp_fish_MPAs, rocky_MPAs, shallow_MPAs, deep_MPAs) %>% distinct(affiliated_mpa)
 
 # Perform NMDS analysis
 ################################################################################
 
 # Ordination objects
 habitats <- c("Rocky intertidal", "Kelp forest inverts and algae", "Kelp forest fishes", "Shallow reef", "Deep reef")
-arrow_scalars <- c(0.2, 0.25, 0.12, 1, 0.4)
-list1 <- list(rocky_ord, kelp_invalg_ord, kelp_fish_ord, CCFRP_ord, deep_reef_ord)
+arrow_scalars <- c(0.4, 0.25, 0.11, 0.4, 0.4)
+list1 <- list(rocky_ord, kelp_invalg_ord, kelp_fish_ord, CCFRP_ord, deep_reef_ord) 
 list2 <- list(rocky_en, kelp_invalg_en, kelp_fish_en, CCFRP_en, deep_reef_en)
 list3 <- list(rocky_group_vars, kelp_invalg_group_vars, kelp_fish_group_vars, CCFRP_group_vars, deep_reef_group_vars)
+
 
 # Loop through objects
 i <- 1
@@ -76,7 +85,7 @@ for(i in 1:length(list1)){
     rownames_to_column(var="variable") %>% 
     mutate(variable=recode(variable, "BT"="SBT")) %>% 
     # Arrange
-    select(habitat, variable, everything())
+    dplyr::select(habitat, variable, everything())
   
   # Extract data
   data_orig <- as.data.frame(vegan::scores(ord_do, display="sites"))
@@ -149,8 +158,8 @@ for(i in 1:length(list1)){
                                 "during"="During", 
                                 "after"="After")) %>% 
     # Arrange
-    select(-group) %>% 
-    select(habitat, period, site_type, NMDS1, NMDS2, everything())
+    dplyr::select(-group) %>% 
+    dplyr::select(habitat, period, site_type, NMDS1, NMDS2, everything())
   
   # Format data centroids
   centroids <- centroids_orig %>% 
@@ -168,7 +177,7 @@ for(i in 1:length(list1)){
                                 "during"="During", 
                                 "after"="After")) %>% 
     # Arrange
-    select(habitat, period, site_type, region4, everything())
+    dplyr::select(habitat, period, site_type, region4, everything())
 
   # Compute stress
   stress <- as.data.frame(ord_do[["stress"]]) %>% 
@@ -261,6 +270,18 @@ data_sim_pts <- data_sim_pts %>%
                          "No MPA benefit"="ii. No MPA benefit",
                          "MPA resistance"="iii. MPA resistance",
                          "MPA recovery"="iv. MPA recovery"))
+#select vectors to plot
+arrows_filtered <- arrows_all %>% 
+                dplyr::filter(variable == "SST_anom" |
+                                variable == "BEUTI_anom"|
+                                variable == "MOCI"|
+                                variable == "AT_anom" |
+                                variable == "BT_anom")%>%
+                mutate(variable = recode_factor(variable,
+                                                "SST_anom" = "SST",
+                                                "BEUTI_anom" = "BEUTI",
+                                                "AT_anom" = "AT",
+                                                "BT_anom" = "SBT"))
 
 
 # Plot data
@@ -273,14 +294,14 @@ pt_size <- 1.3
 line_size <- 0.3
 
 # Theme
-my_theme <-  theme(axis.text=element_text(size=7),
-                   axis.title=element_text(size=8),
-                   legend.text=element_text(size=7),
-                   legend.title=element_text(size=8),
-                   strip.text=element_text(size=8, hjust=0, face="bold"),
+my_theme <-  theme(axis.text=element_text(size=7, color = "black"),
+                   axis.title=element_text(size=8,color = "black"),
+                   legend.text=element_text(size=7,color = "black"),
+                   legend.title=element_text(size=8,color = "black"),
+                   strip.text=element_text(size=8, hjust=0, face="bold",color = "black"),
                    strip.background = element_blank(),
-                   plot.title=element_text(size=9),
-                   plot.tag = element_text(size=9),
+                   plot.title=element_text(size=9,color = "black"),
+                   plot.tag = element_text(size=9,color = "black", face = 'bold'),
                    # Gridlines
                    panel.grid.major = element_blank(), 
                    panel.grid.minor = element_blank(),
@@ -295,7 +316,7 @@ impact_labels <- data.frame(
   scenario = factor("i. Heatwave impact", levels = c("i. Heatwave impact", "ii. No MPA benefit", "iii. MPA resistance", "iv. MPA recovery")),
   site_type = factor("Inside", levels = c("Inside", "Outside")),
   period = factor("Before", levels = c("Before", "During", "After")),
-  x = c(1.5, 0),
+  x = c(1.6, 0),
   y = c(0.8, 1.85),
   label = c("Impact","No\nimpact")
 )
@@ -307,7 +328,7 @@ g1 <- ggplot(data_sim, aes(x = x, y = y, color = period, linetype = site_type)) 
   geom_path(data = data_sim, mapping = aes(group = interaction(period, site_type)), linewidth = line_size) +
   geom_point(data = data_sim_pts, mapping = aes(x = x1, y = y1, color = period, shape = site_type), size = pt_size) +
   # Labels
-  labs(x = "nMDS1", y = "nMDS2", tag = "A", title = "Potential shifts in community structure") +
+  labs(x = "nMDS1", y = "nMDS2", tag = "(a)", title = "Potential shifts in community structure") +
   # Legends
   scale_linetype_discrete(name = "Site type", drop = FALSE) +
   scale_shape_manual(name = "Site type", values = c(16, 17), drop = FALSE) +
@@ -337,18 +358,18 @@ g2 <- ggplot(data=centroids_all, aes(x=NMDS1, y=NMDS2, color=period)) +
   # Centroids
   geom_point(mapping=aes(shape=site_type), size=pt_size) +
   # Arrows
-  geom_segment(data = arrows_all,
+  geom_segment(data = arrows_filtered,
                x = 0, y = 0,
                mapping=aes(xend = NMDS1, yend = NMDS2),
                arrow = arrow(length = unit(0.25, "cm")), color = "grey60", linewidth=0.5) +
   geom_point(x=0, y=0, color="grey60", shape=16) +
-  ggrepel::geom_text_repel(data=arrows_all, 
+  ggrepel::geom_text_repel(data=arrows_filtered, 
             mapping=aes(x=NMDS1, y=NMDS2, label=variable), size=2.2, fontface="bold", inherit.aes = F) +
   # Add stress labels
-  geom_text(data=stress_all, aes(x=NMDS1, y=NMDS2, label=stress), inherit.aes = F,
+  geom_text(data=stress_all, aes(x=NMDS1, y=NMDS2, label=paste("Stress:",stress)), inherit.aes = F,
             hjust=1, size=2.2) +
   # Labels
-  labs(x="nMDS1", y="nMDS2", title="Observed shifts in community structure", tag="B") +
+  labs(x="nMDS1", y="nMDS2", title="Observed shifts in community structure", tag="(b)") +
   # Legend
   scale_color_manual(name="Heatwave period", values=colors) +
   scale_linetype_discrete(name="Site type") +
@@ -366,6 +387,6 @@ g
 
 # Export plot
 ggsave(g, filename=file.path(plotdir, "Fig2_nmds_results.png"), 
-       width=6.5, height=6.5, units="in", dpi=600)
+       width=7.54, height=8, units="in", dpi=600)
 
 

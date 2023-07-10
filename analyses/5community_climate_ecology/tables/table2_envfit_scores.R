@@ -9,7 +9,8 @@ require(here)
 
 
 #Set paths
-datadir <-  "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data" 
+#datadir <-  "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data" #old
+datadir <- here::here("analyses","5community_climate_ecology","output")
 tabdir <- here::here("analyses","5community_climate_ecology","tables")
 
 #load EnvFit score
@@ -22,7 +23,7 @@ envfit_out <- function(scores) {
   data.frame((scores$vectors)$arrows, (scores$vectors)$r, (scores$vectors)$pvals) %>%
     rename("R square" = X.scores.vectors..r,
            "p-value" = X.scores.vectors..pvals) %>%
-    tibble::rownames_to_column(., "Oceanographic variable")
+    tibble::rownames_to_column(., "Environmental variable")
 }
 
 

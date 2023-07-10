@@ -12,9 +12,10 @@ require(lmerTest)
 require(emmeans)
 
 #set directories
-datadir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data"
+#datadir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data" #old
+datadir <- here::here("analyses","5community_climate_ecology","output")
 figdir <- here::here("analyses", "5community_climate_ecology", "figures")
-outdir <- 
+
   
 #read data
 load(file.path(datadir,"all_groups_mpa_level_means_long.rda"))
@@ -284,8 +285,8 @@ comp_data <- rbind(CCFRP_affin_mean_total, kelp_fish_affin_mean_total,
                    kelp_upc_total, kelp_swath_total,
                    deep_reef_mean_total, rocky_mean_total)
 
-save(comp_data, file = "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data/comp_data.rda")
-
+#save(comp_data, file = "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data/comp_data.rda") #old
+save(comp_data, file = here::here("analyses","5community_climate_ecology","output","comp_data.rda"))
 ################################################################################
 #plot
 
