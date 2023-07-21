@@ -575,8 +575,9 @@ surf_zone_build3 <- left_join(surf_zone_build2, regions, by=c("affiliated_mpa"="
                                     family, genus, species, target_status=targeted,
                                     fish_length, weight_g, total_weight_g, 
                                     count, total_weight_kg) %>%
-                        #drop no species
-                      filter(!(species_code == "NOSP"))
+                        #replace no species with true zero
+                      mutate(total_weight_g = ifelse(species_code == "NOSP",0,total_weight_g),
+                             total_weight_kg = ifelse(species_code == "NOSP",0,total_weight_kg))
 
 
 #write.csv(surf_zone_build3, row.names = F, file.path(outdir,"/biomass_processed/surf_zone_fish_biomass.csv"))  
