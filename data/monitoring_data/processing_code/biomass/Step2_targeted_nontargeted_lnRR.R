@@ -37,6 +37,7 @@ surf_zone_build1 <- surf_zone_raw %>%
                                mpa_defacto_class, mpa_defacto_designation,
                                haul_number, target_status)%>%
                       dplyr::summarize(total_biomass = sum(total_weight_kg)) %>%
+                  #make wider to fill NAs with true zeros 
                   pivot_wider(names_from = target_status, values_from = total_biomass) %>%
                   #drop NA column
                   dplyr::select(!("NA")) %>%
@@ -57,7 +58,7 @@ surf_zone_build2 <- surf_zone_build1 %>%
                                 haul_sd = sd(total_biomass, na.rm=TRUE),
                                 haul_se = haul_sd/sqrt(n_hauls)) 
 
-#calculate response ratio
+#Reshape
 surf_targeted_RR <- surf_zone_build2 %>% filter(target_status == "Targeted") %>%
                       #drop smcas. We only want to include no-take SMRs in our analysis
                       filter(!(mpa_defacto_class == "SMCA"))%>%
@@ -67,12 +68,10 @@ surf_targeted_RR <- surf_zone_build2 %>% filter(target_status == "Targeted") %>%
                       
 surf_nontargeted_RR <- surf_zone_build2 %>% filter(target_status == "Nontargeted") %>%
   #drop smcas
-  filter(!(mpa_defacto_designation == "smca"))%>%
+  filter(!(mpa_defacto_class == "SMCA"))%>%
   pivot_wider(names_from = "mpa_defacto_designation",
-              values_from = c(haul_avg, n_hauls, haul_sd, haul_se)) %>%
-  #drop sites that do not have pairs
-  filter(!(is.na(n_hauls_ref)|is.na(n_hauls_smr)))%>%
-  mutate(log_RR = log(haul_avg_smr/haul_avg_ref))
+              values_from = c(haul_avg, n_hauls, haul_sd, haul_se))
+
 
 surf_target_RR <- rbind(surf_targeted_RR, surf_nontargeted_RR) %>%
                     rename("biomass_ref"= haul_avg_ref,
@@ -92,11 +91,16 @@ kelp_build1 <- kelp_raw %>%
   group_by(year, bioregion, region4, affiliated_mpa,
            mpa_defacto_class, mpa_defacto_designation,
            zone, level, transect, target_status)%>%
-  dplyr::summarize(total_biomass = sum(total_biom_kg))
+  dplyr::summarize(total_biomass = sum(total_biom_kg)) %>%
+#make wider to fill NAs with true zeros 
+pivot_wider(names_from = target_status, values_from = total_biomass)%>%
+  #replace NAs with 0s, since these are true zeros
+  replace_na(list(Targeted = 0, Nontargeted = 0)) %>%
+  #make longer
+  pivot_longer(cols = c(Targeted, Nontargeted), names_to = "target_status", values_to = "total_biomass")
 
 
 #calculate MPA average and error
-
 kelp_build2 <- kelp_build1 %>%
   group_by(year, bioregion, region4, affiliated_mpa,
            mpa_defacto_class, mpa_defacto_designation,
@@ -104,30 +108,24 @@ kelp_build2 <- kelp_build1 %>%
   summarize(biomass = mean(total_biomass, na.rm=TRUE),
             n_rep = n(),
             sd = sd(total_biomass, na.rm=TRUE),
-            se = sd/sqrt(n_rep)) %>%
-  filter(!(is.na(target_status)))
+            se = sd/sqrt(n_rep)) 
 
 
-#calculate response ratio
+#Reshape
 
 kelp_targeted_RR <- kelp_build2 %>% filter(target_status == "Targeted") %>%
   #drop smcas
   filter(!(mpa_defacto_class == "smca"))%>%
   pivot_wider(names_from = "mpa_defacto_designation",
-              values_from = c(biomass, n_rep, sd, se)) %>%
-  #drop sites that do not have pairs
-  filter(!(is.na(n_rep_ref)|is.na(n_rep_smr)))%>%
-  mutate(log_RR = log(biomass_smr/biomass_ref))
+              values_from = c(biomass, n_rep, sd, se)) 
+
 
 
 kelp_nontargeted_RR <- kelp_build2 %>% filter(target_status == "Nontargeted") %>%
   #drop smcas
   filter(!(mpa_defacto_class == "smca"))%>%
   pivot_wider(names_from = "mpa_defacto_designation",
-              values_from = c(biomass, n_rep, sd, se)) %>%
-  #drop sites that do not have pairs
-  filter(!(is.na(n_rep_ref)|is.na(n_rep_smr)))%>%
-  mutate(log_RR = log(biomass_smr/biomass_ref))
+              values_from = c(biomass, n_rep, sd, se)) 
 
 kelp_target_RR <- rbind(kelp_targeted_RR, kelp_nontargeted_RR) %>%
                         mutate(habitat = "Kelp forest")
