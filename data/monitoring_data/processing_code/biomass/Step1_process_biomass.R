@@ -85,7 +85,8 @@ params_tab <- read.csv("/home/shares/ca-mpa/data/sync-data/species_traits/proces
 #from fish base. The processing script for this is available here https://github.com/NCEAS/ca-mpa/tree/main/data/species_traits
 
 #4. In some cases, a single SMCA was used as a reference site for two SMRs. 
-# HOW SHOULD WE CALCULATE RESPONSE RATIOS IN THIS CASE?
+# We need to watch out for these and decide how to deal with them. I am not sure how 
+# Many of these there actually are. 
 
 #5. Make sure that MPA pairs are correctly matched in the site tables. 
 
