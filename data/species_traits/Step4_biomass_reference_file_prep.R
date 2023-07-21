@@ -1,13 +1,4 @@
 
-################################################################################
-################################################################################
-
-#THIS STEP IS EXPERIMENTAL. ACTUAL BIOMASS PROCESSING IS DONE HERE
-# https://github.com/NCEAS/ca-mpa/tree/main/data/monitoring_data/processing_code/biomass
-
-################################################################################
-################################################################################
-
 
 # Prepare reference table for the length - Weight relationship to compute biomass from raw data
 # Julien Brun, brun@nceas.ucsb.edu
@@ -77,6 +68,8 @@ fishbase_params2 <- anti_join(fishbase_params1, drop_spp, by="ScientificName_acc
 #merge unique params
 
 params_tab <- merge(raw_parameters_ccfrp,fishbase_params2,all=TRUE)
+
+write.csv(params_tab, here::here("data","sync-data","species_traits","processed","fish_lw_parameters_by_species.csv"))
 
 ################################################################################
 #Build lookup 
