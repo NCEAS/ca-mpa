@@ -17,38 +17,53 @@ rocky_reef_raw <- read.csv(file.path(datadir, "ccfrp_fish_biomass.csv"))
 deep_reef_raw <- read.csv(file.path(datadir, "deep_reef_fish_biomass.csv"))
 
 ################################################################################
+# Some site pairs do not appear in the data because they were either not sampled, 
+#or because no species were observed. True zeros should be included, so we need 
+#to use the site tables to identify where true zeros might exist. 
+
+#
+
+sites <- readRDS("/home/shares/ca-mpa/data/sync-data/monitoring/monitoring_sites_clean.Rds")
+
+
+################################################################################
 # calculate lnRRs for targeted vs nontargeted
 
 #-------------------SURF ZONE--------------------------------------------------#
 #calculate total biom for each rep unit
 surf_zone_build1 <- surf_zone_raw %>%
                       group_by(year, bioregion, region4, affiliated_mpa,
+                               mpa_state_class, mpa_state_designation,
                                mpa_defacto_class, mpa_defacto_designation,
                                haul_number, target_status)%>%
-                      dplyr::summarize(total_biomass = sum(total_weight_kg))
+                      dplyr::summarize(total_biomass = sum(total_weight_kg)) %>%
+                  pivot_wider(names_from = target_status, values_from = total_biomass) %>%
+                  #drop NA column
+                  dplyr::select(!("NA")) %>%
+                  #replace NAs with 0s, since these are true zeros
+                  replace_na(list(Targeted = 0, Nontargeted = 0)) %>%
+                  #make longer
+                  pivot_longer(cols = c(Targeted, Nontargeted), names_to = "target_status", values_to = "total_biomass")
+              
 
 #calculate MPA average and error
-
 surf_zone_build2 <- surf_zone_build1 %>%
+                      #leave out haul number to take the average across hauls for a given MPA
                       group_by(year, bioregion, region4, affiliated_mpa,
                                mpa_defacto_class, mpa_defacto_designation,
                               target_status) %>%
                       summarize(haul_avg = mean(total_biomass, na.rm=TRUE),
                                 n_hauls = n(),
                                 haul_sd = sd(total_biomass, na.rm=TRUE),
-                                haul_se = haul_sd/sqrt(n_hauls)) %>%
-                      filter(!(is.na(target_status)))
+                                haul_se = haul_sd/sqrt(n_hauls)) 
 
 #calculate response ratio
-
 surf_targeted_RR <- surf_zone_build2 %>% filter(target_status == "Targeted") %>%
-                      #drop smcas
-                      filter(!(mpa_defacto_designation == "smca"))%>%
+                      #drop smcas. We only want to include no-take SMRs in our analysis
+                      filter(!(mpa_defacto_class == "SMCA"))%>%
                       pivot_wider(names_from = "mpa_defacto_designation",
-                                  values_from = c(haul_avg, n_hauls, haul_sd, haul_se)) %>%
-                      #drop sites that do not have pairs
-                      filter(!(is.na(n_hauls_ref)|is.na(n_hauls_smr)))%>%
-                      mutate(log_RR = log(haul_avg_smr/haul_avg_ref))
+                                  values_from = c(haul_avg, n_hauls, haul_sd, haul_se)) 
+
                       
 surf_nontargeted_RR <- surf_zone_build2 %>% filter(target_status == "Nontargeted") %>%
   #drop smcas
