@@ -236,7 +236,7 @@ target_RR_full <- rbind(surf_target_RR, kelp_target_RR, ccfrp_targeted_RR, deep_
 
 target_status_RR <- target_RR_full %>%
                     #deal with the 0s by adding 10% of the mean for each group. 
-                    group_by(habitat)%>%
+                    group_by(year, habitat)%>% #Adding year really changes the shape of the histogram, so need to check on this. 
                     mutate(scalar_smr = mean(biomass_smr)*.10, #determine 10% of the mean biomass for each habitat inside MPAs
                            scalar_ref = mean(biomass_ref)*.10)%>% #determine 10% of the mean biomass for each habitat outside MPAs
                     ungroup()%>%
