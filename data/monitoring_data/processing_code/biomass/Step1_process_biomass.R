@@ -64,12 +64,14 @@ defacto_smr_surf <- readxl::read_excel(file.path(data_path, input_file), sheet=5
   dplyr::select(affiliated_mpa, mpa_defacto_class = mpa_class)
 
 #load lw params
-##This is from the the kelp forest monitoring group, but is incomplete (we will build on this next step below)
+##This is from the the CCFRP monitoring group, but is incomplete (we will build on this next step below)
 params_tab <- read.csv("/home/shares/ca-mpa/data/sync-data/species_traits/processed/fish_lw_parameters_by_species.csv") %>%
                 mutate(ScientificName_accepted = recode(ScientificName_accepted, "Sebastes spp." = "Sebastes spp")) %>%
                 filter(!(is.na(ScientificName_accepted)))
 
 ################################################################################
+################################################################################
+
 #Important --- general criteria for processing biomass. 
 #1. Species w/o size data cannot be converted to biomass, so these get dropped.
 
@@ -87,6 +89,7 @@ params_tab <- read.csv("/home/shares/ca-mpa/data/sync-data/species_traits/proces
 
 #5. Make sure that MPA pairs are correctly matched in the site tables. 
 
+################################################################################
 ################################################################################
 #prep conversion function
 
@@ -186,18 +189,22 @@ kelp_fish_counts <- left_join(kelp_fish_counts, regions, by=c("affiliated_mpa"="
 
 
 #add defacto SMRs
+####A note on defacto SMRs --- "mpa_class" = state designated SMR or SMCA. 
+#### "mpa_designation" = whether that site was reference, SMR, or SMCA. 
 kelp_fish_counts <- left_join(kelp_fish_counts, defacto_smr_kelp, by="affiliated_mpa")
 
 #clean up
 
 kelp_fish_counts_final <- kelp_fish_counts %>% 
                       dplyr::select(year, month, day, affiliated_mpa, 
+                                    #MPA class is the type of MPA: SMR or SMCA
                                     mpa_state_class = mpa_class,
                                     mpa_defacto_class, bioregion, region4,
                                     everything()) %>%
                       filter(!(is.na(mpa_defacto_class)))%>%
                       mutate(mpa_defacto_class = tolower(mpa_defacto_class),
                              mpa_designation = tolower(mpa_designation),
+                             #create defacto designation level. 
                              mpa_defacto_designation = ifelse(mpa_designation == "ref","ref",mpa_defacto_class),
                              mpa_state_class = tolower(mpa_state_class),
                              total_biom_kg = total_biom_g/1000)%>%
