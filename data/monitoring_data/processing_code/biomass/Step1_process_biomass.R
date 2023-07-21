@@ -64,13 +64,33 @@ defacto_smr_surf <- readxl::read_excel(file.path(data_path, input_file), sheet=5
   dplyr::select(affiliated_mpa, mpa_defacto_class = mpa_class)
 
 #load lw params
+##This is from the the kelp forest monitoring group, but is incomplete (we will build on this next step below)
 params_tab <- read.csv("/home/shares/ca-mpa/data/sync-data/species_traits/processed/fish_lw_parameters_by_species.csv") %>%
                 mutate(ScientificName_accepted = recode(ScientificName_accepted, "Sebastes spp." = "Sebastes spp")) %>%
                 filter(!(is.na(ScientificName_accepted)))
 
 ################################################################################
+#Important --- general criteria for processing biomass. 
+#1. Species w/o size data cannot be converted to biomass, so these get dropped.
+
+#2. In our analyses, we ultimately care about the targeted vs. nontargeted groupings, so 
+#we can ONLY use species-level data, since some species within a genus or family might be
+#protected, not targeted, etc. Therefore, we drop any taxa not identified to the species-level. 
+
+#3. For biomass conversion estimates, we elected to use parameters listed by the kelp
+#forest monitoring group, who conducted a literature review for dozens of species. Since the 
+#list is not comprehensive for species found in all group, however, we added parameters
+#from fish base. The processing script for this is available here https://github.com/NCEAS/ca-mpa/tree/main/data/species_traits
+
+#4. In some cases, a single SMCA was used as a reference site for two SMRs. 
+# HOW SHOULD WE CALCULATE RESPONSE RATIOS IN THIS CASE?
+
+#5. Make sure that MPA pairs are correctly matched in the site tables. 
+
+################################################################################
 #prep conversion function
 
+#define units for conversion
 a_prime_conversion <- tribble(
   ~unit_length, ~unit_weight,  ~a_coeff, ~b_coeff,
   "mm", "g",  10, 1,
@@ -81,13 +101,10 @@ a_prime_conversion <- tribble(
 
 
 # filter the necessary parameters
-
 convert_dat <- function(params, data){
-  
   convert_params <- params %>%
   filter(!(is.na(WL_a))) %>% # remove rows without conversion
   filter(ScientificName_accepted %in% unique(data$sciname))
-
   data %>% left_join(convert_params, by = c("sciname"="ScientificName_accepted"), multiple = "all")
 }
 
@@ -120,11 +137,10 @@ bio_fun <- function(data_with_params) {
 ################################################################################
 #process kelp forest
 
-kelp_code <- taxon_tab  %>% filter(habitat=="Kelp forest")
+kelp_code <- taxon_tab  %>% filter(habitat=="Kelp forest") %>% rename(taxon_group = level)
 kelp_forest_process1 <- left_join(kelp_forest_raw, kelp_code, by=(c("classcode"="habitat_specific_code")))
 
 #estimate biomass
-
 kelp_dat <- convert_dat(params_tab, kelp_forest_process1)
 kelp_out <- bio_fun(kelp_dat) %>% 
   #drop species with missing size
@@ -156,7 +172,7 @@ kelp_out <- bio_fun(kelp_dat) %>%
   #calculate total biomass
   mutate(total_biom_g = weight_g*count)%>%
   #select interest vars
-  dplyr::select(year, month, day, site, zone, level = level.x, transect,
+  dplyr::select(year, month, day, site, zone, level, transect,
                 classcode, count, TL_cm, sciname, weight_g, total_biom_g, target_status)
 
 #add regions
