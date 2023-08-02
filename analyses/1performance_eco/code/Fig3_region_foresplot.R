@@ -322,9 +322,12 @@ my_theme <-  theme(axis.text=element_text(size=6, color = "black"),
 )
 
 
-# Convert habitats and state_region to ordered factors with desired levels
 combined_dat$habitat <- factor(combined_dat$habitat, levels = c("Surf zone", "Kelp forest", "Shallow reef", "Deep reef", "Pooled effect size"))
 combined_dat$state_region <- factor(combined_dat$state_region, levels = c("Pooled","South Coast", "Central Coast", "North Central Coast","North Coast"))
+combined_dat$target_status <- factor(combined_dat$target_status, levels = c("Nontargeted", "Targeted"))  # Reversed order
+
+# Create a vector of labels for the state_region scale
+state_labels <- c(expression(italic("Pooled")), "South Coast", "Central Coast", "North Central Coast", "North Coast")
 
 # Create a vector of labels for the state_region scale
 state_labels <- c(expression(italic("Pooled")), "South Coast", "Central Coast", "North Central Coast", "North Coast")
@@ -351,8 +354,8 @@ g <- ggplot(combined_dat, aes(x = yi, y = state_region, color = target_status)) 
 
 g
 
-#ggsave(g, filename=file.path(fig_dir, "Fig3_habitat_meta_forestplot.png"), bg = "white",
- #      width=5, height=5, units="in", dpi=600) 
+ggsave(g, filename=file.path(fig_dir, "Fig3_habitat_meta_forestplot.png"), bg = "white",
+      width=6, height=7, units="in", dpi=600) 
 
 
 
