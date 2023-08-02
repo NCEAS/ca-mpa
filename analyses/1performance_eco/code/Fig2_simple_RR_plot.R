@@ -66,7 +66,7 @@ my_theme <-  theme(axis.text=element_text(size=6, color = "black"),
                    strip.text = element_text(size = 6 , face="bold", color = "black"),
 )
 
-mean_es <- forest_dat %>% group_by(affiliated_mpa, region4, target_status) %>%
+mean_es <- forest_dat %>% group_by(affiliated_mpa, state_region, target_status) %>%
   summarize(mean_logRR = mean(yi, na.rm=TRUE),
             se_logRR = sd(yi, na.rm=TRUE) / sqrt(n()))
 
@@ -81,15 +81,18 @@ mean_es_with_habitat_count <- mean_es %>%
 
 # Create the ggplot with facet_grid and equal y-axis spacing
 ggplot(mean_es_with_habitat_count %>%
-         mutate(region4 = factor(region4, levels = c("North", "Central", "N. Channel Islands", "South"))),
+         mutate(state_region = factor(state_region, levels = c("North Coast",
+                                                          "North Central Coast", 
+                                                          "Central Coast", 
+                                                          "South Coast"))),
        aes(x = mean_logRR, y = affiliated_mpa)) +
   geom_point(aes(size = num_habitats)) +
   geom_errorbarh(aes(xmin = mean_logRR - se_logRR, xmax = mean_logRR + se_logRR)) +
-  facet_grid(cols = vars(target_status), rows = vars(region4), scales = "free_y", space = "free") +
+  facet_grid(cols = vars(target_status), rows = vars(state_region), scales = "free_y", space = "free") +
   geom_vline(xintercept = 0, linetype = "dashed", color = "red") +  # Add vertical line at x = 0
-  xlab("Mean Effect Size (mean_logRR)") +
-  ylab("Affiliated MPA") +
-  scale_size_continuous(name = "Number of Habitats") +  # Rename the legend
+  xlab("Mean Effect Size (log response ratio)") +
+  ylab("MPA") +
+  scale_size_continuous(name = "Number of \nHabitats") +  # Rename the legend
   theme_minimal() +
   theme(strip.text = element_text(size = 10, face = "bold"),
         strip.background = element_blank(),
