@@ -244,6 +244,6 @@ target_status_RR <- target_RR_full %>%
 
 hist(target_status_RR$logRR)
                     
-#write.csv(row.names = FALSE, target_RR_full, file.path(datadir, "targeted_nontargeted_biomass_MPA_means.csv"))
+#write.csv(row.names = FALSE, target_status_RR, file.path(datadir, "targeted_nontargeted_biomass_MPA_means.csv"))
 
 

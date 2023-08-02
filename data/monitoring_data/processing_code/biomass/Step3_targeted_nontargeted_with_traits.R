@@ -24,6 +24,7 @@ mpa_attributes_hab <- readRDS("/home/shares/ca-mpa/data/sync-data/mpa_traits/pro
 mpa_attributes_hab_div <- readRDS("/home/shares/ca-mpa/data/sync-data/mpa_traits/processed/mpa_attributes_habitat_diversity.Rds")
 fishing_effort <- readRDS(here::here("analyses","2performance_fisheries","analyses","blocks","pre_mpa_fishing_pressure_by_mpa.Rds"))
 prop_rock <- readRDS("/home/shares/ca-mpa/data/sync-data/mpa_traits/processed/mpa_attributes_habitat_rock.Rds")
+mpas_orig <- readRDS(file.path(data_path, "mpa_traits/processed", "CA_mpa_metadata.Rds")) %>% dplyr::select(mpa, region)
 
 
 ################################################################################
@@ -39,10 +40,13 @@ mpa_traits3 <- left_join(mpa_traits2, prop_rock, by="name")
 #step 3 - merge habitat and fishing effort
 mpa_traits4 <- left_join(mpa_traits3, fishing_effort, by="name")
 
+#step 3 - merge habitat and fishing effort
+mpa_traits5 <- left_join(mpa_traits4, mpas_orig, by=c("name"="mpa"))
+
 #step 4 - clean up
-mpa_traits <- mpa_traits4 %>%
+mpa_traits <- mpa_traits5 %>%
   #select variables of interest
-  dplyr::select(affiliated_mpa, implementation_date, size=size_km2.x,
+  dplyr::select(state_region = region, affiliated_mpa, implementation_date, size=size_km2.x,
                 habitat_richness, habitat_diversity=habitat_diversity_sw, 
                 prop_rock, fishing_pressure = annual_avg_lb_sqkm_20002006
   )
@@ -51,7 +55,18 @@ mpa_traits <- mpa_traits4 %>%
 biomass_with_mods <- left_join(biomass_raw, mpa_traits, by="affiliated_mpa") %>%
   mutate(
     implementation_year = as.numeric(format(implementation_date,'%Y')),
-    age_at_survey = year - implementation_year) 
+    age_at_survey = year - implementation_year,
+    affiliated_mpa = factor(affiliated_mpa),
+    state_region = factor(state_region),
+    # Fix state region using case_when
+    state_region = case_when(
+      affiliated_mpa == "campus point smca" ~ "South Coast",
+      affiliated_mpa == "point vicente smca" ~ "South Coast",
+      affiliated_mpa == "blue cavern onshore smca" ~"South Coast",
+      TRUE ~ as.character(state_region)  # Keep the original factor levels for other cases
+    )
+  ) %>%
+  dplyr::select(habitat, year, state_region, everything())
 #
 
 
