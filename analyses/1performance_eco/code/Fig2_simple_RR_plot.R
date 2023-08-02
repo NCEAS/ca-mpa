@@ -79,26 +79,34 @@ habitat_counts <- forest_dat %>%
 mean_es_with_habitat_count <- mean_es %>%
   left_join(habitat_counts, by = "affiliated_mpa")
 
-# Create the ggplot with facet_grid and equal y-axis spacing
-ggplot(mean_es_with_habitat_count %>%
+g <- ggplot(mean_es_with_habitat_count %>%
          mutate(state_region = factor(state_region, levels = c("North Coast",
-                                                          "North Central Coast", 
-                                                          "Central Coast", 
-                                                          "South Coast"))),
+                                                               "North Central Coast", 
+                                                               "Central Coast", 
+                                                               "South Coast"))),
        aes(x = mean_logRR, y = affiliated_mpa)) +
-  geom_point(aes(size = num_habitats)) +
   geom_errorbarh(aes(xmin = mean_logRR - se_logRR, xmax = mean_logRR + se_logRR)) +
+  geom_point(aes(size = num_habitats, fill = mean_logRR, color = mean_logRR)) +  
   facet_grid(cols = vars(target_status), rows = vars(state_region), scales = "free_y", space = "free") +
-  geom_vline(xintercept = 0, linetype = "dashed", color = "red") +  # Add vertical line at x = 0
+  geom_vline(xintercept = 0, linetype = "dashed", color = "grey20") +  # Add vertical line at x = 0
   xlab("Mean Effect Size (log response ratio)") +
   ylab("MPA") +
   scale_size_continuous(name = "Number of \nHabitats") +  # Rename the legend
+  scale_color_gradientn(colors = c("navyblue","grey80", "indianred"),
+                        values = scales::rescale(c(-1,-0.2, 0, 0.1,1.3)),
+                        name = "Effect size") +  
+  scale_fill_gradientn(colors = c("navyblue","grey80", "indianred"),
+                       values = scales::rescale(c(-1,-0.2, 0, 0.1, 1.3)),
+                       name = "Effect size")  +
   theme_minimal() +
   theme(strip.text = element_text(size = 10, face = "bold"),
         strip.background = element_blank(),
         panel.spacing = unit(1, "lines")) +
   theme_bw() + my_theme
+g
 
+ggsave(g, filename=file.path(fig_dir, "Fig2_mpa_effect_size.png"), bg = "white",
+       width=7, height=9, units="in", dpi=600) 
 
 
 
