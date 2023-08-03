@@ -332,6 +332,7 @@ state_labels <- c(expression(italic("Pooled")), "South Coast", "Central Coast", 
 # Create a vector of labels for the state_region scale
 state_labels <- c(expression(italic("Pooled")), "South Coast", "Central Coast", "North Central Coast", "North Coast")
 
+
 g <- ggplot(combined_dat, aes(x = yi, y = state_region, color = target_status)) +
   geom_point(aes(size = n_MPA), shape = 15, position = position_dodge(width = 0.7)) +
   geom_errorbarh(aes(xmin = yi - 1.96 * sqrt(vi), xmax = yi + 1.96 * sqrt(vi)), 
@@ -350,9 +351,10 @@ g <- ggplot(combined_dat, aes(x = yi, y = state_region, color = target_status)) 
   theme(strip.text = element_text(size = 10, face = "bold"),
         strip.background = element_blank(),
         panel.spacing = unit(1, "lines")) +
-  theme_bw() + my_theme
+  theme_bw() + my_theme 
 
 g
+
 
 ggsave(g, filename=file.path(fig_dir, "Fig3_habitat_meta_forestplot.png"), bg = "white",
       width=6, height=7, units="in", dpi=600) 
