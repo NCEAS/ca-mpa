@@ -32,10 +32,10 @@ deep_reef_raw <- read.csv(file.path(datadir, "/monitoring_deep-reef/ROV_Dataset/
 surf_zone_raw <- read.csv(file.path(datadir, "/monitoring_sandy-beach/surf_zone_fish_seine_data.csv")) %>%
   janitor::clean_names()
 
-#load taxonomy lookup table
+#load taxonomy lookup table (combined for all habitats)
 taxon_tab <- read.csv("/home/shares/ca-mpa/data/sync-data/species_traits/processed/species_key.csv")
 
-#load site table
+#load kelp forest site table
 kelp_sites <- read.csv(file.path(datadir, "/monitoring_kelp/MLPA_kelpforest_site_table.4.csv")) %>%
   janitor::clean_names() %>%
   dplyr::select(site, ca_mpa_name_short, mpa_class=site_designation, mpa_designation=site_status)%>%
@@ -48,7 +48,7 @@ regions <- mpa_attributes_gen %>%
   dplyr::select(name, bioregion, region4 = four_region_north_ci) %>%
   mutate(name = tolower(name))
 
-#load defacto SMRs
+#load defacto SMRs 
 data_path <- "/home/shares/ca-mpa/data/sync-data/mpa_traits"
 input_file <- "mpa-attributes.xlsx" 
 defacto_smr_kelp <- readxl::read_excel(file.path(data_path, input_file), sheet=5, skip = 0, na="NA")%>%
@@ -64,13 +64,15 @@ defacto_smr_surf <- readxl::read_excel(file.path(data_path, input_file), sheet=5
   dplyr::select(affiliated_mpa, mpa_defacto_class = mpa_class)
 
 #load lw params
-##This is from the the kelp forest monitoring group, but is incomplete (we will build on this next step below)
+##This is from the the CCFRP monitoring group, but is incomplete (we will build on this next step below)
 params_tab <- read.csv("/home/shares/ca-mpa/data/sync-data/species_traits/processed/fish_lw_parameters_by_species.csv") %>%
                 mutate(ScientificName_accepted = recode(ScientificName_accepted, "Sebastes spp." = "Sebastes spp")) %>%
                 filter(!(is.na(ScientificName_accepted)))
 
 ################################################################################
-#Important --- general criteria for processing biomass. 
+################################################################################
+
+#Important --- general steps for processing biomass. 
 #1. Species w/o size data cannot be converted to biomass, so these get dropped.
 
 #2. In our analyses, we ultimately care about the targeted vs. nontargeted groupings, so 
@@ -79,16 +81,17 @@ params_tab <- read.csv("/home/shares/ca-mpa/data/sync-data/species_traits/proces
 
 #3. For biomass conversion estimates, we elected to use parameters listed by the kelp
 #forest monitoring group, who conducted a literature review for dozens of species. Since the 
-#list is not comprehensive for species found in all group, however, we added parameters
+#list is not comprehensive for species found in all other habitats, we added parameters
 #from fish base. The processing script for this is available here https://github.com/NCEAS/ca-mpa/tree/main/data/species_traits
 
 #4. In some cases, a single SMCA was used as a reference site for two SMRs. 
-# HOW SHOULD WE CALCULATE RESPONSE RATIOS IN THIS CASE?
+# We need to watch out for these. I am not sure how many there are. 
 
-#5. Make sure that MPA pairs are correctly matched in the site tables. 
+#5. Make sure that MPA pairs ('inside' and 'outside') are correctly matched in the site tables. 
 
 ################################################################################
-#prep conversion function
+################################################################################
+#prep biomass conversion function
 
 #define units for conversion
 a_prime_conversion <- tribble(
@@ -137,11 +140,12 @@ bio_fun <- function(data_with_params) {
 ################################################################################
 #process kelp forest
 
-kelp_code <- taxon_tab  %>% filter(habitat=="Kelp forest") %>% rename(taxon_group = level)
-kelp_forest_process1 <- left_join(kelp_forest_raw, kelp_code, by=(c("classcode"="habitat_specific_code")))
+kelp_code <- taxon_tab %>% filter(habitat=="Kelp forest") %>% rename(taxon_group = level) #filter taxonomy 
+kelp_forest_process1 <- left_join(kelp_forest_raw, kelp_code, by=(c("classcode"="habitat_specific_code"))) #join taxonomy with data
 
 #estimate biomass
-kelp_dat <- convert_dat(params_tab, kelp_forest_process1)
+kelp_dat <- convert_dat(params_tab, kelp_forest_process1) #apply unit conversion function
+#apply biomass conversion function
 kelp_out <- bio_fun(kelp_dat) %>% 
   #drop species with missing size
   filter(!(is.na(TL_cm)))%>%
@@ -169,7 +173,7 @@ kelp_out <- bio_fun(kelp_dat) %>%
     classcode == "HEXA" |
     classcode == "PPRO"
     )) %>%
-  #calculate total biomass
+  #calculate total biomass for unit (biomass of all invididuals of the same size)
   mutate(total_biom_g = weight_g*count)%>%
   #select interest vars
   dplyr::select(year, month, day, site, zone, level, transect,
@@ -186,18 +190,21 @@ kelp_fish_counts <- left_join(kelp_fish_counts, regions, by=c("affiliated_mpa"="
 
 
 #add defacto SMRs
+####A note on defacto SMRs --- "mpa_class" = state designated SMR or SMCA. 
+#### "mpa_designation" = whether that site was a reference, SMR, or SMCA. 
 kelp_fish_counts <- left_join(kelp_fish_counts, defacto_smr_kelp, by="affiliated_mpa")
 
 #clean up
-
 kelp_fish_counts_final <- kelp_fish_counts %>% 
                       dplyr::select(year, month, day, affiliated_mpa, 
+                                    #MPA class is the type of MPA: SMR or SMCA
                                     mpa_state_class = mpa_class,
                                     mpa_defacto_class, bioregion, region4,
                                     everything()) %>%
                       filter(!(is.na(mpa_defacto_class)))%>%
                       mutate(mpa_defacto_class = tolower(mpa_defacto_class),
                              mpa_designation = tolower(mpa_designation),
+                             #create defacto designation level. 
                              mpa_defacto_designation = ifelse(mpa_designation == "ref","ref",mpa_defacto_class),
                              mpa_state_class = tolower(mpa_state_class),
                              total_biom_kg = total_biom_g/1000)%>%
@@ -568,8 +575,9 @@ surf_zone_build3 <- left_join(surf_zone_build2, regions, by=c("affiliated_mpa"="
                                     family, genus, species, target_status=targeted,
                                     fish_length, weight_g, total_weight_g, 
                                     count, total_weight_kg) %>%
-                        #drop no species
-                      filter(!(species_code == "NOSP"))
+                        #replace no species with true zero
+                      mutate(total_weight_g = ifelse(species_code == "NOSP",0,total_weight_g),
+                             total_weight_kg = ifelse(species_code == "NOSP",0,total_weight_kg))
 
 
 #write.csv(surf_zone_build3, row.names = F, file.path(outdir,"/biomass_processed/surf_zone_fish_biomass.csv"))  
