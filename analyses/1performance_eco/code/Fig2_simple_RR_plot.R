@@ -164,6 +164,59 @@ g
 
 
 
-ggsave(g, filename=file.path(fig_dir, "Fig2_mpa_effect_size3.png"), bg = "white",
-      width=7, height=9, units="in", dpi=600) 
+#ggsave(g, filename=file.path(fig_dir, "Fig2_mpa_effect_size3.png"), bg = "white",
+   #   width=7, height=9, units="in", dpi=600) 
+
+
+
+
+
+#set the levels of target_status 
+mean_es_with_habitat_count$target_status <- factor(mean_es_with_habitat_count$target_status, levels = c("Targeted", "Nontargeted"))
+
+# Order affiliated_mpa 
+mean_es_with_habitat_count <- mean_es_with_habitat_count %>%
+  group_by(state_region, target_status) %>%
+  arrange(state_region, target_status == "Targeted", desc(-mean_logRR)) %>%
+  mutate(affiliated_mpa = factor(affiliated_mpa, levels = unique(affiliated_mpa)))
+
+g <- ggplot(mean_es_with_habitat_count,
+            aes(x = mean_logRR, y = affiliated_mpa)) +
+  geom_errorbarh(aes(xmin = mean_logRR - se_logRR, xmax = mean_logRR + se_logRR, color = mean_logRR), height = 0) +
+  geom_point(aes(size = num_habitats, fill = mean_logRR, color = mean_logRR)) +  
+  facet_grid(cols = vars(target_status), rows = vars(state_region), scales = "free_y", space = "free") +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "grey20") +  
+  # Add text indicating the total count of MPAs where logRR > 0 and logRR < 0
+  geom_text(data = total_counts,
+            aes(x = Inf, y = -Inf, label = paste("n =", total_gt_0)),
+            color = "indianred", hjust = 1.1, vjust = -0.2, size = 3, show.legend = FALSE) +
+  geom_text(data = total_counts,
+            aes(x = -Inf, y = -Inf, label = paste("n =", total_lt_0)),
+            color = "navyblue", hjust = -0.1, vjust = -0.2, size = 3, show.legend = FALSE) +
+  
+  xlab("Mean effect size (log response ratio)") +
+  ylab("") +
+  scale_size_continuous(name = "No. habitats") +  
+  scale_color_gradientn(colors = c("navyblue","grey80", "indianred"),
+                        values = scales::rescale(c(-1,-0.2, 0, 0.1,1.3)),
+                        name = "Effect size") +  
+  scale_fill_gradientn(colors = c("navyblue","grey80", "indianred"),
+                       values = scales::rescale(c(-1,-0.2, 0, 0.1, 1.3)),
+                       name = "Effect size")  +
+  guides(fill = guide_colorbar(ticks.colour = "black",
+                               frame.colour = "black")) +
+  theme_minimal() +
+  theme(panel.spacing = unit(1, "lines")) +
+  theme_bw() + my_theme
+
+g
+
+
+
+ggsave(g, filename=file.path(fig_dir, "Fig2_mpa_effect_size4.png"), bg = "white",
+       width=7, height=9, units="in", dpi=600) 
+
+
+
+
 
