@@ -31,8 +31,10 @@ ci_orig <- raster::raster(file.path(indir, "CIN_rock/All_CI_N_rock_2m.tif"))
 ci <- raster::projectRaster(from=ci_orig, to=data_all, fun="mean", background=NA, na.rm=T)
 
 # Export
-raster::writeRaster(ci, filename = file.path(outdir, "CI_substrate_10m.tiff"), overwrite=T)
+raster::writeRaster(ci, filename = file.path(outdir, "CI_substrate_10m_avg.tiff"), overwrite=T)
 
 
-
+# Performed reclass in QGIS
+# Reclassify raster with table
+# 0-0.5 = 0, 0.5-1 = 1
 
