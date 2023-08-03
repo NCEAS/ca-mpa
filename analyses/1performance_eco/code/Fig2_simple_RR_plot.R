@@ -44,11 +44,11 @@ forest_dat <- dat %>% filter(age_at_survey > 0) %>%
 #plot mean effect size for each MPA
 
 # Theme
-my_theme <-  theme(axis.text=element_text(size=6, color = "black"),
+my_theme <-  theme(axis.text=element_text(size=8, color = "black"),
                    axis.text.y = element_text(color = "black"),
-                   axis.title=element_text(size=8, color = "black"),
-                   plot.tag=element_text(size= 8, color = "black"), #element_text(size=8),
-                   plot.title =element_text(size=7, face="bold", color = "black"),
+                   axis.title=element_text(size=10, color = "black"),
+                   plot.tag=element_text(size= 10, color = "black"), #element_text(size=8),
+                   plot.title =element_text(size=9, face="bold", color = "black"),
                    # Gridlines 
                    panel.grid.major = element_blank(), 
                    panel.grid.minor = element_blank(),
@@ -58,12 +58,12 @@ my_theme <-  theme(axis.text=element_text(size=6, color = "black"),
                    legend.key = element_blank(),
                    legend.background = element_rect(fill=alpha('blue', 0)),
                    legend.key.height = unit(1, "lines"), 
-                   legend.text = element_text(size = 6, color = "black"),
-                   legend.title = element_text(size = 7, color = "black"),
+                   legend.text = element_text(size = 8, color = "black"),
+                   legend.title = element_text(size = 9, color = "black"),
                    #legend.spacing.y = unit(0.75, "cm"),
                    #facets
                    strip.background = element_blank(),
-                   strip.text = element_text(size = 6 , face="bold", color = "black"),
+                   strip.text = element_text(size = 10 , face="bold", color = "black"),
 )
 
 mean_es <- forest_dat %>% group_by(affiliated_mpa, state_region, target_status) %>%
@@ -77,37 +77,93 @@ habitat_counts <- forest_dat %>%
 
 # Join the habitat_counts with mean_es
 mean_es_with_habitat_count <- mean_es %>%
-  left_join(habitat_counts, by = "affiliated_mpa")
+  left_join(habitat_counts, by = "affiliated_mpa") %>%
+  #fix levels
+  mutate(state_region = factor(str_replace(state_region, "Coast$", "\nCoast"), levels = c("North \nCoast",
+                                                        "North Central \nCoast", 
+                                                        "Central \nCoast", 
+                                                        "South \nCoast")))
 
-g <- ggplot(mean_es_with_habitat_count %>%
-         mutate(state_region = factor(state_region, levels = c("North Coast",
-                                                               "North Central Coast", 
-                                                               "Central Coast", 
-                                                               "South Coast"))),
+
+g <- ggplot(mean_es_with_habitat_count,
        aes(x = mean_logRR, y = affiliated_mpa)) +
-  geom_errorbarh(aes(xmin = mean_logRR - se_logRR, xmax = mean_logRR + se_logRR)) +
+  geom_errorbarh(aes(xmin = mean_logRR - se_logRR, xmax = mean_logRR + se_logRR, color = mean_logRR), height = 0) +
   geom_point(aes(size = num_habitats, fill = mean_logRR, color = mean_logRR)) +  
   facet_grid(cols = vars(target_status), rows = vars(state_region), scales = "free_y", space = "free") +
-  geom_vline(xintercept = 0, linetype = "dashed", color = "grey20") +  # Add vertical line at x = 0
-  xlab("Mean Effect Size (log response ratio)") +
-  ylab("MPA") +
-  scale_size_continuous(name = "Number of \nHabitats") +  # Rename the legend
+  # Add text indicating the number of MPAs where logRR > 0 and logRR < 0
+  geom_text(aes(x = 0.9, label = paste("No. MPAs =", num_habitats[mean_logRR > 0])),
+            color = "red", vjust = -0.2, size = 4, show.legend = FALSE) +
+  geom_text(aes(x = 0.9, label = paste("No. MPAs =", num_habitats[mean_logRR < 0])),
+            color = "black", vjust = 1.2, size = 4, show.legend = FALSE) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "grey20") +  
+  xlab("Mean effect size (log response ratio)") +
+  ylab("") +
+  scale_size_continuous(name = "No. habitats") +  
   scale_color_gradientn(colors = c("navyblue","grey80", "indianred"),
                         values = scales::rescale(c(-1,-0.2, 0, 0.1,1.3)),
                         name = "Effect size") +  
   scale_fill_gradientn(colors = c("navyblue","grey80", "indianred"),
                        values = scales::rescale(c(-1,-0.2, 0, 0.1, 1.3)),
                        name = "Effect size")  +
+  guides(fill = guide_colorbar(ticks.colour = "black",
+                               frame.colour = "black"))+
   theme_minimal() +
-  theme(strip.text = element_text(size = 10, face = "bold"),
-        strip.background = element_blank(),
+  theme(
         panel.spacing = unit(1, "lines")) +
   theme_bw() + my_theme
 g
 
-ggsave(g, filename=file.path(fig_dir, "Fig2_mpa_effect_size.png"), bg = "white",
-       width=7, height=9, units="in", dpi=600) 
+#ggsave(g, filename=file.path(fig_dir, "Fig2_mpa_effect_size2.png"), bg = "white",
+ #      width=7, height=9, units="in", dpi=600) 
 
 
 
+
+
+
+
+
+# Calculate the total count of MPAs where logRR > 0 and logRR < 0
+total_counts <- mean_es_with_habitat_count %>%
+  group_by(target_status, state_region) %>%
+  summarize(total_gt_0 = sum(mean_logRR > 0, na.rm = TRUE),
+            total_lt_0 = sum(mean_logRR < 0, na.rm = TRUE))
+
+g <- ggplot(mean_es_with_habitat_count,
+            aes(x = mean_logRR, y = affiliated_mpa)) +
+  geom_errorbarh(aes(xmin = mean_logRR - se_logRR, xmax = mean_logRR + se_logRR, color = mean_logRR), height = 0) +
+  geom_point(aes(size = num_habitats, fill = mean_logRR, color = mean_logRR)) +  
+  facet_grid(cols = vars(target_status), rows = vars(state_region), scales = "free_y", space = "free") +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "grey20") +  
+  
+  # Add text indicating the total count of MPAs where logRR > 0 and logRR < 0
+  geom_text(data = total_counts,
+            aes(x = Inf, y = -Inf, label = paste("n =", total_gt_0)),
+            color = "indianred", hjust = 1.1, vjust = -0.2, size = 3, show.legend = FALSE) +
+  geom_text(data = total_counts,
+            aes(x = -Inf, y = -Inf, label = paste("n =", total_lt_0)),
+            color = "navyblue", hjust = -0.1, vjust = -0.2, size = 3, show.legend = FALSE) +
+  
+  xlab("Mean effect size (log response ratio)") +
+  ylab("") +
+  scale_size_continuous(name = "No. habitats") +  
+  scale_color_gradientn(colors = c("navyblue","grey80", "indianred"),
+                        values = scales::rescale(c(-1,-0.2, 0, 0.1,1.3)),
+                        name = "Effect size") +  
+  scale_fill_gradientn(colors = c("navyblue","grey80", "indianred"),
+                       values = scales::rescale(c(-1,-0.2, 0, 0.1, 1.3)),
+                       name = "Effect size")  +
+  guides(fill = guide_colorbar(ticks.colour = "black",
+                               frame.colour = "black")) +
+  theme_minimal() +
+  theme(
+    panel.spacing = unit(1, "lines")) +
+  theme_bw() + my_theme
+
+g
+
+
+
+ggsave(g, filename=file.path(fig_dir, "Fig2_mpa_effect_size3.png"), bg = "white",
+      width=7, height=9, units="in", dpi=600) 
 
