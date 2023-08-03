@@ -82,6 +82,7 @@ state_es <- rbind(#res.overall,
              n_MPA = 1)%>% #create dummy number for merge
   dplyr::select(yi = estimate,
                 vi,
+                p.value,
                 habitat,
                 target_status,
                 state_region,
@@ -179,6 +180,7 @@ region_es <- rbind(#res.overall,
              n_MPA = 1)%>% #create dummy number for merge
   dplyr::select(yi = estimate,
                 vi,
+                p.value,
                 habitat,
                 target_status,
                 state_region,
@@ -285,6 +287,7 @@ pool_dat <- pooled_es %>%
          n_MPA = 1)%>% #create dummy number for merge
   dplyr::select(yi = estimate,
                 vi,
+                p.value,
                 habitat,
                 target_status,
                 state_region,
@@ -293,7 +296,8 @@ pool_dat <- pooled_es %>%
 combined_dat <- bind_rows(pool_dat, dat, region_es, state_es, .id = "source") %>%
                 mutate(habitat = factor(habitat),
                        target_status = factor(target_status),
-                       state_region = factor(state_region)
+                       state_region = factor(state_region),
+                       significance = ifelse(p.value < 0.05, "*","")
                        )
 
 
@@ -318,7 +322,7 @@ my_theme <-  theme(axis.text=element_text(size=6, color = "black"),
                    #legend.spacing.y = unit(0.75, "cm"),
                    #facets
                    strip.background = element_blank(),
-                   strip.text = element_text(size = 6 , hjust = 0, face="bold", color = "black")
+                   strip.text = element_text(size = 6 , face="bold", color = "black")
 )
 
 
@@ -326,26 +330,23 @@ combined_dat$habitat <- factor(combined_dat$habitat, levels = c("Surf zone", "Ke
 combined_dat$state_region <- factor(combined_dat$state_region, levels = c("Pooled","South Coast", "Central Coast", "North Central Coast","North Coast"))
 combined_dat$target_status <- factor(combined_dat$target_status, levels = c("Nontargeted", "Targeted"))  # Reversed order
 
-# Create a vector of labels for the state_region scale
+# labels
 state_labels <- c(expression(italic("Pooled")), "South Coast", "Central Coast", "North Central Coast", "North Coast")
-
-# Create a vector of labels for the state_region scale
-state_labels <- c(expression(italic("Pooled")), "South Coast", "Central Coast", "North Central Coast", "North Coast")
-
 
 g <- ggplot(combined_dat, aes(x = yi, y = state_region, color = target_status)) +
   geom_point(aes(size = n_MPA), shape = 15, position = position_dodge(width = 0.7)) +
   geom_errorbarh(aes(xmin = yi - 1.96 * sqrt(vi), xmax = yi + 1.96 * sqrt(vi)), 
-                 position = position_dodge(width = 0.7), height = 0.1) +
+                 position = position_dodge(width = 0.7), height = 0, alpha = 0.5) +
   geom_vline(xintercept = 0, linetype = "dashed", color = "grey") +
   geom_hline(yintercept = which(levels(combined_dat$state_region) == "South Coast") - 0.5, 
-             linetype = "solid", color = "black", size = 0.2) +  # Add horizontal line
-  facet_wrap(~ habitat, scales = "free_y", ncol = 1) +
-  xlab("Effect Size (log response ratio)") +
-  ylab("Region") +
+             linetype = "solid", color = "black", size = 0.2) +  
+  geom_text(aes(label = significance), vjust = -0.2, size = 4, show.legend=FALSE) + 
+  facet_grid(habitat ~ ., scales = "free_y", space = "free_y") +  
+  xlab("Effect size (log response ratio)") +
+  ylab("") +
   scale_color_manual(values = c("navyblue", "indianred"),
-                     name = "Target \nstatus") +  # Custom colors for target_status
-  scale_size_continuous(name = "Number of \nMPAs", range = c(1, 3)) +  # Adjust the size range here (e.g., 1 to 3)
+                     name = "Target status") +  
+  scale_size_continuous(name = "No. MPAs", range = c(1, 3)) +  
   scale_y_discrete(labels = state_labels) +
   theme_minimal() +
   theme(strip.text = element_text(size = 10, face = "bold"),
@@ -356,8 +357,13 @@ g <- ggplot(combined_dat, aes(x = yi, y = state_region, color = target_status)) 
 g
 
 
-ggsave(g, filename=file.path(fig_dir, "Fig3_habitat_meta_forestplot.png"), bg = "white",
+
+ggsave(g, filename=file.path(fig_dir, "Fig3_habitat_meta_forestplot2.png"), bg = "white",
       width=6, height=7, units="in", dpi=600) 
+
+
+
+
 
 
 
