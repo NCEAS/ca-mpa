@@ -51,7 +51,7 @@ my_theme <-  theme(axis.text=element_text(size=6, color = "black"),
                    #legend.spacing.y = unit(0.75, "cm"),
                    #facets
                    strip.background = element_blank(),
-                   strip.text = element_text(size = 6 , hjust = 0, face="bold", color = "black")
+                   strip.text = element_text(size = 6 , hjust = 0, face="plain", color = "black")
 )
 
 # set order
@@ -67,29 +67,112 @@ my_colors <- scale_color_brewer(palette = "Dark2")
 my_fill_colors <- scale_fill_brewer(palette = "Dark2") 
 
 
-g <- ggplot(biomass_build1, aes(x = age_at_survey, y = logRR, color = habitat)) +
+north <- ggplot(biomass_build1 %>% filter(state_region == "North Coast"), aes(x = age_at_survey, y = logRR, color = target_status)) +
   geom_point(alpha = 0.2) +  
-  geom_smooth(aes(fill = habitat), method = "lm", se = TRUE) +  
+  geom_smooth(aes(fill = target_status), method = "lm", se = TRUE) +  
   ggpmisc::stat_poly_eq(formula = y ~ x, 
-               aes(label = paste(#..rr.label.., 
-                                 ..p.value.label.., sep = "*`,`~")), 
-               parse = TRUE,
-               label.x.npc = "right",
-               vstep = 0.05,
-               size=2) + # sets vertical spacing
-  facet_wrap(~state_region, ncol = 2) +
-  labs(
-    x = "MPA age (years)", y = "Log Response Ratio",
-    color = "Habitat",
-    fill = "Habitat") +
+                        aes(label = paste(#..rr.label.., 
+                          ..p.value.label.., sep = "*`,`~")), 
+                        parse = TRUE,
+                        label.x.npc = "right",
+                        vstep = 0.05,
+                        size=2) + # sets vertical spacing
+  facet_wrap(~habitat, ncol = 4, nrow=1) +
+  labs(title = "North Coast",
+    x = "", y = "",
+    color = "Target status",
+    fill = "Target status") +
   theme_bw() +
   my_theme +
   my_colors +
   my_fill_colors
+north
 
 
-ggsave(g, filename=file.path(fig_dir, "Fig4_biomass_trajectories.png"), bg = "white",
-      width=6, height=6, units="in", dpi=600) 
+north_central <- ggplot(biomass_build1 %>% filter(state_region == "North Central Coast"), aes(x = age_at_survey, y = logRR, color = target_status)) +
+  geom_point(alpha = 0.2) +  
+  geom_smooth(aes(fill = target_status), method = "lm", se = TRUE) +  
+  ggpmisc::stat_poly_eq(formula = y ~ x, 
+                        aes(label = paste(#..rr.label.., 
+                          ..p.value.label.., sep = "*`,`~")), 
+                        parse = TRUE,
+                        label.x.npc = "right",
+                        vstep = 0.05,
+                        size=2) + # sets vertical spacing
+  facet_wrap(~habitat, ncol = 4, nrow=1) +
+  labs(title = "North Central Coast",
+       x = "", y = "",
+       color = "Target status",
+       fill = "Target status") +
+  theme_bw() +
+  my_theme +
+  my_colors +
+  my_fill_colors
+north_central
+
+central <- ggplot(biomass_build1 %>% filter(state_region == "Central Coast"), aes(x = age_at_survey, y = logRR, color = target_status)) +
+  geom_point(alpha = 0.2) +  
+  geom_smooth(aes(fill = target_status), method = "lm", se = TRUE) +  
+  ggpmisc::stat_poly_eq(formula = y ~ x, 
+                        aes(label = paste(#..rr.label.., 
+                          ..p.value.label.., sep = "*`,`~")), 
+                        parse = TRUE,
+                        label.x.npc = "right",
+                        vstep = 0.05,
+                        size=2) + # sets vertical spacing
+  facet_wrap(~habitat, ncol = 4, nrow=1) +
+  labs(title = "Central Coast",
+       x = "", y = "",
+       color = "Target status",
+       fill = "Target status") +
+  theme_bw() +
+  my_theme +
+  my_colors +
+  my_fill_colors
+central
+
+south <- ggplot(biomass_build1 %>% filter(state_region == "South Coast"), aes(x = age_at_survey, y = logRR, color = target_status)) +
+  geom_point(alpha = 0.2) +  
+  geom_smooth(aes(fill = target_status), method = "lm", se = TRUE) +  
+  ggpmisc::stat_poly_eq(formula = y ~ x, 
+                        aes(label = paste(#..rr.label.., 
+                          ..p.value.label.., sep = "*`,`~")), 
+                        parse = TRUE,
+                        label.x.npc = "right",
+                        vstep = 0.05,
+                        size=2) + # sets vertical spacing
+  facet_wrap(~habitat, ncol = 4, nrow=1) +
+  labs(title = "South Coast",
+       x = "", y = "",
+       color = "Target status",
+       fill = "Target status") +
+  theme_bw() +
+  my_theme +
+  my_colors +
+  my_fill_colors
+south
+
+
+g <- ggpubr::ggarrange(north, north_central, central, south, ncol=1, common.legend = TRUE,
+                       legend = "right")
+
+g_annotate <- ggpubr::annotate_figure(g,
+                                      bottom = ggpubr::text_grob("MPA age (years)", 
+                                                                 hjust = 4, x = 0.97, size = 10,
+                                                                 vjust=-1),
+                                      left = ggpubr::text_grob("Log response ratio", rot = 90, size = 10, vjust=1))
+g_annotate
+
+
+
+
+ggsave(g_annotate, filename=file.path(fig_dir, "Fig4_biomass_trajectories.png"), bg = "white",
+       width=8, height=9, units="in", dpi=600) 
+
+
+
+
+
 
 
 
