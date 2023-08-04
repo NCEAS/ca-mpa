@@ -16,7 +16,10 @@ require(ggfittext)
 require(ggdendro)
 require(here)
 
-data_path <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/ecological_community_data/year_level_with_envr_vars"
+#Old
+#data_path <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/ecological_community_data/year_level_with_envr_vars"
+
+data_path <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data"
 
 distmat <- load(file.path(data_path, "distance_matrices_BC.rda"))
 group_vars <- load(file.path(data_path, "group_vars.rda"))
@@ -38,29 +41,29 @@ colnames(CCFRP_df) <- c('year','dissim','group')
 
 #kelp_swath 
 kelp_swath_dist <- meandist(kelp_swath_distmat, grouping = kelp_swath_group_vars$year)
-kelp_swath_diag <- diag(kelp_swath_dist[,2:19])
-kelp_swath_df <- data.frame(Year = row.names(kelp_swath_dist[2:19,]), kelp_swath_diag)
+kelp_swath_diag <- diag(kelp_swath_dist[,2:14])
+kelp_swath_df <- data.frame(Year = row.names(kelp_swath_dist[2:14,]), kelp_swath_diag)
 kelp_swath_df$group <- c("kelp_swath")
 colnames(kelp_swath_df) <- c('year','dissim','group')
 
 #kelp_upc
 kelp_upc_dist <- meandist(kelp_upc_distmat, grouping = kelp_upc_group_vars$year)
-kelp_upc_diag <- diag(kelp_upc_dist[,2:22])
-kelp_upc_df <- data.frame(Year = row.names(kelp_upc_dist[2:22,]), kelp_upc_diag)
+kelp_upc_diag <- diag(kelp_upc_dist[,2:14])
+kelp_upc_df <- data.frame(Year = row.names(kelp_upc_dist[2:14,]), kelp_upc_diag)
 kelp_upc_df$group <- c("kelp_upc")
 colnames(kelp_upc_df) <- c('year','dissim','group')
 
 #kelp_invalg
 kelp_invalg_dist <- meandist(kelp_invalg_distmat, grouping = kelp_invalg_group_vars$year)
-kelp_invalg_diag <- diag(kelp_invalg_dist[,2:22])
-kelp_invalg_df <- data.frame(Year = row.names(kelp_invalg_dist[2:22,]), kelp_invalg_diag)
+kelp_invalg_diag <- diag(kelp_invalg_dist[,2:14])
+kelp_invalg_df <- data.frame(Year = row.names(kelp_invalg_dist[2:14,]), kelp_invalg_diag)
 kelp_invalg_df$group <- c("kelp inverts and algae")
 colnames(kelp_invalg_df) <- c('year','dissim','group')
 
 #kelp_fish
 kelp_fish_dist <- meandist(kelp_fish_distmat, grouping = kelp_fish_group_vars$year)
-kelp_fish_diag <- diag(kelp_fish_dist[,2:22])
-kelp_fish_df <- data.frame(Year = row.names(kelp_fish_dist[2:22,]), kelp_fish_diag)
+kelp_fish_diag <- diag(kelp_fish_dist[,2:14])
+kelp_fish_df <- data.frame(Year = row.names(kelp_fish_dist[2:14,]), kelp_fish_diag)
 kelp_fish_df$group <- c("kelp fish")
 colnames(kelp_fish_df) <- c('year','dissim','group')
 
@@ -73,8 +76,8 @@ colnames(deep_reef_df) <- c('year','dissim','group')
 
 #rocky
 rocky_dist <- meandist(rocky_distmat, grouping = rocky_group_vars$year)
-rocky_diag <- diag(rocky_dist[,2:19])
-rocky_df <- data.frame(Year = row.names(rocky_dist[2:19,]), rocky_diag)
+rocky_diag <- diag(rocky_dist[,2:14])
+rocky_df <- data.frame(Year = row.names(rocky_dist[2:14,]), rocky_diag)
 rocky_df$group <- c("rocky intertidal")
 colnames(rocky_df) <- c('year','dissim','group')
 
@@ -83,11 +86,11 @@ colnames(rocky_df) <- c('year','dissim','group')
 
 full_df <- rbind(CCFRP_df,kelp_invalg_df, kelp_fish_df, deep_reef_df, rocky_df)
 
-full_df_2010 <- full_df %>% filter(as.numeric(year)>=2010) %>%
+full_df_2010 <- full_df %>% filter(as.numeric(year)>=2007) %>%
                 group_by(year)%>%
                 dplyr::mutate(ymean=mean(dissim))
 
-dissim_plot <- full_df_2010 %>%
+dissim_plot <- full_df_2007 %>%
   ggplot(aes(x=as.numeric(year), y=dissim, color=group))+
   geom_point(alpha=0.4)+
   geom_line(alpha=0.4)+
@@ -95,7 +98,7 @@ dissim_plot <- full_df_2010 %>%
   #stat_summary(fun=mean, geom="line",colour="black", size=1)+
   annotate("rect", xmin = 2014, xmax = 2016, ymin = -Inf, ymax = Inf,
            alpha = .15, fill='red')+
-  scale_x_continuous(breaks=2010:2020)+
+  scale_x_continuous(breaks=2007:2020)+
   theme_bw() +
   theme(axis.line = element_line(color='black'),
         plot.background = element_blank(),
@@ -833,25 +836,25 @@ sim_rocky <- with(rocky_group_vars, simper(rocky_ord_data, MHW))
 
 # Cluster analysis --------------------------------------------------------
 
-#Filter 2010 and beyond
-CCFRP_10_dist <- meandist(CCFRP_distmat, grouping = CCFRP_group_vars$year)[1:14,1:14]
-kelp_invalg_10_dist <- meandist(kelp_invalg_distmat, grouping = kelp_invalg_group_vars$year)[9:22,9:22]
-kelp_fish_10_dist <- meandist(kelp_fish_distmat, grouping = kelp_fish_group_vars$year)[9:22,9:22]
-deep_reef_10_dist <- meandist(deep_reef_distmat, grouping = deep_reef_group_vars$year)[2:8,2:8]
-rocky_10_dist <- meandist(rocky_distmat, grouping = rocky_group_vars$year)[6:19,6:19]
+#Filter 2007 and beyond
+CCFRP_07_dist <- meandist(CCFRP_distmat, grouping = CCFRP_group_vars$year)[1:14,1:14]
+kelp_invalg_07_dist <- meandist(kelp_invalg_distmat, grouping = kelp_invalg_group_vars$year)[1:14,1:14]
+kelp_fish_07_dist <- meandist(kelp_fish_distmat, grouping = kelp_fish_group_vars$year)[1:14,1:14]
+deep_reef_07_dist <- meandist(deep_reef_distmat, grouping = deep_reef_group_vars$year)[2:8,2:8]
+rocky_07_dist <- meandist(rocky_distmat, grouping = rocky_group_vars$year)[1:14,1:14]
 
 #rocky_dist_un2 <- meandist(rocky_dist_un, grouping = rocky_group_vars$year)[1:14,1:14]
 
 #run cluster analysis and format for plotting
-ccfrp_clust <- hclust(as.dist(CCFRP_10_dist),
+ccfrp_clust <- hclust(as.dist(CCFRP_07_dist),
                                   method="average")
-kelp_invalg_clust <- hclust(as.dist(kelp_invalg_10_dist),
+kelp_invalg_clust <- hclust(as.dist(kelp_invalg_07_dist),
                                   method="average")
-kelp_fish_clust <- hclust(as.dist(kelp_fish_10_dist),
+kelp_fish_clust <- hclust(as.dist(kelp_fish_07_dist),
                                   method="average")
-deep_reef_clust <- hclust(as.dist(deep_reef_10_dist),
+deep_reef_clust <- hclust(as.dist(deep_reef_07_dist),
                                   method="average")
-rocky_clust <- hclust(as.dist(rocky_10_dist),
+rocky_clust <- hclust(as.dist(rocky_07_dist),
                             method="average")
 plot(rocky_clust)
 
@@ -931,7 +934,7 @@ CCFRP <- ggplot() +
   scale_color_manual(values=c('#C0C0C0', '#444444','#4c78b5','#44b89d','#f56969'))+
   labs(color='heatwave period')+
   guides(color="none")+
-  ggtitle("Rocky reef fishes")+
+  ggtitle("Shallow reef")+
   theme(plot.title = element_text(size = 7, face = "bold"))
 
 
@@ -958,7 +961,7 @@ invalg <- ggplot() +
   theme(axis.line.y = element_line(),
         axis.ticks.y = element_line(),
         axis.text.y = element_text(size=6)) +
-  scale_y_continuous(limits = c(0.38, 0.55),
+  scale_y_continuous(limits = c(0.38, 0.58),
                      breaks = seq(0.4, 0.6, by = 0.05)) +
   geom_text(aes(x = x,
                 y = y,
@@ -971,7 +974,7 @@ invalg <- ggplot() +
   scale_color_manual(values=c('#C0C0C0', '#444444','#4c78b5','#44b89d','#f56969'))+
   labs(color='heatwave period')+
   guides(color="none")+
-  ggtitle("Kelp invertebrates and algae")+
+  ggtitle("Kelp forest inverts and algae")+
   theme(plot.title = element_text(size = 7, face = "bold"))
 
 
@@ -1000,8 +1003,8 @@ kelp_fish <- ggplot() +
   theme(axis.line.y = element_line(),
         axis.ticks.y = element_line(),
         axis.text.y = element_text(size=6)) +
-  scale_y_continuous(limits = c(0.185, 0.48),
-                     breaks = seq(0.2, 0.48, by = 0.05)) +
+  scale_y_continuous(limits = c(0.185, 0.50),
+                     breaks = seq(0.2, 0.50, by = 0.05)) +
   geom_text(aes(x = x,
                 y = y,
                 label = label,
@@ -1055,7 +1058,7 @@ deep_reef <- ggplot() +
   scale_color_manual(values=c('#C0C0C0', '#444444','#4c78b5','#44b89d','#f56969'))+
   labs(color='heatwave period')+
   guides(color="none")+
-  ggtitle("Deep reef fishes")+
+  ggtitle("Deep reef")+
   theme(plot.title = element_text(size = 7, face = "bold"))
 
 
@@ -1084,8 +1087,8 @@ rocky <- ggplot() +
   theme(axis.line.y = element_line(),
         axis.ticks.y = element_line(),
         axis.text.y = element_text(size=6)) +
-  scale_y_continuous(limits = c(0.28, 0.4),
-                     breaks = seq(0.3, 0.4, by = 0.05)) +
+  scale_y_continuous(limits = c(0.28, 0.45),
+                     breaks = seq(0.3, 0.45, by = 0.05)) +
   geom_text(aes(x = x,
                 y = y,
                 label = label,
@@ -1108,9 +1111,9 @@ library(ggpubr)
 
 year <- c(2013, 2016, 2020)
 height <- c(1,2,3)
-heatwave_period <- c('before','during','after')
+heatwave_period <- c('Before (2007-2013)','During (2014-2016)','After (2017-2020)')
 legend <- data.frame(year, height, heatwave_period)
-legend$heatwave_period <- factor(legend$heatwave_period, levels=c('before', 'during', 'after')) 
+legend$heatwave_period <- factor(legend$heatwave_period, levels=c('Before (2007-2013)','During (2014-2016)','After (2017-2020)')) 
 
 
 p3 <- ggplot(legend, aes(x = year, y = height, color = heatwave_period))+
@@ -1140,7 +1143,9 @@ dendro_fig2<- annotate_figure(dendro_fig,
                 left = text_grob("Dissimilarity", rot=90, size=8)
 )
 
-ggsave(here::here("analyses", "5community_climate_ecology", "figures", "dendro_cluster2.png"), dendro_fig2, width=6,height=4, bg="white", dpi = 600, units = "in")
+
+ggsave(here::here("analyses", "5community_climate_ecology", "figures", "dendro_cluster4.png"), 
+       dendro_fig2, width=6,height=5, bg="white", dpi = 600, units = "in")
 
 
 

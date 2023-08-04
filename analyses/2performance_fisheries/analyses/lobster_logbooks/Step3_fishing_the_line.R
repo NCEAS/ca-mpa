@@ -40,18 +40,15 @@ data_binned <- data %>%
                       label=seq(0,111.5,0.5), right=F) %>% as.character() %>% as.numeric()) %>% 
   # Summarize
   group_by(dist_catg) %>% 
-  summarize(trap_nights=sum(trap_nights, na.rm=T)) %>% 
+  summarize(nvessels=n_distinct(vessel_id), 
+            trap_nights=sum(trap_nights, na.rm=T)) %>% 
   ungroup()
 
 # Setup theme
-my_theme <-  theme(axis.text=element_text(size=6),
-                   axis.title=element_text(size=8),
-                   legend.text=element_text(size=6),
-                   legend.title=element_text(size=8),
-                   strip.text=element_text(size=8),
-                   plot.title=element_text(size=10),
+my_theme <-  theme(axis.text=element_text(size=8),
+                   axis.title=element_text(size=10),
+                   plot.subtitle=element_text(size=10, face=3),
                    # Gridlines
-                   panel.border = element_blank(),
                    panel.grid.major = element_blank(), 
                    panel.grid.minor = element_blank(),
                    panel.background = element_blank(), 
@@ -61,7 +58,7 @@ my_theme <-  theme(axis.text=element_text(size=6),
 
 
 # Plot data
-g <- ggplot(data_binned, aes(x=dist_catg, y=trap_nights/1e3)) +
+g <- ggplot(data_binned, aes(x=dist_catg, y=trap_nights/1e3, fill=nvessels>=3)) +
   geom_bar(stat="identity") +
   # Labels
   labs(x="Distance from nearest MPA (km)", y="Thousands of trap nights\n(from 2017-2020, cumlatively)") +
@@ -76,6 +73,27 @@ ggsave(g, filename=file.path(plotdir, "FigX_reliable_lobster_fishing_line_bar.pn
        width=6.5, height=5, units="in", dpi=600)
 
 
+
+# Fishing the line (non-conf)
+################################################################################
+
+
+# Plot data
+g <- ggplot(data_binned %>% filter(nvessels>=3), aes(x=dist_catg, y=trap_nights/1e3)) +
+  geom_bar(stat="identity") +
+  # Labels
+  labs(x="Distance from nearest MPA (km)", 
+       y="Thousands of trap nights\n(from 2017-2020, cumlatively)",
+       subtitle = "A few rare bins hidden to comply with rule-of-three") +
+  scale_x_continuous(breaks=seq(0, 110, 5), lim=c(0,30)) +
+  scale_y_continuous(lim=c(0, 500)) +
+  # Theme
+  theme_bw() + my_theme
+g
+
+# Export plot
+ggsave(g, filename=file.path(plotdir, "FigX_reliable_lobster_fishing_line_bar_nonconf.png"), 
+       width=6.5, height=5, units="in", dpi=600)
 
 # Build raster
 ################################################################################

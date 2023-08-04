@@ -30,7 +30,9 @@ library(here)
 #old dir
 #data_path <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/ecological_community_data/year_level_with_envr_vars"
 
-data_path <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data"
+#data_path <- "/Volumes/GoogleDrive/.shortcut-targets-by-id/1kCsF8rkm1yhpjh2_VMzf8ukSPf9d4tqO/MPA Network Assessment: Working Group Shared Folder/data/sync-data/monitoring/processed_data/community_climate_derived_data/Chris_file_share" #Chris
+
+data_path <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data" #Josh
 
 comm_data <- load(file.path(data_path, "comm_data.rda"))
 nmds_scores <- load(file.path(data_path, "bray_nmds_scores.rda"))
@@ -66,6 +68,8 @@ eco_dist <- load(file.path(data_path, "distance_matrices_BC.rda"))
 
 scrs <- as.data.frame(vegan::scores(CCFRP_ord, display="sites"))
 en_coord_cont = as.data.frame(vegan::scores(CCFRP_en, "vectors")) * ordiArrowMul(CCFRP_en, fill=0.05)
+# Relabel the "BT" row name as "SBT"
+rownames(en_coord_cont)[rownames(en_coord_cont) == "BT"] <- "SBT"
 
 scrs <- cbind(as.data.frame(scrs), desig_state=CCFRP_group_vars$desig_state, year=CCFRP_group_vars$year, MHW=CCFRP_group_vars$MHW, region4=CCFRP_group_vars$region4, mpa_designation=CCFRP_group_vars$mpa_designation) #to facilitate computing centroids, add group var
 
@@ -114,7 +118,7 @@ cent$mpa_designation <- recode_factor(cent$mpa_designation, "smr"="MPA")
 cent$mpa_designation <- recode_factor(cent$mpa_designation, "ref"="Reference")
 
 ccfrp_stress <- as.data.frame(CCFRP_ord[["stress"]]) %>% 
-  rename("stress" = 1) %>%
+  dplyr::rename("stress" = 1) %>%
   mutate_at(1, round, 3)
 
 df_ell$mpa_type <- factor(df_ell$mpa_type, level=c("smr","ref"))
@@ -128,10 +132,11 @@ cent$MHW <- recode_factor(cent$MHW, "during"="During")
 cent$MHW <- recode_factor(cent$MHW, "after"="After")
 cent$MHW <- factor(cent$MHW, level=c("Before","During","After"))
 cent$mpa_designation <- factor(cent$mpa_designation, level=c("MPA","Reference"))
+cent$mpa_designation <- recode(cent$mpa_designation, "MPA" = "Inside", "Reference" = "Outside")
 
-
-my_theme <-  theme(axis.text=element_text(size=8),
-                   axis.text.y = element_text(angle = 90, hjust = 0.5),
+my_theme <-  theme(axis.text=element_text(size=10),
+                   axis.text.y = element_text(hjust = 0.5, color = "black"),
+                   axis.text.x = element_text(color = "black"),
                    axis.title=element_text(size=10),
                    plot.tag=element_blank(), #element_text(size=8),
                    plot.title =element_text(size=9, face="bold"),
@@ -142,11 +147,11 @@ my_theme <-  theme(axis.text=element_text(size=8),
                    axis.line = element_line(colour = "black"),
                    # Legend
                    legend.key = element_blank(),
-                   legend.text=element_text(size=8),
-                   legend.title=element_text(size=10),
+                   legend.text=element_text(size=9),
+                   legend.title=element_text(size=11),
                    legend.background = element_rect(fill=alpha('blue', 0)),
                    #facets
-                   strip.text = element_text(size=6),
+                   strip.text = element_text(size=7),
                    #margins
                    #plot.margin=unit(c(0.01,0.01,0.01,0.01),"cm")
 )
@@ -167,12 +172,16 @@ CCFRP<- ggplot(data=cent, aes(NMDS1, NMDS2)) +
             )+           #line connecting groups (years)
    geom_segment(aes(x = 0, y = 0, xend = (NMDS1), yend = (NMDS2)), 
        data = en_coord_cont, size =0.5, alpha = 0.5,
-       arrow = arrow(length = unit(0.25, "cm")), colour = "grey50", lwd=0.5)+
-     geom_text(data = en_coord_cont, aes(x = (NMDS1), y = (NMDS2)), colour = "black", 
-       fontface = "bold", label = row.names(en_coord_cont), position=position_jitter(width=0.01,height=0.01), size=2.8) + 
-  ggtitle("Rocky reef fishes")+
-  scale_color_manual(values=c('#004D40','#D81B60','#1E88E5',
-                              '#004D40','#D81B60','#1E88E5'))+
+       arrow = arrow(length = unit(0.25, "cm")), colour = "grey30", lwd=0.5)+
+     geom_text(data = en_coord_cont, aes(x = ifelse(NMDS1 > 0, NMDS1 + 0.03, NMDS1), #adjust BEUTI label
+                                         y = ifelse(NMDS1 < 0, NMDS2 + 0.01,
+                                                    ifelse(row.names(en_coord_cont) == "SST", NMDS2-0.02, NMDS2))), #adjust MOCI
+               colour = "black", 
+       fontface = "bold", label = row.names(en_coord_cont), #position=position_jitter(width=0.01,height=0.01), 
+       size=2.8) + 
+  ggtitle("Shallow reef")+
+  scale_color_manual(values=c('#1B9E77','#FF7F00','#984EA3',
+                              '#1B9E77','#FF7F00','#984EA3'))+
   labs(shape="Site type",color='Heatwave period') +
   annotate(geom="text", 
            x=0.115, 
@@ -198,7 +207,9 @@ print(CCFRP)
 
 #get NMDS scores
 scrs <- as.data.frame(vegan::scores(kelp_invalg_ord, display="site"))
-en_coord_cont = as.data.frame(vegan::scores(kelp_invalg_en, "vectors")) * ordiArrowMul(kelp_invalg_en, fill=0.15)
+en_coord_cont = as.data.frame(vegan::scores(kelp_invalg_en, "vectors")) * ordiArrowMul(kelp_invalg_en, fill=0.13)
+# Relabel the "BT" row name as "SBT"
+rownames(en_coord_cont)[rownames(en_coord_cont) == "BT"] <- "SBT"
 
 scrs <- cbind(as.data.frame(scrs), desig_state=kelp_invalg_group_vars$desig_state, year=kelp_invalg_group_vars$year, region4=kelp_invalg_group_vars$region4, mpa_designation=kelp_invalg_group_vars$mpa_defacto_designation, MHW=kelp_invalg_group_vars$MHW) #to facilitate computing centroids, add group var
 
@@ -230,15 +241,29 @@ df_ell <- df_ell %>%
 
 
 #reorder for plotting
+#reorder for plotting
 cent$mpa_designation <- factor(cent$mpa_designation, level=c("smr","ref"))
 cent$MHW <- factor(cent$MHW, level=c("before","during","after"))
 
+
+cent$mpa_designation <- recode_factor(cent$mpa_designation, "smr"="MPA")
+cent$mpa_designation <- recode_factor(cent$mpa_designation, "ref"="Reference")
+
 kelp_invalg_stress <- as.data.frame(kelp_invalg_ord[["stress"]]) %>% 
-  rename("stress" = 1) %>%
+  dplyr::rename("stress" = 1) %>%
   mutate_at(1, round, 3)
 
-cent$mpa_designation <- recode_factor(cent$mpa_designation, "smr"="In")
-cent$mpa_designation <- recode_factor(cent$mpa_designation, "ref"="Out")
+df_ell$mpa_type <- factor(df_ell$mpa_type, level=c("smr","ref"))
+df_ell$MHW <- recode_factor(df_ell$MHW, "before"="Before")
+df_ell$MHW <- recode_factor(df_ell$MHW, "during"="During")
+df_ell$MHW <- recode_factor(df_ell$MHW, "after"="After")
+df_ell$MHW <- factor(df_ell$MHW, level=c("Before","During","After"))
+
+cent$MHW <- recode_factor(cent$MHW, "before"="Before")
+cent$MHW <- recode_factor(cent$MHW, "during"="During")
+cent$MHW <- recode_factor(cent$MHW, "after"="After")
+cent$MHW <- factor(cent$MHW, level=c("Before","During","After"))
+cent$mpa_designation <- factor(cent$mpa_designation, level=c("MPA","Reference"))
 
 df_ell$mpa_type <- factor(df_ell$mpa_type, level=c("smr","ref"))
 
@@ -249,12 +274,16 @@ kelp_invalg<- ggplot(data=cent, aes(NMDS1, NMDS2)) +
             )+           #line connecting groups (years)
    geom_segment(aes(x = 0, y = 0, xend = (NMDS1), yend = (NMDS2)), 
        data = en_coord_cont, size =0.5, alpha = 0.5,
-       arrow = arrow(length = unit(0.25, "cm")), colour = "grey50", lwd=0.5)+
-     geom_text(data = en_coord_cont, aes(x = (NMDS1), y = (NMDS2)), colour = "black", 
-       fontface = "bold", label = row.names(en_coord_cont), position=position_jitter(width=0.02,height=0.02), size=2.8) + 
-  ggtitle("Kelp invertebrates and algae")+
-  scale_color_manual(values=c('#004D40','#D81B60','#1E88E5',
-                              '#004D40','#D81B60','#1E88E5'))+
+       arrow = arrow(length = unit(0.25, "cm")), colour = "grey30", lwd=0.5)+
+     geom_text(data = en_coord_cont, aes(x = ifelse(NMDS1 > 0, NMDS1 - 0.02, NMDS1+0.01), #adjust BEUTI label
+                                         y = ifelse(NMDS1 > 0, NMDS2 + 0.03, #adjust SBT and SST
+                                                    ifelse(NMDS1 < 0 & NMDS2 >0, NMDS2+0.02, NMDS2-0.02))), #adjust MOCI
+               colour = "black", 
+       fontface = "bold", label = row.names(en_coord_cont), #position=position_jitter(width=0.01,height=0.01), 
+       size=2.8) + 
+  ggtitle("Kelp forest inverts and algae")+
+  scale_color_manual(values=c('#1B9E77','#FF7F00','#984EA3',
+                              '#1B9E77','#FF7F00','#984EA3'))+
   labs(shape="site type",color='heatwave period') +
   annotate(geom="text", 
            x=0.085, 
@@ -277,6 +306,8 @@ print(kelp_invalg)
 #get NMDS scores
 scrs <- as.data.frame(vegan::scores(kelp_fish_ord, display="site"))
 en_coord_cont = as.data.frame(vegan::scores(kelp_fish_en, "vectors")) * ordiArrowMul(kelp_fish_en, fill=0.07)
+# Relabel the "BT" row name as "SBT"
+rownames(en_coord_cont)[rownames(en_coord_cont) == "BT"] <- "SBT"
 
 scrs <- cbind(as.data.frame(scrs), desig_state=kelp_fish_group_vars$desig_state, year=kelp_fish_group_vars$year, region4=kelp_fish_group_vars$region4, mpa_designation=kelp_fish_group_vars$mpa_defacto_designation, MHW=kelp_fish_group_vars$MHW) #to facilitate computing centroids, add group var
 
@@ -309,12 +340,25 @@ df_ell <- df_ell %>%
 cent$mpa_designation <- factor(cent$mpa_designation, level=c("smr","ref"))
 cent$MHW <- factor(cent$MHW, level=c("before","during","after"))
 
+
+cent$mpa_designation <- recode_factor(cent$mpa_designation, "smr"="MPA")
+cent$mpa_designation <- recode_factor(cent$mpa_designation, "ref"="Reference")
+
 kelp_fish_stress <- as.data.frame(kelp_fish_ord[["stress"]]) %>% 
-  rename("stress" = 1) %>%
+  dplyr::rename("stress" = 1) %>%
   mutate_at(1, round, 3)
 
-cent$mpa_designation <- recode_factor(cent$mpa_designation, "smr"="In")
-cent$mpa_designation <- recode_factor(cent$mpa_designation, "ref"="Out")
+df_ell$mpa_type <- factor(df_ell$mpa_type, level=c("smr","ref"))
+df_ell$MHW <- recode_factor(df_ell$MHW, "before"="Before")
+df_ell$MHW <- recode_factor(df_ell$MHW, "during"="During")
+df_ell$MHW <- recode_factor(df_ell$MHW, "after"="After")
+df_ell$MHW <- factor(df_ell$MHW, level=c("Before","During","After"))
+
+cent$MHW <- recode_factor(cent$MHW, "before"="Before")
+cent$MHW <- recode_factor(cent$MHW, "during"="During")
+cent$MHW <- recode_factor(cent$MHW, "after"="After")
+cent$MHW <- factor(cent$MHW, level=c("Before","During","After"))
+cent$mpa_designation <- factor(cent$mpa_designation, level=c("MPA","Reference"))
 
 df_ell$mpa_type <- factor(df_ell$mpa_type, level=c("smr","ref"))
 
@@ -325,12 +369,16 @@ kelp_fish<- ggplot(data=cent, aes(NMDS1, NMDS2)) +
             )+           #line connecting groups (years)
    geom_segment(aes(x = 0, y = 0, xend = (NMDS1), yend = (NMDS2)), 
        data = en_coord_cont, size =0.5, alpha = 0.5,
-       arrow = arrow(length = unit(0.25, "cm")), colour = "grey50", lwd=0.5)+
-     geom_text(data = en_coord_cont, aes(x = (NMDS1), y = (NMDS2)), colour = "black", 
-       fontface = "bold", label = row.names(en_coord_cont), position=position_jitter(width=0.01,height=0.01), size=2.8) + 
+       arrow = arrow(length = unit(0.25, "cm")), colour = "grey30", lwd=0.5)+
+    geom_text(data = en_coord_cont, aes(x = ifelse(NMDS1 > 0, NMDS1, NMDS1+0.01), 
+                                         y = ifelse(NMDS1 > 0, NMDS2 + 0.016, 
+                                                    ifelse(NMDS1 < 0, NMDS2-0.016, NMDS2 + 0.016))), #adjust MOCI
+               colour = "black", 
+       fontface = "bold", label = row.names(en_coord_cont), #position=position_jitter(width=0.01,height=0.01), 
+       size=2.8) + 
   ggtitle("Kelp forest fishes")+
- scale_color_manual(values=c('#004D40','#D81B60','#1E88E5',
-                              '#004D40','#D81B60','#1E88E5'))+
+ scale_color_manual(values=c('#1B9E77','#FF7F00','#984EA3',
+                              '#1B9E77','#FF7F00','#984EA3'))+
   labs(shape="site type",color='heatwave period') +
   annotate(geom="text", 
            x=0.05, 
@@ -351,7 +399,8 @@ print(kelp_fish)
 
 #get NMDS scores
 scrs <- as.data.frame(vegan::scores(deep_reef_ord, display="site"))
-en_coord_cont = as.data.frame(vegan::scores(deep_reef_en, "vectors")) * ordiArrowMul(deep_reef_en, fill=0.18)
+en_coord_cont = as.data.frame(vegan::scores(deep_reef_en, "vectors")) * ordiArrowMul(deep_reef_en, fill=0.16)
+rownames(en_coord_cont)[rownames(en_coord_cont) == "BT"] <- "SBT"
 
 scrs <- cbind(as.data.frame(scrs), desig_state=deep_reef_group_vars$desig_state, year=deep_reef_group_vars$year, region4=deep_reef_group_vars$region4, mpa_designation=deep_reef_group_vars$mpa_defacto_designation, MHW=deep_reef_group_vars$MHW) #to facilitate computing centroids, add group var
 
@@ -385,12 +434,24 @@ cent$mpa_designation <- factor(cent$mpa_designation, level=c("smr","ref"))
 cent$MHW <- factor(cent$MHW, level=c("before","during","after"))
 
 
+cent$mpa_designation <- recode_factor(cent$mpa_designation, "smr"="MPA")
+cent$mpa_designation <- recode_factor(cent$mpa_designation, "ref"="Reference")
+
 deep_reef_stress <- as.data.frame(deep_reef_ord[["stress"]]) %>% 
-  rename("stress" = 1) %>%
+  dplyr::rename("stress" = 1) %>%
   mutate_at(1, round, 3)
 
-cent$mpa_designation <- recode_factor(cent$mpa_designation, "smr"="In")
-cent$mpa_designation <- recode_factor(cent$mpa_designation, "ref"="Out")
+df_ell$mpa_type <- factor(df_ell$mpa_type, level=c("smr","ref"))
+df_ell$MHW <- recode_factor(df_ell$MHW, "before"="Before")
+df_ell$MHW <- recode_factor(df_ell$MHW, "during"="During")
+df_ell$MHW <- recode_factor(df_ell$MHW, "after"="After")
+df_ell$MHW <- factor(df_ell$MHW, level=c("Before","During","After"))
+
+cent$MHW <- recode_factor(cent$MHW, "before"="Before")
+cent$MHW <- recode_factor(cent$MHW, "during"="During")
+cent$MHW <- recode_factor(cent$MHW, "after"="After")
+cent$MHW <- factor(cent$MHW, level=c("Before","During","After"))
+cent$mpa_designation <- factor(cent$mpa_designation, level=c("MPA","Reference"))
 
 df_ell$mpa_type <- factor(df_ell$mpa_type, level=c("smr","ref"))
 
@@ -401,11 +462,15 @@ deep_reef<- ggplot(data=cent, aes(NMDS1, NMDS2)) +
             )+           #line connecting groups (years)
    geom_segment(aes(x = 0, y = 0, xend = (NMDS1), yend = (NMDS2)), 
        data = en_coord_cont, size =0.5, alpha = 0.5,
-       arrow = arrow(length = unit(0.25, "cm")), colour = "grey50", lwd=0.5)+
-     geom_text(data = en_coord_cont, aes(x = (NMDS1), y = (NMDS2)), colour = "black", 
-       fontface = "bold", label = row.names(en_coord_cont), position=position_jitter(width=0.01,height=0.02), size=2.8) + 
-  ggtitle("Deep reef fishes")+
-  scale_color_manual(values=c('#004D40','#D81B60','#1E88E5'))+
+       arrow = arrow(length = unit(0.25, "cm")), colour = "grey30", lwd=0.5)+
+     geom_text(data = en_coord_cont, aes(x = ifelse(NMDS1 < 0, NMDS1 +0.035, NMDS1+0.01), 
+                                         y = ifelse(NMDS2 < 0, NMDS2 - 0.02, NMDS2 + 0.015)), #adjust MOCI
+               colour = "black", 
+       fontface = "bold", label = row.names(en_coord_cont), #position=position_jitter(width=0.01,height=0.01), 
+       size=2.8) + 
+  ggtitle("Deep reef")+
+  scale_color_manual(values=c('#1B9E77','#FF7F00','#984EA3',
+                              '#1B9E77','#FF7F00','#984EA3'))+
   labs(shape="site type",color='heatwave period') +
   #theme(text = element_text(12))+
   annotate(geom="text", 
@@ -428,7 +493,8 @@ print(deep_reef)
 
 #get NMDS scores
 scrs <- as.data.frame(vegan::scores(rocky_ord, display="site"))
-en_coord_cont = as.data.frame(vegan::scores(rocky_en, "vectors")) * ordiArrowMul(rocky_en, fill=0.1)
+en_coord_cont = as.data.frame(vegan::scores(rocky_en, "vectors")) * ordiArrowMul(rocky_en, fill=0.1) 
+en_coord_cont$envr <- rownames(en_coord_cont)
 
 scrs <- cbind(as.data.frame(scrs), desig_state=rocky_group_vars$desig_state, year=rocky_group_vars$year, region4=rocky_group_vars$region4, mpa_designation=rocky_group_vars$mpa_designation, MHW=rocky_group_vars$MHW) #to facilitate computing centroids, add group var
 
@@ -462,12 +528,24 @@ cent$mpa_designation <- factor(cent$mpa_designation, level=c("smr","ref"))
 cent$MHW <- factor(cent$MHW, level=c("before","during","after"))
 
 
+cent$mpa_designation <- recode_factor(cent$mpa_designation, "smr"="MPA")
+cent$mpa_designation <- recode_factor(cent$mpa_designation, "ref"="Reference")
+
 rocky_stress <- as.data.frame(rocky_ord[["stress"]]) %>% 
-  rename("stress" = 1) %>%
+  dplyr::rename("stress" = 1) %>%
   mutate_at(1, round, 3)
 
-cent$mpa_designation <- recode_factor(cent$mpa_designation, "smr"="In")
-cent$mpa_designation <- recode_factor(cent$mpa_designation, "ref"="Out")
+df_ell$mpa_type <- factor(df_ell$mpa_type, level=c("smr","ref"))
+df_ell$MHW <- recode_factor(df_ell$MHW, "before"="Before")
+df_ell$MHW <- recode_factor(df_ell$MHW, "during"="During")
+df_ell$MHW <- recode_factor(df_ell$MHW, "after"="After")
+df_ell$MHW <- factor(df_ell$MHW, level=c("Before","During","After"))
+
+cent$MHW <- recode_factor(cent$MHW, "before"="Before")
+cent$MHW <- recode_factor(cent$MHW, "during"="During")
+cent$MHW <- recode_factor(cent$MHW, "after"="After")
+cent$MHW <- factor(cent$MHW, level=c("Before","During","After"))
+cent$mpa_designation <- factor(cent$mpa_designation, level=c("MPA","Reference"))
 
 df_ell$mpa_type <- factor(df_ell$mpa_type, level=c("smr","ref"))
 
@@ -479,11 +557,14 @@ rocky<- ggplot(data=cent, aes(NMDS1, NMDS2)) +
             )+           #line connecting groups (years)
    geom_segment(aes(x = 0, y = 0, xend = (NMDS1), yend = (NMDS2)), 
        data = en_coord_cont, size =0.5, alpha = 0.5,
-       arrow = arrow(length = unit(0.25, "cm")), colour = "grey50", lwd=0.5)+
-     geom_text(data = en_coord_cont, aes(x = (NMDS1), y = (NMDS2)), colour = "black", 
-       fontface = "bold", label = row.names(en_coord_cont), position=position_jitter(width=0.01,height=0.01), size=2.8) + 
+       arrow = arrow(length = unit(0.25, "cm")), colour = "grey30", lwd=0.5)+
+     geom_text(data = en_coord_cont, aes(x = ifelse(NMDS1 > 0, NMDS1 - 0.03, NMDS1 + 0.01), 
+                                         y = ifelse(NMDS2 > 0, NMDS2 + 0.01, NMDS2)), colour = "black", 
+       fontface = "bold", label = row.names(en_coord_cont), #position=position_jitter(width=0.01,height=0.01), 
+       size=2.8) + 
   ggtitle("Rocky intertidal")+
-  scale_color_manual(values=c('#004D40','#D81B60','#1E88E5'))+
+  scale_color_manual(values=c('#1B9E77','#FF7F00','#984EA3',
+                              '#1B9E77','#FF7F00','#984EA3'))+
   labs(shape="site type",color='heatwave period') +
   #theme(text = element_text(12))+
     annotate(geom="text", 
@@ -519,90 +600,11 @@ cplot <- cowplot::plot_grid(
 print(cplot)
 
 
-cowplot::save_plot(here::here("analyses", "5community_climate_ecology", "figures", "community_structure_central5.png"), cplot, bg="white",dpi = 600, units = "in", base_width=8.5, base_height = 6)
+cowplot::save_plot(here::here("analyses", "5community_climate_ecology", "figures", "Fig2_NMDS_new.png"), cplot, bg="white",dpi = 600, units = "in", base_width=8.5, base_height = 6)
 
 
 
 ```
-
-
-#####test ordiplot 3D
-```{r}
-
-#prep
-scrs <- as.data.frame(vegan::scores(CCFRP_ord, display="sites"))
-en_coord_cont = as.data.frame(vegan::scores(CCFRP_en, "vectors")) * ordiArrowMul(CCFRP_en, fill=0.2)
-
-scrs <- cbind(as.data.frame(scrs), desig_state=CCFRP_group_vars$desig_state, year=CCFRP_group_vars$year, MHW=CCFRP_group_vars$MHW, region4=CCFRP_group_vars$region4, mpa_designation=CCFRP_group_vars$mpa_designation) #to facilitate computing centroids, add group var
-
-scrs$region4 <- factor(scrs$region4, level = c("north","central","north islands","south")) #set order
-scrs$MHW <- factor(scrs$MHW, level = c("before","during","after")) #set order
-scrs$mpa_designation <- factor(scrs$mpa_designation, level = c("smr","ref")) #set order
-
-
-cent <- aggregate(cbind(NMDS1, NMDS2, NMDS3) ~ MHW+region4+mpa_designation, data = scrs, FUN = mean) #computes centroids by MHW and region
-
-
-#prep plot
-cent1 <- cent%>%
-          mutate(centroid_type = paste(mpa_designation, MHW))
-
-ef <- envfit(CCFRP_ord ~ SST + CUTI + BEUTI + MOCI, data = CCFRP_envr_vars, choices=1:3)
-
-
-
-rownames(cent1) <- cent1$centroid_type
-  
-
-scrs <- scores(CCFRP_ord, display="sites")
-
-
-
-
-#plot
-#png("/home/joshsmith/CA_MPA_Project/ca-mpa/analyses/5community_climate_ecology/figures/ccfrp_3d.png", width = 2400, height = 2400, res=300)
-
-p1 <- ordiplot3d(cent1[,4:6], type="h",
-                  scaling = "symmetric",
-                  envfit=ef, arr.len = 0.1,pch=16, col=cent1$MHW,
-                 #angle=60, 
-                 ax.col = "black"
-                 )
-identify(p1, "arrows", col="blue")
-text(p1, "arrows", col="blue", pos=3)
-#ordilabel(p1$arrows*1.5)
-text(p1$xyz.convert(cent1[,4:6]), rownames(cent1))
-
-
-#dynamic 3D plot
-ordirgl(cent1[,4:6], display = "sites", choices = 1:3, type = "t", col = cent1$MHW,
-ax.col = "red", arr.col = "purple", envfit=ef, alpha=0.1)
-orgltext(cent1[,4:6], display = "sites", col=c("black"))
-with(CCFRP_envr_vars, orglellipse(CCFRP_ord, CCFRP_group_vars$desig_state, col = 1:3, kind = "se", conf = 0.95,
-scaling = "sites"))
-rgl.bg(color="grey")
-rglwidget()
-
-browseURL(paste("file://", writeWebGL(dir=file.path("/home/joshsmith/CA_MPA_Project/ca-mpa/analyses/5community_climate_ecology/figures/", "webGL.html"), width=700), sep=""))
-
-
-
-#plot(ef,arrow.mul=1, col="blue")
-#points(p1, "points", pch=16, col=cent1$MHW, cex=2)
-
-dev.off()
-
-
-
-p2 <- with(CCFRP_envr_vars, ordiplot3d(CCFRP_ord, type="n", angle=170))
-with(CCFRP_envr_vars, ordihull(p2, CCFRP_group_vars$MHW, col= 1:4, draw="poly"))
-
-
-
-
-```
-
-
 
 
 **PART 1.2 COMMUNITY TRAJECTORY OVER TIME**
@@ -623,24 +625,61 @@ scrs$mpa_designation <- factor(scrs$mpa_designation, level = c("smr","ref")) #se
 
 cent <- aggregate(cbind(NMDS1, NMDS2) ~ year+MHW+region4+mpa_designation, data = scrs, FUN = mean) #computes centroids by MHW and region
 
+my_theme <-  theme(axis.text=element_text(size=8),
+                   #axis.text.y = element_text(angle = 90, hjust = 0.5),
+                   axis.title=element_text(size=10),
+                   plot.tag=element_blank(), #element_text(size=8),
+                   plot.title =element_text(size=9, face="bold"),
+                   # Gridlines
+                   panel.grid.major = element_blank(), 
+                   panel.grid.minor = element_blank(),
+                   panel.background = element_blank(), 
+                   axis.line = element_line(colour = "black"),
+                   # Legend
+                   legend.key = element_blank(),
+                   legend.text=element_text(size=8),
+                   legend.title=element_text(size=10),
+                   legend.background = element_rect(fill=alpha('blue', 0)),
+                   #facets
+                   strip.text = element_text(size=6),
+                   #margins
+                   #plot.margin=unit(c(0.01,0.01,0.01,0.01),"cm")
+)
 
 
 
-CCFRP_trajectory<- ggplot(data=cent, aes(NMDS1, NMDS2)) +
-  #geom_segment(data = segs,
-               #mapping = aes(xend = oNMDS1, yend = oNMDS2)) + #spiders
+CCFRP_trajectory<- ggplot(data=cent %>%
+                            mutate(mpa_designation = recode(mpa_designation, 
+                                                            "smr" = "Inside",
+                                                            "ref" = "Outside"),
+                                   MHW = recode(MHW, 
+                                                "before" = "Before",
+                                                "during" = "During",
+                                                "after" = "After"),
+                                   year_lab = ifelse(year == 2007 | 
+                                                       #year == 2014 |
+                                                       #year == 2017 |
+                                                       year == 2020, year, NA))
+                            , aes(NMDS1, NMDS2)) +
   geom_point(aes(shape=MHW, color=mpa_designation), size=4) +                           #centroids
-  geom_path(data=cent, aes(NMDS1, NMDS2, group=mpa_designation, color=mpa_designation), size = 0.5, linetype=1 #aes(color=year)
-            )+           #line connecting groups (years)
-  ggtitle("CCFRP")+
-  scale_color_manual(values=c('#EB6977','#13A0DD'))+
+  geom_path(aes(NMDS1, NMDS2, color= mpa_designation), size = 0.5, linetype=1 
+            )+         
+  ggtitle("Shallow reef")+
+  scale_color_manual(name = "Site type", values=c('#D81B60','#1E88E5'))+
   theme(strip.text = element_text(size=18, face="bold"))+
   theme(plot.title = element_text(size=16, face="bold"))+
-  theme(text = element_text(20))
-  #geom_text(position=position_jitter(width=0.01, height=0.05))
-
+  theme(text = element_text(20))+
+  labs(shape="Heatwave period",color='Site type')+
+  ggrepel::geom_label_repel(aes(label = year_lab),
+                  box.padding   = 1, 
+                  point.padding = 0.1,
+                  segment.color = 'grey50',
+                  max.overlaps=Inf,
+                  size=3) +
+  theme_bw()+my_theme
 
 CCFRP_trajectory
+
 
 ```
 
@@ -660,19 +699,36 @@ scrs$mpa_designation <- factor(scrs$mpa_designation, level = c("smr","ref")) #se
 
 cent <- aggregate(cbind(NMDS1, NMDS2) ~ year+MHW+region4+mpa_designation, data = scrs, FUN = mean) #computes centroids by MHW and region
 
-kelp_invalg_trajectory<- ggplot(data=cent, aes(NMDS1, NMDS2, label=year)) +
-  #geom_segment(data = segs,
-               #mapping = aes(xend = oNMDS1, yend = oNMDS2)) + #spiders
+kelp_invalg_trajectory<- ggplot(data=cent %>%
+                            mutate(mpa_designation = recode(mpa_designation, 
+                                                            "smr" = "Inside",
+                                                            "ref" = "Outside"),
+                                   MHW = recode(MHW, 
+                                                "before" = "Before",
+                                                "during" = "During",
+                                                "after" = "After"),
+                                   year_lab = ifelse(year == 2007 | 
+                                                       #year == 2014 |
+                                                       #year == 2017 |
+                                                       year == 2020, year, NA))
+                            , aes(NMDS1, NMDS2)) +
   geom_point(aes(shape=MHW, color=mpa_designation), size=4) +                           #centroids
-  geom_path(data=cent, aes(NMDS1, NMDS2, group=mpa_designation, color=mpa_designation), size = 0.5, linetype=1 #aes(color=year)
-            )+           #line connecting groups (years)
- 
-  ggtitle("kelp swath")+
-  scale_color_manual(values=c('#EB6977','#13A0DD'))+
+  geom_path(aes(NMDS1, NMDS2, color= mpa_designation), size = 0.5, linetype=1 
+            )+         
+  ggtitle("Kelp forest inverts and algae")+
+  scale_color_manual(name = "Site type", values=c('#D81B60','#1E88E5'))+
   theme(strip.text = element_text(size=18, face="bold"))+
   theme(plot.title = element_text(size=16, face="bold"))+
-  theme(text = element_text(20))
-  #geom_text(position=position_jitter(width=0.01, height=0.05))
+  theme(text = element_text(20))+
+  labs(shape="Heatwave period",color='Site type')+
+  ggrepel::geom_label_repel(aes(label = year_lab),
+                  box.padding   = 1, 
+                  point.padding = 0.1,
+                  segment.color = 'grey50',
+                  max.overlaps=Inf,
+                  size=3) +
+  theme_bw()+my_theme
+
 
 
 kelp_invalg_trajectory
@@ -695,22 +751,41 @@ scrs$mpa_designation <- factor(scrs$mpa_designation, level = c("smr","ref")) #se
 
 cent <- aggregate(cbind(NMDS1, NMDS2) ~ year+MHW+region4+mpa_designation, data = scrs, FUN = mean) #computes centroids by MHW and region
 
-kelp_fish_trajectory<- ggplot(data=cent, aes(NMDS1, NMDS2, label=year)) +
-  #geom_segment(data = segs,
-               #mapping = aes(xend = oNMDS1, yend = oNMDS2)) + #spiders
+kelp_fish_trajectory<- ggplot(data=cent %>%
+                            mutate(mpa_designation = recode(mpa_designation, 
+                                                            "smr" = "Inside",
+                                                            "ref" = "Outside"),
+                                   MHW = recode(MHW, 
+                                                "before" = "Before",
+                                                "during" = "During",
+                                                "after" = "After"),
+                                   year_lab = ifelse(year == 2007 | 
+                                                       #year == 2014 |
+                                                       #year == 2017 |
+                                                       year == 2020, year, NA))
+                            , aes(NMDS1, NMDS2)) +
   geom_point(aes(shape=MHW, color=mpa_designation), size=4) +                           #centroids
-  geom_path(data=cent, aes(NMDS1, NMDS2, group=mpa_designation, color=mpa_designation), size = 0.5, linetype=1 #aes(color=year)
-            )+           #line connecting groups (years)
- 
-  ggtitle("kelp UPC")+
- scale_color_manual(values=c('#EB6977','#13A0DD'))+
+  geom_path(aes(NMDS1, NMDS2, color= mpa_designation), size = 0.5, linetype=1 
+            )+         
+  ggtitle("Kelp forest fishes")+
+  scale_color_manual(name = "Site type", values=c('#D81B60','#1E88E5'))+
   theme(strip.text = element_text(size=18, face="bold"))+
   theme(plot.title = element_text(size=16, face="bold"))+
-  theme(text = element_text(20))
-  #geom_text(position=position_jitter(width=0.01, height=0.05))
+  theme(text = element_text(20))+
+  labs(shape="Heatwave period",color='Site type')+
+  ggrepel::geom_label_repel(aes(label = year_lab),
+                  box.padding   = 1, 
+                  point.padding = 0.1,
+                  segment.color = 'grey50',
+                  max.overlaps=Inf,
+                  size=3) +
+  theme_bw()+my_theme
+
 
 
 kelp_fish_trajectory
+
+
 
 
 ```
@@ -728,22 +803,38 @@ scrs$region4 <- factor(scrs$region4, level = c("north","central","north islands"
 scrs$MHW <- factor(scrs$MHW, level = c("before","during","after")) #set order
 scrs$mpa_designation <- factor(scrs$mpa_designation, level = c("smr","ref")) #set order
 
+cent <- aggregate(cbind(NMDS1, NMDS2) ~ year+MHW+region4+mpa_designation, data = scrs, FUN = mean) #computes centroids
 
-cent <- aggregate(cbind(NMDS1, NMDS2) ~ year+MHW+region4+mpa_designation, data = scrs, FUN = mean) #computes centroids by MHW and region
-
-deep_reef_trajectory<- ggplot(data=cent, aes(NMDS1, NMDS2, label=year)) +
-  #geom_segment(data = segs,
-               #mapping = aes(xend = oNMDS1, yend = oNMDS2)) + #spiders
+deep_reef_trajectory<- ggplot(data=cent %>%
+                                filter(year >=2008) %>%
+                            mutate(mpa_designation = recode(mpa_designation, 
+                                                            "smr" = "Inside",
+                                                            "ref" = "Outside"),
+                                   MHW = recode(MHW, 
+                                                "before" = "Before",
+                                                "during" = "During",
+                                                "after" = "After"),
+                                   year_lab = ifelse(year == 2008 | 
+                                                       #year == 2014 |
+                                                       #year == 2017 |
+                                                       year == 2020, year, NA))
+                            , aes(NMDS1, NMDS2)) +
   geom_point(aes(shape=MHW, color=mpa_designation), size=4) +                           #centroids
-  geom_path(data=cent, aes(NMDS1, NMDS2, group=mpa_designation, color=mpa_designation), size = 0.5, linetype=1 #aes(color=year)
-            )+           #line connecting groups (years)
- 
-  ggtitle("deep reef")+
-  scale_color_manual(values=c('#EB6977','#13A0DD'))+
+  geom_path(aes(NMDS1, NMDS2, color= mpa_designation), size = 0.5, linetype=1 
+            )+         
+  ggtitle("Deep reef")+
+  scale_color_manual(name = "Site type", values=c('#D81B60','#1E88E5'))+
   theme(strip.text = element_text(size=18, face="bold"))+
   theme(plot.title = element_text(size=16, face="bold"))+
-  theme(text = element_text(20))
-  #geom_text(position=position_jitter(width=0.01, height=0.05))
+  theme(text = element_text(20))+
+  labs(shape="Heatwave period",color='Site type')+
+  ggrepel::geom_label_repel(aes(label = year_lab),
+                  box.padding   = 1, 
+                  point.padding = 0.1,
+                  segment.color = 'grey50',
+                  max.overlaps=Inf,
+                  size=3) +
+  theme_bw()+my_theme
 
 
 deep_reef_trajectory
@@ -766,19 +857,35 @@ scrs$mpa_designation <- factor(scrs$mpa_designation, level = c("smr","ref")) #se
 
 cent <- aggregate(cbind(NMDS1, NMDS2) ~ year+MHW+region4+mpa_designation, data = scrs, FUN = mean) #computes centroids by MHW and region
 
-rocky_trajectory<- ggplot(data=cent, aes(NMDS1, NMDS2, label=year)) +
-  #geom_segment(data = segs,
-               #mapping = aes(xend = oNMDS1, yend = oNMDS2)) + #spiders
+rocky_trajectory<- ggplot(data=cent %>%
+                            mutate(mpa_designation = recode(mpa_designation, 
+                                                            "smr" = "Inside",
+                                                            "ref" = "Outside"),
+                                   MHW = recode(MHW, 
+                                                "before" = "Before",
+                                                "during" = "During",
+                                                "after" = "After"),
+                                   year_lab = ifelse(year == 2007 | 
+                                                       #year == 2014 |
+                                                       #year == 2017 |
+                                                       year == 2020, year, NA))
+                            , aes(NMDS1, NMDS2)) +
   geom_point(aes(shape=MHW, color=mpa_designation), size=4) +                           #centroids
-  geom_path(data=cent, aes(NMDS1, NMDS2, group=mpa_designation, color=mpa_designation), size = 0.5, linetype=1 #aes(color=year)
-            )+           #line connecting groups (years)
- 
-  ggtitle("rocky intertidal")+
-  scale_color_manual(values=c('#EB6977','#13A0DD'))+
+  geom_path(aes(NMDS1, NMDS2, color= mpa_designation), size = 0.5, linetype=1 
+            )+         
+  ggtitle("Rocky intertidal")+
+  scale_color_manual(name = "Site type", values=c('#D81B60','#1E88E5'))+
   theme(strip.text = element_text(size=18, face="bold"))+
   theme(plot.title = element_text(size=16, face="bold"))+
-  theme(text = element_text(20))
-  #geom_text(position=position_jitter(width=0.01, height=0.05))
+  theme(text = element_text(20))+
+  labs(shape="Heatwave period",color='Site type')+
+  ggrepel::geom_label_repel(aes(label = year_lab),
+                  box.padding   = 1, 
+                  point.padding = 0.1,
+                  segment.color = 'grey50',
+                  max.overlaps=Inf,
+                  size=3) +
+  theme_bw()+my_theme
 
 
 rocky_trajectory
@@ -786,38 +893,27 @@ rocky_trajectory
 
 ```
 
-
-#combine plots 
 ```{r}
-require('ggpubr')
-
-legend <- get_legend(
+#create dummy legend as last panel
+legend <- cowplot::get_legend(
   # create some space to the left of the legend
-  CCFRP_trajectory + theme(legend.box.margin = margin(0, 0, 0, 12))
+  CCFRP_trajectory + theme(legend.box.margin = margin(0, 0, 0, 6))
 )
 
 cplot <- cowplot::plot_grid(
-  CCFRP_trajectory + theme(legend.position="none"),
-  kelp_fish_trajectory + theme(legend.position="none"),
-  deep_reef_trajectory + theme(legend.position="none"),
-  kelp_invalg_trajectory + theme(legend.position="none"),
   rocky_trajectory + theme(legend.position="none"),
+  kelp_invalg_trajectory + theme(legend.position="none"),
+  kelp_fish_trajectory + theme(legend.position="none"),
+  CCFRP_trajectory + theme(legend.position="none"),
+  deep_reef_trajectory + theme(legend.position="none"),
   legend
   )
 print(cplot)
+ 
+
+cowplot::save_plot(here::here("analyses", "5community_climate_ecology", "figures", "community_trajectory_new.png"), cplot, bg="white",dpi = 600, units = "in", base_width=10, base_height = 8)
 
 
-
-
-#Export figure
-#ggsave(here("analyses", "5community_climate_ecology", "figures", "community_trajectory.png"), figure, height=8, width = 12, units = "in", dpi = 300)
-
-
-#png("/home/joshsmith/CA_MPA_Project/ca-mpa/analyses/5community_climate_ecology/figures/community_trajectory.png")
-#aurora = "/home/joshsmith/CA_MPA_Project/ca-mpa/analyses/5community_climate_ecology/figures"
-#ggsave(plot=last_plot(), path = aurora, device='png',filename = "community_trajectory.png", scale=1, dpi=72)
-#dev.off()
 ```
-
 
 

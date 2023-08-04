@@ -7,18 +7,20 @@
 rm(list = ls())
 
 # Packages
+library(dplyr)
 library(tidyverse)
 library(patchwork)
 
 # Directories
-basedir <- "/Volumes/GoogleDrive/.shortcut-targets-by-id/1kCsF8rkm1yhpjh2_VMzf8ukSPf9d4tqO/MPA Network Assessment: Working Group Shared Folder/data/sync-data"
+#basedir <- "/Volumes/GoogleDrive/.shortcut-targets-by-id/1kCsF8rkm1yhpjh2_VMzf8ukSPf9d4tqO/MPA Network Assessment: Working Group Shared Folder/data/sync-data"
 basedir <- "/home/shares/ca-mpa/data/sync-data/" #aurora 
 gisdir <- file.path(basedir, "gis_data/processed")
 plotdir <- "analyses/5community_climate_ecology/figures"
 
 # Read site locations
 sites <- readRDS(file.path(basedir, "monitoring/monitoring_sites_clean.Rds")) %>% 
-  mutate(habitat=recode(habitat, "Kelp"="Kelp forest"))
+  mutate(habitat=recode(habitat, "Kelp"="Kelp forest"),
+         habitat = recode(habitat, "Rocky reef"="Shallow reef"))
 
 # Read data
 state_waters_poly <- readRDS(file.path(gisdir, "CA_state_waters_polygons.Rds"))
@@ -36,9 +38,9 @@ foreign <- rnaturalearth::ne_countries(country=c("Canada", "Mexico"), returnclas
 
 # Reduce to MPAs of interest
 mpas <- mpas_orig %>% 
-  left_join(mpas_data %>% select(mpa, mlpa), by=c("name"="mpa")) %>% 
+  left_join(mpas_data %>% dplyr::select(mpa, mlpa), by=c("name"="mpa")) %>% 
   filter(mlpa=="MLPA" & region=="CCSR") %>% 
-  select(name, lat_dd, long_dd)
+  dplyr::select(name, lat_dd, long_dd, type)
 
 # Habitat stats
 hab_stats <- sites %>% 
@@ -54,10 +56,10 @@ hab_key <- expand.grid(mpa=mpa_names, habitat=habitats) %>%
   left_join(hab_stats) %>% 
   mutate(data_yn=!is.na(n)) %>% 
   # Add lat/long
-  left_join(mpas_data %>% select(mpa, lat_dd, long_dd), by="mpa") %>% 
+  left_join(mpas_data %>% dplyr::select(mpa, lat_dd, long_dd), by="mpa") %>% 
   # Order habitats
   mutate(habitat=factor(habitat, c("Rocky intertidal", 
-                                   "Kelp forest", "Rocky reef", "Deep reef")),
+                                   "Kelp forest", "Shallow reef", "Deep reef")),
          habitat_num=as.numeric(habitat)) %>% 
   # Adjust longitude
   mutate(long_dd_adj=long_dd-0.04-habitat_num*0.05) %>% 
@@ -94,7 +96,7 @@ hab_key <- expand.grid(mpa=mpa_names, habitat=habitats) %>%
                               T ~ lat_dd)) %>% 
   # Arrange
   arrange(mpa, habitat) %>% 
-  select(mpa, habitat, habitat_num, data_yn, n, lat_dd, long_dd, everything()) %>% 
+  dplyr::select(mpa, habitat, habitat_num, data_yn, n, lat_dd, long_dd, everything()) %>% 
   # Reduce to only available habitats
   filter(data_yn==T) %>% 
   group_by(mpa) %>% 
@@ -107,12 +109,14 @@ hab_key <- expand.grid(mpa=mpa_names, habitat=habitats) %>%
 ################################################################################
 
 # Read data
-envi_orig <- readRDS(file.path( basedir, "environmental/processed/envr_anomalies_at_mpas.Rds"))
+#envi_orig <- readRDS(file.path( basedir, "environmental/processed/envr_anomalies_at_mpas_new.Rds")) # Josh
+envi_orig <- readRDS(here::here("analyses","5community_climate_ecology","output","envr_anomalies_at_mpas_new.Rds"))
+monthly_temp <- readRDS(here::here("analyses","5community_climate_ecology","output", "monthly_air_temp_central_coast.rds"))
 
 # Process data
 envi <- envi_orig %>%
   # Filter
-  filter(region3=='central' & year>=2000) %>%
+  filter(region3=='central' & year>=2002 & year <= 2020)%>%
   # Summarize by year and month
   group_by(year, month)%>%
   summarise(beuti_anom = mean(beuti_monthly_anom, na.rm=T),
@@ -143,11 +147,27 @@ envi <- envi_orig %>%
   
 envi_dat <- envi_orig %>%
   # Filter
-  filter(region3=='central' & year>=2000)%>%
+  filter(region3=='central' & year>=2002 & year <= 2020)%>%
   mutate( date_order = as.numeric(paste0(year,".",month))
     #Date = with(., sprintf("%d-%02d", year, month))
          ) %>%
-  filter(date_order <= 2020.5)
+  filter(date_order <= 2020.5) 
+
+#Process air temp
+# Convert "year" and "month" to Date format
+monthly_temp$year_month <- as.Date(paste0(monthly_temp$year, "-", monthly_temp$month, "-01"))
+
+yearly_stats <- monthly_temp %>%
+  group_by(year) %>%
+  summarize(
+    mean_anomaly = mean(monthly_mean_anomaly),
+    se = sd(monthly_mean_anomaly) / sqrt(n()),
+    value_lo=mean_anomaly-1.96*se,
+    value_hi=mean_anomaly+1.96*se)
+  
+                #Date = with(., sprintf("%d-%02d", year, month))
+  
+
 
 # Plot data
 ################################################################################
@@ -170,11 +190,11 @@ region_labels <- tibble(region=paste0(c("North", "North\nCentral", "Central", "S
                         lat_dd=zoo::rollmean(region_lats_long, k = 2))
 
 # Theme
-base_theme <-  theme(axis.text=element_text(size=7),
-                     axis.title=element_text(size=8),
-                     legend.text=element_text(size=7),
-                     legend.title=element_text(size=8),
-                     plot.tag=element_text(size=8),
+base_theme <-  theme(axis.text=element_text(size=7,colour = "black"),
+                     axis.title=element_text(size=8,colour = "black"),
+                     legend.text=element_text(size=7,colour = "black"),
+                     legend.title=element_text(size=8,colour = "black"),
+                     plot.tag=element_text(size=8,colour = "black", face = "bold"),
                      # Gridlines
                      panel.grid.major = element_blank(), 
                      panel.grid.minor = element_blank(),
@@ -193,9 +213,15 @@ g1_inset <-  ggplotGrob(
   geom_sf(data=foreign, fill="grey80", color="white", lwd=0.3) +
   geom_sf(data=usa, fill="grey80", color="white", lwd=0.3) +
   # Plot box
-  annotate("rect", xmin=-122.6, xmax=-120.4, ymin=34.4, ymax=37.3, color="indianred1", fill=NA, lwd=0.8) +
+  annotate("rect", xmin=-122.50, xmax=-120.4, ymin=34.5, ymax=37.2, color="indianred1", fill=NA, lwd=0.8) +
   # Label regions
   geom_text(data=region_labels, mapping=aes(y=lat_dd, label=region), x= -124.4, hjust=0, size=2) +
+  #add north arrow
+    ggsn::north(x.min = -124.5, x.max = -117, 
+                y.min = 32.5, y.max = 42,
+                location = "topright", 
+                scale = 0.1, 
+                symbol = 10)+
   # Labels
   labs(x="", y="") +
   # Crop
@@ -224,7 +250,7 @@ g1 <- ggplot() +
   geom_sf(data=foreign, fill="grey80", color="white", lwd=0.3) +
   geom_sf(data=usa, fill="grey80", color="white", lwd=0.3) +
   # Plot MPAs
-  geom_sf(data=mpas, fill="indianred1", color="black") +
+  geom_sf(data=mpas, fill=ifelse(mpas$type == "SMR","indianred1","lightblue"), color="black") +
   # ggrepel::geom_text_repel(data=mpas,
   #           mapping=aes(x=long_dd, y=lat_dd, label=name), direction="y", hjust=-0.1) +
   # Plot habitats
@@ -235,14 +261,26 @@ g1 <- ggplot() +
   geom_text(data=cities, mapping=aes(x=long_dd, y=lat_dd, label=city, hjust=hjust, vjust=vjust),
             size=2.6) +
   # Labels
-  labs(x="", y="", tag="A") +
+  labs(x="", y="", tag="(a)") +
   # Legend
-  scale_color_manual(name="Habitat", values=c( "lightslategray", "limegreen", "dodgerblue", "purple")) +
+  scale_color_manual(name="Habitat", values=c( "#f2cc8f", "#81b29a", "#e07a5f", "#3d405b")) +
   scale_shape_manual(name="Monitoring data?", values=c(1, 16)) +
   guides(color = guide_legend(order = 1), shape = guide_legend(order = 2)) +
-  
+  #add scalebar
+  ggsn::scalebar(x.min = -122.6, x.max = -120.5, 
+                 y.min = 34.44, y.max = 37.2,
+                 #anchor=c(x=-124.7,y=41),
+                 location="bottomleft",
+                 dist = 50, dist_unit = "km",
+                 transform=TRUE, 
+                 model = "WGS84",
+                 st.dist=0.012,
+                 st.size=2,
+                 border.size=.5,
+                 height=.01
+  )+
   # Crop
-  coord_sf(xlim = c(-122.5, -120.5), ylim = c(34.5, 37.2)) +
+  coord_sf(xlim = c(-122.6, -120.5), ylim = c(34.5, 37.2)) +
   # Theme
   theme_bw() + base_theme +
   theme(axis.text.y = element_text(angle = 90, hjust = 0.5),
@@ -252,8 +290,8 @@ g1 <- ggplot() +
   # Add inset
   annotation_custom(grob = g1_inset, 
                     xmin = -121.4, 
-                    xmax = -120.5,
-                    ymin = 36.08) 
+                    xmax = -120.37,
+                    ymin = 36.08)
   # Add inset
   # patchwork::inset_element(g1_inset, 
   #                          right = -120.6,
@@ -263,14 +301,44 @@ g1 <- ggplot() +
   
 g1
 
+
+#AT
+ymax <- max(monthly_temp$monthly_mean_anomaly, na.rm = TRUE) * 0.75
+g2 <- ggplot() +
+  geom_point(data = monthly_temp %>% filter(year > 2002 & year < 2020),
+             aes(x = as.numeric(year) + (as.numeric(month) - 1)/12, y = monthly_mean_anomaly),
+             alpha = 0.6, color = 'lightgray', position = position_nudge(x = 0.015)) +
+  geom_ribbon(data = yearly_stats %>% filter(year > 2002 & year < 2020), mapping=aes(x=as.numeric(year), ymin=value_lo, ymax=value_hi), 
+              fill="grey60", color=NA, alpha=0.8) +
+  geom_line(data = yearly_stats %>% filter(year > 2002 & year < 2020),
+            aes(x = as.numeric(year), y = mean_anomaly),
+            color = "black", group = 1) +
+  # Reference line
+  geom_hline(yintercept = 0, linetype="dashed", color="grey40") +
+  # Heatwave
+  annotate(geom="rect", xmin=2013.5, xmax=2016.5, ymin=-Inf, ymax=Inf, fill="red", alpha=0.2) +
+  annotate(geom="text", label="MHW", x=2008, y=ymax , size=2.5) +
+  annotate("segment", x = 2010.5, y = ymax, xend = 2013.5, yend = ymax,
+           arrow = arrow(type = "closed", length = unit(0.02, "npc")))+
+  labs(x = "Year", y = "AT anomaly (°C)",tag="(b)") +
+  scale_x_continuous(breaks = seq(2000, 2020, 5)) +
+  scale_y_continuous() +
+  theme_bw() + base_theme +
+  theme(axis.title.x=element_blank(),
+        axis.text.y = element_text(angle = 0, hjust = 0.5),
+        plot.tag.position = c(0.05, 0.98))
+g2
+
+
+
 # SST
 #ymax <- envi %>% filter(indicator=="SST") %>% pull(value_hi) %>% max() * 1.05   ##Chris
 ymax <- max(envi_dat$sst_monthly_anom, na.rm=TRUE) * .90 #Josh
-g2 <- ggplot(data=envi %>% filter(indicator=="SST"), aes(x=year, y=value_avg)) + 
+g3 <- ggplot(data=envi %>% filter(indicator=="SST"), aes(x=year, y=value_avg)) + 
   #data series
   geom_point(data=envi_dat, aes(x=date_order, y=sst_monthly_anom), size=1, alpha=0.1, color='lightgray')+
   # Heatwave
-  annotate(geom="rect", xmin=2013.5, xmax=2016.5, ymin=-Inf, ymax=Inf, fill="indianred1", alpha=0.2) +
+  annotate(geom="rect", xmin=2013.5, xmax=2016.5, ymin=-Inf, ymax=Inf, fill="red", alpha=0.2) +
   annotate(geom="text", label="MHW", x=2008, y=ymax , size=2.5) +
   annotate("segment", x = 2010.5, y = ymax, xend = 2013.5, yend = ymax,
            arrow = arrow(type = "closed", length = unit(0.02, "npc")))+
@@ -282,24 +350,25 @@ g2 <- ggplot(data=envi %>% filter(indicator=="SST"), aes(x=year, y=value_avg)) +
   # Reference line
   geom_hline(yintercept = 0, linetype="dashed", color="grey40") +
   # Labels
-  labs(x="", y="SST anamoly (°C)", tag="B") +
+  labs(x="", y="SST anomaly (°C)", tag="(c)") +
   scale_x_continuous(breaks=seq(2000, 2020, 5)) +
   # scale_y_continuous(breaks=seq(-1.5, 1.5, 0.5), lim=c(-1.5, 1.5)) +
   # Theme
   theme_bw() + base_theme +
   theme(axis.title.x=element_blank(),
-        axis.text.y = element_text(angle = 90, hjust = 0.5))
-g2
+        axis.text.y = element_text(angle = 0, hjust = 0.5),
+        plot.tag.position = c(0.05, 0.98))
+g3
 
 
 # bottomT
 #ymax <- envi %>% filter(indicator=="Bottom temp") %>% pull(value_hi) %>% max() * 1.05 #Chris
 ymax <- max(envi_dat$bottomT_monthly_anom, na.rm=TRUE) * .90 #Josh
-g3 <- ggplot(data=envi %>% filter(indicator=="Bottom temp"), aes(x=year, y=value_avg)) + 
+g4 <- ggplot(data=envi %>% filter(indicator=="Bottom temp"), aes(x=year, y=value_avg)) + 
   #data series
   geom_point(data=envi_dat, aes(x=date_order, y=bottomT_monthly_anom), size=1, alpha=0.1, color='lightgray')+
   # Heatwave
-  annotate(geom="rect", xmin=2013.5, xmax=2016.5, ymin=-Inf, ymax=Inf, fill="indianred1", alpha=0.2) +
+  annotate(geom="rect", xmin=2013.5, xmax=2016.5, ymin=-Inf, ymax=Inf, fill="red", alpha=0.2) +
   annotate(geom="text", label="MHW", x=2008, y=ymax , size=2.5) +
   annotate("segment", x = 2010.5, y = ymax, xend = 2013.5, yend = ymax,
            arrow = arrow(type = "closed", length = unit(0.02, "npc")))+
@@ -310,23 +379,24 @@ g3 <- ggplot(data=envi %>% filter(indicator=="Bottom temp"), aes(x=year, y=value
   # Reference line
   geom_hline(yintercept = 0, linetype="dashed", color="grey40") +
   # Labels
-  labs(x="", y="BT anamoly (°C)", tag="C") +
+  labs(x="Year", y="SBT anomaly (°C)", tag="(d)") +
   scale_x_continuous(breaks=seq(2000, 2020, 5)) +
   # scale_y_continuous(breaks=seq(-1.5, 1.5, 0.5), lim=c(-1.5, 1.5)) +
   # Theme
   theme_bw() + base_theme +
-  theme(axis.title.x=element_blank(),
-        axis.text.y = element_text(angle = 90, hjust = 0.5))
-g3
+  theme(
+        axis.text.y = element_text(angle = 0, hjust = 0.5),
+        plot.tag.position = c(0.05, 0.98))
+g4
 
 # MOCI
 #ymax <- envi %>% filter(indicator=="MOCI") %>% pull(value_hi) %>% max() * 1.05 #Chris
 ymax <- max(envi_dat$quarterly_MOCI, na.rm=TRUE) * .90 #Josh
-g4 <- ggplot(data=envi %>% filter(indicator=="MOCI"), aes(x=year, y=value_avg)) + 
+g5 <- ggplot(data=envi %>% filter(indicator=="MOCI"), aes(x=year, y=value_avg)) + 
   #data series
   geom_point(data=envi_dat, aes(x=date_order, y=quarterly_MOCI), size=1, alpha=0.1, color='lightgray')+
   # Heatwave
-  annotate(geom="rect", xmin=2013.5, xmax=2016.5, ymin=-Inf, ymax=Inf, fill="indianred1", alpha=0.2) +
+  annotate(geom="rect", xmin=2013.5, xmax=2016.5, ymin=-Inf, ymax=Inf, fill="red", alpha=0.2) +
   annotate(geom="text", label="MHW", x=2008, y=ymax , size=2.5) +
   annotate("segment", x = 2010.5, y = ymax, xend = 2013.5, yend = ymax,
            arrow = arrow(type = "closed", length = unit(0.02, "npc")))+
@@ -337,23 +407,24 @@ g4 <- ggplot(data=envi %>% filter(indicator=="MOCI"), aes(x=year, y=value_avg)) 
   # Reference line
   geom_hline(yintercept = 0, linetype="dashed", color="grey40") +
   # Labels
-  labs(x="", y="MOCI", tag="D") +
+  labs(x="Year", y="MOCI", tag="(e)") +
   scale_x_continuous(breaks=seq(2000, 2020, 5)) +
   # scale_y_continuous(breaks=seq(-1.5, 1.5, 0.5), lim=c(-1.5, 1.5)) +
   # Theme
   theme_bw() + base_theme +
-  theme(axis.title.x=element_blank(),
-        axis.text.y = element_text(angle = 90, hjust = 0.5))
-g4
+  theme(
+        axis.text.y = element_text(angle = 0, hjust = 0.5),
+        plot.tag.position = c(0.05, 0.98))
+g5
 
 # BEUTI
 #ymax <- envi %>% filter(indicator=="BEUTI") %>% pull(value_hi) %>% max() * 1.05 #Chris
 ymax <- max(envi_dat$beuti_monthly_anom, na.rm=TRUE) * .90 #Josh
-g5 <- ggplot(data=envi %>% filter(indicator=="BEUTI"), aes(x=year, y=value_avg)) + 
+g6 <- ggplot(data=envi %>% filter(indicator=="BEUTI"), aes(x=year, y=value_avg)) + 
   #data series
   geom_point(data=envi_dat, aes(x=date_order, y=beuti_monthly_anom), size=1, alpha=0.1, color='lightgray')+
   # Heatwave
-  annotate(geom="rect", xmin=2013.5, xmax=2016.5, ymin=-Inf, ymax=Inf, fill="indianred1", alpha=0.2) +
+  annotate(geom="rect", xmin=2013.5, xmax=2016.5, ymin=-Inf, ymax=Inf, fill="red", alpha=0.2) +
   annotate(geom="text", label="MHW", x=2008, y=ymax , size=2.5) +
   annotate("segment", x = 2010.5, y = ymax, xend = 2013.5, yend = ymax,
            arrow = arrow(type = "closed", length = unit(0.02, "npc")))+
@@ -364,20 +435,24 @@ g5 <- ggplot(data=envi %>% filter(indicator=="BEUTI"), aes(x=year, y=value_avg))
   # Reference line
   geom_hline(yintercept = 0, linetype="dashed", color="grey40") +
   # Labels
-  labs(x="", y="BEUTI anamoly", tag="E") +
+  #labs(x = "", y = expression("BEUTI anomaly\n"~(mmol~m^{-1}~s^{-1})), tag="E")+
+  labs(x = "Year", y = "BEUTI anomaly \n(mmol m\u207B\u00B9 s\u207B\u00B9)", tag="(f)")+
   scale_x_continuous(breaks=seq(2000, 2020, 5)) +
   # scale_y_continuous(breaks=seq(-1.5, 1.5, 0.5), lim=c(-1.5, 1.5)) +
   # Theme
   theme_bw() + base_theme +
-  theme(axis.title.x=element_blank(),
-        axis.text.y = element_text(angle = 90, hjust = 0.5))
-g5
+  theme(
+        axis.text.y = element_text(angle = 0),
+        plot.tag.position = c(0.05, 0.98))
+g6
+
+
 
 # CUTI
 ymax <- envi %>% filter(indicator=="CUTI") %>% pull(value_hi) %>% max() * 1.05
-g6 <- ggplot(data=envi %>% filter(indicator=="CUTI"), aes(x=year, y=value_avg)) + 
+g7 <- ggplot(data=envi %>% filter(indicator=="CUTI"), aes(x=year, y=value_avg)) + 
   # Heatwave
-  annotate(geom="rect", xmin=2013.5, xmax=2016.5, ymin=-Inf, ymax=Inf, fill="indianred1", alpha=0.5) +
+  annotate(geom="rect", xmin=2013.5, xmax=2016.5, ymin=-Inf, ymax=Inf, fill="red", alpha=0.5) +
   annotate(geom="text", label="MHW", x=2015, y=ymax , size=2.1) +
   # Plot data
   geom_ribbon(mapping=aes(x=year, ymin=value_lo, ymax=value_hi), 
@@ -386,28 +461,71 @@ g6 <- ggplot(data=envi %>% filter(indicator=="CUTI"), aes(x=year, y=value_avg)) 
   # Reference line
   geom_hline(yintercept = 0, linetype="dashed", color="grey40") +
   # Labels
-  labs(x="", y="CUTI anamoly", tag="F") +
+  labs(x="", y="CUTI anamoly", tag="G") +
   scale_x_continuous(breaks=seq(2000, 2020, 5)) +
   # scale_y_continuous(breaks=seq(-1.5, 1.5, 0.5), lim=c(-1.5, 1.5)) +
   # Theme
   theme_bw() + base_theme +
   theme(axis.title.x=element_blank(),
-        axis.text.y = element_text(angle = 90, hjust = 0.5))
-g6
+        axis.text.y = element_text(angle = 90, hjust = 0.5),
+        plot.tag.position = c(0.02, 1))
+g7
 
 # Merge
-layout_matrix <- matrix(data=c(1, 2,
-                               1, 3,
-                               1, 4,
-                               1, 5), byrow=T, ncol=2)
-g <- gridExtra::grid.arrange(g1, g2, g3, g4, g5, layout_matrix=layout_matrix,
-                             widths=c(0.7, 0.3))
-g
+#layout_matrix <- matrix(data=c(1, 2,
+ #                              1, 3,
+  #                             1, 4,
+   #                            1, 5), byrow=T, ncol=2)
+#g <- gridExtra::grid.arrange(g1, g2, g3, g4, g5, layout_matrix=layout_matrix,
+ #                            widths=c(0.7, 0.3))
+#g
 
 # Export figure
+
+#ggsave(g, filename=file.path(plotdir, "Fig1_map_figure_new2.png"), 
+ #     width=5.8, height=6.5, units="in", dpi=600)
+
+######use patchwork to align plot area 
+# Merge
+
+###test layout
+
+library(patchwork)
+
+
+#put g5 and g6 below g1
+g <- (
+  (g1 | (g2 / g3 / g4)) +
+    plot_layout(ncol = 2, #widths = c(0.75, 0.25)
+                widths = c(0.8, 0.2),
+                heights = c(0.6,0.4)
+                ) +
+    (g5 + g6)
+) +
+  plot_layout(nrow = 2, #heights = c(3, 1)
+              heights = c(0.8,0.2),
+              #widths = c(0.7,0.3)
+              #widths = c(0.72,0.28)
+              #widths = c(0.75,0.25)
+              widths = c(0.7,0.3)
+              )
+
+#old layout
+#library(patchwork)
+#g <- g1 + (g2 / g3 / g4 / g5 + plot_layout(ncol = 1)) + plot_layout(widths = c(0.75, 0.25))
+
 ggsave(g, filename=file.path(plotdir, "Fig1_map_figure_new.png"), 
-       width=5.8, height=6.5, units="in", dpi=600)
+       width=6, height=7.5, units="in", dpi=600)
 
 
- 
+
+
+
+
+
+
+
+
+
+
 

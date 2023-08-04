@@ -9,11 +9,12 @@ require(here)
 
 
 #Set paths
-datadir <-  "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data" 
+#datadir <-  "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data" #old
+datadir <- here::here("analyses","5community_climate_ecology","output")
 tabdir <- here::here("analyses","5community_climate_ecology","tables")
 
 #load EnvFit score
-load(file.path(datadir, "env_fit_scores.rda"))
+load(file.path(datadir, "env_fit_scores_with_absolutes.rda"))
 
 
 #create helper function
@@ -22,7 +23,7 @@ envfit_out <- function(scores) {
   data.frame((scores$vectors)$arrows, (scores$vectors)$r, (scores$vectors)$pvals) %>%
     rename("R square" = X.scores.vectors..r,
            "p-value" = X.scores.vectors..pvals) %>%
-    tibble::rownames_to_column(., "Oceanographic variable")
+    tibble::rownames_to_column(., "Environmental variable")
 }
 
 
@@ -53,7 +54,7 @@ envfit_scores <- rbind(rocky_int, CCFRP, kf_invalg, kf_fish, deep_reef)
 
 View(envfit_scores)
 
-write.csv(envfit_scores, file.path(tabdir, "env_fit_scores.csv"),
+write.csv(envfit_scores, file.path(tabdir, "env_fit_scores_with_absolutes.csv"),
           row.names=FALSE)
 
 

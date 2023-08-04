@@ -7,7 +7,8 @@ require(tidyverse)
 require(mvabund)
 
 #set directories
-datadir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data"
+#datadir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data" #old
+datadir <- here::here("analyses","5community_climate_ecology","output")
 figdir <- here::here("analyses", "5community_climate_ecology", "figures")
 
 
@@ -44,8 +45,8 @@ CCFRP_join1[CCFRP_join1 == ""] <- NA
 CCFRP_join2 <- CCFRP_join1 %>%
               filter(year>=2007)%>%
               dplyr::select(year, group, region3, region4, MHW, affiliated_mpa,
-                            mpa_class, mpa_designation, sst_monthly_anom, 
-                            bottomT_monthly_anom, beuti_monthly_anom, annual_MOCI,
+                            mpa_class, mpa_designation, sst_monthly_anom, sst_monthly_obs, 
+                            bottomT_monthly_anom, bottomT_monthly_obs, beuti_monthly_anom, beuti_monthly_obs, annual_MOCI,
                             species, counts, thermal_affinity, targeted)%>%
               drop_na()
 
@@ -54,7 +55,7 @@ CCFRP_L <- CCFRP_join2 %>%
            drop_na(thermal_affinity)%>%
            select(!(c(thermal_affinity, targeted)))%>%
            pivot_wider(names_from="species", values_from = "counts")%>%
-           select(13:ncol(.))%>%
+           select(16:ncol(.))%>%
            as.data.frame()
 
 
@@ -65,8 +66,11 @@ CCFRP_R <- CCFRP_join2 %>%
            pivot_wider(names_from="species", values_from = "counts")%>%
            #select envr vars, note mvabund does not take function formula
           dplyr::select(sst_monthly_anom,
+                        sst_monthly_obs,
                   bottomT_monthly_anom,
+                  bottomT_monthly_obs,
                   beuti_monthly_anom,
+                  beuti_monthly_obs,
                   annual_MOCI)%>%
             as.data.frame()
 
@@ -94,8 +98,8 @@ nrow(CCFRP_Q)
 #remove missing values
 kelp_fish_join2 <- kelp_fish_join1 %>%
                 dplyr::select(year, group, region3, region4, MHW, affiliated_mpa,
-                mpa_defacto_class, mpa_defacto_designation, sst_monthly_anom, 
-                bottomT_monthly_anom, beuti_monthly_anom, annual_MOCI,
+                mpa_defacto_class, mpa_defacto_designation, sst_monthly_anom, sst_monthly_obs,
+                bottomT_monthly_anom, bottomT_monthly_obs, beuti_monthly_anom,beuti_monthly_obs, annual_MOCI,
                 species, counts, thermal_affinity, targeted)%>%
                    filter(year >= 2007)%>%
                 drop_na()
@@ -105,7 +109,7 @@ kelp_fish_L <- kelp_fish_join2 %>%
   drop_na(thermal_affinity)%>%
   select(!(c(thermal_affinity, targeted)))%>%
   pivot_wider(names_from="species", values_from = "counts")%>%
-  select(13:ncol(.))%>%
+  select(16:ncol(.))%>%
   as.data.frame()
 
 
@@ -117,8 +121,11 @@ kelp_fish_R <- kelp_fish_join2 %>%
   pivot_wider(names_from="species", values_from = "counts")%>%
   #select envr vars, note mvabund does not take function formula
   dplyr::select(sst_monthly_anom,
+                sst_monthly_obs,
                 bottomT_monthly_anom,
+                bottomT_monthly_obs,
                 beuti_monthly_anom,
+                beuti_monthly_obs,
                 annual_MOCI)%>%
   as.data.frame()
 
@@ -142,8 +149,8 @@ nrow(kelp_fish_Q)
 
 deep_reef_join2 <- deep_reef_join1 %>%
   dplyr::select(year, group, region3, region4, MHW, affiliated_mpa,
-                mpa_defacto_class, mpa_defacto_designation, sst_monthly_anom, 
-                bottomT_monthly_anom, beuti_monthly_anom, annual_MOCI,
+                mpa_defacto_class, mpa_defacto_designation, sst_monthly_anom, sst_monthly_obs, 
+                bottomT_monthly_anom, bottomT_monthly_obs, beuti_monthly_anom, beuti_monthly_obs, annual_MOCI,
                 species, counts, thermal_affinity, targeted)%>%
   filter(year >= 2007)%>%
   drop_na()
@@ -153,7 +160,7 @@ deep_reef_L <- deep_reef_join2 %>%
   drop_na(thermal_affinity)%>%
   select(!(c(thermal_affinity, targeted)))%>%
   pivot_wider(names_from="species", values_from = "counts")%>%
-  select(13:ncol(.))%>%
+  select(16:ncol(.))%>%
   as.data.frame()
 
 deep_reef_R <- deep_reef_join2 %>% 
@@ -163,8 +170,11 @@ deep_reef_R <- deep_reef_join2 %>%
   pivot_wider(names_from="species", values_from = "counts")%>%
   #select envr vars, note mvabund does not take function formula
   dplyr::select(sst_monthly_anom,
+                sst_monthly_obs,
                 bottomT_monthly_anom,
+                bottomT_monthly_obs,
                 beuti_monthly_anom,
+                beuti_monthly_obs,
                 annual_MOCI)%>%
   as.data.frame()
 
@@ -191,8 +201,8 @@ nrow(deep_reef_Q)
 
 kelp_swath_join2 <- kelp_swath_join1 %>%
   dplyr::select(year, group, region3, region4, MHW, affiliated_mpa,
-                mpa_defacto_class, mpa_defacto_designation, sst_monthly_anom, 
-                bottomT_monthly_anom, beuti_monthly_anom, annual_MOCI,
+                mpa_defacto_class, mpa_defacto_designation, sst_monthly_anom, sst_monthly_obs,
+                bottomT_monthly_anom, bottomT_monthly_obs, beuti_monthly_anom, beuti_monthly_obs, annual_MOCI,
                 species, counts, thermal_affinity, targeted)%>%
   filter(year>=2007)%>%
   drop_na()%>%
@@ -207,7 +217,7 @@ kelp_swath_L <- kelp_swath_join2 %>%
   drop_na(thermal_affinity)%>%
   select(!(c(thermal_affinity, targeted)))%>%
   pivot_wider(names_from="species", values_from = "counts")%>%
-  select(13:ncol(.))%>%
+  select(16:ncol(.))%>%
   replace(is.na(.),0)%>%
   as.data.frame()
 
@@ -218,8 +228,11 @@ kelp_swath_R <- kelp_swath_join2 %>%
   pivot_wider(names_from="species", values_from = "counts")%>%
   #select envr vars, note mvabund does not take function formula
   dplyr::select(sst_monthly_anom,
+                sst_monthly_obs,
                 bottomT_monthly_anom,
+                bottomT_monthly_obs,
                 beuti_monthly_anom,
+                beuti_monthly_obs,
                 annual_MOCI)%>%
   as.data.frame()
 
@@ -246,8 +259,9 @@ nrow(kelp_swath_Q)
 
 rocky_join2 <- rocky_join1 %>%
   dplyr::select(year, group, region3, region4, affiliated_mpa,
-                 mpa_designation, sst_monthly_anom, 
-               beuti_monthly_anom, annual_MOCI,
+                 mpa_designation, sst_monthly_anom, sst_monthly_obs,
+                AT_anom, AT_abs,
+               beuti_monthly_anom, beuti_monthly_obs, annual_MOCI,
                 species, counts, thermal_affinity)%>%
   filter(year>=2007)%>%
   drop_na()
@@ -257,7 +271,7 @@ rocky_L <- rocky_join2 %>%
   drop_na(thermal_affinity)%>%
   select(!(c(thermal_affinity)))%>%
   pivot_wider(names_from="species", values_from = "counts")%>%
-  select(10:ncol(.))%>%
+  select(14:ncol(.))%>%
   replace(is.na(.),0)%>%
   as.data.frame()
 
@@ -267,9 +281,13 @@ rocky_R <- rocky_join2 %>%
   select(!(c(thermal_affinity)))%>%
   pivot_wider(names_from="species", values_from = "counts")%>%
   #select envr vars, note mvabund does not take function formula
-  dplyr::select(sst_monthly_anom,
+  dplyr::select(AT_anom,
+                AT_abs,
+    sst_monthly_anom,
+                sst_monthly_obs,
                # bottomT_monthly_anom,
                 beuti_monthly_anom,
+               beuti_monthly_obs,
                 annual_MOCI)%>%
   as.data.frame()
 
@@ -295,8 +313,8 @@ nrow(rocky_Q)
 
 kelp_upc_join2 <- kelp_upc_join1 %>%
   dplyr::select(year, group, region3, region4, MHW, affiliated_mpa,
-                mpa_defacto_class, mpa_defacto_designation, sst_monthly_anom, 
-                bottomT_monthly_anom, beuti_monthly_anom, annual_MOCI,
+                mpa_defacto_class, mpa_defacto_designation, sst_monthly_anom, sst_monthly_obs, 
+                bottomT_monthly_anom, bottomT_monthly_obs, beuti_monthly_anom, beuti_monthly_obs, annual_MOCI,
                 species, counts, thermal_affinity, targeted)%>%
   drop_na()%>%
   mutate(thermal_affinity = factor(
@@ -310,7 +328,7 @@ kelp_upc_L <- kelp_upc_join2 %>%
   drop_na(thermal_affinity)%>%
   select(!(c(thermal_affinity, targeted)))%>%
   pivot_wider(names_from="species", values_from = "counts")%>%
-  select(13:ncol(.))%>%
+  select(16:ncol(.))%>%
   replace(is.na(.),0)%>%
   as.data.frame()
 
@@ -321,8 +339,11 @@ kelp_upc_R <- kelp_upc_join2 %>%
   pivot_wider(names_from="species", values_from = "counts")%>%
   #select envr vars, note mvabund does not take function formula
   dplyr::select(sst_monthly_anom,
+                sst_monthly_obs,
                 bottomT_monthly_anom,
+                bottomT_monthly_obs,
                 beuti_monthly_anom,
+                beuti_monthly_obs,
                 annual_MOCI)%>%
   as.data.frame()
 
@@ -349,140 +370,104 @@ nrow(kelp_upc_Q)
 ################################################################################
 # trait based model
 
-#=============CCFRP
+#============================CCFRP==============================================
+CCFRP_anom <- CCFRP_R %>% dplyr::select(sst_monthly_anom, bottomT_monthly_anom, beuti_monthly_anom, annual_MOCI)
+CCFRP_abs <- CCFRP_R %>% dplyr::select(sst_monthly_obs, bottomT_monthly_obs, beuti_monthly_obs, annual_MOCI)
+
 
 #convert to integer
 CCFRP_L_100 <- ceiling(CCFRP_L*100)
 
-ft_ccfrp<- traitglm(CCFRP_L_100, CCFRP_R, CCFRP_Q,
+ft_ccfrp_anom<- traitglm(CCFRP_L_100, CCFRP_anom, CCFRP_Q,
               method="glm1path", family = "negative.binomial")
 
-ft_ccfrp$fourth
-
-#check residuals
-plot(ft_ccfrp)
-
-library(lattice)
-
-a        = max( abs(ft_ccfrp$fourth.corner) )
-colort   = colorRampPalette(c("blue","white","red")) 
-plot.4th = levelplot(t(as.matrix(ft_ccfrp$fourth.corner)), xlab="Environmental Variables",
-                     ylab="Species traits", col.regions=colort(100), at=seq(-a, a, length=100),
-                     scales = list( x= list(rot = 45)))
-print(plot.4th)
-
-
-#=============kelp fish
-ft_kelp_fish<- traitglm(kelp_fish_L, kelp_fish_R, kelp_fish_Q,
+ft_ccfrp_abs<- traitglm(CCFRP_L_100, CCFRP_abs, CCFRP_Q,
                     method="glm1path", family = "negative.binomial")
 
-ft_kelp_fish$fourth
+#test plot
+ft_ccfrp_anom$fourth
 
 #check residuals
-plot(ft_kelp_fish)
+plot(ft_ccfrp_anom)
 
 library(lattice)
 
-a        = max( abs(ft_kelp_fish$fourth.corner) )
+a        = max( abs(ft_ccfrp_anom$fourth.corner) )
 colort   = colorRampPalette(c("blue","white","red")) 
-plot.4th = levelplot(t(as.matrix(ft_kelp_fish$fourth.corner)), xlab="Environmental Variables",
+plot.4th.anom = levelplot(t(as.matrix(ft_ccfrp_anom$fourth.corner)), xlab="Environmental Variables",
                      ylab="Species traits", col.regions=colort(100), at=seq(-a, a, length=100),
                      scales = list( x= list(rot = 45)))
-print(plot.4th)
+print(plot.4th.anom)
 
 
-#=============deep reef
+#============================Kelp fish==========================================
+
+kelp_fish_anom <- kelp_fish_R %>% dplyr::select(sst_monthly_anom, bottomT_monthly_anom, beuti_monthly_anom, annual_MOCI)
+kelp_fish_abs <- kelp_fish_R %>% dplyr::select(sst_monthly_obs, bottomT_monthly_obs, beuti_monthly_obs, annual_MOCI)
+
+ft_kelp_fish_anom<- traitglm(kelp_fish_L, kelp_fish_anom, kelp_fish_Q,
+                    method="glm1path", family = "negative.binomial")
+
+ft_kelp_fish_abs<- traitglm(kelp_fish_L, kelp_fish_abs, kelp_fish_Q,
+                             method="glm1path", family = "negative.binomial")
+
+#============================Deep reef==========================================
+
+deep_reef_anom <- deep_reef_R %>% dplyr::select(sst_monthly_anom, bottomT_monthly_anom, beuti_monthly_anom, annual_MOCI)
+deep_reef_abs <- deep_reef_R %>% dplyr::select(sst_monthly_obs, bottomT_monthly_obs, beuti_monthly_obs, annual_MOCI)
 
 deep_reef_L <- ceiling(deep_reef_L)
 
-ft_deep_reef <- traitglm(deep_reef_L, deep_reef_R, deep_reef_Q,
+ft_deep_reef_anom <- traitglm(deep_reef_L, deep_reef_anom, deep_reef_Q,
                         method="glm1path", family = "negative.binomial")
 
-ft_deep_reef$fourth
+ft_deep_reef_abs <- traitglm(deep_reef_L, deep_reef_abs, deep_reef_Q,
+                              method="glm1path", family = "negative.binomial")
 
-#check residuals
-plot(ft_deep_reef)
+#============================kelp swath=========================================
 
-library(lattice)
+kelp_swath_anom <- kelp_swath_R %>% dplyr::select(sst_monthly_anom, bottomT_monthly_anom, beuti_monthly_anom, annual_MOCI)
+kelp_swath_abs <- kelp_swath_R %>% dplyr::select(sst_monthly_obs, bottomT_monthly_obs, beuti_monthly_obs, annual_MOCI)
 
-a        = max( abs(ft_deep_reef$fourth.corner) )
-colort   = colorRampPalette(c("blue","white","red")) 
-plot.4th = levelplot(t(as.matrix(ft_deep_reef$fourth.corner)), xlab="Environmental Variables",
-                     ylab="Species traits", col.regions=colort(100), at=seq(-a, a, length=100),
-                     scales = list( x= list(rot = 45)))
-print(plot.4th)
-
-
-#=============kelp swath
-ft_kelp_swath <- traitglm(kelp_swath_L, kelp_swath_R, kelp_swath_Q,
+ft_kelp_swath_anom <- traitglm(kelp_swath_L, kelp_swath_anom, kelp_swath_Q,
                          method="glm1path", family = "negative.binomial")
 
-ft_kelp_swath$fourth
+ft_kelp_swath_abs <- traitglm(kelp_swath_L, kelp_swath_abs, kelp_swath_Q,
+                               method="glm1path", family = "negative.binomial")
 
-#check residuals
-plot(ft_kelp_swath)
+#============================rocky intertidal===================================
 
-library(lattice)
-
-a        = max( abs(ft_kelp_swath$fourth.corner) )
-colort   = colorRampPalette(c("blue","white","red")) 
-plot.4th = levelplot(t(as.matrix(ft_kelp_swath$fourth.corner)), xlab="Environmental Variables",
-                     ylab="Species traits", col.regions=colort(100), at=seq(-a, a, length=100),
-                     scales = list( x= list(rot = 45)))
-print(plot.4th)
-
-
-
-#=============rocky intertidal
+rocky_anom <- rocky_R %>% dplyr::select(AT_anom, sst_monthly_anom, beuti_monthly_anom, annual_MOCI)
+rocky_abs <- rocky_R %>% dplyr::select(AT_abs, sst_monthly_obs,  beuti_monthly_obs, annual_MOCI)
 
 rocky_L_100 <- ceiling(rocky_L*100)
 
-rocky_corner <- traitglm(rocky_L_100, rocky_R,rocky_Q,
+rocky_corner_anom <- traitglm(rocky_L_100, rocky_anom, rocky_Q,
                           method="glm1path", family = "negative.binomial")
+rocky_corner_abs <- traitglm(rocky_L_100, rocky_abs, rocky_Q,
+                         method="glm1path", family = "negative.binomial")
 
-rocky_corner$fourth
+#============================kelp upc===========================================
 
-#check residuals
-plot(rocky_corner)
-
-library(lattice)
-
-a        = max( abs(rocky_corner$fourth.corner) )
-colort   = colorRampPalette(c("blue","white","red")) 
-plot.4th = levelplot(t(as.matrix(rocky_corner$fourth.corner)), xlab="Environmental Variables",
-                     ylab="Species traits", col.regions=colort(100), at=seq(-a, a, length=100),
-                     scales = list( x= list(rot = 45)))
-print(plot.4th)
-
-#=============kelp upc
+kelp_upc_anom <- kelp_upc_R %>% dplyr::select(sst_monthly_anom, bottomT_monthly_anom, beuti_monthly_anom, annual_MOCI)
+kelp_upc_abs <- kelp_upc_R %>% dplyr::select(sst_monthly_obs, bottomT_monthly_obs, beuti_monthly_obs, annual_MOCI)
 
 kelp_upc_L_round <- ceiling(kelp_upc_L)
 
-ft_kelp_upc <- traitglm(kelp_upc_L_round, kelp_upc_R, kelp_upc_Q,
+ft_kelp_upc_anom <- traitglm(kelp_upc_L_round, kelp_upc_anom, kelp_upc_Q,
                          method="glm1path", family = "negative.binomial")
-
-ft_kelp_upc$fourth
-
-#check residuals
-plot(rocky_corner)
-
-library(lattice)
-
-a        = max( abs(rocky_corner$fourth.corner) )
-colort   = colorRampPalette(c("blue","white","red")) 
-plot.4th = levelplot(t(as.matrix(rocky_corner$fourth.corner)), xlab="Environmental Variables",
-                     ylab="Species traits", col.regions=colort(100), at=seq(-a, a, length=100),
-                     scales = list( x= list(rot = 45)))
-print(plot.4th)
+ft_kelp_upc_abs <- traitglm(kelp_upc_L_round, kelp_upc_abs, kelp_upc_Q,
+                             method="glm1path", family = "negative.binomial")
 
 
 
 ################################################################################
-#Tidy coef
+#Tidy coef for anom
 
-coef_ccfrp <- ft_ccfrp$fourth %>%
+coef_ccfrp <- ft_ccfrp_anom$fourth %>%
               as.data.frame()%>%
               rownames_to_column(var="Thermal affinity")%>%
+              mutate(AT = NA)%>%
               rename(SST = "sst_monthly_anom",
                      BT = "bottomT_monthly_anom",
                      BEUTI = "beuti_monthly_anom",
@@ -493,7 +478,7 @@ coef_ccfrp <- ft_ccfrp$fourth %>%
                           "thermal_affinitywarm temperate"="Warm temperate"))%>%
               mutate(Group = "Rocky reef fish")
 
-coef_kelp_fish <- ft_kelp_fish$fourth %>%
+coef_kelp_fish <- ft_kelp_fish_anom$fourth %>%
   as.data.frame()%>%
   rownames_to_column(var="Thermal affinity")%>%
   rename(SST = "sst_monthly_anom",
@@ -505,10 +490,11 @@ coef_kelp_fish <- ft_kelp_fish$fourth %>%
                                      "thermal_affinitysubtropical" = "Subtropical",
                                      "thermal_affinitywarm temperate"="Warm temperate",
                                      "thermal_affinitycosmopolitan" = "Cosmopolitan"))%>%
-  mutate(Group = "Kelp forest fish")
+  mutate(AT = NA,
+    Group = "Kelp forest fish")
 
 
-coef_deep_reef <- ft_deep_reef$fourth %>%
+coef_deep_reef <- ft_deep_reef_anom$fourth %>%
   as.data.frame()%>%
   rownames_to_column(var="Thermal affinity")%>%
   rename(SST = "sst_monthly_anom",
@@ -519,9 +505,10 @@ coef_deep_reef <- ft_deep_reef$fourth %>%
                                      "thermal_affinitycold temperate" = "Cold temperate",
                                      "thermal_affinitysubtropical" = "Subtropical",
                                      "thermal_affinitywarm temperate"="Warm temperate"))%>%
-  mutate(Group = "Deep reef fish")
+  mutate(AT = NA,
+    Group = "Deep reef fish")
 
-coef_kelp_swath <- ft_kelp_swath$fourth %>%
+coef_kelp_swath <- ft_kelp_swath_anom$fourth %>%
   as.data.frame()%>%
   rownames_to_column(var="Thermal affinity")%>%
   rename(SST = "sst_monthly_anom",
@@ -533,10 +520,11 @@ coef_kelp_swath <- ft_kelp_swath$fourth %>%
                                      "thermal_affinitysubtropical" = "Subtropical",
                                      "thermal_affinitywarm temperate"="Warm temperate",
                                      "thermal_affinitycosmopolitan" = "Cosmopolitan"))%>%
-  mutate(Group = "Kelp forest inverts and algae (swath)")
+  mutate(AT=NA,
+    Group = "Kelp forest inverts and algae (swath)")
 
 
-coef_kelp_upc <- ft_kelp_upc$fourth %>%
+coef_kelp_upc <- ft_kelp_upc_anom$fourth %>%
   as.data.frame()%>%
   rownames_to_column(var="Thermal affinity")%>%
   rename(SST = "sst_monthly_anom",
@@ -549,13 +537,15 @@ coef_kelp_upc <- ft_kelp_upc$fourth %>%
                                      "thermal_affinitywarm temperate"="Warm temperate",
                                      "therma_affinitytropical" = "Tropical",
                                      "thermal_affinitycosmopolitan" = "Cosmopolitan"))%>%
-  mutate(Group = "Kelp forest inverts and algae (upc)")
+  mutate(AT = NA,
+    Group = "Kelp forest inverts and algae (upc)")
 
-coef_rocky <- rocky_corner$fourth %>%
+coef_rocky <- rocky_corner_anom$fourth %>%
   as.data.frame()%>%
   rownames_to_column(var="Thermal affinity")%>%
   mutate(BT = NA)%>%
-  rename(SST = "sst_monthly_anom",
+  rename(AT = "AT_anom",
+    SST = "sst_monthly_anom",
          BEUTI = "beuti_monthly_anom",
          MOCI = "annual_MOCI")%>%
   mutate(`Thermal affinity` = recode(`Thermal affinity`,
@@ -571,17 +561,131 @@ coef_rocky <- rocky_corner$fourth %>%
 
 coef_out <- rbind(coef_ccfrp, coef_kelp_fish, coef_deep_reef, coef_kelp_swath,
                   coef_rocky, coef_kelp_upc)%>%
-            pivot_longer(cols=c("SST","BT","BEUTI","MOCI"),
+            pivot_longer(cols=c("AT","SST","BT","BEUTI","MOCI"),
                                 names_to = "Environmental Variables",
                                 values_to = "Beta")
 
 View(coef_out)
 
-
-################################################################################
 #Save model output
 
-save(coef_out, file="/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data/four_corner_output_anom.rda")
+save(coef_out, file=here::here("analyses","5community_climate_ecology","output","four_corner_output_anom_run2.rda"))
+
+
+
+################################################################################
+#Tidy coef for abs
+
+coef_ccfrp <- ft_ccfrp_abs$fourth %>%
+  as.data.frame()%>%
+  rownames_to_column(var="Thermal affinity")%>%
+  rename(SST = "sst_monthly_obs",
+         BT = "bottomT_monthly_obs",
+         BEUTI = "beuti_monthly_obs",
+         MOCI = "annual_MOCI")%>%
+  mutate(`Thermal affinity` = recode(`Thermal affinity`,
+                                     "thermal_affinitycold temperate" = "Cold temperate",
+                                     "thermal_affinitysubtropical" = "Subtropical",
+                                     "thermal_affinitywarm temperate"="Warm temperate"))%>%
+  mutate(AT = NA,
+    Group = "Rocky reef fish")
+
+coef_kelp_fish <- ft_kelp_fish_abs$fourth %>%
+  as.data.frame()%>%
+  rownames_to_column(var="Thermal affinity")%>%
+  rename(SST = "sst_monthly_obs",
+         BT = "bottomT_monthly_obs",
+         BEUTI = "beuti_monthly_obs",
+         MOCI = "annual_MOCI")%>%
+  mutate(`Thermal affinity` = recode(`Thermal affinity`,
+                                     "thermal_affinitycold temperate" = "Cold temperate",
+                                     "thermal_affinitysubtropical" = "Subtropical",
+                                     "thermal_affinitywarm temperate"="Warm temperate",
+                                     "thermal_affinitycosmopolitan" = "Cosmopolitan"))%>%
+  mutate(AT = NA,
+    Group = "Kelp forest fish")
+
+
+coef_deep_reef <- ft_deep_reef_abs$fourth %>%
+  as.data.frame()%>%
+  rownames_to_column(var="Thermal affinity")%>%
+  rename(SST = "sst_monthly_obs",
+         BT = "bottomT_monthly_obs",
+         BEUTI = "beuti_monthly_obs",
+         MOCI = "annual_MOCI")%>%
+  mutate(`Thermal affinity` = recode(`Thermal affinity`,
+                                     "thermal_affinitycold temperate" = "Cold temperate",
+                                     "thermal_affinitysubtropical" = "Subtropical",
+                                     "thermal_affinitywarm temperate"="Warm temperate"))%>%
+  mutate(AT = NA,
+    Group = "Deep reef fish")
+
+coef_kelp_swath <- ft_kelp_swath_abs$fourth %>%
+  as.data.frame()%>%
+  rownames_to_column(var="Thermal affinity")%>%
+  rename(SST = "sst_monthly_obs",
+         BT = "bottomT_monthly_obs",
+         BEUTI = "beuti_monthly_obs",
+         MOCI = "annual_MOCI")%>%
+  mutate(`Thermal affinity` = recode(`Thermal affinity`,
+                                     "thermal_affinitycold temperate" = "Cold temperate",
+                                     "thermal_affinitysubtropical" = "Subtropical",
+                                     "thermal_affinitywarm temperate"="Warm temperate",
+                                     "thermal_affinitycosmopolitan" = "Cosmopolitan"))%>%
+  mutate(AT = NA,
+    Group = "Kelp forest inverts and algae (swath)")
+
+
+coef_kelp_upc <- ft_kelp_upc_abs$fourth %>%
+  as.data.frame()%>%
+  rownames_to_column(var="Thermal affinity")%>%
+  rename(SST = "sst_monthly_obs",
+         BT = "bottomT_monthly_obs",
+         BEUTI = "beuti_monthly_obs",
+         MOCI = "annual_MOCI")%>%
+  mutate(`Thermal affinity` = recode(`Thermal affinity`,
+                                     "thermal_affinitycold temperate" = "Cold temperate",
+                                     "thermal_affinitysubtropical" = "Subtropical",
+                                     "thermal_affinitywarm temperate"="Warm temperate",
+                                     "therma_affinitytropical" = "Tropical",
+                                     "thermal_affinitycosmopolitan" = "Cosmopolitan"))%>%
+  mutate(AT = NA,
+    Group = "Kelp forest inverts and algae (upc)")
+
+coef_rocky <- rocky_corner_abs$fourth %>%
+  as.data.frame()%>%
+  rownames_to_column(var="Thermal affinity")%>%
+  mutate(BT = NA)%>%
+  rename(AT = "AT_abs",
+    SST = "sst_monthly_obs",
+         BEUTI = "beuti_monthly_obs",
+         MOCI = "annual_MOCI")%>%
+  mutate(`Thermal affinity` = recode(`Thermal affinity`,
+                                     "thermal_affinitycold temperate" = "Cold temperate",
+                                     "thermal_affinitysubtropical" = "Subtropical",
+                                     "thermal_affinitywarm temperate"="Warm temperate",
+                                     "thermal_affinitycosmopolitan" = "Cosmopolitan"))%>%
+  mutate(Group = "Rocky intertidal")
+
+
+
+
+
+coef_out <- rbind(coef_ccfrp, coef_kelp_fish, coef_deep_reef, coef_kelp_swath,
+                  coef_rocky, coef_kelp_upc)%>%
+  pivot_longer(cols=c("AT","SST","BT","BEUTI","MOCI"),
+               names_to = "Environmental Variables",
+               values_to = "Beta")
+
+View(coef_out)
+
+
+#Save model output
+
+save(coef_out, file=here::here("analyses","5community_climate_ecology","output","four_corner_output_abs.rda"))
+
+
+
 
 ################################################################################
 #Plot 

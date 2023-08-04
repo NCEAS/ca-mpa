@@ -12,9 +12,10 @@ require(lmerTest)
 require(emmeans)
 
 #set directories
-datadir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data"
+#datadir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data" #old
+datadir <- here::here("analyses","5community_climate_ecology","output")
 figdir <- here::here("analyses", "5community_climate_ecology", "figures")
-outdir <- 
+
   
 #read data
 load(file.path(datadir,"all_groups_mpa_level_means_long.rda"))
@@ -27,6 +28,135 @@ deep_reef_join1[deep_reef_join1 == ""]<- NA
 rocky_join1[rocky_join1 ==""]<- NA
 kelp_swath_join1[kelp_swath_join1 == ""]<-NA
 kelp_upc_join1[kelp_upc_join1==""]<- NA
+
+################################################################################
+#ANOVA for thermal affinity by year for each group
+
+#rocky intertidal
+intertidal_test <- rocky_join1 %>%
+  filter(year >= 2007)%>%
+  filter(!(is.na(thermal_affinity)))%>%
+  mutate(group="Rocky intertidal",
+         MHW = ifelse(year < 2014, "before",ifelse(year > 2016,"after","during")),
+         MHW = factor(MHW, levels=c("before","during","after")),
+         thermal_affinity = factor(thermal_affinity,
+                                   levels = c("cosmopolitan",
+                                              "tropical",
+                                              "subtropical",
+                                              "warm temperate",
+                                              "cold temperate"
+                                   ))) %>%
+  #calculate mean counts by thermal affinity 
+  group_by(year, MHW, affiliated_mpa, mpa_designation, thermal_affinity)%>%
+  dplyr::summarize(group_mean = mean(counts, na.rm=TRUE))
+
+
+a1 <- aov(group_mean ~ MHW*thermal_affinity, data = intertidal_test)
+summary(a1)
+tukey_a1 <- TukeyHSD(a1)$`MHW:thermal_affinity` %>% data.frame() %>% mutate(habitat="Rocky intertidal")
+
+
+#kelp forest swath
+kelp_swath_test <- kelp_swath_join1 %>% 
+  filter(year >= 2007)%>%
+  filter(!(is.na(thermal_affinity)))%>%
+  mutate(group="Kelp forest invertebrates/algae (swath)",
+         MHW = ifelse(year < 2014, "before",ifelse(year > 2016,"after","during")),
+         MHW = factor(MHW, levels=c("before","during","after")),
+         thermal_affinity = factor(thermal_affinity,
+                                   levels = c("cosmopolitan",
+                                              "tropical",
+                                              "subtropical",
+                                              "warm temperate",
+                                              "cold temperate"
+                                   ))) %>%
+  #calculate mean counts by thermal affinity 
+  group_by(year, MHW, affiliated_mpa, mpa_defacto_designation, thermal_affinity)%>%
+  dplyr::summarize(group_mean = mean(counts, na.rm=TRUE))
+
+                   
+                   
+a2 <- aov(group_mean ~ MHW*thermal_affinity, data = kelp_swath_test)
+summary(a2)
+tukey_a2 <- TukeyHSD(a2)$`MHW:thermal_affinity` %>% data.frame() %>% mutate(habitat="Kelp forest invertebrates and algae (swath)")
+                   
+
+
+#kelp forest swath
+kelp_fish_test <- kelp_fish_join1 %>% 
+  filter(year >= 2007)%>%
+  filter(!(is.na(thermal_affinity)))%>%
+  mutate(group="Kelp forest fishes",
+         MHW = ifelse(year < 2014, "before",ifelse(year > 2016,"after","during")),
+         MHW = factor(MHW, levels=c("before","during","after")),
+         thermal_affinity = factor(thermal_affinity,
+                                   levels = c("cosmopolitan",
+                                              "tropical",
+                                              "subtropical",
+                                              "warm temperate",
+                                              "cold temperate"
+                                   ))) %>%
+  #calculate mean counts by thermal affinity 
+  group_by(year, MHW, affiliated_mpa, mpa_defacto_designation, thermal_affinity)%>%
+  dplyr::summarize(group_mean = mean(counts, na.rm=TRUE))
+
+
+a3 <- aov(group_mean ~ MHW*thermal_affinity, data = kelp_fish_test)
+summary(a3)
+tukey_a3 <- TukeyHSD(a3)$`MHW:thermal_affinity` %>% data.frame() %>% mutate(habitat="Kelp forest fishes")
+
+
+
+                   
+
+#Shallow rocky reef
+CCFRP_test <- CCFRP_join1 %>% 
+  filter(year >= 2007)%>%
+  filter(!(is.na(thermal_affinity)))%>%
+  mutate(group="Rocky reef fishes",
+         MHW = factor(MHW, levels=c("before","during","after")),
+         thermal_affinity = factor(thermal_affinity,
+                                   levels = c("cosmopolitan",
+                                              "tropical",
+                                              "subtropical",
+                                              "warm temperate",
+                                              "cold temperate"
+                                   ))) %>%
+         #calculate mean counts by thermal affinity 
+  group_by(year, MHW, affiliated_mpa, mpa_designation, thermal_affinity)%>%
+  dplyr::summarize(group_mean = mean(counts, na.rm=TRUE))
+
+a4 <- aov(group_mean ~ MHW*thermal_affinity, data = CCFRP_test)
+summary(a4)
+tukey_a4 <- TukeyHSD(a1)$`MHW:thermal_affinity` %>% data.frame() %>% mutate(habitat="Shallow rocky reef")
+
+
+
+#Deep reef
+deep_reef_test <- deep_reef_join1 %>% 
+  filter(year >= 2007)%>%
+  filter(!(is.na(thermal_affinity)))%>%
+  mutate(group="Deep reef fishes",
+         MHW = factor(MHW, levels=c("before","during","after")),
+         thermal_affinity = factor(thermal_affinity,
+                                   levels = c("cosmopolitan",
+                                              "tropical",
+                                              "subtropical",
+                                              "warm temperate",
+                                              "cold temperate"
+                                   ))) %>%
+  #calculate mean counts by thermal affinity 
+  group_by(year, MHW, affiliated_mpa, mpa_defacto_designation, thermal_affinity)%>%
+  dplyr::summarize(group_mean = mean(counts, na.rm=TRUE))
+
+a5 <- aov(group_mean ~ MHW*thermal_affinity, data = deep_reef_test)
+summary(a5)
+tukey_a5 <- TukeyHSD(a1)$`MHW:thermal_affinity` %>% data.frame() %>% mutate(habitat="Shallow rocky reef")
+
+
+
+
+
 
 ################################################################################
 #calculate %abund by affinity for each year
@@ -155,8 +285,8 @@ comp_data <- rbind(CCFRP_affin_mean_total, kelp_fish_affin_mean_total,
                    kelp_upc_total, kelp_swath_total,
                    deep_reef_mean_total, rocky_mean_total)
 
-save(comp_data, file = "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data/comp_data.rda")
-
+#save(comp_data, file = "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/community_climate_derived_data/comp_data.rda") #old
+save(comp_data, file = here::here("analyses","5community_climate_ecology","output","comp_data.rda"))
 ################################################################################
 #plot
 
