@@ -188,6 +188,7 @@ region_es <- rbind(#res.overall,
 
 ################################################################################
 #determine pooled effects for each habitat and region
+
 rma.t.surf <- rma(yi, vi, method="REML", 
                   subset=(habitat == "Surf zone" & target_status == "Targeted"),
                   verbose=TRUE, digits=5, data=dat) 
@@ -297,7 +298,7 @@ combined_dat <- bind_rows(pool_dat, dat, region_es, state_es, .id = "source") %>
                 mutate(habitat = factor(habitat),
                        target_status = factor(target_status),
                        state_region = factor(state_region),
-                       significance = ifelse(p.value < 0.05, "*","")
+                       significance = ifelse(p.value < 0.05 |  (yi - 1.96 * sqrt(vi)) > 0, "*","")
                        )
 
 
@@ -343,13 +344,14 @@ g <- ggplot(combined_dat, aes(x = yi, y = state_region, color = target_status)) 
             ymin = -Inf, ymax = Inf, alpha = 0.05, show.legend = FALSE) +
   geom_point(aes(size = ifelse(combined_dat$habitat == "Pooled effect size", 20, n_MPA)), 
              shape = ifelse(combined_dat$habitat == "Pooled effect size", 18, 15), 
-             position = position_dodge(width = 0.7)) +
+             position = position_dodge(width = 0.7)
+             ) +
   geom_errorbarh(aes(xmin = yi - 1.96 * sqrt(vi), xmax = yi + 1.96 * sqrt(vi)), 
                  position = position_dodge(width = 0.7), height = 0, alpha = 0.3) +
   geom_hline(yintercept = which(levels(combined_dat$state_region) == "South Coast") - 0.5, 
              linetype = "solid", color = "black", size = 0.2) +  
   geom_text(aes(label = significance), vjust = -0.2, size = 4, show.legend = FALSE) + 
-  facet_grid(habitat ~ ., scales = "free_y", space = "free_y") +  
+  facet_grid(habitat ~ ., scales = "fixed") +  
   xlab("Effect size (log response ratio)") +
   ylab("") +
   scale_color_manual(values = c("navyblue", "indianred"),
