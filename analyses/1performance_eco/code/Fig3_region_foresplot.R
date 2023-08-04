@@ -333,38 +333,44 @@ combined_dat$target_status <- factor(combined_dat$target_status, levels = c("Non
 # labels
 state_labels <- c(expression(italic("Pooled")), "South Coast", "Central Coast", "North Central Coast", "North Coast")
 
+
+
 g <- ggplot(combined_dat, aes(x = yi, y = state_region, color = target_status)) +
-  geom_point(aes(size = n_MPA), shape = 15, position = position_dodge(width = 0.7)) +
-  geom_errorbarh(aes(xmin = yi - 1.96 * sqrt(vi), xmax = yi + 1.96 * sqrt(vi)), 
-                 position = position_dodge(width = 0.7), height = 0, alpha = 0.5) +
   geom_vline(xintercept = 0, linetype = "dashed", color = "grey") +
+  # Fill the last facet. Call this first to place it behind the points. 
+  geom_rect(data = subset(combined_dat, habitat == 'Pooled effect size'), 
+            fill = "grey80", xmin = -Inf, xmax = Inf,
+            ymin = -Inf, ymax = Inf, alpha = 0.05, show.legend = FALSE) +
+  geom_point(aes(size = ifelse(combined_dat$habitat == "Pooled effect size", 20, n_MPA)), 
+             shape = ifelse(combined_dat$habitat == "Pooled effect size", 18, 15), 
+             position = position_dodge(width = 0.7)) +
+  geom_errorbarh(aes(xmin = yi - 1.96 * sqrt(vi), xmax = yi + 1.96 * sqrt(vi)), 
+                 position = position_dodge(width = 0.7), height = 0, alpha = 0.3) +
   geom_hline(yintercept = which(levels(combined_dat$state_region) == "South Coast") - 0.5, 
              linetype = "solid", color = "black", size = 0.2) +  
-  geom_text(aes(label = significance), vjust = -0.2, size = 4, show.legend=FALSE) + 
+  geom_text(aes(label = significance), vjust = -0.2, size = 4, show.legend = FALSE) + 
   facet_grid(habitat ~ ., scales = "free_y", space = "free_y") +  
   xlab("Effect size (log response ratio)") +
   ylab("") +
   scale_color_manual(values = c("navyblue", "indianred"),
                      name = "Target status") +  
-  scale_size_continuous(name = "No. MPAs", range = c(1, 3)) +  
+  scale_size_continuous(name = "No. MPAs", range = c(1, 3)) +
+  guides(color = guide_legend(override.aes = list(shape = c(15, 15))),  # Set the shape to 15 (square) for color legend
+         size = guide_legend(override.aes = list(shape = c(15, 15)))) +  # Set the shape to 15 (square) for size legend
   scale_y_discrete(labels = state_labels) +
   theme_minimal() +
   theme(strip.text = element_text(size = 10, face = "bold"),
         strip.background = element_blank(),
-        panel.spacing = unit(1, "lines")) +
+        panel.spacing = unit(1, "lines"),
+        panel.background = element_rect(fill = "white", color = NA)) +
   theme_bw() + my_theme 
 
 g
 
 
 
-ggsave(g, filename=file.path(fig_dir, "Fig3_habitat_meta_forestplot2.png"), bg = "white",
-      width=6, height=7, units="in", dpi=600) 
 
-
-
-
-
-
+ggsave(g, filename=file.path(fig_dir, "Fig3_habitat_meta_forestplot3.png"), bg = "white",
+       width=6, height=7, units="in", dpi=600) 
 
 
