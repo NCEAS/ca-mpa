@@ -30,7 +30,7 @@ sites <- readRDS("/home/shares/ca-mpa/data/sync-data/monitoring/monitoring_sites
 # calculate species diversity and richness
 
 #-------------------SURF ZONE--------------------------------------------------#
-#calculate total biom for each rep unit
+#calculate effort for each MPA
 surf_effort <- surf_zone_raw %>%
   #keep track of hauls with no spp, but these get dropped below
   mutate(species = ifelse(species_code == "NOSP","NOSP",species))%>%
@@ -95,50 +95,65 @@ surf_H_R <-surf_RR %>%
 
 
 #calculate total biom for each rep unit
-kelp_build1 <- kelp_raw %>%
+kelp_effort <- kelp_raw %>%
+  separate(sciname, into = c("genus", "species"), sep = " ")%>%
+  #rename dummy var for any species to get dropped. Keep for now to calculate effort
+  mutate(species = ifelse(species == "spp" | is.na(species),"NOSP",species))%>%
+  #find number of hauls for each MPA
+  distinct(year, bioregion, region4, affiliated_mpa,
+           mpa_state_class, mpa_state_designation,
+           mpa_defacto_class, mpa_defacto_designation, zone, level, transect)%>%
+  #determine n_transects for each MPA
   group_by(year, bioregion, region4, affiliated_mpa,
-           mpa_defacto_class, mpa_defacto_designation,
-           zone, level, transect, target_status)%>%
-  dplyr::summarize(total_biomass = sum(total_biom_kg)) %>%
-  #make wider to fill NAs with true zeros 
-  pivot_wider(names_from = target_status, values_from = total_biomass)%>%
-  #replace NAs with 0s, since these are true zeros
-  replace_na(list(Targeted = 0, Nontargeted = 0)) %>%
-  #make longer
-  pivot_longer(cols = c(Targeted, Nontargeted), names_to = "target_status", values_to = "total_biomass")
+           mpa_state_class, mpa_state_designation,
+           mpa_defacto_class, mpa_defacto_designation)%>%
+  dplyr::summarize(n_transects = n())%>%
+  ungroup()
 
 
-#calculate MPA average and error
-kelp_build2 <- kelp_build1 %>%
+#find total count of each species per MPA 
+kelp_diversity <- kelp_raw %>%
+  separate(sciname, into = c("genus", "species"), sep = " ")%>%
+  #rename dummy var for any species to get dropped. Keep for now to calculate effort
+  mutate(species = ifelse(species == "spp" | is.na(species),"NOSP",species))%>%
+  filter(!(species == "NOSP"))%>%
   group_by(year, bioregion, region4, affiliated_mpa,
+           mpa_state_class, mpa_state_designation,
            mpa_defacto_class, mpa_defacto_designation,
-           target_status) %>%
-  summarize(biomass = mean(total_biomass, na.rm=TRUE),
-            n_rep = n(),
-            sd = sd(total_biomass, na.rm=TRUE),
-            se = sd/sqrt(n_rep)) 
+           classcode, genus, species)%>%
+  dplyr::summarize(count_of_individuals = sum(count)) %>% 
+  #calculate MPA-level diversity
+  group_by(year, bioregion, region4, affiliated_mpa,
+           mpa_state_class, mpa_state_designation,
+           mpa_defacto_class, mpa_defacto_designation)%>%
+  dplyr::summarize(shannon_unweighted = diversity(count_of_individuals, index = "shannon"), #n MPAs should match with surf_effort
+                   richness_unweighted = length(unique(classcode))) %>%
+  #join effort
+  left_join(kelp_effort, by=c("year", "bioregion", "region4", "affiliated_mpa",
+                              "mpa_state_class", "mpa_state_designation",
+                              "mpa_defacto_class", "mpa_defacto_designation"))%>%
+  #calculate weighted diversity and richness
+  mutate(shannon_weighted = shannon_unweighted / n_transects,
+         richness_weighted = richness_unweighted / n_transects)
 
 
 #Reshape
-
-kelp_targeted_RR <- kelp_build2 %>% filter(target_status == "Targeted") %>%
-  #drop smcas
+kelp_RR <- kelp_diversity %>% 
+  #drop smcas. We only want to include no-take SMRs in our analysis
   filter(!(mpa_defacto_class == "smca"))%>%
+  ungroup()%>%
+  dplyr::select(!(c(mpa_state_class, mpa_state_designation, mpa_defacto_class)))%>%
+  ungroup()%>%
+  group_by(year, bioregion, region4, affiliated_mpa)%>%
   pivot_wider(names_from = "mpa_defacto_designation",
-              values_from = c(biomass, n_rep, sd, se)) %>%
-  #drop sites that do not have pairs
-  filter(!(is.na(n_rep_ref)|is.na(n_rep_smr)))
+              values_from = c("shannon_unweighted", "richness_unweighted", "n_transects" ,"shannon_weighted", "richness_weighted"))
+
+###What about NAs? Need to figure out effort
 
 
-kelp_nontargeted_RR <- kelp_build2 %>% filter(target_status == "Nontargeted") %>%
-  #drop smcas
-  filter(!(mpa_defacto_class == "smca"))%>%
-  pivot_wider(names_from = "mpa_defacto_designation",
-              values_from = c(biomass, n_rep, sd, se)) %>%
-  #drop sites that do not have pairs
-  filter(!(is.na(n_rep_ref)|is.na(n_rep_smr)))
-
-kelp_target_RR <- rbind(kelp_targeted_RR, kelp_nontargeted_RR) %>%
+kelp_H_R <-kelp_RR %>%
+  rename("n_rep_ref" = n_transects_ref,
+         "n_rep_smr" = n_transects_smr) %>%
   mutate(habitat = "Kelp forest")
 
 
