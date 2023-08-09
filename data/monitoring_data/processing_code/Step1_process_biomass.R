@@ -431,10 +431,21 @@ cpue <- ccfrp_build8 %>% group_by(year, month, day, bioregion, region4,
 
 
 #step 9 -- join cpue with cpue
-ccfrp_build11 <- ccfrp_build10 %>% left_join(cpue, by=c("year","month","day","id_cell_per_trip","grid_cell_id","species_code"))
+ccfrp_build11 <- ccfrp_build10 %>% left_join(cpue, by=c("year","month","day","id_cell_per_trip","grid_cell_id","species_code")) 
+
+#check to see if any cells have no fish at all
+id_trip_per_cell_with_only_NO_ORG <- ccfrp_build11 %>%
+  group_by(id_cell_per_trip) %>%
+  summarize(has_only_NO_ORG = all(species_code == "NO_ORG")) %>%
+  filter(has_only_NO_ORG) %>%
+  dplyr::select(id_cell_per_trip)
 
 
-#write.csv(ccfrp_build11, row.names = F, file.path(outdir,"/biomass_processed/ccfrp_fish_biomass.csv"))         
+ccfrp_build12 <- ccfrp_build11 %>% filter(!(species_code == "NO_ORG"))
+
+
+
+#write.csv(ccfrp_build12, row.names = F, file.path(outdir,"/biomass_processed/ccfrp_fish_biomass.csv"))         
 
 
 ################################################################################
