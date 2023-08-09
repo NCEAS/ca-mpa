@@ -282,8 +282,8 @@ ccfrp_caught_fishes1 <- ccfrp_caught_fishes %>%
 
 #this is where they were at and effort (angler hrs)
 ccfrp_drift1 <- ccfrp_drift %>% 
-                    dplyr::select(drift_id, trip_id, grid_cell_id, site_mpa_ref,
-                                  total_angler_hrs)
+                    dplyr::select(drift_id, trip_id, id_cell_per_trip, grid_cell_id, site_mpa_ref,
+                                  total_angler_hrs, total_fishes_caught ,excluded_drift_comment, drift_time_hrs)
 
 #more location info
 ccfrp_trip_info1 <- ccfrp_trip_info %>%
@@ -293,18 +293,66 @@ ccfrp_trip_info1 <- ccfrp_trip_info %>%
 ccfrp_areas1 <- ccfrp_areas %>% dplyr::select(area_code, name, mpa_designation)
 
 #join everything
-ccfrp_build1 <- merge(ccfrp_caught_fishes1, ccfrp_drift1, by="drift_id", all=TRUE)
-ccfrp_build2 <- merge(ccfrp_build1, ccfrp_trip_info1, by="trip_id", all=TRUE)
-ccfrp_build3 <- left_join(ccfrp_build2, ccfrp_areas1, by=c("area"="area_code")) %>%
-                  dplyr::select(year, month, day, trip_id, drift_id, grid_cell_id, name, mpa_designation, site_mpa_ref, 
+ccfrp_build0 <- merge(ccfrp_caught_fishes1, ccfrp_drift1, by="drift_id", all=TRUE)
+ccfrp_build1 <- merge(ccfrp_build1, ccfrp_trip_info1, by="trip_id", all=TRUE)
+ccfrp_build2 <- left_join(ccfrp_build2, ccfrp_areas1, by=c("area"="area_code")) %>%
+                  dplyr::select(year, month, day, trip_id, drift_id, id_cell_per_trip, grid_cell_id, name, mpa_designation, site_mpa_ref, 
                                  total_angler_hrs, species_code,
-                                length_cm)
+                                length_cm, excluded_drift_comment, drift_time_hrs) 
 
-#calculate effort as the total angler hours per cell 
+#step 2 -- select variables of interest, drop reps, and calculate effort
+
+#per the instructions on DataONE, exclude these drifts below. 
+#see pgs 2 and 3 for more info: https://opc.dataone.org/metacat/d1/mn/v2/object/urn:uuid:8fdbb007-c386-4371-bbe9-ba328c0f0477 
+ccfrp_build3 <- ccfrp_build2 %>%
+                #drop excluded drifts
+                filter(excluded_drift_comment == "") %>% dplyr::select(!c(excluded_drift_comment))%>% 
+                #drop excluded cells
+                filter(!(grid_cell_id == "TDRR" |
+                           grid_cell_id == "CMMM" |
+                           grid_cell_id == "CMRR" |
+                           grid_cell_id == "TMMM" |
+                           grid_cell_id == "TMRR" |
+                           grid_cell_id =="FNMM" |
+                           grid_cell_id == "FNRR" |
+                           grid_cell_id == "SPMM" |
+                           grid_cell_id == "SPRR" |
+                           grid_cell_id == "BHMM" |
+                           grid_cell_id == "BHRR" |
+                           grid_cell_id == "ANMM" |
+                           grid_cell_id == "ANRR" |
+                           grid_cell_id == "PLMM" |
+                           grid_cell_id == "PLMN" |
+                           grid_cell_id == "PLMO" |
+                           grid_cell_id == "PLRR" |
+                           grid_cell_id == "BLMM" |
+                           grid_cell_id == "BLRR" | 
+                           grid_cell_id == "PBMM" |
+                           grid_cell_id == "PBRR" |
+                           grid_cell_id == "PCMM" |
+                           grid_cell_id == "PCRR" |
+                           grid_cell_id == "CPMM" |
+                           grid_cell_id == "CPRR" |
+                           grid_cell_id == "AIMM" |
+                           grid_cell_id =="AIRR" |
+                           grid_cell_id == "LBMM" |
+                           grid_cell_id == "LBRR" |
+                           grid_cell_id == "SWMM" |
+                           grid_cell_id == "SMRR" |
+                           grid_cell_id == "LJMM" |
+                           grid_cell_id == "LJRR")) %>%
+                #drop drifts less than 2 min
+                filter(drift_time_hrs > (2/60))
+
+#calculate effort as the total angler hours per cell day
 effort <- ccfrp_build3 %>%
-  dplyr::select(year, month, day, grid_cell_id, site_mpa_ref, total_angler_hrs) %>% distinct() %>%
-  group_by(year, month, day, grid_cell_id, site_mpa_ref) %>%
-  summarize(cell_hours = sum(total_angler_hrs))
+  dplyr::select(year, month, day, trip_id, drift_id, id_cell_per_trip, grid_cell_id, total_angler_hrs) %>% distinct() %>% #USE ID CELL PER TRIP
+  mutate(year = as.factor(year),
+        month = as.factor(month),
+         day = as.factor(day))%>%
+  #some cells were sampled more than once in a given year, so take the total amount of effort in a year for that cell
+  group_by(year, month, day, id_cell_per_trip, grid_cell_id) %>%
+  summarize(cell_hours = sum(total_angler_hrs)) 
 
 #filter taxon tab
 ccfrp_taxa <- taxon_tab %>% filter(habitat =="Rocky reef")
@@ -318,12 +366,13 @@ ccfrp_build4 <- left_join(ccfrp_build3, ccfrp_taxa, by=c("species_code" = "habit
                 mutate(species_code = ifelse(is.na(species_code),"NO_ORG",species_code))
 
 
-#step 3 -- calculate biomass at cell level
+#step 3 -- calculate biomass at cell level for a given year
 ccfrp_build5 <- convert_dat(params_tab, ccfrp_build4)
 ccfrp_build6 <- bio_fun(ccfrp_build5) %>%
-                dplyr::select(year,month, day, name, mpa_designation, site_mpa_ref, grid_cell_id,
-                              total_angler_hrs, species_code, TL_cm, sciname,
-                              weight_g, target_status)
+                dplyr::select(year, month, day, name, mpa_designation, site_mpa_ref, id_cell_per_trip, grid_cell_id,
+                              species_code, TL_cm, sciname,
+                              weight_g, target_status) 
+
 #step 4 -- add regions
 
 ccfrp_build7 <- ccfrp_build6 %>%
@@ -342,26 +391,9 @@ ccfrp_build7 <- ccfrp_build6 %>%
 
 ccfrp_build8 <- left_join(ccfrp_build7, regions, by=c("affiliated_mpa"="name")) %>%
                 dplyr::select(year, month, day, bioregion, region4, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation,
-                              grid_cell_id, total_angler_hrs, species_code, sciname,
-                              TL_cm, weight_g, target_status) %>%
-                #one cell (out of all of them) has missing angler hours, so it gets dropped. 
-                filter(!(is.na(total_angler_hrs)))
-                #mutate_at('total_angler_hrs', ~replace_na(.,0))
+                              id_cell_per_trip, grid_cell_id, species_code, sciname,
+                              TL_cm, weight_g, target_status) 
 
-#step 4 -- process effort
-ccfrp_effort_tab <- ccfrp_effort %>% dplyr::select(year, month, day, grid_cell_id, cell_hours = total_angler_hours,
-                                                   mpa_defacto_designation=mpa_status
-                                                   ) %>% distinct() %>%
-                        mutate(mpa_defacto_designation = ifelse(mpa_defacto_designation == "REF","ref","smr"),
-                               year = as.character(year),
-                               month = month.name[month],
-                               day = as.character(day),
-                               grid_cell_id = trimws(as.character(grid_cell_id)),
-                               mpa_defacto_designation = as.character(mpa_defacto_designation)) %>%
-                      #calculate total effort per cell
-                      group_by(year, month, day, grid_cell_id,
-                               mpa_defacto_designation) %>%
-                      dplyr::summarize(total_cell_hours = sum(cell_hours))
 
 #step 5 -- calculate total species biomass per cell day
 ccfrp_build9 <- ccfrp_build8 %>%
@@ -373,25 +405,31 @@ ccfrp_build9 <- ccfrp_build8 %>%
          mpa_defacto_designation = as.character(mpa_defacto_designation)
          ) %>%
   group_by(year, month, day, bioregion, region4, affiliated_mpa, mpa_defacto_class,
-           mpa_defacto_designation, grid_cell_id, species_code, sciname, target_status) %>%
+           mpa_defacto_designation, id_cell_per_trip, grid_cell_id, species_code, sciname, target_status) %>%
   dplyr::summarize(total_biomass = sum(weight_kg))
 
 #step 6 -- add effort
-ccfrp_build10 <- left_join(ccfrp_build9, ccfrp_effort_tab, by=c("year","month","day","grid_cell_id","mpa_defacto_designation")) %>%
+ccfrp_build10 <- left_join(ccfrp_build9, effort, by=c("year","month","day","id_cell_per_trip","grid_cell_id"), multiple = "all") %>%
                     #drop these cells per PI ... apparently there was an issue. 
-                    filter(!(is.na(total_cell_hours)))%>%
-                    mutate(bpue = total_biomass / total_cell_hours)
+                    filter(!(is.na(cell_hours)))%>%
+                    mutate(bpue = total_biomass / cell_hours)
 
 
-#step 7 -- calculate cell annual average bpue. Note::some cells were sampled
-#more than one time in a single year, so take the average. 
-ccfrp_build11 <- ccfrp_build10 %>%
-                  group_by(year, bioregion, region4, affiliated_mpa, 
-                           mpa_defacto_class, mpa_defacto_designation, 
-                           grid_cell_id, species_code, sciname, target_status) %>%
-                  dplyr::summarize(cell_total_biomass = mean(total_biomass),
-                                   cell_hours = mean(total_cell_hours),
-                                   cell_bpue_kg = mean(bpue))
+#step 8 -- calculate cpue and then join with biomass at the cell level
+cpue <- ccfrp_build8 %>% group_by(year, month, day, bioregion, region4, 
+                                 affiliated_mpa, mpa_defacto_class,id_cell_per_trip, grid_cell_id,
+                                  species_code)%>%
+                        dplyr::summarize(n_caught = n()) %>%
+                        #join with effort
+                        mutate(year = as.character(year),
+                               month = as.character(month),
+                               day = as.character(day))%>%
+                       left_join(effort, by=c("year","month","day","id_cell_per_trip","grid_cell_id"), multiple = "all") %>%
+                          mutate(cpue = n_caught / cell_hours) 
+
+
+#step 9 -- join cpue with cpue
+ccfrp_build11 <- ccfrp_build10 %>% left_join(cpue, by=c("year","month","day","id_cell_per_trip","grid_cell_id","species_code"))
 
 
 #write.csv(ccfrp_build11, row.names = F, file.path(outdir,"/biomass_processed/ccfrp_fish_biomass.csv"))         
