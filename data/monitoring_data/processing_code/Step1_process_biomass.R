@@ -425,7 +425,9 @@ cpue <- ccfrp_build8 %>% group_by(year, month, day, bioregion, region4,
                                month = as.character(month),
                                day = as.character(day))%>%
                        left_join(effort, by=c("year","month","day","id_cell_per_trip","grid_cell_id"), multiple = "all") %>%
-                          mutate(cpue = n_caught / cell_hours) 
+                          mutate(cpue = n_caught / cell_hours) %>%
+                      ungroup()%>%
+                      dplyr::select(year, month, day, id_cell_per_trip, grid_cell_id, species_code, cpue, n_caught)
 
 
 #step 9 -- join cpue with cpue
