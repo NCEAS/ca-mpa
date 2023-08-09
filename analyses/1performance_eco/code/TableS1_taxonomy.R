@@ -25,7 +25,8 @@ deep_reef_raw <- read.csv(file.path(mondir, "deep_reef_fish_biomass.csv"))
 
 
 ################################################################################
-#determine spp list from data, not taxonomy table. 
+#determine spp list from data, not taxonomy table, since we only want to include
+#the species that were observed in the data
 
 surf_zone_spp <- surf_zone_raw %>% mutate(habitat = "Surf zone") %>% 
                                   dplyr::select(habitat, class, order, 
@@ -78,7 +79,35 @@ spp_wide <- spp_clean1 %>%
   pivot_wider(names_from = habitat, values_from = dumy_var, values_fill = NA) %>%
   mutate(across(7:10, ~ ifelse(.=="NULL",NA,"X")))
   
+################################################################################
+#Check and clean up
 
+duplicate_spp <- spp_wide[duplicated(spp_wide$species) | duplicated(spp_wide$species, fromLast = TRUE), ]
+
+#fix cases
+
+spp_wide_fixed <- spp_wide %>%
+                    #fix class
+                    mutate(class = ifelse(order == "Lamniformes","Actinopterygii",class),
+                           #fix order
+                           order = ifelse(order == "Perciformes" & family == "Sebastidae","Scorpaeniformes",order),
+                           order = ifelse(order == "Eupercaria incertae sedis" | order == "Centrarchiformes","Perciformes",order),
+                           order = ifelse(order == "Perciformes" & family == "Hexagrammidae","Scorpaeniformes",order)) %>%
+                    #drop missing species
+                    filter(!is.na(species))%>%
+                    #remove leading and trailing spaces
+                    mutate(across(c(class, order, family, genus, species), str_trim)) %>%
+  group_by(class, order, family, genus, species, target_status) %>%
+  summarize_at(vars(`Surf zone`, `Kelp forest`, `Shallow reef`, `Deep reef`),
+               function(x) paste(unique(na.omit(x)), collapse = ", ")) %>%
+  ungroup()
+
+duplicate_spp <- spp_wide_fixed[duplicated(spp_wide_fixed$species) | duplicated(spp_wide_fixed$species, fromLast = TRUE), ]
+
+write.csv(duplicate_spp, file.path(tabdir, "target_discrep.csv"),row.names = FALSE)
+
+###need to reconcile species that were considered targeted by one habitat and
+#not by another
 
 ################################################################################
 #Create table

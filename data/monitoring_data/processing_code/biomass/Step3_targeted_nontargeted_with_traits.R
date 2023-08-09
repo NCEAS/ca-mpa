@@ -58,12 +58,12 @@ biomass_with_mods <- left_join(biomass_raw, mpa_traits, by="affiliated_mpa") %>%
     age_at_survey = year - implementation_year,
     affiliated_mpa = factor(affiliated_mpa),
     state_region = factor(state_region),
-    # Fix state region using case_when
+    # Fix state region 
     state_region = case_when(
       affiliated_mpa == "campus point smca" ~ "South Coast",
       affiliated_mpa == "point vicente smca" ~ "South Coast",
       affiliated_mpa == "blue cavern onshore smca" ~"South Coast",
-      TRUE ~ as.character(state_region)  # Keep the original factor levels for other cases
+      TRUE ~ as.character(state_region)  
     )
   ) %>%
   dplyr::select(habitat, year, state_region, everything())
