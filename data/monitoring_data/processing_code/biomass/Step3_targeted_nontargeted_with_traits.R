@@ -22,7 +22,7 @@ biomass_raw <- read.csv(file.path(biomass_dat,"targeted_nontargeted_biomass_MPA_
 mpa_attributes_gen <- readRDS("/home/shares/ca-mpa/data/sync-data/mpa_traits/processed/mpa_attributes_general.Rds")
 mpa_attributes_hab <- readRDS("/home/shares/ca-mpa/data/sync-data/mpa_traits/processed/mpa_attributes_habitat.Rds")
 mpa_attributes_hab_div <- readRDS("/home/shares/ca-mpa/data/sync-data/mpa_traits/processed/mpa_attributes_habitat_diversity.Rds")
-fishing_effort <- readRDS(here::here("analyses","2performance_fisheries","analyses","blocks","pre_mpa_fishing_pressure_by_mpa.Rds"))
+fishing_effort <- readRDS(here::here("analyses","2performance_fisheries","analyses","blocks","data","pre_mpa_fishing_pressure_by_mpa.Rds"))
 prop_rock <- readRDS("/home/shares/ca-mpa/data/sync-data/mpa_traits/processed/mpa_attributes_habitat_rock.Rds")
 mpas_orig <- readRDS(file.path(data_path, "mpa_traits/processed", "CA_mpa_metadata.Rds")) %>% dplyr::select(mpa, region)
 
