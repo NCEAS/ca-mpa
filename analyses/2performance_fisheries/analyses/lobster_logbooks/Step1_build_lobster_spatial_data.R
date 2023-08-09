@@ -12,16 +12,26 @@ library(tidyverse)
 # Directories
 plotdir <- "analyses/2performance_fisheries/analyses/lobster_logbooks/figures" 
 outdir <- "analyses/2performance_fisheries/analyses/lobster_logbooks/output"
+basedir <- "/Users/lopazanski/Library/CloudStorage/GoogleDrive-lopazanski@ucsb.edu/Shared drives/NCEAS MPA network assessment/MPA Network Assessment: Working Group Shared Folder/data/sync-data"
+gisdir <- file.path(basedir, "gis_data/processed")
+datadir <- "/Users/lopazanski/Documents/github/nceas/CDFW-fishing-data"
 
 # Read logbook data
-data_orig <- readRDS("/Users/cfree/Dropbox/Chris/UCSB/projects/california/cdfw_data/data/confidential/lobster_logbooks/processed/CDFW_2000_2020_logbook_data.Rds")
+#data_orig <- readRDS("/Users/cfree/Dropbox/Chris/UCSB/projects/california/cdfw_data/data/confidential/lobster_logbooks/processed/CDFW_2000_2020_logbook_data.Rds") # Chris
+data_orig <- readRDS("/Users/lopazanski/Documents/github/nceas/CDFW-fishing-data/CDFW_2000_2020_logbook_data.Rds")# Cori
 
 # Blocks
 blocks <- wcfish::blocks
 blocks_sp <- sf::as_Spatial(blocks)
 
 # MPAs
-mpas <- wcfish::mpas_ca %>% 
+# CHRIS VERSION
+#mpas <- wcfish::mpas_ca %>% 
+#  sf::st_as_sf() %>% 
+#  filter(type!="SMP")
+
+# CORI VERSION
+mpas <- readRDS(file.path(gisdir, "CA_MPA_polygons.Rds")) %>% 
   sf::st_as_sf() %>% 
   filter(type!="SMP")
 
@@ -34,7 +44,7 @@ utm11 <- "+proj=utm +zone=11 +datum=NAD83"
 
 # Learned from this
 # 1) Some logbooks have XY but no logbook id - should we assign block id to these?
-# 2) Some logbooks have INVALID block ids that might be able to be udpated based on location NAME
+# 2) Some logbooks have INVALID block ids that might be able to be updated based on location NAME
 
 # Build data
 ################################################################################
@@ -108,7 +118,7 @@ g1 <- ggplot() +
   theme_bw() + my_theme
 g1
 
-# Plot data
+# Plot data - reliable point or not
 g2 <- ggplot() +
   # Plot blocks
   geom_sf(data=blocks, color="grey60", fill=NA, lwd=0.1) +
@@ -129,7 +139,7 @@ g2 <- ggplot() +
   theme(legend.position = c(0.75, 0.8))
 g2
 
-# Plot data
+# Plot data - only reliable points
 g3 <- ggplot() +
   # Plot blocks
   geom_sf(data=blocks, color="grey60", fill=NA, lwd=0.1) +
@@ -233,8 +243,11 @@ data_xy2 <- data_xy1 %>%
 ################################################################################
 
 # Save data
-saveRDS(data_xy2, file=file.path(outdir, "CDFW_2017_2020_lobster_logbook_data_w_latlong.Rds"))
+# CHRIS VERSION
+#saveRDS(data_xy2, file=file.path(outdir, "CDFW_2017_2020_lobster_logbook_data_w_latlong.Rds"))
 
+# CORI VERSION
+saveRDS(data_xy2, file=file.path(datadir, "processed", "CDFW_2017_2020_lobster_logbook_data_w_latlong.Rds"))
 
 
 
