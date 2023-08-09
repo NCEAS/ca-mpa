@@ -94,7 +94,7 @@ kelp_effort<- kelp_raw %>% ungroup() %>% dplyr::select(year, bioregion, region4,
                       #each row is now a transect, so determine total number of transect per MPA
                         group_by(year, bioregion, region4, affiliated_mpa,
                            mpa_defacto_class, mpa_defacto_designation) %>%
-                        summarize(n_transects = n()) %>% ungroup()
+                        summarize(n_rep = n()) %>% ungroup()
   
 #calculate total biom for each rep unit
 kelp_build1 <- kelp_raw %>%
@@ -125,25 +125,25 @@ kelp_build2 <- kelp_build1 %>%
   left_join(kelp_effort, by = c("year", "bioregion", "region4", "affiliated_mpa",
                                 "mpa_defacto_class", "mpa_defacto_designation"))%>%
   #calculate error
-  mutate(se = sd/sqrt(n_transects)) 
+  mutate(se = sd/sqrt(n_rep)) 
 
 #Reshape
 kelp_targeted_RR <- kelp_build2 %>% filter(target_status == "Targeted") %>%
   #drop smcas
   filter(!(mpa_defacto_class == "smca"))%>%
   pivot_wider(names_from = "mpa_defacto_designation",
-              values_from = c(biomass, n_transects, sd, se)) %>%
+              values_from = c(biomass, n_rep, sd, se)) %>%
   #drop sites that do not have pairs. We've already accounted for true zeros, so any missing data means there is not a pair
-  filter(!(is.na(n_transects_ref)|is.na(n_transects_smr)))
+  filter(!(is.na(n_rep_ref)|is.na(n_rep_smr)))
 
 
 kelp_nontargeted_RR <- kelp_build2 %>% filter(target_status == "Nontargeted") %>%
   #drop smcas
   filter(!(mpa_defacto_class == "smca"))%>%
   pivot_wider(names_from = "mpa_defacto_designation",
-              values_from = c(biomass, n_transects, sd, se)) %>%
+              values_from = c(biomass, n_rep, sd, se)) %>%
   #drop sites that do not have pairs
-  filter(!(is.na(n_transects_ref)|is.na(n_transects_smr)))
+  filter(!(is.na(n_rep_ref)|is.na(n_rep_smr)))
 
 kelp_target_RR <- rbind(kelp_targeted_RR, kelp_nontargeted_RR) %>%
                         mutate(habitat = "Kelp forest")
