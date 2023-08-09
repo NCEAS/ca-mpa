@@ -219,32 +219,6 @@ kelp_forest_process1 <- left_join(kelp_forest_raw, kelp_code, by=(c("classcode"=
 kelp_dat <- convert_dat(params_tab, kelp_forest_process1) #apply unit conversion function
 #apply biomass conversion function
 kelp_out <- bio_fun(kelp_dat) %>% 
-  #drop species with missing size
- # filter(!(is.na(TL_cm)))%>%
-  #drop observations not identified to species level
-#  filter(!(
- # classcode == "NO_ORG" |
-  #  classcode == "UNID" | #unidentified fish
-  #  classcode == "ATHE" |
-  #  classcode == "UHAL" | #stingray
-  #  classcode == "TCAL" | #torpedo ray
-  #  classcode == "SYNG" | #tubesnout
-  #  classcode == "STICH" |
-  #  classcode == "RRIC" |
-  #  classcode == "RJOR" |
-  #  classcode =="RHYP" | #Ronquil
-  #  classcode =="RALL" |#Ronquil
-  #  classcode == "EMBI"|
-  #  classcode == "BOTH"|
-  #  classcode == "CITH" |
-  #  classcode == "PHOL" |
-  #  classcode =="PLEU"|
-  #  classcode == "CLUP" |
-  #  classcode == "BATH" |
-  #  classcode == "GGAL" |
-  #  classcode == "HEXA" |
-  #  classcode == "PPRO"
-  #  )) %>%
   #calculate total biomass for unit (biomass of all invididuals of the same size)
   mutate(total_biom_g = weight_g*count)%>%
   #select interest vars

@@ -16,6 +16,16 @@ kelp_raw <- read.csv(file.path(datadir, "kelpforest_fish_biomass.csv"))
 rocky_reef_raw <- read.csv(file.path(datadir, "ccfrp_fish_biomass.csv"))
 deep_reef_raw <- read.csv(file.path(datadir, "deep_reef_fish_biomass.csv"))
 
+################################################################################
+#processing steps
+
+#1. calculate total biomass for each target_status level at the replicate unit
+#2. keep track of effort
+#3. determine the average biomass across replicates for a given MPA. Error is calculated using the effort
+#4. make wide format (every row is a single replicate within a MPA with a column for inside (ref) and outside (smr)) and filter only defacto SMRs
+#5. following typical naming
+#6. join everything into a single dataset
+
 
 ################################################################################
 # calculate lnRRs for targeted vs nontargeted
@@ -90,6 +100,7 @@ kelp_effort<- kelp_raw %>% ungroup() %>% dplyr::select(year, bioregion, region4,
 kelp_build1 <- kelp_raw %>%
   #drop missing biomass UNLESS classcode = NO_ORG, since we want to keep true zeros for effort
   filter(!(is.na(weight_g))) %>%
+  #drop species with missing size
   group_by(year, bioregion, region4, affiliated_mpa,
                     mpa_defacto_class, mpa_defacto_designation, zone, level, transect, target_status)%>%
   summarise(total_biomass = sum(total_biom_kg)) %>%
@@ -141,6 +152,8 @@ kelp_target_RR <- rbind(kelp_targeted_RR, kelp_nontargeted_RR) %>%
 ####NOTE
 #THESE Sites have missing reference sites for ALL years, indicating there might
 #be an issue with the pair
+
+### I THINK I FIXED THIS 08/09.2023 -JS
 
 affiliated_mpa_with_all_na <- kelp_target_RR %>%
   group_by(affiliated_mpa) %>%
