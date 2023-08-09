@@ -166,15 +166,22 @@ affiliated_mpa_with_all_na <- kelp_target_RR %>%
 
 #calculate total biom for each rep unit
 ccfrp_build1 <- rocky_reef_raw %>%
-  #excluding target_status for CCFRP, since they are all targeted 
+  #drop species without biomass estimate
+  filter(!(is.na(total_biomass)))%>%
+  #some cells were sampled more than once in a year. 
+  #calculate mean between these
+  group_by(year, bioregion, region4, affiliated_mpa,
+           mpa_defacto_class, mpa_defacto_designation,
+           grid_cell_id, species_code)%>%
+  dplyr::summarize(cell_bpue = mean(bpue)) %>%
+  #since all CCFRP species are targeted, we can now calculate total cell biomass
   group_by(year, bioregion, region4, affiliated_mpa,
            mpa_defacto_class, mpa_defacto_designation,
            grid_cell_id)%>%
-  dplyr::summarize(total_biomass = sum(cell_bpue_kg)) 
+  dplyr::summarize(total_biomass = sum(cell_bpue)) 
   
 
-#calculate MPA average and error
-
+#calculate MPA average (across cells) and error
 ccfrp_build2 <- ccfrp_build1 %>%
   group_by(year, bioregion, region4, affiliated_mpa,
            mpa_defacto_class, mpa_defacto_designation) %>%
@@ -182,18 +189,17 @@ ccfrp_build2 <- ccfrp_build1 %>%
             n_rep = n(),
             sd = sd(total_biomass, na.rm=TRUE),
             se = sd/sqrt(n_rep)) %>%
-  mutate(target_status=NA)
+  mutate(target_status="Targeted")
 
 
 #REshape
-
 ccfrp_targeted_RR <- ccfrp_build2 %>% 
   #drop smcas
   filter(!(mpa_defacto_class == "smca"))%>%
   pivot_wider(names_from = "mpa_defacto_designation",
               values_from = c(biomass, n_rep, sd, se)) %>%
   #drop sites that do not have pairs
-  mutate(habitat = "Rocky reef")
+  mutate(habitat = "Shallow reef")
 
 
 
