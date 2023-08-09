@@ -77,11 +77,11 @@ s <- ggplot() +
   geom_sf(data=blocks, mapping=aes(alpha=mpa_yn), lwd=0.2) +
   # Region lines
   geom_hline(mapping=aes(yintercept=region_lats)) +
-  # MPAs
-  geom_sf(data=mpas, fill = "red", alpha = 0.5)+
   # Land
   geom_sf(data=foreign, fill="grey80", color="white", lwd=0.3) +
   geom_sf(data=usa, fill="grey80", color="white", lwd=0.3) +
+  # MPAs
+  geom_sf(data=mpas, fill = "red", alpha = 0.5)+
   # Legend
   scale_fill_discrete(name="MLPA region") +
   scale_alpha_manual(name="Block type", values=c(1, 0.2)) +
@@ -99,11 +99,12 @@ c <- ggplot() +
   geom_sf(data=blocks, mapping=aes(alpha=mpa_yn), lwd=0.2) +
   # Region lines
   geom_hline(mapping=aes(yintercept=region_lats)) +
-  # MPAs
-  geom_sf(data=mpas, fill = "red", alpha = 0.5)+
+  
   # Land
   geom_sf(data=foreign, fill="grey80", color="white", lwd=0.3) +
   geom_sf(data=usa, fill="grey80", color="white", lwd=0.3) +
+  # MPAs
+  geom_sf(data=mpas, fill = "red", alpha = 0.5)+
   # Legend
   scale_fill_discrete(name="MLPA region") +
   scale_alpha_manual(name="Block type", values=c(1, 0.2)) +
@@ -122,11 +123,12 @@ nc <- ggplot() +
   geom_sf(data=blocks, mapping=aes(alpha=mpa_yn), lwd=0.2) +
   # Region lines
   geom_hline(mapping=aes(yintercept=region_lats)) +
-  # MPAs
-  geom_sf(data=mpas, fill = "red", alpha = 0.5)+
+  
   # Land
   geom_sf(data=foreign, fill="grey80", color="white", lwd=0.3) +
   geom_sf(data=usa, fill="grey80", color="white", lwd=0.3) +
+  # MPAs
+  geom_sf(data=mpas, fill = "red", alpha = 0.5)+
   # Legend
   scale_fill_discrete(name="MLPA region") +
   scale_alpha_manual(name="Block type", values=c(1, 0.2)) +
@@ -144,11 +146,11 @@ n <- ggplot() +
   geom_sf(data=blocks, mapping=aes(alpha=mpa_yn), lwd=0.2) +
   # Region lines
   geom_hline(mapping=aes(yintercept=region_lats)) +
-  # MPAs
-  geom_sf(data=mpas, fill = "red", alpha = 0.5)+
   # Land
   geom_sf(data=foreign, fill="grey80", color="white", lwd=0.3) +
   geom_sf(data=usa, fill="grey80", color="white", lwd=0.3) +
+  # MPAs
+  geom_sf(data=mpas, fill = "red", alpha = 0.5)+
   # Legend
   scale_fill_discrete(name="MLPA region") +
   scale_alpha_manual(name="Block type", values=c(1, 0.2)) +
