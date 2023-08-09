@@ -75,19 +75,25 @@ params_tab <- read.csv("/home/shares/ca-mpa/data/sync-data/species_traits/proces
 #Important --- general steps for processing biomass. 
 #1. Species w/o size data cannot be converted to biomass, so these get dropped.
 
-#2. In our analyses, we ultimately care about the targeted vs. nontargeted groupings, so 
+#2. We need to track true zeros. Standardize convention by replacing spp code with "NO_ORG" for all replicates where nothing was observed.
+
+#3. Don't drop any species at this stage. We will do this in the next processing step. 
+
+#3. In our analyses, we ultimately care about the targeted vs. nontargeted groupings, so 
 #we can ONLY use species-level data, since some species within a genus or family might be
 #protected, not targeted, etc. Therefore, we drop any taxa not identified to the species-level. 
+# We will use these same data for Diversity and Richness as well, which can only be done at the 
+# species-level. 
 
-#3. For biomass conversion estimates, we elected to use parameters listed by the kelp
+#4. For biomass conversion estimates, we elected to use parameters listed by the kelp
 #forest monitoring group, who conducted a literature review for dozens of species. Since the 
 #list is not comprehensive for species found in all other habitats, we added parameters
 #from fish base. The processing script for this is available here https://github.com/NCEAS/ca-mpa/tree/main/data/species_traits
 
-#4. In some cases, a single SMCA was used as a reference site for two SMRs. 
+#5. In some cases, a single SMCA was used as a reference site for two SMRs. 
 # We need to watch out for these. I am not sure how many there are. 
 
-#5. Make sure that MPA pairs ('inside' and 'outside') are correctly matched in the site tables. 
+#6. Make sure that MPA pairs ('inside' and 'outside') are correctly matched in the site tables. 
 
 ################################################################################
 ################################################################################
@@ -136,6 +142,59 @@ bio_fun <- function(data_with_params) {
   ) 
 }
 
+################################################################################
+#process surf zone
+
+#identify pairs
+
+pairs <- surf_zone_raw %>% dplyr::select(site_code, site_type, mpa_name_short,
+                                         affiliated_mpa, site_pair, mpa_status,
+                                         mpa_type) %>% distinct() %>%
+  mutate(mpa_state_class = word(affiliated_mpa, -1),
+         mpa_state_designation = ifelse(mpa_status == "Reference","ref",tolower(mpa_state_class))) %>%
+  dplyr::select(affiliated_mpa, mpa_state_class, mpa_state_designation, everything())
+
+surf_zone_build1 <- surf_zone_raw %>%
+  mutate(mpa_state_class = word(affiliated_mpa, -1),
+         mpa_state_designation = ifelse(mpa_status == "Reference","ref",tolower(mpa_state_class))) %>%
+  dplyr::select(affiliated_mpa, mpa_state_class, mpa_state_designation, everything())%>%
+  dplyr::select(!(c(site_code, site_type, site_name, region, mpa_name_short, site_pair,
+                    mpa_status, mpa_type)))%>%
+  dplyr::rename(weight_g = fish_weight_individual,
+                total_weight_g = fish_weight) %>%
+  mutate(
+    total_weight_kg = total_weight_g/1000,
+    fish_length = fish_length/10,
+    affiliated_mpa = tolower(affiliated_mpa),
+    #affiliated_mpa = recode(affiliated_mpa, "ano nuevo smr" = "año nuevo smr")
+  )
+
+
+#add defacto smrs
+
+surf_zone_build2 <- left_join(surf_zone_build1, defacto_smr_surf, by="affiliated_mpa") %>%
+  mutate(affiliated_mpa = recode(affiliated_mpa, "ano nuevo smr" = "año nuevo smr"))
+
+
+#add regions
+
+
+surf_zone_build3 <- left_join(surf_zone_build2, regions, by=c("affiliated_mpa"="name")) %>%
+  mutate(mpa_defacto_designation = ifelse(mpa_state_designation == "ref","ref",tolower(mpa_defacto_class)))%>%
+  #clean up
+  dplyr::select(year, month, day, bioregion, region4, affiliated_mpa, 
+                mpa_state_class, mpa_state_designation,
+                mpa_defacto_class, mpa_defacto_designation,
+                haul_number, species_code, class, order, 
+                family, genus, species, target_status=targeted,
+                fish_length, weight_g, total_weight_g, 
+                count, total_weight_kg) %>%
+  #replace no species with true zero
+  mutate(total_weight_g = ifelse(species_code == "NOSP",0,total_weight_g),
+         total_weight_kg = ifelse(species_code == "NOSP",0,total_weight_kg))
+
+
+#write.csv(surf_zone_build3, row.names = F, file.path(outdir,"/biomass_processed/surf_zone_fish_biomass.csv"))  
 
 ################################################################################
 #process kelp forest
@@ -148,31 +207,31 @@ kelp_dat <- convert_dat(params_tab, kelp_forest_process1) #apply unit conversion
 #apply biomass conversion function
 kelp_out <- bio_fun(kelp_dat) %>% 
   #drop species with missing size
-  filter(!(is.na(TL_cm)))%>%
+ # filter(!(is.na(TL_cm)))%>%
   #drop observations not identified to species level
-  filter(!(
-  classcode == "NO_ORG" |
-    classcode == "UNID" | #unidentified fish
-    classcode == "ATHE" |
-    classcode == "UHAL" | #stingray
-    classcode == "TCAL" | #torpedo ray
-    classcode == "SYNG" | #tubesnout
-    classcode == "STICH" |
-    classcode == "RRIC" |
-    classcode == "RJOR" |
-    classcode =="RHYP" | #Ronquil
-    classcode =="RALL" |#Ronquil
-    classcode == "EMBI"|
-    classcode == "BOTH"|
-    classcode == "CITH" |
-    classcode == "PHOL" |
-    classcode =="PLEU"|
-    classcode == "CLUP" |
-    classcode == "BATH" |
-    classcode == "GGAL" |
-    classcode == "HEXA" |
-    classcode == "PPRO"
-    )) %>%
+#  filter(!(
+ # classcode == "NO_ORG" |
+  #  classcode == "UNID" | #unidentified fish
+  #  classcode == "ATHE" |
+  #  classcode == "UHAL" | #stingray
+  #  classcode == "TCAL" | #torpedo ray
+  #  classcode == "SYNG" | #tubesnout
+  #  classcode == "STICH" |
+  #  classcode == "RRIC" |
+  #  classcode == "RJOR" |
+  #  classcode =="RHYP" | #Ronquil
+  #  classcode =="RALL" |#Ronquil
+  #  classcode == "EMBI"|
+  #  classcode == "BOTH"|
+  #  classcode == "CITH" |
+  #  classcode == "PHOL" |
+  #  classcode =="PLEU"|
+  #  classcode == "CLUP" |
+  #  classcode == "BATH" |
+  #  classcode == "GGAL" |
+  #  classcode == "HEXA" |
+  #  classcode == "PPRO"
+  #  )) %>%
   #calculate total biomass for unit (biomass of all invididuals of the same size)
   mutate(total_biom_g = weight_g*count)%>%
   #select interest vars
@@ -251,31 +310,20 @@ ccfrp_taxa <- taxon_tab %>% filter(habitat =="Rocky reef")
 #Join species ID
 
 ccfrp_build4 <- left_join(ccfrp_build3, ccfrp_taxa, by=c("species_code" = "habitat_specific_code"),
-                          na_matches="never")
-
-
-#step 2 -- drop missing species
-
-ccfrp_build5 <- ccfrp_build4 %>% 
-                filter(!(species_code == "MKL"|
-                           species_code == "SMT"|
-                           species_code == "UNK"|
-                           species_code == ""|
-                           is.na(species_code))) %>%
+                          na_matches="never") %>%
                 rename(fish_tl = length_cm) %>%
-                #drop species without TL
-                filter(!(is.na(fish_tl)))
+                mutate(species_code = ifelse(is.na(species_code),"NO_ORG",species_code))
+
 
 #step 3 -- calculate biomass
-
-ccfrp_build6 <- convert_dat(params_tab, ccfrp_build5)
-ccfrp_build7 <- bio_fun(ccfrp_build6) %>%
+ccfrp_build5 <- convert_dat(params_tab, ccfrp_build4)
+ccfrp_build6 <- bio_fun(ccfrp_build5) %>%
                 dplyr::select(year,month, day, name, mpa_designation, site_mpa_ref, grid_cell_id,
                               total_angler_hrs, species_code, TL_cm, sciname,
                               weight_g, target_status)
 #step 4 -- add regions
 
-ccfrp_build8 <- ccfrp_build7 %>%
+ccfrp_build7 <- ccfrp_build6 %>%
                   mutate(mpa_defacto_class = "smr",
                          mpa_defacto_designation = tolower(site_mpa_ref),
                          mpa_defacto_designation = recode(mpa_defacto_designation, "mpa" = "smr"),
@@ -288,7 +336,7 @@ ccfrp_build8 <- ccfrp_build7 %>%
                   #drop per PI recommendation
                   filter(!(name == "Trinidad"))
 
-ccfrp_build9 <- left_join(ccfrp_build8, regions, by=c("affiliated_mpa"="name")) %>%
+ccfrp_build8 <- left_join(ccfrp_build7, regions, by=c("affiliated_mpa"="name")) %>%
                 dplyr::select(year, month, day, bioregion, region4, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation,
                               grid_cell_id, total_angler_hrs, species_code, sciname,
                               TL_cm, weight_g, target_status) %>%
@@ -312,7 +360,7 @@ ccfrp_effort_tab <- ccfrp_effort %>% dplyr::select(year, month, day, grid_cell_i
 
 #step 5 -- calculate total species biomass per cell day
 
-ccfrp_build10 <- ccfrp_build9 %>%
+ccfrp_build9 <- ccfrp_build8 %>%
   mutate(weight_kg = weight_g/1000,
          year = as.character(year),
          month = as.character(month),
@@ -321,13 +369,12 @@ ccfrp_build10 <- ccfrp_build9 %>%
          mpa_defacto_designation = as.character(mpa_defacto_designation)
          ) %>%
   group_by(year, month, day, bioregion, region4, affiliated_mpa, mpa_defacto_class,
-           mpa_defacto_designation, grid_cell_id, sciname, target_status) %>%
+           mpa_defacto_designation, grid_cell_id, species_code, sciname, target_status) %>%
   dplyr::summarize(total_biomass = sum(weight_kg))
 
 #step 6 -- add effort
 
-
-ccfrp_build11 <- left_join(ccfrp_build10, ccfrp_effort_tab, by=c("year","month","day","grid_cell_id","mpa_defacto_designation")) %>%
+ccfrp_build10 <- left_join(ccfrp_build9, ccfrp_effort_tab, by=c("year","month","day","grid_cell_id","mpa_defacto_designation")) %>%
                     #drop cells per PI
                     filter(!(is.na(total_cell_hours)))%>%
                     mutate(bpue = total_biomass / total_cell_hours)
@@ -336,17 +383,16 @@ ccfrp_build11 <- left_join(ccfrp_build10, ccfrp_effort_tab, by=c("year","month",
 #step 7 -- calculate cell annual average bpue. Note::some cells were sampled
 #more than one time in a single year, so take the average. 
 
-ccfrp_build12 <- ccfrp_build11 %>%
+ccfrp_build11 <- ccfrp_build10 %>%
                   group_by(year, bioregion, region4, affiliated_mpa, 
                            mpa_defacto_class, mpa_defacto_designation, 
-                           grid_cell_id, sciname, target_status) %>%
+                           grid_cell_id, species_code, sciname, target_status) %>%
                   dplyr::summarize(cell_total_biomass = mean(total_biomass),
                                    cell_hours = mean(total_cell_hours),
                                    cell_bpue_kg = mean(bpue))
 
 
-
-#write.csv(ccfrp_build12, row.names = F, file.path(outdir,"/biomass_processed/ccfrp_fish_biomass.csv"))         
+#write.csv(ccfrp_build11, row.names = F, file.path(outdir,"/biomass_processed/ccfrp_fish_biomass.csv"))         
 
 
 ################################################################################
@@ -510,7 +556,8 @@ deep_reef_build7 <- left_join(deep_reef_build6, deep_reef_taxa, by=c("scientific
 #calculate biomass
 deep_reef_build8 <- convert_dat(params_tab, deep_reef_build7)
 deep_reef_build9 <- bio_fun(deep_reef_build8) %>%
-                      filter(!(is.na(weight_g)))
+                      mutate(habitat_specific_code = ifelse(scientific_name == "","NO_ORG",habitat_specific_code))
+                      #filter(!(is.na(weight_g)))
 
 #clean up
 
@@ -524,65 +571,3 @@ deep_reef_build10 <- deep_reef_build9 %>%
 
 
 #write.csv(deep_reef_build10, row.names = F, file.path(outdir,"/biomass_processed/deep_reef_fish_biomass.csv"))  
-
-
-
-
-################################################################################
-#process surf zone
-
-#identify pairs
-
-pairs <- surf_zone_raw %>% dplyr::select(site_code, site_type, mpa_name_short,
-                                         affiliated_mpa, site_pair, mpa_status,
-                                         mpa_type) %>% distinct() %>%
-                              mutate(mpa_state_class = word(affiliated_mpa, -1),
-                                     mpa_state_designation = ifelse(mpa_status == "Reference","ref",tolower(mpa_state_class))) %>%
-                              dplyr::select(affiliated_mpa, mpa_state_class, mpa_state_designation, everything())
-
-surf_zone_build1 <- surf_zone_raw %>%
-  mutate(mpa_state_class = word(affiliated_mpa, -1),
-         mpa_state_designation = ifelse(mpa_status == "Reference","ref",tolower(mpa_state_class))) %>%
-                      dplyr::select(affiliated_mpa, mpa_state_class, mpa_state_designation, everything())%>%
-                      dplyr::select(!(c(site_code, site_type, site_name, region, mpa_name_short, site_pair,
-                                      mpa_status, mpa_type)))%>%
-          dplyr::rename(weight_g = fish_weight_individual,
-                        total_weight_g = fish_weight) %>%
-          mutate(
-            total_weight_kg = total_weight_g/1000,
-            fish_length = fish_length/10,
-            affiliated_mpa = tolower(affiliated_mpa),
-            #affiliated_mpa = recode(affiliated_mpa, "ano nuevo smr" = "año nuevo smr")
-            )
-
-
-#add defacto smrs
-
-surf_zone_build2 <- left_join(surf_zone_build1, defacto_smr_surf, by="affiliated_mpa") %>%
-                        mutate(affiliated_mpa = recode(affiliated_mpa, "ano nuevo smr" = "año nuevo smr"))
-
-
-#add regions
-
-
-surf_zone_build3 <- left_join(surf_zone_build2, regions, by=c("affiliated_mpa"="name")) %>%
-                      mutate(mpa_defacto_designation = ifelse(mpa_state_designation == "ref","ref",tolower(mpa_defacto_class)))%>%
-                      #clean up
-                      dplyr::select(year, month, day, bioregion, region4, affiliated_mpa, 
-                                    mpa_state_class, mpa_state_designation,
-                                    mpa_defacto_class, mpa_defacto_designation,
-                                    haul_number, species_code, class, order, 
-                                    family, genus, species, target_status=targeted,
-                                    fish_length, weight_g, total_weight_g, 
-                                    count, total_weight_kg) %>%
-                        #replace no species with true zero
-                      mutate(total_weight_g = ifelse(species_code == "NOSP",0,total_weight_g),
-                             total_weight_kg = ifelse(species_code == "NOSP",0,total_weight_kg))
-
-
-#write.csv(surf_zone_build3, row.names = F, file.path(outdir,"/biomass_processed/surf_zone_fish_biomass.csv"))  
-
-
-
-
-

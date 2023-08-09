@@ -16,15 +16,6 @@ kelp_raw <- read.csv(file.path(datadir, "kelpforest_fish_biomass.csv"))
 rocky_reef_raw <- read.csv(file.path(datadir, "ccfrp_fish_biomass.csv"))
 deep_reef_raw <- read.csv(file.path(datadir, "deep_reef_fish_biomass.csv"))
 
-################################################################################
-# Some site pairs do not appear in the data because they were either not sampled, 
-#or because no species were observed. True zeros should be included, so we need 
-#to use the site tables to identify where true zeros might exist. 
-
-#
-
-sites <- readRDS("/home/shares/ca-mpa/data/sync-data/monitoring/monitoring_sites_clean.Rds")
-
 
 ################################################################################
 # calculate lnRRs for targeted vs nontargeted
@@ -86,13 +77,22 @@ surf_target_RR <- rbind(surf_targeted_RR, surf_nontargeted_RR) %>%
                            
 #-------------------kelp forest------------------------------------------------#
 
-
+#calculate effort as n transects per MPA year
+kelp_effort<- kelp_raw %>% ungroup() %>% dplyr::select(year, bioregion, region4, affiliated_mpa,
+                        mpa_defacto_class, mpa_defacto_designation,
+                        zone, level, transect) %>% distinct() %>%
+                      #each row is now a transect, so determine total number of transect per MPA
+                        group_by(year, bioregion, region4, affiliated_mpa,
+                           mpa_defacto_class, mpa_defacto_designation) %>%
+                        summarize(n_transects = n()) %>% ungroup()
+  
 #calculate total biom for each rep unit
 kelp_build1 <- kelp_raw %>%
+  #drop missing biomass UNLESS classcode = NO_ORG, since we want to keep true zeros for effort
+  filter(!(is.na(weight_g))) %>%
   group_by(year, bioregion, region4, affiliated_mpa,
-           mpa_defacto_class, mpa_defacto_designation,
-           zone, level, transect, target_status)%>%
-  dplyr::summarize(total_biomass = sum(total_biom_kg)) %>%
+                    mpa_defacto_class, mpa_defacto_designation, zone, level, transect, target_status)%>%
+  summarise(total_biomass = sum(total_biom_kg)) %>%
 #make wider to fill NAs with true zeros 
 pivot_wider(names_from = target_status, values_from = total_biomass)%>%
   #replace NAs with 0s, since these are true zeros
@@ -107,32 +107,46 @@ kelp_build2 <- kelp_build1 %>%
            mpa_defacto_class, mpa_defacto_designation,
            target_status) %>%
   summarize(biomass = mean(total_biomass, na.rm=TRUE),
-            n_rep = n(),
-            sd = sd(total_biomass, na.rm=TRUE),
-            se = sd/sqrt(n_rep)) 
-
+            sd = sd(total_biomass, na.rm=TRUE)) %>%
+  #check if any sites do not match (this would mean no fish for an entire site!)
+  #anti_join(kelp_effort, by = c("year", "bioregion", "region4", "affiliated_mpa",
+   #                             "mpa_defacto_class", "mpa_defacto_designation"))
+  left_join(kelp_effort, by = c("year", "bioregion", "region4", "affiliated_mpa",
+                                "mpa_defacto_class", "mpa_defacto_designation"))%>%
+  #calculate error
+  mutate(se = sd/sqrt(n_transects)) 
 
 #Reshape
-
 kelp_targeted_RR <- kelp_build2 %>% filter(target_status == "Targeted") %>%
   #drop smcas
   filter(!(mpa_defacto_class == "smca"))%>%
   pivot_wider(names_from = "mpa_defacto_designation",
-              values_from = c(biomass, n_rep, sd, se)) %>%
-  #drop sites that do not have pairs
-  filter(!(is.na(n_rep_ref)|is.na(n_rep_smr)))
+              values_from = c(biomass, n_transects, sd, se)) %>%
+  #drop sites that do not have pairs. We've already accounted for true zeros, so any missing data means there is not a pair
+  filter(!(is.na(n_transects_ref)|is.na(n_transects_smr)))
 
 
 kelp_nontargeted_RR <- kelp_build2 %>% filter(target_status == "Nontargeted") %>%
   #drop smcas
   filter(!(mpa_defacto_class == "smca"))%>%
   pivot_wider(names_from = "mpa_defacto_designation",
-              values_from = c(biomass, n_rep, sd, se)) %>%
+              values_from = c(biomass, n_transects, sd, se)) %>%
   #drop sites that do not have pairs
-  filter(!(is.na(n_rep_ref)|is.na(n_rep_smr)))
+  filter(!(is.na(n_transects_ref)|is.na(n_transects_smr)))
 
 kelp_target_RR <- rbind(kelp_targeted_RR, kelp_nontargeted_RR) %>%
                         mutate(habitat = "Kelp forest")
+
+
+####NOTE
+#THESE Sites have missing reference sites for ALL years, indicating there might
+#be an issue with the pair
+
+affiliated_mpa_with_all_na <- kelp_target_RR %>%
+  group_by(affiliated_mpa) %>%
+  summarise(all_na = all(is.na(biomass_ref))) %>%
+  filter(all_na) %>%
+  dplyr::select(affiliated_mpa)
 
 
 #------------------------CCFRP------------------------------------------------#
