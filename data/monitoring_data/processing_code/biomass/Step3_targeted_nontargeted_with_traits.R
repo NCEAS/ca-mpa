@@ -70,7 +70,7 @@ biomass_with_mods <- left_join(biomass_raw, mpa_traits, by="affiliated_mpa") %>%
 #
 
 
-saveRDS(biomass_with_mods, file = file.path(dat_path,"biomass_with_moderators.Rds"))
+#saveRDS(biomass_with_mods, file = file.path(dat_path,"biomass_with_moderators.Rds"))
 
 
 
