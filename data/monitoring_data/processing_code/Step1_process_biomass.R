@@ -272,6 +272,13 @@ kelp_fish_counts_final <- kelp_fish_counts %>%
 #process CCFRP
 
 #Note: the unit of replication for CCFRP is cell
+#CCFRP did their own length weight conversion which is included in ccfrp_effort
+#that is already loaded. We are going to process their data and apply our own biomass
+#conversion params to make sure the same params are applied for species shared 
+#between habitats (kelp forest and deep reef). We can use the ccfrp_effort table
+#to QAQC our processed data. cpue and no. caught fishes should match exactly. 
+#bpue might be slightly different since we are using our own conversion params. 
+#it would be worthwhile at some point to compare how well our estimates align with theirs. 
 
 #step 1 -- select variables of interest
 
