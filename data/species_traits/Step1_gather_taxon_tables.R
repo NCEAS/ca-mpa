@@ -24,7 +24,7 @@ ccfrp_taxon1 <- readxl::read_excel(
 data_path <- "/home/shares/ca-mpa/data/sync-data/monitoring/taxonomy_tables"
 input_file <- "DeepReef-ROV-Taxonomy.xlsx"  
 deep_reef_taxon1 <- readxl::read_excel(file.path(data_path,input_file),sheet = 1)%>%
-  clean_names()
+  janitor::clean_names()
 
 
 
