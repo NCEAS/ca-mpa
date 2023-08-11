@@ -86,9 +86,12 @@ mpas_data <- mpas %>% filter(!is.na(unique_habitats))
 region_lats <- c(39.0, 37.18, 34.5)
 
 # Region labels
-region_labels <- tibble(long_dd=c(-123.9, -122.9, -121, -118, -119.5),
-                        lat_dd=c(40.5, 38.7, 36, 34.1, 34.8),
-                        label=c("North\n(Dec 2012)", "North Central\n(May 2010)", "Central\n(Sep 2007)", "South\n(Jan 2012)", "N. Channel\nIslands (2003)"))
+region_labels <- tibble(long_dd=c(-123.9, -122.9, -121, -118#, -119.5
+                                  ),
+                        lat_dd=c(40.5, 38.7, 36, 34.1#, 34.8
+                                 ),
+                        label=c("North\n(Dec 2012)", "North Central\n(May 2010)", "Central\n(Sep 2007)", "South\n(Jan 2012)"#, "N. Channel\nIslands (2003)"
+                                ))
 
 # Theme
 base_theme <-  theme(axis.text=element_text(size=7),
@@ -121,7 +124,7 @@ g1 <- ggplot() +
   geom_point(data=mpas_data, mapping=aes(x=long_dd, y=lat_dd, size=unique_habitats), color="grey50") +
   geom_point(data=mpas_zero, mapping=aes(x=long_dd, y=lat_dd), shape="x", size=3) +
   # Plot region labels
-  geom_text(data=region_labels, mapping=aes(x=long_dd, y=lat_dd, label=label), hjust=0, size=2.3) +
+  geom_text(data=region_labels, mapping=aes(x=long_dd, y=lat_dd, label=label, fontface="bold"), hjust=0, size=2.3) +
   # Labels
   labs(x="", y="", tag="A") +
   scale_size_continuous(name="No. habitats \nmonitored") +
@@ -140,6 +143,10 @@ g1
 
 # Plot biomass response ratio
 g2 <-  ggplot(sites %>%
+                #use age > 0 
+                filter(age_at_survey > 0)%>%
+                #note:: Big Creek SMCA and Southeast Farallon Island SMCA are two MPAs from deep reef included here,
+                #but they are not in Fig2 because there was no variance associated with biomass for the meta analysis
                 group_by(state_region, habitat, affiliated_mpa)%>%
                 summarize(Biomass = mean(target_biomass_logRR),
                           Richness = mean(richness_unweighted_logRR),
@@ -169,7 +176,8 @@ g2 <-  ggplot(sites %>%
   # Theme
   theme_bw() + base_theme +
   theme(axis.text.y=element_blank(),
-        axis.title.x=element_blank())
+        axis.title.x=element_blank(),
+        strip.background = element_blank())
 g2
 
 

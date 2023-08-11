@@ -21,7 +21,7 @@ rich_div <- read.csv(file.path(datadir, "richness_diversity_MPA_means.csv"))
 merged_dat <- biomass %>%
                   filter(target_status == 'Targeted') %>%
                   dplyr::select(habitat, year, state_region,affiliated_mpa,
-                                logRR) %>%
+                                logRR, age_at_survey) %>%
                   rename(target_biomass_logRR = logRR) %>%
                   left_join(rich_div, by = c("habitat","year","affiliated_mpa")) %>%
                   filter(!(is.na(year)))
