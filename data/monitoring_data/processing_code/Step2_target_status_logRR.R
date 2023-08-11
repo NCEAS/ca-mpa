@@ -16,6 +16,16 @@ kelp_raw <- read.csv(file.path(datadir, "kelpforest_fish_biomass.csv"))
 rocky_reef_raw <- read.csv(file.path(datadir, "ccfrp_fish_biomass.csv"))
 deep_reef_raw <- read.csv(file.path(datadir, "deep_reef_fish_biomass.csv"))
 
+################################################################################
+#processing steps
+
+#1. calculate total biomass for each target_status level at the replicate unit
+#2. keep track of effort
+#3. determine the average biomass across replicates for a given MPA. Error is calculated using the effort
+#4. make wide format (every row is a single replicate within a MPA with a column for inside (ref) and outside (smr)) and filter only defacto SMRs
+#5. following typical naming
+#6. join everything into a single dataset
+
 
 ################################################################################
 # calculate lnRRs for targeted vs nontargeted
@@ -84,12 +94,13 @@ kelp_effort<- kelp_raw %>% ungroup() %>% dplyr::select(year, bioregion, region4,
                       #each row is now a transect, so determine total number of transect per MPA
                         group_by(year, bioregion, region4, affiliated_mpa,
                            mpa_defacto_class, mpa_defacto_designation) %>%
-                        summarize(n_transects = n()) %>% ungroup()
+                        summarize(n_rep = n()) %>% ungroup()
   
 #calculate total biom for each rep unit
 kelp_build1 <- kelp_raw %>%
   #drop missing biomass UNLESS classcode = NO_ORG, since we want to keep true zeros for effort
   filter(!(is.na(weight_g))) %>%
+  #drop species with missing size
   group_by(year, bioregion, region4, affiliated_mpa,
                     mpa_defacto_class, mpa_defacto_designation, zone, level, transect, target_status)%>%
   summarise(total_biomass = sum(total_biom_kg)) %>%
@@ -114,25 +125,25 @@ kelp_build2 <- kelp_build1 %>%
   left_join(kelp_effort, by = c("year", "bioregion", "region4", "affiliated_mpa",
                                 "mpa_defacto_class", "mpa_defacto_designation"))%>%
   #calculate error
-  mutate(se = sd/sqrt(n_transects)) 
+  mutate(se = sd/sqrt(n_rep)) 
 
 #Reshape
 kelp_targeted_RR <- kelp_build2 %>% filter(target_status == "Targeted") %>%
   #drop smcas
   filter(!(mpa_defacto_class == "smca"))%>%
   pivot_wider(names_from = "mpa_defacto_designation",
-              values_from = c(biomass, n_transects, sd, se)) %>%
+              values_from = c(biomass, n_rep, sd, se)) %>%
   #drop sites that do not have pairs. We've already accounted for true zeros, so any missing data means there is not a pair
-  filter(!(is.na(n_transects_ref)|is.na(n_transects_smr)))
+  filter(!(is.na(n_rep_ref)|is.na(n_rep_smr)))
 
 
 kelp_nontargeted_RR <- kelp_build2 %>% filter(target_status == "Nontargeted") %>%
   #drop smcas
   filter(!(mpa_defacto_class == "smca"))%>%
   pivot_wider(names_from = "mpa_defacto_designation",
-              values_from = c(biomass, n_transects, sd, se)) %>%
+              values_from = c(biomass, n_rep, sd, se)) %>%
   #drop sites that do not have pairs
-  filter(!(is.na(n_transects_ref)|is.na(n_transects_smr)))
+  filter(!(is.na(n_rep_ref)|is.na(n_rep_smr)))
 
 kelp_target_RR <- rbind(kelp_targeted_RR, kelp_nontargeted_RR) %>%
                         mutate(habitat = "Kelp forest")
@@ -141,6 +152,8 @@ kelp_target_RR <- rbind(kelp_targeted_RR, kelp_nontargeted_RR) %>%
 ####NOTE
 #THESE Sites have missing reference sites for ALL years, indicating there might
 #be an issue with the pair
+
+### I THINK I FIXED THIS 08/09.2023 -JS
 
 affiliated_mpa_with_all_na <- kelp_target_RR %>%
   group_by(affiliated_mpa) %>%
@@ -153,15 +166,22 @@ affiliated_mpa_with_all_na <- kelp_target_RR %>%
 
 #calculate total biom for each rep unit
 ccfrp_build1 <- rocky_reef_raw %>%
-  #excluding target_status for CCFRP, since they are all targeted 
+  #drop species without biomass estimate
+  filter(!(is.na(total_biomass)))%>%
+  #some cells were sampled more than once in a year. 
+  #calculate mean between these
+  group_by(year, bioregion, region4, affiliated_mpa,
+           mpa_defacto_class, mpa_defacto_designation,
+           grid_cell_id, species_code)%>%
+  dplyr::summarize(cell_bpue = mean(bpue)) %>%
+  #since all CCFRP species are targeted, we can now calculate total cell biomass
   group_by(year, bioregion, region4, affiliated_mpa,
            mpa_defacto_class, mpa_defacto_designation,
            grid_cell_id)%>%
-  dplyr::summarize(total_biomass = sum(cell_bpue_kg)) 
+  dplyr::summarize(total_biomass = sum(cell_bpue)) 
   
 
-#calculate MPA average and error
-
+#calculate MPA average (across cells) and error
 ccfrp_build2 <- ccfrp_build1 %>%
   group_by(year, bioregion, region4, affiliated_mpa,
            mpa_defacto_class, mpa_defacto_designation) %>%
@@ -169,18 +189,17 @@ ccfrp_build2 <- ccfrp_build1 %>%
             n_rep = n(),
             sd = sd(total_biomass, na.rm=TRUE),
             se = sd/sqrt(n_rep)) %>%
-  mutate(target_status=NA)
+  mutate(target_status="Targeted")
 
 
 #REshape
-
 ccfrp_targeted_RR <- ccfrp_build2 %>% 
   #drop smcas
   filter(!(mpa_defacto_class == "smca"))%>%
   pivot_wider(names_from = "mpa_defacto_designation",
               values_from = c(biomass, n_rep, sd, se)) %>%
   #drop sites that do not have pairs
-  mutate(habitat = "Rocky reef")
+  mutate(habitat = "Shallow reef")
 
 
 
