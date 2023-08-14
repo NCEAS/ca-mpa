@@ -57,6 +57,7 @@ lw_gen <- data_orig %>%
   summarize(a=median(a, na.rm=T),
             b=median(b, na.rm=T)) %>% 
   ungroup()
+
 write.csv(lw_gen, file=file.path(datadir, "fishbase_lw_parameters_by_genus.csv"), row.names = F)
 
 # Family summary

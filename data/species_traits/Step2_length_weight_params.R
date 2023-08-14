@@ -42,7 +42,7 @@ spp <- spp_orig %>%
   mutate(Species_orig=ifelse(is.na(Species) & !is.na(Genus), "spp", Species)) %>% 
   #Fix Species name 
   mutate(Species=recode(Species_orig,
-                        "<10 cm sebastes sp."="spp",
+                        "<10 cm Sebastes sp."="spp", # updated to capital S by CL on 11 Aug 2023
                         "(10-15" = "spp",
                         "atrovirens,carnatus,chrysomelas,caurinus" = "spp",
                         "brevispinus, ochraceus, or giganteus" = "spp",
@@ -94,7 +94,7 @@ spp <- spp_orig %>%
                         # "Antiopella barbarensis"                              
                         # "Atrimitra idae"                                     
                         "Beringraja binoculata"  = "Beringraja spp",                             
-                        "Beringraja stellulata" = "Beringraha spp",  
+                        "Beringraja stellulata" = "Beringraja spp", # Corrected from Beringraha to Beringraja by CL on 14 Aug 2023
                         "Diopatra/chaetopterus spp" = "Diopatra spp",
                         "Loxorhynchus/scyra spp" = "Loxorhynchus spp",
                         "Synchirus/rimicola spp" = "Synchirus",
