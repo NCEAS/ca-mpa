@@ -13,8 +13,8 @@ datadir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/biomass
 
 surf_zone_raw <- read.csv(file.path(datadir, "surf_zone_fish_biomass.csv"))
 kelp_raw <- read.csv(file.path(datadir, "kelpforest_fish_biomass.csv"))
-rocky_reef_raw <- read.csv(file.path(datadir, "ccfrp_fish_biomass.csv"))
 deep_reef_raw <- read.csv(file.path(datadir, "deep_reef_fish_biomass.csv"))
+shallow_reef <- read.csv(file.path(datadir, "ccfrp_fish_biomass.csv"))
 
 
 ################################################################################
@@ -80,7 +80,7 @@ surf_diversity_build1 <- surf_zone_raw %>%
 
 
 #check if there were any MPAs where no species were observed
-surf_diversity_MPAs <- surf_diversity %>% 
+surf_diversity_MPAs <- surf_diversity_build1 %>% 
   group_by(year, bioregion, region4, affiliated_mpa,
            mpa_state_class, mpa_state_designation,
            mpa_defacto_class, mpa_defacto_designation) %>% distinct()
@@ -193,143 +193,237 @@ kelp_H_R <-kelp_RR %>%
 
 
 ################################################################################
-# For CCFRP, need to calculate CPUE and then use CPUE for diversity
-
-#Everything below is copy over and needs to be complete 8/9/2023
-
-#------------------------CCFRP------------------------------------------------#
-
-#calculate total biom for each rep unit
-ccfrp_effort <- rocky_reef_raw %>%
-  #keep track of cells with no spp, but these get dropped below
-  mutate(species = ifelse(species_code == "NOSP","NO_ORG",species))%>%
-  #drop species with NA
-  filter(!(is.na(species))) %>%
-  #find number of hauls for each MPA
-  distinct(year, bioregion, region4, affiliated_mpa,
-           mpa_state_class, mpa_state_designation,
-           mpa_defacto_class, mpa_defacto_designation, haul_number)%>%
-  
-  #excluding target_status for CCFRP, since they are all targeted 
-  group_by(year, bioregion, region4, affiliated_mpa,
-           mpa_defacto_class, mpa_defacto_designation,
-           grid_cell_id)%>%
-  dplyr::summarize(total_biomass = sum(cell_bpue_kg)) 
+#shallow reef
 
 #calculate effort for each MPA
-surf_effort <- surf_zone_raw %>%
-  #keep track of hauls with no spp, but these get dropped below
-  mutate(species = ifelse(species_code == "NOSP","NO_ORG",species))%>%
+shallow_effort <- shallow_reef %>%
   #drop species with NA
-  filter(!(is.na(species))) %>%
-  #find number of hauls for each MPA
+  filter(!(is.na(sciname))) %>%
+  #find number of cells for each MPA
   distinct(year, bioregion, region4, affiliated_mpa,
-           mpa_state_class, mpa_state_designation,
-           mpa_defacto_class, mpa_defacto_designation, haul_number)%>%
+           #mpa_state_class, mpa_state_designation,
+           mpa_defacto_class, mpa_defacto_designation, grid_cell_id)%>%
   group_by(year, bioregion, region4, affiliated_mpa,
-           mpa_state_class, mpa_state_designation,
+           #mpa_state_class, mpa_state_designation,
            mpa_defacto_class, mpa_defacto_designation)%>%
-  dplyr::summarize(n_hauls = n())%>%
+  dplyr::summarize(n_cells = n())%>%
   ungroup()
 
-#calculate MPA average and error
 
-ccfrp_build2 <- ccfrp_build1 %>%
+#find total counts of each species per MPA
+shallow_diversity_build1 <- shallow_reef %>%
+  #drop anything not ID to species level
+  filter(!(is.na(sciname))) %>%
   group_by(year, bioregion, region4, affiliated_mpa,
-           mpa_defacto_class, mpa_defacto_designation) %>%
-  summarize(biomass = mean(total_biomass, na.rm=TRUE),
-            n_rep = n(),
-            sd = sd(total_biomass, na.rm=TRUE),
-            se = sd/sqrt(n_rep)) %>%
-  mutate(target_status=NA)
-
-
-#REshape
-
-ccfrp_targeted_RR <- ccfrp_build2 %>% 
-  #drop smcas
-  filter(!(mpa_defacto_class == "smca"))%>%
-  pivot_wider(names_from = "mpa_defacto_designation",
-              values_from = c(biomass, n_rep, sd, se)) %>%
-  #drop sites that do not have pairs
-  mutate(habitat = "Rocky reef")
-
-
-
-#------------------------DEEP REEF---------------------------------------------#
-
-#calculate total biom for each rep unit
-deep_reef_build1 <- deep_reef_raw %>%
-  group_by(year, bioregion, region4, affiliated_mpa,
+          # mpa_state_class, mpa_state_designation,
            mpa_defacto_class, mpa_defacto_designation,
-           line_id, target_status)%>%
-  dplyr::summarize(total_biomass = sum(total_biom_kg)) %>%
-  #make wider to fill NAs with true zeros 
-  pivot_wider(names_from = target_status, values_from = total_biomass)%>%
-  #drop NA column
-  dplyr::select(!("NA"))%>%
-  #replace NAs with 0s, since these are true zeros
-  replace_na(list(Targeted = 0, Nontargeted = 0)) %>%
-  #make longer
-  pivot_longer(cols = c(Targeted, Nontargeted), names_to = "target_status", values_to = "total_biomass")
-
-
-#calculate MPA average and error
-deep_reef_build2 <- deep_reef_build1 %>%
+           species_code, sciname)%>%
+  #summarize counts of individuals for each species 
+  dplyr::summarize(count_of_individuals = sum(cpue)) %>% 
+  #calculate MPA-level diversity
   group_by(year, bioregion, region4, affiliated_mpa,
-           mpa_defacto_class, mpa_defacto_designation,
-           target_status) %>%
-  summarize(biomass = mean(total_biomass, na.rm=TRUE),
-            n_rep = n(),
-            sd = sd(total_biomass, na.rm=TRUE),
-            se = sd/sqrt(n_rep))
+           #mpa_state_class, mpa_state_designation,
+           mpa_defacto_class, mpa_defacto_designation)%>%
+  dplyr::summarize(shannon_unweighted = diversity(count_of_individuals, index = "shannon"), #n MPAs should match with surf_effort
+                   richness_unweighted = length(unique(species_code)))%>%
+  #join effort
+  left_join(shallow_effort, by=c("year", "bioregion", "region4", "affiliated_mpa",
+                             # "mpa_state_class", "mpa_state_designation",
+                              "mpa_defacto_class", "mpa_defacto_designation")) %>%
+  #calculate weighted diversity and richness
+  mutate(shannon_weighted = shannon_unweighted / n_cells,
+         richness_weighted = richness_unweighted / n_cells)
 
+
+#check if there were any MPAs where no species were observed
+shallow_diversity_MPAs <- shallow_diversity_build1 %>% 
+  group_by(year, bioregion, region4, affiliated_mpa,
+          #mpa_state_class, mpa_state_designation,
+           mpa_defacto_class, mpa_defacto_designation) %>% distinct()
+
+nrow(shallow_effort) - nrow(shallow_diversity_MPAs) #one MPA has no fish
+
+no_fish_MPA <- anti_join(shallow_effort, shallow_diversity_MPAs)
+
+shallow_diversity_build2 <- rbind(shallow_diversity_build1, no_fish_MPA) %>%
+  #replace with true zeros
+  mutate(
+    shannon_unweighted = coalesce(shannon_unweighted, 0),
+    richness_unweighted = coalesce(richness_unweighted, 0),
+    shannon_weighted = coalesce(shannon_weighted, 0),
+    richness_weighted = coalesce(richness_weighted, 0)
+  )
 
 #Reshape
-
-deep_reef_targeted_RR <- deep_reef_build2 %>% filter(target_status == "Targeted") %>%
-  mutate(mpa_defacto_designation = tolower(mpa_defacto_designation),
-         mpa_defacto_class = tolower(mpa_defacto_class))%>%
-  #drop smcas
-  filter(!(mpa_defacto_class == "smca"))%>%
+shallow_RR <- shallow_diversity_build2 %>% 
+  #drop smcas. We only want to include no-take SMRs in our analysis
+  filter(!(mpa_defacto_class == "SMCA"))%>%
+  ungroup()%>%
+  dplyr::select(!(c( mpa_defacto_class)))%>%
+  ungroup()%>%
+  group_by(year, bioregion, region4, affiliated_mpa)%>%
   pivot_wider(names_from = "mpa_defacto_designation",
-              values_from = c(biomass, n_rep, sd, se))%>%
-  #drop sites that do not have pairs
-  filter(!(is.na(n_rep_ref)|is.na(n_rep_smr)))
+              values_from = c("shannon_unweighted", "richness_unweighted", "n_cells" ,"shannon_weighted", "richness_weighted"))
 
-deep_reef_nontargeted_RR <- deep_reef_build2 %>% filter(target_status == "Nontargeted") %>%
-  mutate(mpa_defacto_designation = tolower(mpa_defacto_designation),
-         mpa_defacto_class = tolower(mpa_defacto_class))%>%
-  #drop smcas
-  filter(!(mpa_defacto_class == "smca"))%>%
+
+shallow_H_R <-shallow_RR %>%
+  rename("n_rep_ref" = n_cells_ref,
+         "n_rep_smr" = n_cells_smr) %>%
+  mutate(habitat = "Shallow reef")
+
+
+################################################################################
+#Deep reef
+
+#calculate effort for each MPA
+deep_effort <- deep_reef_raw %>%
+  separate(sciname, into = c("genus", "species"), sep = " ")%>%
+  #keep track of lines with no spp, but these get dropped below
+  mutate(species_new = ifelse(species == "spp" | is.na(species),"NO_ORG",species))%>%
+  #drop species with NA
+  #filter(!(is.na(species))) %>%
+  #find number of hauls for each MPA
+  distinct(year, bioregion, region4, affiliated_mpa,
+          # mpa_state_class, mpa_state_designation,
+           mpa_defacto_class, mpa_defacto_designation, line_id)%>%
+  group_by(year, bioregion, region4, affiliated_mpa,
+          # mpa_state_class, mpa_state_designation,
+           mpa_defacto_class, mpa_defacto_designation)%>%
+  dplyr::summarize(n_lines = n())%>%
+  ungroup()
+
+
+#find total counts of each species per MPA
+deep_diversity_build1 <- deep_reef_raw %>%
+  separate(sciname, into = c("genus", "species"), sep = " ")%>%
+  #keep track of lines with no spp, but these get dropped below
+  mutate(species_new = ifelse(species == "spp" | is.na(species),"NO_ORG",species))%>%
+  #drop anything not ID to species level
+  filter(!(species_new == "NO_ORG")) %>%
+  group_by(year, bioregion, region4, affiliated_mpa,
+           #mpa_state_class, mpa_state_designation,
+           mpa_defacto_class, mpa_defacto_designation,
+           habitat_specific_code, genus, species)%>%
+  #summarize counts of individuals for each species 
+  dplyr::summarize(count_of_individuals = sum(count)) %>% 
+  #calculate MPA-level diversity
+  group_by(year, bioregion, region4, affiliated_mpa,
+           #mpa_state_class, mpa_state_designation,
+           mpa_defacto_class, mpa_defacto_designation)%>%
+  dplyr::summarize(shannon_unweighted = diversity(count_of_individuals, index = "shannon"), #n MPAs should match with surf_effort
+                   richness_unweighted = length(unique(habitat_specific_code)))%>%
+  #join effort
+  left_join(deep_effort, by=c("year", "bioregion", "region4", "affiliated_mpa",
+                             # "mpa_state_class", "mpa_state_designation",
+                              "mpa_defacto_class", "mpa_defacto_designation")) %>%
+  #calculate weighted diversity and richness
+  mutate(shannon_weighted = shannon_unweighted / n_lines,
+         richness_weighted = richness_unweighted / n_lines)
+
+
+#check if there were any MPAs where no species were observed
+deep_diversity_MPAs <- deep_diversity_build1 %>% 
+  group_by(year, bioregion, region4, affiliated_mpa,
+          # mpa_state_class, mpa_state_designation,
+           mpa_defacto_class, mpa_defacto_designation) %>% distinct()
+
+nrow(deep_effort) - nrow(deep_diversity_MPAs) #one MPA has no fish
+
+no_fish_MPA <- anti_join(deep_effort, deep_diversity_MPAs)
+
+deep_diversity_build2 <- rbind(deep_diversity_build1, no_fish_MPA) %>%
+  #replace with true zeros
+  mutate(
+    shannon_unweighted = coalesce(shannon_unweighted, 0),
+    richness_unweighted = coalesce(richness_unweighted, 0),
+    shannon_weighted = coalesce(shannon_weighted, 0),
+    richness_weighted = coalesce(richness_weighted, 0)
+  )
+
+#yay!
+
+#Reshape
+deep_RR <- deep_diversity_build2 %>% 
+  #drop smcas. We only want to include no-take SMRs in our analysis
+  filter(!(mpa_defacto_class == "SMCA"))%>%
+  ungroup()%>%
+  dplyr::select(!(c(mpa_defacto_class)))%>%
+  ungroup()%>%
+  group_by(year, bioregion, region4, affiliated_mpa)%>%
   pivot_wider(names_from = "mpa_defacto_designation",
-              values_from = c(biomass, n_rep, sd, se)) %>%
-  #drop sites that do not have pairs
-  filter(!(is.na(n_rep_ref)|is.na(n_rep_smr)))
+              values_from = c("shannon_unweighted", "richness_unweighted", "n_lines" ,"shannon_weighted", "richness_weighted"))%>%
+  janitor::clean_names()
 
-deep_reef_target_RR <- rbind(deep_reef_targeted_RR, deep_reef_nontargeted_RR) %>%
-  mutate(habitat ="Deep reef")
+
+deep_H_R <-deep_RR %>%
+  rename("n_rep_ref" = n_lines_ref,
+         "n_rep_smr" = n_lines_smr) %>%
+  mutate(habitat = "Deep reef")%>%
+  #some years have missing pairs, so these get dropped
+  filter(!(is.na(n_rep_ref) | is.na(n_rep_smr)))%>%
+  filter(!(is.na(year)))
+
 
 ################################################################################
 # join data
 
-target_RR_full <- rbind(surf_target_RR, kelp_target_RR, ccfrp_targeted_RR, deep_reef_target_RR) %>%
+richness_diversity_full <- rbind(surf_H_R, kelp_H_R, shallow_H_R, deep_H_R) %>%
   dplyr::select(habitat, everything())
 
 
 ################################################################################
 # calculate response ratio
 
-target_status_RR <- target_RR_full %>%
-  #deal with the 0s by adding 10% of the mean for each group. 
-  group_by(year, habitat)%>% #Adding year really changes the shape of the histogram, so need to check on this. 
-  mutate(scalar_smr = mean(biomass_smr)*.10, #determine 10% of the mean biomass for each habitat inside MPAs
-         scalar_ref = mean(biomass_ref)*.10)%>% #determine 10% of the mean biomass for each habitat outside MPAs
-  ungroup()%>%
-  mutate(logRR = log((biomass_smr+scalar_smr) / (biomass_ref + scalar_ref))) #add appropriate scalar back to bioass estimate and calculate RR
 
-hist(target_status_RR$logRR)
+# Step 1: Pivot longer
+pivot_longer_result <- richness_diversity_full %>%
+  pivot_longer(
+    cols = starts_with(c("shannon_unweighted_ref", "shannon_weighted_smr", 
+                         "richness_unweighted_ref", "richness_unweighted_smr", 
+                         "shannon_weighted_ref", "shannon_weighted_smr", 
+                         "richness_weighted_ref", "richness_weighted_smr")),
+    names_to = "factor",
+    values_to = "value"
+  )
 
-#write.csv(row.names = FALSE, target_status_RR, file.path(datadir, "targeted_nontargeted_biomass_MPA_means.csv"))
+# Step 2: Calculate 10% of the mean and create 'scalar'
+pivot_longer_result <- pivot_longer_result %>%
+  group_by(year, habitat, factor) %>%
+  mutate(scalar = 0.1 * mean(value, na.rm = TRUE))
+
+# Step 3: Add 'scalar' to each factor level
+pivot_longer_result <- pivot_longer_result %>%
+  mutate(value = value + scalar) %>%
+  dplyr::select(-scalar)
+
+# Step 4: Pivot wider back to the original format
+pivot_wider_result <- pivot_longer_result %>%
+  pivot_wider(
+    names_from = factor,
+    values_from = value
+  )
+
+original_order <- c("habitat", "year", "bioregion", "region4", "affiliated_mpa")
+pivot_wider_result <- pivot_wider_result %>%
+  dplyr::select(original_order, everything())
+
+# Step 5: calculate response ratio
+
+
+richness_diversity_RR <- pivot_wider_result %>%
+                          mutate(shannon_weighted_logRR  = log(shannon_weighted_smr/shannon_unweighted_ref),
+                                 shannon_unweighted_logRR = log(shannon_unweighted_smr/shannon_unweighted_ref),
+                                 richness_weighted_logRR = log(richness_weighted_smr/richness_weighted_ref),
+                                 richness_unweighted_logRR = log(richness_unweighted_smr/richness_unweighted_ref))
+  
+
+write.csv(row.names = FALSE, richness_diversity_RR, file.path(datadir, "richness_diversity_MPA_means.csv"))
+
+
+
+
+
+
+
 
 
