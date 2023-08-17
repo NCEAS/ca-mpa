@@ -66,11 +66,17 @@ biomass_with_mods <- left_join(biomass_raw, mpa_traits, by="affiliated_mpa") %>%
       TRUE ~ as.character(state_region)  
     )
   ) %>%
-  dplyr::select(habitat, year, state_region, everything())
-#
+  dplyr::select(habitat, year, state_region, everything()) %>%
+  #calculate yi and vi for meta analytic language
+  mutate(yi = logRR,
+         vi = ((sd_smr^2) / (n_rep_smr*((biomass_smr + scalar_smr)^2))) + #the scalar comes from 10% of the mean we calculated back in Step2
+           ((sd_ref^2) / (n_rep_ref*((biomass_ref + scalar_ref)^2)))) %>% #this is the within-study variance. See Eq. 2 in paper
+  dplyr::select(-logRR) %>%
+  #drop sites that do not have associate variance
+  filter(!(is.na(vi) | vi == 0))
 
 
-#saveRDS(biomass_with_mods, file = file.path(dat_path,"biomass_with_moderators.Rds"))
+saveRDS(biomass_with_mods, file = file.path(dat_path,"biomass_with_moderators.Rds"))
 
 
 
