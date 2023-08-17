@@ -28,7 +28,10 @@ settle_build1 <- settle_dat %>%
                   mutate(settlement_mpa_total = sum(settlement_rocky_intertidal,
                                                     settlement_kelp_forest_shallow_reef,
                                                     settlement_deep_reef,
-                                                    settlement_100_200m)) %>%
+                                                    settlement_100_200m),
+                         #match typical naming
+                         affiliated_mpa = str_trim(str_replace(mpa, "\\(No-Take\\)", "")))  %>%
+                  dplyr::select(affiliated_mpa, everything()) %>%
                   ungroup()
 
 
