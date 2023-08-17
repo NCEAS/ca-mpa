@@ -51,12 +51,24 @@ forest_dat <- dat %>% filter(age_at_survey > 0) %>%
 dat <- escalc(measure="ROM", m1i=biomass_smr + scalar_smr, m2i=biomass_ref + scalar_ref, sd1i=sd_smr, 
                        sd2i=sd_ref, n1i=n_rep_smr, n2i=n_rep_ref, data=biomass_mod, slab = paste("Habitat",habitat,"MPA",affiliated_mpa))
 
-dat <- dat %>% filter(!(is.na(vi) | vi ==0)) %>% group_by(habitat, affiliated_mpa) %>% summarize(vi = mean(vi))
+dat <- dat %>% filter(!(is.na(vi) | vi ==0))  %>% group_by(habitat, affiliated_mpa) %>% summarize(yi = mean(yi),
+                                                                                                vi = mean(vi))
 
 ### assume that the effect sizes within habitats are correlated with rho=0.6
-V <- vcalc(vi=vi, cluster=habitat, obs=affiliated_mpa, data=dat, rho=0.6)
+V <- vcalc(vi=vi, cluster=habitat, obs = affiliated_mpa, data=dat, rho=0.2)
 
-?metafor::vcalc
+
+### fit multilevel model using this approximate V matrix
+res <- rma.mv(yi, V, random = ~ 1 | habitat/affiliated_mpa, data=dat, digits=3)
+res
+
+
+
+
+
+
+
+
 
 
 
