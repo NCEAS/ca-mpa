@@ -168,7 +168,7 @@ g2 <-  ggplot(sites %>%
   facet_grid(state_region~factor, space="free_y", scales="free_y") +
   geom_raster() +
   #habitat labels
-  scale_x_discrete(labels = c("SZ", "KF", "SR", "DR")) +
+ # scale_x_discrete(labels = c("SZ", "KF", "SR", "DR")) +
   # Labels
   labs(y="MPA", x="Habitat", tag="B", fill = "LogRR") +
   # Legend
@@ -177,7 +177,8 @@ g2 <-  ggplot(sites %>%
   theme_bw() + base_theme +
   theme(axis.text.y=element_blank(),
         axis.title.x=element_blank(),
-        strip.background = element_blank())
+        strip.background = element_blank(),
+        axis.text.x = element_text(angle = 45, hjust = 1))
 g2
 
 
@@ -186,7 +187,7 @@ g <- gridExtra::grid.arrange(g1, g2, ncol=2, widths=c(0.55, 0.45))
 g
 
 # Export figure
-ggsave(g, filename=file.path(plotdir, "Fig1_map_figure2.png"), 
+ggsave(g, filename=file.path(plotdir, "Fig1_map_figure3.png"), 
        width=7.5, height=6, units="in", dpi=600)
 
 

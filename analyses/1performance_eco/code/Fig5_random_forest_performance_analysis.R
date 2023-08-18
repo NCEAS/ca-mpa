@@ -15,7 +15,9 @@ plotdir <- "analyses/1performance_eco/figures"
 
 # Read data
 data_orig <- readRDS(file.path(datadir, "biomass_with_moderators.Rds")) %>% 
-  mutate(target_status=ifelse(is.na(target_status), "Targeted", target_status))
+  mutate(target_status=ifelse(is.na(target_status), "Targeted", target_status)) %>%
+  #drop missing values
+  na.omit()
 
 
 # Loop through habitats
@@ -38,7 +40,8 @@ for(i in 1:length(habitats)){
     filter(habitat==habitat_do  & target_status=="Targeted" & age_at_survey>0 & !is.na(habitat_richness))
   
   # Fit model
-  rf_fit <- randomForest::randomForest(logRR ~ size + age_at_survey + habitat_richness + habitat_diversity + fishing_pressure + prop_rock, data=sdata)
+  rf_fit <- randomForest::randomForest(yi ~ size + age_at_survey + habitat_richness + habitat_diversity + fishing_pressure + prop_rock +
+                                         settlement_habitat + settlement_mpa_total, data=sdata)
   
   # Inspect importance
   # randomForest::importance(rf_fit, type=2, scale=T)
@@ -50,7 +53,8 @@ for(i in 1:length(habitats)){
     dplyr::select(habitat, variable, IncNodePurity)
   
   # Inspect marginal effects
-  variables <- c("size", "age_at_survey", "habitat_richness", "habitat_diversity", "fishing_pressure", "prop_rock")
+  variables <- c("size", "age_at_survey", "habitat_richness", "habitat_diversity", 
+                 "fishing_pressure", "prop_rock", "settlement_habitat","settlement_mpa_total")
   for(j in seq_along(variables)){
    parts <- randomForest::partialPlot(x=rf_fit, pred.data=sdata, x.var=variables[j], main=variables[j], plot = F)
    df <- tibble(habitat=habitat_do,
@@ -83,12 +87,14 @@ data_imp1 <- data_imp %>%
   mutate(habitat=factor(habitat, levels=c("Surf zone", "Kelp forest", "Shallow reef", "Deep reef"))) %>% 
   # Format variable
   mutate(variable=recode_factor(variable,
-                                "age_at_survey"="MPA age (yr)",
-                                "size"="MPA area (sqkm)",
+                                "age_at_survey"="MPA age (year)",
+                                "size"="MPA area (km²)",
                                 "fishing_pressure"="Local pre-MPA landings (lbs)",
                                 "habitat_diversity"="Habitat diversity", 
                                 "habitat_richness"="Habitat richness",
-                                "prop_rock"="Proportion rock")) %>% 
+                                "prop_rock"="Proportion rock",
+                                "settlement_habitat" = "Settlement to habitat",
+                                "settlement_mpa_total" = "Settlement to MPA")) %>% 
   # Scale
   arrange(habitat, desc(importance)) %>%  
   group_by(habitat) %>% 
@@ -104,12 +110,14 @@ data_marg1 <- data_marg %>%
   mutate(habitat=factor(habitat, levels=c("Surf zone", "Kelp forest", "Shallow reef", "Deep reef"))) %>% 
   # Format variable
   mutate(variable=recode_factor(variable,
-                                "age_at_survey"="MPA age (yr)",
-                                "size"="MPA area (sqkm)",
+                                "age_at_survey"="MPA age (year)",
+                                "size"="MPA area (km²)",
                                 "fishing_pressure"="Local pre-MPA landings (lbs)",
                                 "habitat_diversity"="Habitat diversity", 
                                 "habitat_richness"="Habitat richness",
-                                "prop_rock"="Proportion rock"))
+                                "prop_rock"="Proportion rock",
+                                "settlement_habitat" = "Settlement to habitat",
+                                "settlement_mpa_total" = "Settlement to MPA"))
 
 
 
@@ -152,14 +160,14 @@ g1 <- ggplot(data_imp1, aes(y=importance_scaled,
   # Theme
   theme_bw() + my_theme +
   theme(axis.title.x=element_blank(),
-        axis.text.x = element_text(angle = 45, hjust = 1))
+        axis.text.x = element_text(angle = 60, hjust = 1))
 g1
 
 
 # Marginal effects
 g2 <- ggplot(data_marg1, aes(x=value, y=effect, color=habitat)) +
   # Facet
-  facet_wrap(~variable, ncol=3, scales="free") +
+  facet_wrap(~variable, ncol=4, scales="free") +
   # Reference line
   geom_hline(yintercept = 0, linetype="dashed", color="grey60") +
   # Data
@@ -181,8 +189,8 @@ g <- gridExtra::grid.arrange(g1, g2, heights=c(0.42, 0.58))
 g
 
 # Export
-ggsave(g, filename=file.path(plotdir, "Fig4_mpa_trait_impact.png"), 
-       width=6.5, height=6.5, units="in", dpi=600)
+ggsave(g, filename=file.path(plotdir, "Fig5_mpa_trait_impact.png"), 
+       width=7, height=6.5, units="in", dpi=600)
 
 
 
