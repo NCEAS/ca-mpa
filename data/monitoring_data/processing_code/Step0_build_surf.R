@@ -1,3 +1,15 @@
+# Process Surf Zone Data
+# Cori Lopazanski
+# August 18, 2023
+
+# Reading and processing steps adapted from Josh Smith, Step1_process_biomass.R
+
+# Summary of key changes from original code:
+# - Added column for whether reference site is actually inside SMCA
+
+# Note potential concerns for next steps:
+# - Some of the lengths seem to be already converted to centimeters
+
 
 # Setup --------------------------------------------------------------------------------
 rm(list=ls())
