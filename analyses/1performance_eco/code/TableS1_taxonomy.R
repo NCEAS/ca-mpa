@@ -100,9 +100,11 @@ spp_wide_fixed <- spp_wide %>%
   group_by(class, order, family, genus, species, target_status) %>%
   summarize_at(vars(`Surf zone`, `Kelp forest`, `Shallow reef`, `Deep reef`),
                function(x) paste(unique(na.omit(x)), collapse = ", ")) %>%
-  ungroup()
+  ungroup() %>%
+  mutate(dup_spp = paste(genus, species))
 
-duplicate_spp <- spp_wide_fixed[duplicated(spp_wide_fixed$species) | duplicated(spp_wide_fixed$species, fromLast = TRUE), ]
+duplicate_spp <- spp_wide_fixed[duplicated(spp_wide_fixed$dup_spp) | duplicated(spp_wide_fixed$dup_spp, fromLast = TRUE), ]
+
 
 write.csv(duplicate_spp, file.path(tabdir, "target_discrep.csv"),row.names = FALSE)
 
