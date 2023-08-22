@@ -26,6 +26,7 @@ taxa <- freeR::taxa(species=unique(spp_orig$sciname))
 
 # Species of interest
 # Only fish id'ed to species level
+# THESE ARE THE SPECIES ACROSS ALL HABITATS THAT WILL GET CONVERTED TO BIOMASS
 spp <- spp_orig %>% 
   select(sciname, level) %>% 
   unique() %>% 
