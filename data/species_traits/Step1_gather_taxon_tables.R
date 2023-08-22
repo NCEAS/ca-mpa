@@ -7,20 +7,41 @@ require(tidyr)
 export_path <- "/home/shares/ca-mpa/data/sync-data/species_traits/processed"
 
 ################################################################################
+# This script gathers all of the taxanomoy tables from Surf Zone, Rocky Intertidal,
+# Kelp Forest, CCFRP, and Deep Reef. 
+
+# The purpose of this script is to create a single lookup table with the full
+# taxonomy of all unique species recorded by each habitat with the habitat-specific
+# codes that link the observation data with the taxonomy. 
+
+# Taxa should not be duplicated within a habitat (distinct rows only), but
+# they may be duplicated across habitats at this stage. We need to keep track
+# of habitat specific codes so that we can join the taxonomy with each habitat's raw data. 
+
+################################################################################
 #load taxonomy tables
 
+# Surf zone has multiple sampling methods each with a unique taxonomy table. 
+# We are only using the seine data so will load that table only. 
+
+surf_taxon1 <- read.csv(file.path("/home/shares/ca-mpa/data/sync-data/monitoring/taxonomy_tables","surf_zone_fish_seine_species.csv"))
+
+##Rocky intertidal has two survey types (biodiversity and long term) each with 
+#a unique taqxonomy table. We are only using the long term data here so will
+#not load the biodiversity table for now. 
 rocky_taxon1 <- readxl::read_excel(
   file.path("/home/shares/ca-mpa/data/sync-data/monitoring/taxonomy_tables","RockyIntertidal-LongTerm-Taxonomy.xlsx"), sheet=1, skip = 0, na="NA")
 
-
+# Full taxonomy for all methods
 kelp_taxon1 <-readxl::read_excel(
   file.path("/home/shares/ca-mpa/data/sync-data/monitoring/taxonomy_tables/Kelp-Taxonomy.xlsx"), sheet=1, skip = 0, na="NA")
 
-
+# Full taxonomy for all methods
 ccfrp_taxon1 <- readxl::read_excel(
   file.path("/home/shares/ca-mpa/data/sync-data/monitoring/taxonomy_tables/CCFRP_Taxonomy.xlsx"), sheet=2, skip = 0, na="NA")
 
 
+# Full taxonomy for all methods
 data_path <- "/home/shares/ca-mpa/data/sync-data/monitoring/taxonomy_tables"
 input_file <- "DeepReef-ROV-Taxonomy.xlsx"  
 deep_reef_taxon1 <- readxl::read_excel(file.path(data_path,input_file),sheet = 1)%>%
@@ -29,9 +50,16 @@ deep_reef_taxon1 <- readxl::read_excel(file.path(data_path,input_file),sheet = 1
 
 
 ################################################################################
-#clean tables
+#clean surf zone
 
-#rocky intertidal
+surf_taxon <- surf_taxon1 %>%
+  mutate(habitat = "Surf Zone")%>%
+  dplyr::select(habitat, habitat_specific_code = "species_code", habitat_specific_spp_name = "ScientificName_accepted",
+                Kingdom, Phylum, Class, Order, Family, Genus = genus, Species = species, target_status = Targeted) %>%
+  distinct()
+
+################################################################################
+#clean rocky intertidal
 rocky_taxon <- rocky_taxon1 %>%
                 mutate(habitat = "Rocky intertidal",
                        target_status = NA)%>%
@@ -43,8 +71,8 @@ rocky_taxon <- rocky_taxon %>% mutate(Species = word(Species, -1))
 rocky_taxon$Phylum <-  gsub("[()]", "", rocky_taxon$Phylum)  
 rocky_taxon$Species <-  gsub("[()]", "", rocky_taxon$Species)  
 
-
-#kelp forest
+################################################################################
+#clean kelp forest
 kelp_taxon <- kelp_taxon1 %>%
               mutate(habitat = "Kelp forest")%>%
                 dplyr::select(habitat, habitat_specific_code = "pisco_classcode", habitat_specific_spp_name = "ScientificName_accepted",
@@ -53,7 +81,8 @@ kelp_taxon <- kelp_taxon1 %>%
 kelp_taxon[kelp_taxon == "spp"] <- NA
 kelp_taxon[kelp_taxon == "spp."] <- NA
 
-#CCFRP
+################################################################################
+#clean CCFRP
 
 CCFRP_taxon <- ccfrp_taxon1%>%
   mutate(habitat = "Rocky reef")%>%
@@ -61,7 +90,8 @@ CCFRP_taxon <- ccfrp_taxon1%>%
                 Kingdom, Phylum, Class, Order, Family, Genus, Species = species, target_status=Fished) %>%
   distinct()
 
-#Deep reef
+################################################################################
+#clean Deep reef
 
 deep_reef_taxon <- deep_reef_taxon1%>%
   mutate(habitat = "Deep reef")%>%
@@ -75,12 +105,10 @@ deep_reef_taxon[deep_reef_taxon == "NA"] <- NA
 ################################################################################
 #merge
 
-taxon_tab <- rbind(rocky_taxon, kelp_taxon, CCFRP_taxon, deep_reef_taxon)
+taxon_tab <- rbind(surf_taxon, rocky_taxon, kelp_taxon, CCFRP_taxon, deep_reef_taxon)
 taxon_tab[taxon_tab == "NA"] <- NA
 taxon_tab[taxon_tab == "?"] <- NA
 taxon_tab[taxon_tab == "Non-targeted"] <- "Nontargeted"
-
-
 
 
 

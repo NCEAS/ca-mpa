@@ -1,275 +1,189 @@
-"class","order","family","genus","species","target_status","Surf zone","Kelp forest","Shallow reef","Deep reef"
-"Actinopterygii","Perciformes","Embiotocidae","Hyperprosopon","ellipticum","Targeted","X",NA,NA,NA
-"Actinopterygii","Pleuronectiformes","Pleuronectidae","Psettichthys","melanostictus","Targeted","X",NA,NA,NA
-"Actinopterygii","Perciformes","Cottidae","Leptocottus","armatus","Nontargeted","X",NA,NA,"X"
-"Actinopterygii","Perciformes","Embiotocidae","Amphistichus","koelzi","Targeted","X",NA,NA,NA
-"Actinopterygii","Perciformes","Embiotocidae","Amphistichus","rhodoterus","Targeted","X",NA,NA,NA
-"Actinopterygii","Clupeiformes","Clupeidae","Clupea","pallasii","Targeted","X",NA,NA,NA
-"Actinopterygii","Perciformes","Embiotocidae","Hypsurus","caryi","Targeted","X",NA,NA,"X"
-"Actinopterygii","Pleuronectiformes","Pleuronectidae","Platichthys","stellatus","Targeted","X",NA,NA,NA
-"Actinopterygii","Perciformes","Embiotocidae","Amphistichus","argenteus","Targeted","X",NA,NA,"X"
-"Actinopterygii","Atheriniformes","Atherinidae","Atherinops","affinis","Targeted","X",NA,NA,NA
-"Actinopterygii","Syngnathiformes","Syngnathidae","Syngnathus","leptorhynchus","Nontargeted","X",NA,NA,NA
-"Actinopterygii","Perciformes","Embiotocidae","Rhacochilus","vacca","Targeted","X",NA,NA,NA
-"Actinopterygii","Perciformes","Embiotocidae","Hyperprosopon","anale","Targeted","X",NA,NA,NA
-"Actinopterygii","Pleuronectiformes","Paralichthyidae","Citharichthys","stigmaeus","Nontargeted","X",NA,NA,NA
-"Actinopterygii","Pleuronectiformes","Paralichthyidae","Paralichthys","californicus","Targeted","X","X","X","X"
-"Actinopterygii","Atheriniformes","Atherinidae","Atherinidae",NA,"Targeted","X",NA,NA,NA
-"Elasmobranchii","Carcharhiniformes","Triakidae","Triakis","semifasciata","Targeted","X","X",NA,NA
-"Actinopterygii","Perciformes","Embiotocidae","Micrometrus","minimus","Nontargeted","X","X",NA,NA
-"Actinopterygii","Pleuronectiformes","Pleuronectidae",NA,NA,"Targeted","X",NA,NA,NA
-"Actinopterygii","Syngnathiformes","Syngnathidae","Syngnathus",NA,"Nontargeted","X",NA,NA,NA
-"Actinopterygii","Syngnathiformes","Syngnathidae","Syngnathus","californiensis","Nontargeted","X",NA,NA,NA
-"Actinopterygii","Perciformes","Embiotocidae","Phanerodon","furcatus","Targeted","X",NA,NA,NA
-"Actinopterygii","Osmeriformes","Osmeridae","Hypomesus","pretiosus","Targeted","X",NA,NA,NA
-"Actinopterygii","Clupeiformes","Engraulidae","Engraulis","mordax","Targeted","X","X","X",NA
-"Actinopterygii","Perciformes","Embiotocidae","Hyperprosopon","argenteum","Targeted","X",NA,NA,NA
-"Actinopterygii","Perciformes","Embiotocidae","Embiotoca","lateralis","Targeted","X",NA,NA,NA
-"Actinopterygii","Perciformes","Aulorhynchidae","Aulorhynchus","flavidus","Nontargeted","X",NA,NA,NA
-"Actinopterygii","Blenniiformes","Clinidae","Gibbonsia","metzi","Nontargeted","X",NA,NA,NA
-"Elasmobranchii","Rhinopristiformes","Rhinobatidae","Platyrhinoidis","triseriata","Nontargeted","X",NA,NA,NA
-"Actinopterygii","Blenniiformes","Clinidae","Heterostichus","rostratus","Nontargeted","X",NA,NA,NA
-"Actinopterygii","Perciformes","Embiotocidae","Micrometrus","aurora","Nontargeted","X",NA,NA,NA
-"Actinopterygii","Perciformes","Embiotocidae","Cymatogaster","aggregata","Targeted","X",NA,NA,NA
-"Actinopterygii","Eupercaria incertae sedis","Moronidae","Morone","saxatilis","Targeted","X",NA,NA,NA
-"Actinopterygii","Blenniiformes","Clinidae","Clinidae",NA,"Nontargeted","X",NA,NA,NA
-"Actinopterygii","Eupercaria incertae sedis","Sciaenidae","Genyonemus","lineatus","Targeted","X",NA,NA,NA
-"Actinopterygii","Blenniiformes","Clinidae","Gibbonsia",NA,"Nontargeted","X",NA,NA,NA
-"Actinopterygii","Perciformes","Embiotocidae","Brachyistius","frenatus","Nontargeted","X","X",NA,"X"
-"Actinopterygii","Perciformes","Embiotocidae","Embiotoca","jacksoni","Targeted","X",NA,NA,NA
-"Actinopterygii","Clupeiformes","Clupeidae","Sardinops","sagax","Targeted","X","X",NA,NA
-"Actinopterygii","Perciformes","Sebastidae","Sebastes","rastrelliger","Targeted","X",NA,NA,NA
-"Actinopterygii","Perciformes","Sebastidae","Sebastes","paucispinis","Targeted","X",NA,NA,"X"
-"Actinopterygii","Perciformes","Pholidae","Pholidae",NA,"Nontargeted","X",NA,NA,NA
-"Actinopterygii","Perciformes","Agonidae","Stellerina","xyosterna","Nontargeted","X",NA,NA,NA
-"Actinopterygii","Perciformes","Cottidae","Scorpaenichthys","marmoratus","Targeted","X",NA,NA,"X"
-"Actinopterygii","Blenniiformes","Clinidae","Gibbonsia","montereyensis","Nontargeted","X",NA,NA,NA
-"Actinopterygii","Eupercaria incertae sedis","Sciaenidae","Menticirrhus","undulatus","Targeted","X",NA,NA,NA
-"Actinopterygii","Eupercaria incertae sedis","Sciaenidae","Atractoscion","nobilis","Targeted","X",NA,NA,NA
-"Elasmobranchii","Myliobatiformes","Myliobatidae","Myliobatis","californica","Targeted","X",NA,"X",NA
-"Actinopterygii","Eupercaria incertae sedis","Sciaenidae","Umbrina","roncador","Targeted","X",NA,NA,NA
-"Actinopterygii","Eupercaria incertae sedis","Sciaenidae","Seriphus","politus","Targeted","X",NA,NA,NA
-"Actinopterygii","Eupercaria incertae sedis","Sciaenidae","Cheilotrema","saturnum","Targeted","X",NA,NA,NA
-"Elasmobranchii","Rhinopristiformes","Rhinobatidae","Pseudobatos","productus","Targeted","X",NA,NA,NA
-"Elasmobranchii","Myliobatiformes","Urotrygonidae","Urobatis","halleri","Targeted","X",NA,NA,NA
-"Actinopterygii","Centrarchiformes","Kyphosidae","Girella","nigricans","Targeted","X",NA,NA,NA
-"Actinopterygii","Perciformes","Serranidae","Paralabrax","clathratus","Targeted","X","X",NA,"X"
-"Actinopterygii","Centrarchiformes","Kyphosidae","Medialuna","californiensis","Targeted","X",NA,NA,NA
-"Actinopterygii","Eupercaria incertae sedis","Sciaenidae","Roncador","stearnsii","Targeted","X",NA,NA,NA
-"Actinopterygii","Centrarchiformes","Kyphosidae","Kyphosus","azureus","Targeted","X",NA,NA,NA
-"Actinopterygii","Mugiliformes","Mugilidae","Mugil","cephalus","Targeted","X",NA,NA,NA
-"Actinopterygii","Cyprinodontiformes","Fundulidae","Fundulus","parvipinnis","Nontargeted","X",NA,NA,NA
-"Actinopterygii","Perciformes","Embiotocidae","Cymatogaster","aggregata","Nontargeted",NA,"X",NA,"X"
-"Actinopterygii","Perciformes","Pomacentridae","Chromis","punctipinnis","Nontargeted",NA,"X",NA,"X"
-"Actinopterygii","Perciformes","Embiotocidae","Embiotoca","jacksoni","Nontargeted",NA,"X",NA,"X"
-"Actinopterygii","Perciformes","Kyphosidae","Girella","nigricans","Nontargeted",NA,"X","X","X"
-"Actinopterygii","Perciformes","Pomacentridae","Hypsypops","rubicundus","Nontargeted",NA,"X","X","X"
-"Actinopterygii","Perciformes","Labridae","Halichoeres","semicinctus","Nontargeted",NA,"X",NA,"X"
-"Actinopterygii","Scorpaeniformes","Sebastidae","Sebastes","spp","Targeted",NA,"X",NA,NA
-"Actinopterygii","Perciformes","Labridae","Oxyjulis","californica","Nontargeted",NA,"X",NA,"X"
-"Actinopterygii","Scorpaeniformes","Sebastidae","Sebastes","mystinus","Targeted",NA,"X","X",NA
-"Actinopterygii","Perciformes","Labridae","Semicossyphus","pulcher","Targeted",NA,"X",NA,"X"
-"Actinopterygii","Perciformes","Kyphosidae","Medialuna","californiensis","Nontargeted",NA,"X",NA,"X"
-"Actinopterygii","Perciformes","Embiotocidae","Rhacochilus","toxotes","Nontargeted",NA,"X",NA,"X"
-"Actinopterygii","Scorpaeniformes","Sebastidae","Sebastes","atrovirens","Targeted",NA,"X","X",NA
-"Actinopterygii","Perciformes","Clinidae","Heterostichus","rostratus","Nontargeted",NA,"X",NA,NA
-"Actinopterygii","Perciformes","Embiotocidae","Rhacochilus","vacca","Nontargeted",NA,"X",NA,"X"
-"Actinopterygii","Scorpaeniformes","Sebastidae","Sebastes","rastrelliger","Targeted",NA,"X","X",NA
-"Actinopterygii","Perciformes","Embiotocidae","Hypsurus","caryi","Nontargeted",NA,"X",NA,NA
-"Actinopterygii","Scorpaeniformes","Hexagrammidae","Hexagrammos","decagrammus","Targeted",NA,"X",NA,NA
-"Actinopterygii","Scorpaeniformes","Hexagrammidae","Ophiodon","elongatus","Targeted",NA,"X",NA,NA
-"Actinopterygii","Scorpaeniformes","Hexagrammidae","Oxylebius","pictus","Nontargeted",NA,"X",NA,NA
-"Actinopterygii","Perciformes","Embiotocidae","Phanerodon","furcatus","Nontargeted",NA,"X",NA,"X"
-"Actinopterygii","Scorpaeniformes","Sebastidae","Sebastes","auriculatus","Targeted",NA,"X","X",NA
-"Actinopterygii","Scorpaeniformes","Sebastidae","Sebastes","chrysomelas","Targeted",NA,"X","X",NA
-"Actinopterygii","Perciformes","Embiotocidae","Hyperprosopon","anale","Nontargeted",NA,"X",NA,NA
-"Actinopterygii","Scorpaeniformes","Sebastidae","Sebastes","caurinus","Targeted",NA,"X","X",NA
-"Actinopterygii","Scorpaeniformes","Cottidae","Scorpaenichthys","marmoratus","Targeted",NA,"X",NA,NA
-"Actinopterygii","Perciformes","Embiotocidae","Hyperprosopon","argenteum","Nontargeted",NA,"X",NA,NA
-"Actinopterygii","Scorpaeniformes","Sebastidae","Sebastes","paucispinis","Targeted",NA,"X","X",NA
-"Actinopterygii","Scorpaeniformes","Sebastidae","Sebastes","entomelas","Targeted",NA,"X","X",NA
-"Actinopterygii","Scorpaeniformes","Sebastidae","Sebastes","miniatus","Targeted",NA,"X","X",NA
-"Actinopterygii","Perciformes","Carangidae","Trachurus","symmetricus","Targeted",NA,"X",NA,NA
-"Actinopterygii","Scorpaeniformes","Scorpaenidae","Scorpaena","guttata","Targeted",NA,"X",NA,NA
-"Actinopterygii","Scorpaeniformes","Sebastidae","Sebastes","carnatus","Targeted",NA,"X","X",NA
-"Actinopterygii","Scorpaeniformes","Sebastidae","Sebastes","melanops","Targeted",NA,"X","X",NA
-"Actinopterygii","Gasterosteiformes","Aulorhynchidae","Aulorhynchus","flavidus","Nontargeted",NA,"X",NA,"X"
-"Actinopterygii","Perciformes","Embiotocidae","Embiotoca","lateralis","Nontargeted",NA,"X",NA,"X"
-"Actinopterygii","Perciformes","Gobiidae","Rhinogobiops","nicholsii","Nontargeted",NA,"X",NA,NA
-"Actinopterygii","Scorpaeniformes","Sebastidae","Sebastes","pinniger","Targeted",NA,"X","X",NA
-"Actinopterygii","Perciformes","Embiotocidae","Zalembius","rosaceus","Nontargeted",NA,"X",NA,"X"
-"Actinopterygii","Perciformes","Stichaeidae","Cebidichthys","violaceus","Targeted",NA,"X",NA,NA
-"Actinopterygii","Perciformes","Gobiidae","Lethops","connectens","Nontargeted",NA,"X",NA,NA
-"Actinopterygii","Perciformes","Malacanthidae","Caulolatilus","princeps","Targeted",NA,"X",NA,"X"
-"Actinopterygii","Scorpaeniformes","Sebastidae","Sebastes","serriceps","Targeted",NA,"X","X",NA
-"Actinopterygii","Pleuronectiformes","Paralichthyidae","Citharichthys","stigmaeus","Targeted",NA,"X",NA,NA
-"Actinopterygii","Perciformes","Embiotocidae","Hyperprosopon","ellipticum","Nontargeted",NA,"X",NA,NA
-"Actinopterygii","Pleuronectiformes","Paralichthyidae","Citharichthys","sordidus","Targeted",NA,"X",NA,"X"
-"Elasmobranchii","Heterodontiformes","Heterodontidae","Heterodontus","francisci","Nontargeted",NA,"X",NA,"X"
-"Actinopterygii","Tetraodontiformes","Balistidae","Balistes","polylepis","Nontargeted",NA,"X",NA,NA
-"Actinopterygii","Scorpaeniformes","Hexagrammidae","Hexagrammos","lagocephalus","Targeted",NA,"X","X",NA
-"Elasmobranchii","Myliobatiformes","Myliobatidae","Myliobatis","californica","Nontargeted",NA,"X",NA,"X"
-"Actinopterygii","Perciformes","Mugilidae","Mugil","cephalus","Targeted",NA,"X",NA,NA
-"Actinopterygii","Perciformes","Serranidae","Paralabrax","nebulifer","Targeted",NA,"X","X",NA
-"Actinopterygii","Perciformes","Carangidae","Seriola","lalandi","Targeted",NA,"X","X","X"
-"Actinopterygii","Perciformes","Sciaenidae","Cheilotrema","saturnum","Targeted",NA,"X",NA,NA
-"Actinopterygii","Scorpaeniformes","Sebastidae","Sebastes","hopkinsi","Targeted",NA,"X","X",NA
-"Actinopterygii","Scorpaeniformes","Sebastidae","Sebastes","saxicola","Targeted",NA,"X",NA,NA
-"Actinopterygii","Scorpaeniformes","Sebastidae","Sebastes","nebulosus","Targeted",NA,"X","X",NA
-"Actinopterygii","Perciformes","Sphyraenidae","Sphyraena","argentea","Targeted",NA,"X",NA,NA
-"Actinopterygii","Scorpaeniformes","Sebastidae","Sebastes","diploproa","Targeted",NA,"X",NA,NA
-"Elasmobranchii","Carcharhiniformes","Scyliorhinidae","Cephaloscyllium","ventriosum","Nontargeted",NA,"X",NA,"X"
-"Elasmobranchii","Lamniformes","Alopiidae","Alopias","vulpinus","Targeted",NA,"X",NA,NA
-"Elasmobranchii","Carcharhiniformes","Carcharhinidae","Prionace","glauca","Targeted",NA,"X",NA,NA
-"Actinopterygii","Scorpaeniformes","Sebastidae","Sebastes","dallii","Targeted",NA,"X",NA,NA
-"Actinopterygii","Perciformes","Anarhichadidae","Anarrhichthys","ocellatus","Nontargeted",NA,"X",NA,"X"
-"Elasmobranchii","Squatiniformes","Squatinidae","Squatina","californica","Targeted",NA,"X",NA,"X"
-"Actinopterygii","Perciformes","Embiotocidae","Phanerodon","atripes","Nontargeted",NA,"X","X","X"
-"Actinopterygii","Perciformes","Pholidae","Ulvicola","sanctaerosae","Nontargeted",NA,"X",NA,NA
-"Actinopterygii","Perciformes","Polyprionidae","Stereolepis","gigas","Nontargeted",NA,"X","X","X"
-"Elasmobranchii","Rajiformes","Rhinobatidae","Platyrhinoidis","triseriata","Nontargeted",NA,"X",NA,NA
-"Actinopterygii","Perciformes","Haemulidae","Anisotremus","davidsonii","Nontargeted",NA,"X",NA,NA
-"Actinopterygii","Anguilliformes","Muraenidae","Gymnothorax","mordax","Nontargeted",NA,"X",NA,NA
-"Actinopterygii","Perciformes",NA,NA,NA,"Targeted",NA,"X",NA,NA
-"Actinopterygii","Pleuronectiformes","Pleuronectidae","Pleuronichthys","coenosus","Nontargeted",NA,"X",NA,NA
-"Actinopterygii","Scorpaeniformes","Cottidae","Leiocottus","hirundo","Nontargeted",NA,"X",NA,NA
-"Actinopterygii","Perciformes","Scombridae","Scomber","japonicus","Targeted",NA,"X","X",NA
-"Actinopterygii","Scorpaeniformes","Sebastidae","Sebastes","rosaceus","Targeted",NA,"X","X",NA
-"Actinopterygii","Perciformes","Chaetodontidae","Prognathodes","falcifer","Nontargeted",NA,"X",NA,NA
-"Actinopterygii","Perciformes","Serranidae","Paralabrax","maculatofasciatus","Targeted",NA,"X",NA,NA
-"Actinopterygii","Tetradontiformes","Molidae","Mola","mola","Nontargeted",NA,"X",NA,"X"
-"Actinopterygii","Perciformes","Scombridae","Sarda","chiliensis chiliensis","Targeted",NA,"X",NA,NA
-"Actinopterygii","Gobiesociformes","Gobiesocidae","Gobiesox","maeandricus","Nontargeted",NA,"X",NA,NA
-"Actinopterygii","Aulopiformes","Synodontidae","Synodus","lucioceps","Nontargeted",NA,"X","X","X"
-"Actinopterygii","Perciformes","Stichaeidae","Ernogrammus","walkeri","Nontargeted",NA,"X",NA,NA
-"Actinopterygii","Scorpaeniformes","Sebastidae","Sebastes","rubrivinctus","Targeted",NA,"X",NA,NA
-"Elasmobranchii","Squaliformes","Squalidae","Squalus","acanthias","Targeted",NA,"X",NA,NA
-"Actinopterygii","Perciformes","Sciaenidae","Atractoscion","nobilis","Targeted",NA,"X","X",NA
-"Elasmobranchii","Rajiformes","Rajidae","Raja","stellulata","Targeted",NA,"X",NA,NA
-"Actinopterygii","Scorpaeniformes","Sebastidae","Sebastes","semicinctus","Targeted",NA,"X",NA,NA
-"Actinopterygii","Scorpaeniformes","Agonidae","Anoplagonus","inermis","Nontargeted",NA,"X",NA,NA
-"Actinopterygii","Batrachoidiformes","Batrachoididae","Porichthys","notatus","Nontargeted",NA,"X",NA,"X"
-"Actinopterygii","Perciformes","Pholidae","Apodichthys","flavidus","Nontargeted",NA,"X",NA,NA
-"Actinopterygii","Scorpaeniformes","Cottidae","Enophrys","bison","Nontargeted",NA,"X",NA,NA
-"Actinopterygii","Scorpaeniformes","Cottidae","Hemilepidotus","hemilepidotus","Nontargeted",NA,"X",NA,NA
-"Actinopterygii","Scorpaeniformes","Sebastidae","Sebastes","maliger","Targeted",NA,"X","X",NA
-"Actinopterygii","Perciformes","Chaenopsidae","Neoclinus","blanchardi","Nontargeted",NA,"X","X",NA
-"Actinopterygii","Perciformes","Kyphosidae","Hermosilla","azurea","Nontargeted",NA,"X",NA,NA
-"Elasmobranchii","Hexanchiformes","Hexanchidae","Hexanchus","griseus","Targeted",NA,"X",NA,"X"
-"Actinopterygii","Perciformes","Haemulidae","Haemulon","californiensis","Targeted",NA,"X",NA,NA
-"Actinopterygii","Perciformes","Cryptacanthodidae","Cryptacanthodes","giganteus","Nontargeted",NA,"X",NA,NA
-"Elasmobranchii","Hexanchiformes","Hexanchidae","Notorynchus","cepedianus","Targeted",NA,"X",NA,NA
-"Actinopterygii","Scorpaeniformes","Cottidae","Leptocottus","armatus","Nontargeted",NA,"X",NA,NA
-"Actinopterygii","Osmeriformes","Osmeridae","Thaleichthys","pacificus","Targeted",NA,"X",NA,NA
-"Elasmobranchii","Rajiformes","Rajidae","Raja","binoculata","Targeted",NA,"X",NA,"X"
-"Actinopterygii","Scorpaeniformes","Cottidae","Hemilepidotus","spinosus","Nontargeted",NA,"X",NA,NA
-"Actinopterygii","Scorpaeniformes","Sebastidae","Sebastes","umbrosus","Targeted",NA,"X","X",NA
-"Actinopterygii","Perciformes","Sciaenidae","Umbrina","roncador","Targeted",NA,"X","X",NA
-"Elasmobranchii","Carcharhiniformes","Carcharhinidae","Carcharhinus","obscurus","Targeted",NA,"X",NA,NA
-"Actinopterygii","Scorpaeniformes","Scorpaenidae","Scorpaenodes","xyris","Nontargeted",NA,"X",NA,NA
-"Actinopterygii","Perciformes","Apogonidae","Apogon","guadalupensis","Nontargeted",NA,"X",NA,NA
-"Elasmobranchii","Rajiformes","Rhinobatidae","Zapteryx","exasperata","Targeted",NA,"X",NA,NA
-"Actinopterygii","Perciformes","Carangidae","Decapterus","macarellus","Targeted",NA,"X",NA,NA
-"Actinopterygii","Clupeiformes ","Clupeidae","Sardinops","sagax","Targeted",NA,NA,"X",NA
-"Actinopterygii","Scorpaeniformes","Sebastidae","Sebastes","flavidus","Targeted",NA,NA,"X",NA
-"Actinopterygii","Scorpaeniformes","Hexagrammidae","Hexagrammos ","decagrammus","Targeted",NA,NA,"X",NA
-"Actinopterygii","Scorpaeniformes","Sebastidae","Sebastes","serranoides","Targeted",NA,NA,"X",NA
-"Actinopterygii","Scorpaeniformes","Hexagrammidae","Ophiodon ","elongatus","Targeted",NA,NA,"X",NA
-"Actinopterygii","Scorpaeniformes","Cottidae ","Scorpaenichthys","marmoratus","Targeted",NA,NA,"X",NA
-"Actinopterygii","Scorpaeniformes","Sebastidae","Sebastes","constellatus","Targeted",NA,NA,"X",NA
-"Actinopterygii","Pleuronectiformes ","Paralichthyidae ","Citharichthys","sordidus","Targeted",NA,NA,"X",NA
-"Actinopterygii","Pleuronectiformes ","Pleuronectidae","Lepidopsetta","bilineata","Targeted",NA,NA,"X","X"
-"Actinopterygii","Perciformes","Malacanthidae ","Caulolatilus ","princeps","Targeted",NA,NA,"X",NA
-"Actinopterygii","Scorpaeniformes ","Hexagrammidae","Oxylebius","pictus","Nontargeted",NA,NA,"X",NA
-"Actinopterygii","Perciformes","Sciaenidae ","Genyonemus","lineatus","Targeted",NA,NA,"X",NA
-"Actinopterygii","Scorpaeniformes","Cottidae","Enophrys ","taurina","Nontargeted",NA,NA,"X",NA
-"Actinopterygii","Perciformes","Embiotocidae","Rhacochilus ","vacca","Targeted",NA,NA,"X",NA
-"Actinopterygii","Perciformes ","Embiotocidae","Embiotoca","lateralis","Nontargeted",NA,NA,"X",NA
-"Actinopterygii","Pleuronectiformes","Pleuronectidae","Eopsetta ","jordani","Targeted",NA,NA,"X","X"
-"Actinopterygii","Pleuronectiformes","Pleuronectidae","Psettichthys","melanostictus","Nontargeted",NA,NA,"X",NA
-"Actinopterygii","Gasterosteiformes ","Aulorhynchidae ","Aulorhynchus","flavidus","Nontargeted",NA,NA,"X",NA
-"Actinopterygii","Scorpaeniformes","Cottidae ","Artedius","harringtoni","Nontargeted",NA,NA,"X",NA
-"Actinopterygii","Perciformes","Labridae ","Semicossyphus","pulcher","Targeted",NA,NA,"X",NA
-"Actinopterygii","Perciformes","Carangidae","Trachurus ","symmetricus","Targeted",NA,NA,"X",NA
-"Actinopterygii","Perciformes ","Embiotocidae","Rhacochilus ","toxotes","Targeted",NA,NA,"X",NA
-"Actinopterygii","Perciformes ","Scombridae","Sarda","chiliensis","Targeted",NA,NA,"X",NA
-"Actinopterygii","Perciformes ","Sphyraenidae","Sphyraena","argentea","Targeted",NA,NA,"X",NA
-"Actinopterygii","Perciformes ","Labridae","Oxyjulis","californica","Nontargeted",NA,NA,"X",NA
-"Actinopterygii","Scorpaeniformes","Cottidae","Enophrys ","bison","Nontargeted",NA,NA,"X",NA
-"Actinopterygii","Scorpaeniformes","Sebastidae","Sebastes","ruberrimus","Nontargeted",NA,NA,"X",NA
-"Actinopterygii","Perciformes","Anarhichadidae ","Anarrhichthys","ocellatus","Nontargeted",NA,NA,"X",NA
-"Actinopterygii","Scorpaeniformes","Sebastidae","Sebastes","nigrocinctus","Targeted",NA,NA,"X",NA
-"Actinopterygii","Scorpaeniformes ","Scorpaenidae","Scorpaena","guttata","Targeted",NA,NA,"X",NA
-"Actinopterygii","Perciformes","Kyphosidae","Medialuna ","californiensis","Nontargeted",NA,NA,"X",NA
-"Actinopterygii","Perciformes","Serranidae","Paralabrax ","clathratus","Targeted",NA,NA,"X",NA
-"Actinopterygii","Perciformes ","Pomacentridae","Chromis","punctipinnis","Nontargeted",NA,NA,"X",NA
-"Actinopterygii","Perciformes ","Labridae","Halichoeres","semicinctus","Nontargeted",NA,NA,"X",NA
-"Actinopterygii","Pleuronectiformes","Paralichthyidae ","Xystreurys","liolepis","Targeted",NA,NA,"X",NA
-"Actinopterygii","Salmoniformes ","Salmonidae","Oncorhynchus ","tshawytscha","Targeted",NA,NA,"X",NA
-"Actinopterygii","Pleuronectiformes","Paralichthyidae ","Citharichthys","stigmaeus","Targeted",NA,NA,"X",NA
-"Elasmobranchii ","Carcharhiniformes ","Triakidae","Galeorhinus ","galeus","Targeted",NA,NA,"X",NA
-"Actinopterygii","Lamniformes","Alopiidae","Alopias","vulpinus","Targeted",NA,NA,"X",NA
-"Actinopterygii","Scorpaeniformes","Sebastidae","Sebastes","lentiginosus","Targeted",NA,NA,"X",NA
-"Actinopterygii","Pleuronectiformes","Pleuronectidae ","Hippoglossus","stenolepis","Targeted",NA,NA,"X","X"
-"Actinopterygii","Pleuronectiformes ","Paralichthyidae","Citharichthys","xanthostigma","Targeted",NA,NA,"X",NA
-"Actinopterygii","Pleuronectiformes","Paralichthyidae","Hippoglossina ","stomata","Targeted",NA,NA,"X",NA
-"Actinopterygii","Perciformes","Haemulidae","Anisotremus","davidsonii","Targeted",NA,NA,"X",NA
-"Actinopterygii","Perciformes","Sebastidae","Sebastes","serranoides","Targeted",NA,NA,NA,"X"
-"Actinopterygii","Perciformes","Sebastidae","Sebastes","caurinus","Targeted",NA,NA,NA,"X"
-"Actinopterygii","Perciformes","Hexagrammidae","Oxylebius","pictus","Nontargeted",NA,NA,NA,"X"
-"Actinopterygii","Perciformes","Sebastidae","Sebastes","carnatus","Targeted",NA,NA,NA,"X"
-"Actinopterygii","Perciformes","Sebastidae","Sebastes","serriceps","Targeted",NA,NA,NA,"X"
-"Actinopterygii","Perciformes","Hexagrammidae","Ophiodon","elongatus","Targeted",NA,NA,NA,"X"
-"Actinopterygii","Perciformes","Sebastidae","Sebastes","rosaceus","Targeted",NA,NA,NA,"X"
-"Actinopterygii","Perciformes","Sebastidae","Sebastes","miniatus","Targeted",NA,NA,NA,"X"
-"Actinopterygii","Perciformes","Sebastidae","Sebastes","mystinus","Targeted",NA,NA,NA,"X"
-"Actinopterygii","Perciformes","Sebastidae","Sebastes","flavidus","Targeted",NA,NA,NA,"X"
-"Actinopterygii","Perciformes","Sebastidae","Sebastes","rubrivinctus","Nontargeted",NA,NA,NA,"X"
-"Actinopterygii","Perciformes","Sebastidae","Sebastes","dallii","Targeted",NA,NA,NA,"X"
-"Actinopterygii","Perciformes","Sebastidae","Sebastes","pinniger","Targeted",NA,NA,NA,"X"
-"Actinopterygii","Perciformes","Sebastidae","Sebastes","melanops","Targeted",NA,NA,NA,"X"
-"Actinopterygii","Perciformes","Hexagrammidae","Hexagrammos","decagrammus","Targeted",NA,NA,NA,"X"
-"Actinopterygii","Perciformes","Sebastidae","Sebastes","constellatus","Targeted",NA,NA,NA,"X"
-"Actinopterygii","Perciformes","Sebastidae","Sebastes","umbrosus","Nontargeted",NA,NA,NA,"X"
-"Holocephali","Chimaeriformes","Chimaeridae","Hydrolagus","colliei","Nontargeted",NA,NA,NA,"X"
-"Actinopterygii","Perciformes","Sebastidae","Sebastes","helvomaculatus","Nontargeted",NA,NA,NA,"X"
-"Actinopterygii","Perciformes","Sebastidae","Sebastes","atrovirens","Targeted",NA,NA,NA,"X"
-"Actinopterygii","Perciformes","Sebastidae","Sebastes","hopkinsi","Targeted",NA,NA,NA,"X"
-"Actinopterygii","Perciformes","Sebastidae","Sebastes","wilsoni","Nontargeted",NA,NA,NA,"X"
-"Actinopterygii","Perciformes","Sebastidae","Sebastes","ovalis","Targeted",NA,NA,NA,"X"
-"Actinopterygii","Perciformes","Sebastidae","Sebastes","chrysomelas","Targeted",NA,NA,NA,"X"
-"Actinopterygii","Perciformes","Gobiidae","Lythrypnus","dalli","Nontargeted",NA,NA,NA,"X"
-"Actinopterygii","Perciformes","Sebastidae","Sebastes","auriculatus","Targeted",NA,NA,NA,"X"
-"Actinopterygii","Perciformes","Sebastidae","Sebastes","elongatus","Targeted",NA,NA,NA,"X"
-"Actinopterygii","Perciformes","Sebastidae","Sebastes","semicinctus","Nontargeted",NA,NA,NA,"X"
-"Actinopterygii","Perciformes","Sebastidae","Sebastes","nebulosus","Targeted",NA,NA,NA,"X"
-"Actinopterygii","Perciformes","Sebastidae","Sebastes","maliger","Targeted",NA,NA,NA,"X"
-"Actinopterygii","Perciformes","Sebastidae","Sebastes","chlorostictus","Targeted",NA,NA,NA,"X"
-"Elasmobranchii","Rajiformes","Rajidae","Raja","stellulata","Nontargeted",NA,NA,NA,"X"
-"Actinopterygii","Perciformes","Sebastidae","Sebastes","<10 cm Sebastes sp.","Nontargeted",NA,NA,NA,"X"
-"Actinopterygii","Perciformes","Sebastidae","Sebastes","spp","Targeted",NA,NA,NA,"X"
-"Actinopterygii","Perciformes","Hexagrammidae","Zaniolepis","latipinnis","Nontargeted",NA,NA,NA,"X"
-"Actinopterygii","Perciformes","Sebastidae","Sebastes","jordani","Targeted",NA,NA,NA,"X"
-"Actinopterygii","Perciformes","Hexagrammidae","Zaniolepis","frenata","Nontargeted",NA,NA,NA,"X"
-"Actinopterygii","Pleuronectiformes","Pleuronectidae ","Parophrys","vetulus","Targeted",NA,NA,NA,"X"
-"Actinopterygii","Pleuronectiformes ","Pleuronectidae","Platichthys","stellatus","Targeted",NA,NA,NA,"X"
-"Actinopterygii","Perciformes","Sebastidae","Sebastes","entomelas","Targeted",NA,NA,NA,"X"
-"Actinopterygii","Perciformes","Sebastidae","Sebastes","ruberrimus","Targeted",NA,NA,NA,"X"
-"Elasmobranchii","Rajiformes","Rajidae","Raja","rhina","Targeted",NA,NA,NA,"X"
-"Actinopterygii","Perciformes","Sebastidae","Sebastes","nigrocinctus","Targeted",NA,NA,NA,"X"
-"Actinopterygii","Pleuronectiformes","Pleuronectidae ","Microstomus","pacificus","Targeted",NA,NA,NA,"X"
-"Actinopterygii","Perciformes","Sebastidae","Sebastes","saxicola","Targeted",NA,NA,NA,"X"
-"Actinopterygii","Pleuronectiformes ","Pleuronectidae","Lyopsetta","exilis","Targeted",NA,NA,NA,"X"
-"Actinopterygii","Pleuronectiformes ","Pleuronectidae","Pleuronichthys","ritteri","Nontargeted",NA,NA,NA,"X"
-"Actinopterygii","Perciformes","Cottidae","Enophrys","bison","Nontargeted",NA,NA,NA,"X"
-"Myxini","Myxiniformes","Myxinidae","Eptatretus","stoutii","Targeted",NA,NA,NA,"X"
-"Actinopterygii","Pleuronectiformes ","Pleuronectidae","Glyptocephalus","zachirus","Targeted",NA,NA,NA,"X"
-"Actinopterygii","Perciformes","Sebastidae","Sebastes","levis","Targeted",NA,NA,NA,"X"
-"Actinopterygii","Gadiformes","Merlucciidae","Merluccius","productus","Targeted",NA,NA,NA,"X"
-"Actinopterygii","Perciformes","Sebastidae","Sebastes","rufus","Targeted",NA,NA,NA,"X"
-"Actinopterygii","Perciformes","Sebastidae","Sebastolobus","alascanus","Targeted",NA,NA,NA,"X"
-"Actinopterygii","Perciformes","Sebastidae","Sebastes","babcocki","Nontargeted",NA,NA,NA,"X"
-"Actinopterygii","Perciformes","Sebastidae","Sebastes","rosenblatti","Targeted",NA,NA,NA,"X"
-"Actinopterygii","Perciformes","Anoplopomatidae","Anoplopoma","fimbria","Targeted",NA,NA,NA,"X"
-"Actinopterygii","Perciformes","Hexagrammidae","Hexagrammos","lagocephalus","Targeted",NA,NA,NA,"X"
-"Actinopterygii","Perciformes","Ammodytidae","Ammodytes","hexapterus","Targeted",NA,NA,NA,"X"
+"class","order","family","genus","species","target_status","Surf zone","Kelp forest","Shallow reef","Deep reef","dup_spp"
+"Actinopteri","Clupeiformes","Clupeidae","Clupea","pallasii","Targeted","X","","","","Clupea pallasii"
+"Actinopteri","Perciformes","Kyphosidae","Kyphosus","azureus","Targeted","X","","","","Kyphosus azureus"
+"Actinopterygii","Anguilliformes","Muraenidae","Gymnothorax","mordax","Nontargeted","","X","","X","Gymnothorax mordax"
+"Actinopterygii","Atheriniformes","Atherinopsidae","Atherinops","affinis","Targeted","X","","","","Atherinops affinis"
+"Actinopterygii","Aulopiformes","Synodontidae","Synodus","lucioceps","Nontargeted","","X","X","X","Synodus lucioceps"
+"Actinopterygii","Batrachoidiformes","Batrachoididae","Porichthys","notatus","Nontargeted","","X","","X","Porichthys notatus"
+"Actinopterygii","Clupeiformes","Clupeidae","Sardinops","sagax","Targeted","X","X","X","","Sardinops sagax"
+"Actinopterygii","Clupeiformes","Engraulidae","Engraulis","mordax","Targeted","X","X","X","","Engraulis mordax"
+"Actinopterygii","Cyprinodontiformes","Fundulidae","Fundulus","parvipinnis","Nontargeted","X","","","","Fundulus parvipinnis"
+"Actinopterygii","Gadiformes","Merlucciidae","Merluccius","productus","Targeted","","","","X","Merluccius productus"
+"Actinopterygii","Gasterosteiformes","Aulorhynchidae","Aulorhynchus","flavidus","Nontargeted","X","X","X","X","Aulorhynchus flavidus"
+"Actinopterygii","Gobiesociformes","Gobiesocidae","Gobiesox","maeandricus","Nontargeted","","X","","","Gobiesox maeandricus"
+"Actinopterygii","Lamniformes","Alopiidae","Alopias","vulpinus","Targeted","","X","X","","Alopias vulpinus"
+"Actinopterygii","Mugiliformes","Mugilidae","Mugil","cephalus","Targeted","X","X","","","Mugil cephalus"
+"Actinopterygii","Osmeriformes","Osmeridae","Hypomesus","pretiosus","Targeted","X","","","","Hypomesus pretiosus"
+"Actinopterygii","Osmeriformes","Osmeridae","Thaleichthys","pacificus","Targeted","","X","","","Thaleichthys pacificus"
+"Actinopterygii","Perciformes","Ammodytidae","Ammodytes","hexapterus","Targeted","","","","X","Ammodytes hexapterus"
+"Actinopterygii","Perciformes","Anarhichadidae","Anarrhichthys","ocellatus","Nontargeted","","X","X","X","Anarrhichthys ocellatus"
+"Actinopterygii","Perciformes","Apogonidae","Apogon","guadalupensis","Nontargeted","","X","","","Apogon guadalupensis"
+"Actinopterygii","Perciformes","Bathymasteridae","Rathbunella","alleni","Nontargeted","","X","","","Rathbunella alleni"
+"Actinopterygii","Perciformes","Bathymasteridae","Rathbunella","hypoplecta","Nontargeted","","X","","X","Rathbunella hypoplecta"
+"Actinopterygii","Perciformes","Bathymasteridae","Ronquilus","jordani","Nontargeted","","X","","","Ronquilus jordani"
+"Actinopterygii","Perciformes","Carangidae","Decapterus","macarellus","Targeted","","X","","","Decapterus macarellus"
+"Actinopterygii","Perciformes","Carangidae","Seriola","lalandi","Targeted","","X","X","X","Seriola lalandi"
+"Actinopterygii","Perciformes","Carangidae","Trachurus","symmetricus","Targeted","","X","X","","Trachurus symmetricus"
+"Actinopterygii","Perciformes","Chaenopsidae","Neoclinus","blanchardi","Nontargeted","","X","X","","Neoclinus blanchardi"
+"Actinopterygii","Perciformes","Chaetodontidae","Prognathodes","falcifer","Nontargeted","","X","","","Prognathodes falcifer"
+"Actinopterygii","Perciformes","Clinidae","Gibbonsia","metzi","Nontargeted","X","","","","Gibbonsia metzi"
+"Actinopterygii","Perciformes","Clinidae","Gibbonsia","montereyensis","Nontargeted","X","","","","Gibbonsia montereyensis"
+"Actinopterygii","Perciformes","Clinidae","Heterostichus","rostratus","Nontargeted","X","X","","","Heterostichus rostratus"
+"Actinopterygii","Perciformes","Cryptacanthodidae","Cryptacanthodes","giganteus","Nontargeted","","X","","","Cryptacanthodes giganteus"
+"Actinopterygii","Perciformes","Embiotocidae","Amphistichus","argenteus","Targeted","X","X","","X","Amphistichus argenteus"
+"Actinopterygii","Perciformes","Embiotocidae","Amphistichus","koelzi","Targeted","X","","","","Amphistichus koelzi"
+"Actinopterygii","Perciformes","Embiotocidae","Amphistichus","rhodoterus","Targeted","X","","","","Amphistichus rhodoterus"
+"Actinopterygii","Perciformes","Embiotocidae","Brachyistius","frenatus","Nontargeted","X","X","","X","Brachyistius frenatus"
+"Actinopterygii","Perciformes","Embiotocidae","Cymatogaster","aggregata","Targeted","","X","","X","Cymatogaster aggregata"
+"Actinopterygii","Perciformes","Embiotocidae","Embiotoca","jacksoni","Targeted","","X","","X","Embiotoca jacksoni"
+"Actinopterygii","Perciformes","Embiotocidae","Embiotoca","lateralis","Targeted","","X","X","X","Embiotoca lateralis"
+"Actinopterygii","Perciformes","Embiotocidae","Hyperprosopon","anale","Targeted","","X","","","Hyperprosopon anale"
+"Actinopterygii","Perciformes","Embiotocidae","Hyperprosopon","argenteum","Targeted","","X","","","Hyperprosopon argenteum"
+"Actinopterygii","Perciformes","Embiotocidae","Hyperprosopon","ellipticum","Targeted","","X","","","Hyperprosopon ellipticum"
+"Actinopterygii","Perciformes","Embiotocidae","Hypsurus","caryi","Targeted","","X","","","Hypsurus caryi"
+"Actinopterygii","Perciformes","Embiotocidae","Micrometrus","aurora","Nontargeted","X","","","","Micrometrus aurora"
+"Actinopterygii","Perciformes","Embiotocidae","Micrometrus","minimus","Nontargeted","X","X","","","Micrometrus minimus"
+"Actinopterygii","Perciformes","Embiotocidae","Phanerodon","atripes","Nontargeted","","X","X","X","Phanerodon atripes"
+"Actinopterygii","Perciformes","Embiotocidae","Phanerodon","furcatus","Targeted","","X","","X","Phanerodon furcatus"
+"Actinopterygii","Perciformes","Embiotocidae","Rhacochilus","toxotes","Targeted","","X","","X","Rhacochilus toxotes"
+"Actinopterygii","Perciformes","Embiotocidae","Rhacochilus","vacca","Targeted","","X","","X","Rhacochilus vacca"
+"Actinopterygii","Perciformes","Embiotocidae","Zalembius","rosaceus","Nontargeted","","X","","X","Zalembius rosaceus"
+"Actinopterygii","Perciformes","Gobiidae","Lethops","connectens","Nontargeted","","X","","","Lethops connectens"
+"Actinopterygii","Perciformes","Gobiidae","Lythrypnus","dalli","Nontargeted","","","","X","Lythrypnus dalli"
+"Actinopterygii","Perciformes","Gobiidae","Rhinogobiops","nicholsii","Nontargeted","","X","","","Rhinogobiops nicholsii"
+"Actinopterygii","Perciformes","Haemulidae","Anisotremus","davidsonii","Targeted","","X","","","Anisotremus davidsonii"
+"Actinopterygii","Perciformes","Haemulidae","Haemulon","californiensis","Targeted","","X","","","Haemulon californiensis"
+"Actinopterygii","Perciformes","Kyphosidae","Girella","nigricans","Targeted","","X","X","X","Girella nigricans"
+"Actinopterygii","Perciformes","Kyphosidae","Hermosilla","azurea","Nontargeted","","X","","","Hermosilla azurea"
+"Actinopterygii","Perciformes","Kyphosidae","Medialuna","californiensis","Targeted","","X","X","X","Medialuna californiensis"
+"Actinopterygii","Perciformes","Labridae","Halichoeres","semicinctus","Nontargeted","","X","X","X","Halichoeres semicinctus"
+"Actinopterygii","Perciformes","Labridae","Oxyjulis","californica","Nontargeted","","X","X","X","Oxyjulis californica"
+"Actinopterygii","Perciformes","Labridae","Semicossyphus","pulcher","Targeted","","X","X","X","Semicossyphus pulcher"
+"Actinopterygii","Perciformes","Malacanthidae","Caulolatilus","princeps","Targeted","","X","X","X","Caulolatilus princeps"
+"Actinopterygii","Perciformes","Moronidae","Morone","saxatilis","Targeted","X","","","","Morone saxatilis"
+"Actinopterygii","Perciformes","Pholidae","Apodichthys","flavidus","Nontargeted","","X","","","Apodichthys flavidus"
+"Actinopterygii","Perciformes","Pholidae","Ulvicola","sanctaerosae","Nontargeted","","X","","","Ulvicola sanctaerosae"
+"Actinopterygii","Perciformes","Polyprionidae","Stereolepis","gigas","Nontargeted","","X","X","X","Stereolepis gigas"
+"Actinopterygii","Perciformes","Pomacentridae","Chromis","punctipinnis","Nontargeted","","X","X","X","Chromis punctipinnis"
+"Actinopterygii","Perciformes","Pomacentridae","Hypsypops","rubicundus","Nontargeted","","X","X","X","Hypsypops rubicundus"
+"Actinopterygii","Perciformes","Sciaenidae","Atractoscion","nobilis","Targeted","X","X","X","","Atractoscion nobilis"
+"Actinopterygii","Perciformes","Sciaenidae","Cheilotrema","saturnum","Targeted","X","X","","","Cheilotrema saturnum"
+"Actinopterygii","Perciformes","Sciaenidae","Genyonemus","lineatus","Targeted","X","","X","","Genyonemus lineatus"
+"Actinopterygii","Perciformes","Sciaenidae","Menticirrhus","undulatus","Targeted","X","","","","Menticirrhus undulatus"
+"Actinopterygii","Perciformes","Sciaenidae","Roncador","stearnsii","Targeted","X","","","","Roncador stearnsii"
+"Actinopterygii","Perciformes","Sciaenidae","Seriphus","politus","Targeted","X","","","","Seriphus politus"
+"Actinopterygii","Perciformes","Sciaenidae","Umbrina","roncador","Targeted","X","X","X","","Umbrina roncador"
+"Actinopterygii","Perciformes","Scombridae","Sarda","chiliensis","Targeted","","","X","","Sarda chiliensis"
+"Actinopterygii","Perciformes","Scombridae","Sarda","chiliensis chiliensis","Targeted","","X","","","Sarda chiliensis chiliensis"
+"Actinopterygii","Perciformes","Scombridae","Scomber","japonicus","Targeted","","X","X","","Scomber japonicus"
+"Actinopterygii","Perciformes","Serranidae","Paralabrax","clathratus","Targeted","X","X","X","X","Paralabrax clathratus"
+"Actinopterygii","Perciformes","Serranidae","Paralabrax","maculatofasciatus","Targeted","","X","","","Paralabrax maculatofasciatus"
+"Actinopterygii","Perciformes","Serranidae","Paralabrax","nebulifer","Targeted","","X","X","","Paralabrax nebulifer"
+"Actinopterygii","Perciformes","Sphyraenidae","Sphyraena","argentea","Targeted","","X","X","","Sphyraena argentea"
+"Actinopterygii","Perciformes","Stichaeidae","Cebidichthys","violaceus","Targeted","","X","","","Cebidichthys violaceus"
+"Actinopterygii","Perciformes","Stichaeidae","Ernogrammus","walkeri","Nontargeted","","X","","","Ernogrammus walkeri"
+"Actinopterygii","Pleuronectiformes","Paralichthyidae","Citharichthys","sordidus","Targeted","","X","X","X","Citharichthys sordidus"
+"Actinopterygii","Pleuronectiformes","Paralichthyidae","Citharichthys","stigmaeus","Targeted","X","","","","Citharichthys stigmaeus"
+"Actinopterygii","Pleuronectiformes","Paralichthyidae","Citharichthys","xanthostigma","Targeted","","","X","","Citharichthys xanthostigma"
+"Actinopterygii","Pleuronectiformes","Paralichthyidae","Hippoglossina","stomata","Targeted","","","X","","Hippoglossina stomata"
+"Actinopterygii","Pleuronectiformes","Paralichthyidae","Paralichthys","californicus","Targeted","X","X","X","X","Paralichthys californicus"
+"Actinopterygii","Pleuronectiformes","Paralichthyidae","Xystreurys","liolepis","Targeted","","","X","","Xystreurys liolepis"
+"Actinopterygii","Pleuronectiformes","Pleuronectidae","Eopsetta","jordani","Targeted","","","X","X","Eopsetta jordani"
+"Actinopterygii","Pleuronectiformes","Pleuronectidae","Glyptocephalus","zachirus","Targeted","","","","X","Glyptocephalus zachirus"
+"Actinopterygii","Pleuronectiformes","Pleuronectidae","Hippoglossus","stenolepis","Targeted","","","X","X","Hippoglossus stenolepis"
+"Actinopterygii","Pleuronectiformes","Pleuronectidae","Lepidopsetta","bilineata","Targeted","","","X","X","Lepidopsetta bilineata"
+"Actinopterygii","Pleuronectiformes","Pleuronectidae","Lyopsetta","exilis","Targeted","","","","X","Lyopsetta exilis"
+"Actinopterygii","Pleuronectiformes","Pleuronectidae","Microstomus","pacificus","Targeted","","","","X","Microstomus pacificus"
+"Actinopterygii","Pleuronectiformes","Pleuronectidae","Parophrys","vetulus","Targeted","","","","X","Parophrys vetulus"
+"Actinopterygii","Pleuronectiformes","Pleuronectidae","Platichthys","stellatus","Targeted","X","","","X","Platichthys stellatus"
+"Actinopterygii","Pleuronectiformes","Pleuronectidae","Pleuronichthys","coenosus","Nontargeted","","X","","","Pleuronichthys coenosus"
+"Actinopterygii","Pleuronectiformes","Pleuronectidae","Pleuronichthys","ritteri","Nontargeted","","","","X","Pleuronichthys ritteri"
+"Actinopterygii","Pleuronectiformes","Pleuronectidae","Psettichthys","melanostictus","Targeted","","","X","","Psettichthys melanostictus"
+"Actinopterygii","Salmoniformes","Salmonidae","Oncorhynchus","tshawytscha","Targeted","","","X","","Oncorhynchus tshawytscha"
+"Actinopterygii","Scorpaeniformes","Agonidae","Anoplagonus","inermis","Nontargeted","","X","","","Anoplagonus inermis"
+"Actinopterygii","Scorpaeniformes","Agonidae","Stellerina","xyosterna","Nontargeted","X","","","","Stellerina xyosterna"
+"Actinopterygii","Scorpaeniformes","Anoplopomatidae","Anoplopoma","fimbria","Targeted","","","","X","Anoplopoma fimbria"
+"Actinopterygii","Scorpaeniformes","Cottidae","Artedius","harringtoni","Nontargeted","","","X","","Artedius harringtoni"
+"Actinopterygii","Scorpaeniformes","Cottidae","Enophrys","bison","Nontargeted","","X","X","X","Enophrys bison"
+"Actinopterygii","Scorpaeniformes","Cottidae","Enophrys","taurina","Nontargeted","","","X","","Enophrys taurina"
+"Actinopterygii","Scorpaeniformes","Cottidae","Hemilepidotus","hemilepidotus","Nontargeted","","X","","","Hemilepidotus hemilepidotus"
+"Actinopterygii","Scorpaeniformes","Cottidae","Hemilepidotus","spinosus","Nontargeted","","X","","","Hemilepidotus spinosus"
+"Actinopterygii","Scorpaeniformes","Cottidae","Leiocottus","hirundo","Nontargeted","","X","","","Leiocottus hirundo"
+"Actinopterygii","Scorpaeniformes","Cottidae","Leptocottus","armatus","Nontargeted","X","X","","X","Leptocottus armatus"
+"Actinopterygii","Scorpaeniformes","Cottidae","Scorpaenichthys","marmoratus","Targeted","X","X","X","X","Scorpaenichthys marmoratus"
+"Actinopterygii","Scorpaeniformes","Hexagrammidae","Hexagrammos","decagrammus","Targeted","","X","X","X","Hexagrammos decagrammus"
+"Actinopterygii","Scorpaeniformes","Hexagrammidae","Hexagrammos","lagocephalus","Targeted","","X","X","X","Hexagrammos lagocephalus"
+"Actinopterygii","Scorpaeniformes","Hexagrammidae","Ophiodon","elongatus","Targeted","","X","X","X","Ophiodon elongatus"
+"Actinopterygii","Scorpaeniformes","Hexagrammidae","Oxylebius","pictus","Nontargeted","","X","X","X","Oxylebius pictus"
+"Actinopterygii","Scorpaeniformes","Hexagrammidae","Zaniolepis","frenata","Nontargeted","","","","X","Zaniolepis frenata"
+"Actinopterygii","Scorpaeniformes","Hexagrammidae","Zaniolepis","latipinnis","Nontargeted","","","","X","Zaniolepis latipinnis"
+"Actinopterygii","Scorpaeniformes","Rhamphocottidae","Rhamphocottus","richardsonii","Nontargeted","","X","","","Rhamphocottus richardsonii"
+"Actinopterygii","Scorpaeniformes","Scorpaenidae","Scorpaena","guttata","Targeted","","X","X","","Scorpaena guttata"
+"Actinopterygii","Scorpaeniformes","Scorpaenidae","Scorpaenodes","xyris","Nontargeted","","X","","","Scorpaenodes xyris"
+"Actinopterygii","Scorpaeniformes","Sebastidae","Sebastes","atrovirens","Targeted","","X","X","X","Sebastes atrovirens"
+"Actinopterygii","Scorpaeniformes","Sebastidae","Sebastes","auriculatus","Targeted","","X","X","X","Sebastes auriculatus"
+"Actinopterygii","Scorpaeniformes","Sebastidae","Sebastes","babcocki","Nontargeted","","","","X","Sebastes babcocki"
+"Actinopterygii","Scorpaeniformes","Sebastidae","Sebastes","carnatus","Targeted","","X","X","X","Sebastes carnatus"
+"Actinopterygii","Scorpaeniformes","Sebastidae","Sebastes","caurinus","Targeted","","X","X","X","Sebastes caurinus"
+"Actinopterygii","Scorpaeniformes","Sebastidae","Sebastes","chlorostictus","Targeted","","","","X","Sebastes chlorostictus"
+"Actinopterygii","Scorpaeniformes","Sebastidae","Sebastes","chrysomelas","Targeted","","X","X","X","Sebastes chrysomelas"
+"Actinopterygii","Scorpaeniformes","Sebastidae","Sebastes","constellatus","Targeted","","","X","X","Sebastes constellatus"
+"Actinopterygii","Scorpaeniformes","Sebastidae","Sebastes","dallii","Targeted","","X","","X","Sebastes dallii"
+"Actinopterygii","Scorpaeniformes","Sebastidae","Sebastes","diploproa","Targeted","","X","","","Sebastes diploproa"
+"Actinopterygii","Scorpaeniformes","Sebastidae","Sebastes","elongatus","Targeted","","","","X","Sebastes elongatus"
+"Actinopterygii","Scorpaeniformes","Sebastidae","Sebastes","entomelas","Targeted","","X","X","X","Sebastes entomelas"
+"Actinopterygii","Scorpaeniformes","Sebastidae","Sebastes","flavidus","Targeted","","","X","X","Sebastes flavidus"
+"Actinopterygii","Scorpaeniformes","Sebastidae","Sebastes","goodei","Targeted","","","X","","Sebastes goodei"
+"Actinopterygii","Scorpaeniformes","Sebastidae","Sebastes","helvomaculatus","Nontargeted","","","","X","Sebastes helvomaculatus"
+"Actinopterygii","Scorpaeniformes","Sebastidae","Sebastes","hopkinsi","Targeted","","X","X","X","Sebastes hopkinsi"
+"Actinopterygii","Scorpaeniformes","Sebastidae","Sebastes","jordani","Targeted","","","","X","Sebastes jordani"
+"Actinopterygii","Scorpaeniformes","Sebastidae","Sebastes","lentiginosus","Targeted","","","X","","Sebastes lentiginosus"
+"Actinopterygii","Scorpaeniformes","Sebastidae","Sebastes","levis","Targeted","","","","X","Sebastes levis"
+"Actinopterygii","Scorpaeniformes","Sebastidae","Sebastes","maliger","Targeted","","X","X","X","Sebastes maliger"
+"Actinopterygii","Scorpaeniformes","Sebastidae","Sebastes","melanops","Targeted","","X","X","X","Sebastes melanops"
+"Actinopterygii","Scorpaeniformes","Sebastidae","Sebastes","miniatus","Targeted","","X","X","X","Sebastes miniatus"
+"Actinopterygii","Scorpaeniformes","Sebastidae","Sebastes","mystinus","Targeted","","X","X","X","Sebastes mystinus"
+"Actinopterygii","Scorpaeniformes","Sebastidae","Sebastes","nebulosus","Targeted","","X","X","X","Sebastes nebulosus"
+"Actinopterygii","Scorpaeniformes","Sebastidae","Sebastes","nigrocinctus","Targeted","","","X","X","Sebastes nigrocinctus"
+"Actinopterygii","Scorpaeniformes","Sebastidae","Sebastes","ovalis","Targeted","","","","X","Sebastes ovalis"
+"Actinopterygii","Scorpaeniformes","Sebastidae","Sebastes","paucispinis","Targeted","X","X","X","X","Sebastes paucispinis"
+"Actinopterygii","Scorpaeniformes","Sebastidae","Sebastes","pinniger","Targeted","","X","X","X","Sebastes pinniger"
+"Actinopterygii","Scorpaeniformes","Sebastidae","Sebastes","rastrelliger","Targeted","X","X","X","","Sebastes rastrelliger"
+"Actinopterygii","Scorpaeniformes","Sebastidae","Sebastes","rosaceus","Targeted","","X","X","X","Sebastes rosaceus"
+"Actinopterygii","Scorpaeniformes","Sebastidae","Sebastes","rosenblatti","Targeted","","","","X","Sebastes rosenblatti"
+"Actinopterygii","Scorpaeniformes","Sebastidae","Sebastes","ruberrimus","Targeted","","","X","","Sebastes ruberrimus"
+"Actinopterygii","Scorpaeniformes","Sebastidae","Sebastes","rubrivinctus","Targeted","","","","X","Sebastes rubrivinctus"
+"Actinopterygii","Scorpaeniformes","Sebastidae","Sebastes","rufus","Targeted","","","","X","Sebastes rufus"
+"Actinopterygii","Scorpaeniformes","Sebastidae","Sebastes","saxicola","Targeted","","X","","X","Sebastes saxicola"
+"Actinopterygii","Scorpaeniformes","Sebastidae","Sebastes","semicinctus","Targeted","","","","X","Sebastes semicinctus"
+"Actinopterygii","Scorpaeniformes","Sebastidae","Sebastes","serranoides","Targeted","","","X","X","Sebastes serranoides"
+"Actinopterygii","Scorpaeniformes","Sebastidae","Sebastes","serriceps","Targeted","","X","X","X","Sebastes serriceps"
+"Actinopterygii","Scorpaeniformes","Sebastidae","Sebastes","umbrosus","Targeted","","","","X","Sebastes umbrosus"
+"Actinopterygii","Scorpaeniformes","Sebastidae","Sebastes","wilsoni","Nontargeted","","","","X","Sebastes wilsoni"
+"Actinopterygii","Scorpaeniformes","Sebastidae","Sebastolobus","alascanus","Targeted","","","","X","Sebastolobus alascanus"
+"Actinopterygii","Syngnathiformes","Syngnathidae","Syngnathus","californiensis","Nontargeted","X","","","","Syngnathus californiensis"
+"Actinopterygii","Syngnathiformes","Syngnathidae","Syngnathus","leptorhynchus","Nontargeted","X","","","","Syngnathus leptorhynchus"
+"Actinopterygii","Tetraodontiformes","Balistidae","Balistes","polylepis","Nontargeted","","X","","","Balistes polylepis"
+"Actinopterygii","Tetraodontiformes","Molidae","Mola","mola","Nontargeted","","X","","X","Mola mola"
+"Elasmobranchii","Carcharhiniformes","Carcharhinidae","Carcharhinus","obscurus","Targeted","","X","","","Carcharhinus obscurus"
+"Elasmobranchii","Carcharhiniformes","Carcharhinidae","Prionace","glauca","Targeted","","X","","","Prionace glauca"
+"Elasmobranchii","Carcharhiniformes","Scyliorhinidae","Cephaloscyllium","ventriosum","Nontargeted","","X","","X","Cephaloscyllium ventriosum"
+"Elasmobranchii","Carcharhiniformes","Triakidae","Galeorhinus","galeus","Targeted","","X","X","","Galeorhinus galeus"
+"Elasmobranchii","Carcharhiniformes","Triakidae","Triakis","semifasciata","Targeted","X","X","","","Triakis semifasciata"
+"Elasmobranchii","Heterodontiformes","Heterodontidae","Heterodontus","francisci","Nontargeted","","X","","X","Heterodontus francisci"
+"Elasmobranchii","Hexanchiformes","Hexanchidae","Hexanchus","griseus","Targeted","","X","","X","Hexanchus griseus"
+"Elasmobranchii","Hexanchiformes","Hexanchidae","Notorynchus","cepedianus","Targeted","","X","","","Notorynchus cepedianus"
+"Elasmobranchii","Myliobatiformes","Myliobatidae","Myliobatis","californica","Targeted","","X","","X","Myliobatis californica"
+"Elasmobranchii","Myliobatiformes","Urolophidae","Urolophus","halleri","Nontargeted","","X","","","Urolophus halleri"
+"Elasmobranchii","Myliobatiformes","Urotrygonidae","Urobatis","halleri","Targeted","X","","","","Urobatis halleri"
+"Elasmobranchii","Rajiformes","Rajidae","Raja","binoculata","Targeted","","X","","X","Raja binoculata"
+"Elasmobranchii","Rajiformes","Rajidae","Raja","rhina","Targeted","","","","X","Raja rhina"
+"Elasmobranchii","Rajiformes","Rajidae","Raja","stellulata","Targeted","","","","X","Raja stellulata"
+"Elasmobranchii","Rajiformes","Rhinobatidae","Platyrhinoidis","triseriata","Nontargeted","X","X","","","Platyrhinoidis triseriata"
+"Elasmobranchii","Rajiformes","Rhinobatidae","Pseudobatos","productus","Targeted","","X","","","Pseudobatos productus"
+"Elasmobranchii","Rajiformes","Rhinobatidae","Zapteryx","exasperata","Targeted","","X","","","Zapteryx exasperata"
+"Elasmobranchii","Squaliformes","Squalidae","Squalus","acanthias","Targeted","","X","","","Squalus acanthias"
+"Elasmobranchii","Squatiniformes","Squatinidae","Squatina","californica","Targeted","","X","","X","Squatina californica"
+"Elasmobranchii","Torpediniformes","Torpedinidae","Tetronarce","californica","Nontargeted","","X","","","Tetronarce californica"
+"Holocephali","Chimaeriformes","Chimaeridae","Hydrolagus","colliei","Nontargeted","","","","X","Hydrolagus colliei"
+"Myxini","Myxiniformes","Myxinidae","Eptatretus","stoutii","Targeted","","","","X","Eptatretus stoutii"
