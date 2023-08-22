@@ -62,6 +62,7 @@ data <- deep_reef_raw %>%
 
 # Still needs review:
 # - "Farallon Island" site (for which MPA?)
+# - Confirm treatment of type == reference and designation == reference
 
 # Secondary/Tertiary Naming Correction:
 # Names are not always consistently listed in order -- create primary, secondary, tertiary as follows:
@@ -79,11 +80,11 @@ data2 <- data %>%
   mutate(mpa_name = str_remove_all(mpa_name, "_REF"),
          mpa_name = str_replace_all(mpa_name, "_", " ")) %>% 
   # Correct naming across all columns
-  mutate((across(location:designation, str_replace, 'Ano Nuevo','Año Nuevo'))) %>%
-  mutate((across(location:designation, str_replace, 'Islands','Island'))) %>%
-  mutate((across(location:designation, str_replace, 'SE ','Southeast '))) %>%
-  mutate((across(location:designation, str_replace, 'Bodega Bay','Bodega Head'))) %>%
-  mutate((across(location:designation, str_replace, 'Point St. George','Point St. George Reef Ofshore'))) %>%
+  mutate(across(location:designation, str_replace, 'Ano Nuevo','Año Nuevo')) %>%
+  mutate(across(location:designation, str_replace, 'Islands','Island')) %>%
+  mutate(across(location:designation, str_replace, 'SE ','Southeast ')) %>%
+  mutate(across(location:designation, str_replace, 'Bodega Bay','Bodega Head')) %>%
+  mutate(across(location:designation, str_replace, 'Point St. George','Point St. George Reef Ofshore')) %>%
   # Correct Ano Nuevo to SMR (incorrectly listed as SMCA) 
   mutate(type = if_else(mpa_group == 'Año Nuevo', "SMR", type)) %>% 
   # Create affiliated_mpa variable 
@@ -97,7 +98,7 @@ data2 <- data %>%
                        mpa_group %in% c("Año Nuevo", "Carrington Point", "Gull Island", "Harris Point", 
                                         "Point Buchon", "Point Conception", "Point Lobos", 
                                         "Sea Lion Gulch", "South Point", "Ten Mile") ~ paste(mpa_group, "SMR", sep = " "),
-                     # These MPAs have both SMR and SMCA - will select SMR as the primary affiliated MPA
+                     # These MPAs have both SMR and SMCA - will select SMR as the primary affiliated MPA and later list SMCA as secondary
                      type == "Reference" & 
                        mpa_group %in% c("Big Creek", "Bodega Bay", "Point Sur") ~  paste(mpa_group, "SMR", sep = " "))) %>% 
   separate(mpa_name, into=c("primary_mpa", "secondary_mpa","tertiary_mpa"),sep = ", ", convert = TRUE) %>% 
@@ -108,7 +109,8 @@ data2 <- data %>%
                                  paste(mpa_group, "SMCA", sep = " "), secondary_mpa)) %>% 
   select(year = survey_year, mpa_group:common_name, 
          count, estimated_length_cm, 
-         affiliated_mpa, secondary_mpa, tertiary_mpa)
+         affiliated_mpa, secondary_mpa, tertiary_mpa) %>% 
+  mutate(across(affiliated_mpa:tertiary_mpa), str_to_lower)
 
 
 
