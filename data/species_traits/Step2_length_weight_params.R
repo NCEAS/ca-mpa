@@ -22,15 +22,35 @@ freeR::complete(spp_orig)
 # Format taxa key
 ################################################################################
 
-# Format data
+###Steps for formatting
+
+# 1. Genus should be one word to pull from FishBase. Identify Genus entries
+#    that need fix
+
+genus_fix <- spp_orig %>%
+  mutate(
+    Genus_orig = str_to_sentence(Genus),  # Convert to sentence case
+    Genus_orig = ifelse(Genus_orig == "", NA, Genus_orig),  # Convert empty values to NA
+    Genus_orig = str_trim(Genus_orig)  # Remove leading and trailing whitespace
+  ) %>% 
+  filter(grepl("\\s|[^A-Za-z0-9]", Genus_orig))
+
+# 2. species should be one word to pull from FishBase. Identify species entries
+#    that need fix
+
+species_fix <- spp_orig %>%
+  mutate(Species_orig=ifelse(is.na(Species) & !is.na(Genus), "spp", Species)) %>% 
+  filter(grepl("\\s|[^A-Za-z0-9]", Species_orig)) %>% distinct(Species_orig)
+
+# 3. Format data and apply corrections
+
 spp <- spp_orig %>% 
-  # Rename
-  #rename(species_id=common_name) %>% 
-  # Arrange
-  #select(species_id, everything()) %>% 
   # Format genus
-  mutate(Genus_orig=stringr::str_to_sentence(Genus),
-         Genus_orig=ifelse(Genus=="", NA, Genus)) %>% 
+  mutate(
+    Genus_orig = str_to_sentence(Genus),  # Convert to sentence case
+    Genus_orig = ifelse(Genus_orig == "", NA, Genus_orig),  # Convert empty values to NA
+    Genus_orig = str_trim(Genus_orig)  # Remove leading and trailing whitespace
+  ) %>% 
   #Fix Genus
   mutate(Genus = recode(Genus_orig, 
                         "Thylacodes/petaloconchus" = "Thylacodes",
@@ -68,12 +88,14 @@ spp <- spp_orig %>%
                         "mystinus or diaconus" = "spp",
                         "N/A" = "spp",
                         "nobilis /syn./ Anisodoris nobilis" = "spp",
+                        "opalescens (eggs)" = "spp",
                         "parvimensis /syn./ Parastichopus parvimensis"="spp",
                         "pinniger or miniatus" = "spp",
                         "ritteri /syn./ Heteropolypus ritteri"="spp",
                         "serranoides or flavidus" = "spp",
                         "serranoides,flavidus" = "spp",
                         "serranoides,flavidus,melanops"= "spp",
+                        "sp." = "spp",
                         "squamigerus/montereyensis" = "spp",
                         ))%>%
   # Add scientific name
@@ -88,100 +110,106 @@ spp <- spp_orig %>%
   #select(species_id, genus, sciname) %>% 
   unique() %>% 
   # Fix scientific name
+  # NOTE: a lot of these are already fixed the genus and species above. 
+  # But saving in case we need this later since it was a lot of work!
   mutate(sciname=recode(sciname,
-                        "<10 cm sebastes sp." = "Sebastes spp",
-                        # "Actinostella bradleyi"                              
-                        # "Antiopella barbarensis"                              
-                        # "Atrimitra idae"                                     
+   #                     "<10 cm sebastes sp." = "Sebastes spp",
+    #                    # "Actinostella bradleyi"                              
+     #                   # "Antiopella barbarensis"                              
+      #                  # "Atrimitra idae"                                     
                         "Beringraja binoculata"  = "Beringraja spp",                             
                         "Beringraja stellulata" = "Beringraja spp", # Corrected from Beringraha to Beringraja by CL on 14 Aug 2023
-                        "Diopatra/chaetopterus spp" = "Diopatra spp",
-                        "Loxorhynchus/scyra spp" = "Loxorhynchus spp",
-                        "Synchirus/rimicola spp" = "Synchirus",
-                        "Thylacodes/petaloconchus spp" = "Thylacodes spp",
-                        "Brevispinus, ochraceus, or giganteus"="Pisaster brevispinus/ochraceus/giganteus",               
+         #               "Diopatra/chaetopterus spp" = "Diopatra spp",
+          #              "Loxorhynchus/scyra spp" = "Loxorhynchus spp",
+           #             "Synchirus/rimicola spp" = "Synchirus",
+            #            "Thylacodes/petaloconchus spp" = "Thylacodes spp",
+             #           "Brevispinus, ochraceus, or giganteus"="Pisaster brevispinus/ochraceus/giganteus",               
                         "Californiconus californicus" = "Californiconus spp",                        
-                        "Californicus /syn./ parastichopus californicus"="Apostichopus californicus",    
-                        "Californicus or pycnopodia helianthoides"="Rathbunaster californicus, Pycnopodia helianthoides",       
-                        "Carnatus, caurinus"="Sebastes carnatus/caurinus",
+               #         "Californicus /syn./ parastichopus californicus"="Apostichopus californicus",    
+                #        "Californicus or pycnopodia helianthoides"="Rathbunaster californicus, Pycnopodia helianthoides",       
+                 #       "Carnatus, caurinus"="Sebastes carnatus/caurinus",
                         "Ceramium flaccidum"="Gayliella flaccida",                              
                         "Chiliensis chiliensis"="Sarda chiliensis",
-                        "Chrysomelas/carnatus young of year"="Sebastes chrysomelas/carnatus",               
-                        "Coriacea /syn./ tealia coriacea"="Urticina coriacea",                    
-                         "Cribrinopsis albopunctata" = "Cribrinopsis spp",                       
+                        "Clupea pallasii" = "Clupea spp",
+                        "Cribrinopsis albopunctata" = "Cribrinopsis spp",
+                    #    "Chrysomelas/carnatus young of year"="Sebastes chrysomelas/carnatus",               
+                     #   "Coriacea /syn./ tealia coriacea"="Urticina coriacea",                    
+                      #   "Cribrinopsis albopunctata" = "Cribrinopsis spp",                       
                          "Cyanoplax hartwegii"   = "Cyanoplax spp",                              
-                        "Dawsoni or stimpsoni"="Solaster dawsoni/stimpsoni",
+                        #"Dawsoni or stimpsoni"="Solaster dawsoni/stimpsoni",
                          "Diaperoforma californica" = "Diaperoforma spp",                           
-                        # "Dictyoneurum californicum/reticulatum"              
-                        # "Dodecaceria fewkesi/concharum"                       
+                      #  # "Dictyoneurum californicum/reticulatum"              
+                    #    # "Dodecaceria fewkesi/concharum"                       
                          "Epitonium tinctum"    = "Epitonium spp",                               
                          "Evasterias troschelii"    = "Evasterias spp",                          
-                        # "Felimare californiensis"                             
-                        # "Felimare porterae"                                  
-                        # "Felimida macfarlandi"                                
-                        # "Flabellinopsis iodinea"                             
-                        "Foliolata or astropecten armatus"="Luidia foliolata, Astropecten armatus",                
-                        "Franciscanus /syn./ strongylocentrotus franciscanus"="Mesocentrotus franciscanus",
-                        "Franciscanus or strongylocentrotus purpuratus"="Mesocentrotus franciscanus, Strongylocentrotus purpuratus",
+              #          # "Felimare californiensis"                             
+            #            # "Felimare porterae"                                  
+          #              # "Felimida macfarlandi"                                
+        #                # "Flabellinopsis iodinea"                             
+      #                  "Foliolata or astropecten armatus"="Luidia foliolata, Astropecten armatus",                
+    #                    "Franciscanus /syn./ strongylocentrotus franciscanus"="Mesocentrotus franciscanus",
+  #                      "Franciscanus or strongylocentrotus purpuratus"="Mesocentrotus franciscanus, Strongylocentrotus purpuratus",
                         "Halichondria (halichondria)"="Halichondria panicea",
-                        "Haliclona (reniera)"="Haliclona cinerea",
+     #                   "Haliclona (reniera)"="Haliclona cinerea",
                         "Haliclona reniera" = "Haliclona spp",
                         "Halichondria halichondria" = "Halichondria spp",
                         "Hedophyllum sessile"   = "Hedopphyllum spp",                             
-                        "Holothuria (vaneyothuria) zacae"="Holothuria zacae",
-                        "Inflata or hippasteria spinosa"="Poraniopsis inflata, Hippasteria spinosa",
-                        "Leukothele /syn./ parastichopus leukothele"="Apostichopus leukothele",        
+        #                "Holothuria (vaneyothuria) zacae"="Holothuria zacae",
+         #               "Inflata or hippasteria spinosa"="Poraniopsis inflata, Hippasteria spinosa",
+                          "Kyphosus azurea" = "Kyphosus spp",
+          #              "Leukothele /syn./ parastichopus leukothele"="Apostichopus leukothele",        
                         "Lirobittium munitum"     = "Lirobittium spp",                           
                          "Lithopoma undosum"        = "Lithopoma spp",                           
-                        "Lofotensis /syn./ tealia lofotensis"="Urticina lofotensis",              
+             #           "Lofotensis /syn./ tealia lofotensis"="Urticina lofotensis",              
                         "Loligo opalescens"="Doryteuthis opalescens",   
-                        "Synchirus" = "Synchirus spp",
-                        # "Lopholithodes mandtii/foraminatus"                  
-                        # "Loxorhynchus/scyra crispatus/acutifrons"             
-                        "Magister /syn./ cancer magister"="Metacarcinus magister",                    
-                        "Melanops / mystinus/ diaconus"="Sebastes melanops/mystinus/diaconus",                      
-                        "Melanops or mystinus"="Sebastes melanops/mystinus",                               
+               #         "Synchirus" = "Synchirus spp",
+                #        # "Lopholithodes mandtii/foraminatus"                  
+                 #       # "Loxorhynchus/scyra crispatus/acutifrons"             
+                  #      "Magister /syn./ cancer magister"="Metacarcinus magister",                    
+                   #     "Melanops / mystinus/ diaconus"="Sebastes melanops/mystinus/diaconus",                      
+                    #    "Melanops or mystinus"="Sebastes melanops/mystinus",                               
                          "Mexacanthina lugubris"          = "Mexacanthina spp",                     
-                        "Miniata or mediaster aequalis"="Patiria miniata, Mediaster aequalis",
-                        "Mystinus or diaconus"="Sebastes mystinus/diaconus",
+                      #  "Miniata or mediaster aequalis"="Patiria miniata, Mediaster aequalis",
+                    #    "Mystinus or diaconus"="Sebastes mystinus/diaconus",
                          "Nemalion elminthoides"  = "Nemalion spp",                            
                          "Neoagarum fimbriatum"     = "Neoagarum spp",                           
-                         "Neobernaya spadicea"   = "Neobernaya spp",                             
+                        "Neobernaya spadicea"   = "Neobernaya spp",                             
                          "Neogastroclonium subarticulatum"    = "Neogastroclonium spp",                 
-                        "Nobilis /syn./ anisodoris nobilis"="Montereina nobilis",
+          #              "Nobilis /syn./ anisodoris nobilis"="Montereina nobilis",
                          "Norrisia norrisii"      = "Norrisia spp",                             
                          "Okenia rosacea"   = "Okenia spp",                                  
-                        "Opalescens (eggs)"="Doryteuthis opalescens",
-                        "Parvimensis /syn./ parastichopus parvimensis"="Apostichopus parvimensis",       
-                        # "Peltodoris nobilis"                                  
+    #                    "Opalescens (eggs)"="Doryteuthis opalescens",
+  #                      "Parvimensis /syn./ parastichopus parvimensis"="Apostichopus parvimensis",       
+    #                    # "Peltodoris nobilis"                                  
                          "Phyllospadix scouleri"    = "Phyllospadix spp",                          
                          "Phyllospadix serrulatus"       = "Phyllospadix spp",                      
                          "Phyllospadix torreyi"    = "Phyllospadix spp" ,                         
-                        "Pinniger or miniatus"="Sebastes pinniger/miniatus",                              
+        #                "Pinniger or miniatus"="Sebastes pinniger/miniatus",                              
                          "Plocamium violaceum"       = "Plocamium spp",                         
                          "Pseudobatos productus"    = "Pseudobatos spp",                           
-                         "Psolus chitonoides"    = "Psolus spp",                             
+                        "Psolus chitonoides"    = "Psolus spp",                             
                          "Pugettia foliata"   = "Pugettia spp",                                 
-                        "Ritteri /syn./ heteropolypus ritteri"="Heteropolypus ritteri",               
-                        # "Scyra/oregonia acutifrons/gracilis"                  
-                        "Sebastes (10-15"="Sebastes spp",                                  
-                        "Sebastes atrovirens,carnatus,chrysomelas,caurinus"="Sebastes atrovirens/carnatus/chrysomelas/caurinus",   
-                        "Sebastes dalli"="Sebastes dallii",                                   
+             #           "Ritteri /syn./ heteropolypus ritteri"="Heteropolypus ritteri",               
+              #          # "Scyra/oregonia acutifrons/gracilis"                  
+               #         "Sebastes (10-15"="Sebastes spp",                                  
+                #        "Sebastes atrovirens,carnatus,chrysomelas,caurinus"="Sebastes atrovirens/carnatus/chrysomelas/caurinus",   
+                 #       "Sebastes dalli"="Sebastes dallii",                                   
                          "Sebastes diaconus"   = "Sebastes spp",
                         "Sebastes diaconua" = "Sebastes spp",
-                        "Sebastes n/a"="Sebastes spp",                                        
-                        "Sebastes serranoides,flavidus"="Sebastes serranoides/flavidus",                         
-                        "Sebastes serranoides,flavidus,melanops"="Sebastes serranoides/flavidus/melanops",         
-                        "Serranoides or flavidus"="Sebastes serranoides/flavidus",                        
-                        # "Stephanocystis dioica"                              
+                    #    "Sebastes n/a"="Sebastes spp",                                        
+                     #   "Sebastes serranoides,flavidus"="Sebastes serranoides/flavidus",                         
+                      #  "Sebastes serranoides,flavidus,melanops"="Sebastes serranoides/flavidus/melanops",         
+                    #    "Serranoides or flavidus"="Sebastes serranoides/flavidus",                        
+                  #      # "Stephanocystis dioica"                              
                          "Stephanocystis osmundacea"   = "Stephanocystis spp",                        
                          "Taonia lennebackerae"     = "Taonia spp",                          
                          "Tethya aurantia"  = "Tethya spp",                                   
-                        "Tetilla sp"="Tetilla spp",                                        
+          #              "Tetilla sp"="Tetilla spp",                                        
                          "Tetronarce californica"  = "Tetronarce spp",                            
-                        # "Thylacodes/petaloconchus squamigerus/montereyensis" 
-                        # "Trikentrion helium"                                  
-                        # "Urticina columbiana/mcpeaki"                        
+      #                  # "Thylacodes/petaloconchus squamigerus/montereyensis" 
+    #                    # "Trikentrion helium"    ,
+                        "Urobatis halleri" = "Urobatis spp",
+  #                      # "Urticina columbiana/mcpeaki"                        
                          "Xenistius californiensis" = "Xenistius spp",                           
                          "Xystreurys rubescens" = "Xystreurys spp"
                         )) %>% 
