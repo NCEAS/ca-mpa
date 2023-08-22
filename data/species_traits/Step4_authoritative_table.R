@@ -76,7 +76,7 @@ params_dup <- params_tab[duplicated(params_tab[, 1:6]) | duplicated(params_tab[,
 ################################################################################
 #
 
-write.csv(params_tab, file.path(datadir, "processed/fish_lw_parameters_by_species.csv"))
+write.csv(params_tab, file.path(datadir, "processed/fish_lw_parameters_by_species.csv"),row.names = FALSE)
 
 
 
