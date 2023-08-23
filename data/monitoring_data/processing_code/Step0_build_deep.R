@@ -26,7 +26,7 @@ datadir <- "/home/shares/ca-mpa/data/sync-data/monitoring//monitoring_deep-reef/
 outdir <-  "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data"
 
 # Read deep reef monitoring data ---------------------------------------------
-deep_reef_raw <- read.csv(file.path(datadir, "/ROVLengths2005-2019Merged-2021-02-02SLZ.csv"), na = c("N/A", "")) %>% 
+deep_reef_raw <- read.csv(file.path(datadir, "/ROVLengths2005-2019Merged-2021-02-02SLZ.csv"), na = c("N/A", "", " ")) %>% 
   clean_names() 
 
 deep_reef_sites <- readxl::read_excel(file.path(datadir, "/MidDepth_ROV_Site_Table.xlsx")) %>% clean_names()
@@ -54,12 +54,6 @@ params_tab <- read.csv("/home/shares/ca-mpa/data/sync-data/species_traits/proces
 
 
 # Process Data ------------------------------------------------------------------------
-
-
-data <- deep_reef_raw %>% 
-  # Per PI instructions: Only keep transects affiliated with MPAs and that do not cross boundaries
-  filter(type %in% c("SMR", "SMCA", "Reference"))
-
 # Still needs review:
 # - "Farallon Island" site (for which MPA?)
 # - Confirm treatment of type == reference and designation == reference
@@ -75,16 +69,18 @@ data <- deep_reef_raw %>%
 #         the affiliated_mpa remains the mpa_group + type listed, and the first mpa_name 
 #         becomes the secondary_mpa 
 
-data2 <- data %>% 
+data <- deep_reef_raw %>% 
+  # Per PI instructions: Only keep transects affiliated with MPAs and that do not cross boundaries
+  filter(type %in% c("SMR", "SMCA", "Reference")) %>% 
   # Drop the "_REF" from the names
   mutate(mpa_name = str_remove_all(mpa_name, "_REF"),
          mpa_name = str_replace_all(mpa_name, "_", " ")) %>% 
   # Correct naming across all columns
-  mutate(across(location:designation, str_replace, 'Ano Nuevo','Año Nuevo')) %>%
-  mutate(across(location:designation, str_replace, 'Islands','Island')) %>%
-  mutate(across(location:designation, str_replace, 'SE ','Southeast ')) %>%
-  mutate(across(location:designation, str_replace, 'Bodega Bay','Bodega Head')) %>%
-  mutate(across(location:designation, str_replace, 'Point St. George','Point St. George Reef Ofshore')) %>%
+  mutate((across(location:designation, str_replace, 'Ano Nuevo','Año Nuevo'))) %>%
+  mutate((across(location:designation, str_replace, 'Islands','Island'))) %>%
+  mutate((across(location:designation, str_replace, 'SE ','Southeast '))) %>%
+  mutate((across(location:designation, str_replace, 'Bodega Bay','Bodega Head'))) %>%
+  mutate((across(location:designation, str_replace, 'Point St. George','Point St. George Reef Offshore'))) %>%
   # Correct Ano Nuevo to SMR (incorrectly listed as SMCA) 
   mutate(type = if_else(mpa_group == 'Año Nuevo', "SMR", type)) %>% 
   # Create affiliated_mpa variable 
@@ -107,11 +103,16 @@ data2 <- data %>%
   # These MPAs have both SMR and SMCA - select SMCA as secondary affiliated MPA
   mutate(secondary_mpa = if_else(type == "Reference" & mpa_group %in% c("Big Creek", "Bodega Bay", "Point Sur"),
                                  paste(mpa_group, "SMCA", sep = " "), secondary_mpa)) %>% 
-  select(year = survey_year, mpa_group:common_name, 
-         count, estimated_length_cm, 
+  select(year = survey_year, mpa_group:line, scientific_name, common_name, 
+         count, fish_tl = estimated_length_cm, 
          affiliated_mpa, secondary_mpa, tertiary_mpa) %>% 
-  mutate(across(affiliated_mpa:tertiary_mpa), str_to_lower)
-
+  # Convert affilaited mpa columns to lowercase 
+  mutate((across(affiliated_mpa:tertiary_mpa, str_to_lower))) %>% 
+  # Add defacto SMRs based on affiliated_mpa
+  left_join(defacto_smr_deep_reef, by = "affiliated_mpa") %>% 
+  mutate(mpa_defacto_designation = if_else(type == "Reference" | designation == "Reference", "REF", mpa_defacto_class)) %>% # THIS NEEDS REVIEW
+  # Add regions
+  left_join(regions, by = "affiliated_mpa")
 
 
 ################################################################################
@@ -219,7 +220,7 @@ deep_reef_build3 <- left_join(deep_reef_build2, defacto_smr_deep_reef, by="affil
          affiliated_mpa = recode(affiliated_mpa, "ano nuevo smr" = "año nuevo smr"))
 
 #add regions
-deep_reef_build4 <- left_join(deep_reef_build3, regions, by=c("affiliated_mpa"="name"))%>%
+deep_reef_build4 <- left_join(deep_reef_build3, regions)%>%
   dplyr::rename(fish_tl = estimated_length_cm)
 
 
