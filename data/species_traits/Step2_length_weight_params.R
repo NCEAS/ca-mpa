@@ -15,7 +15,8 @@ basedir <- "/home/shares/ca-mpa/data/sync-data/" #Josh
 datadir <- file.path(basedir, "species_traits/processed") 
 
 # Read data
-spp_orig <- read.csv(file.path(datadir, "full_taxon_table_new.csv"))
+spp_orig <- read.csv(file.path(datadir, "full_taxon_table_new.csv"), na = c("", "NA", "N/A"))
+
 freeR::complete(spp_orig)
 
 
@@ -26,201 +27,86 @@ freeR::complete(spp_orig)
 
 # 1. Genus should be one word to pull from FishBase. Identify Genus entries
 #    that need fix
-
 genus_fix <- spp_orig %>%
-  mutate(
-    Genus_orig = str_to_sentence(Genus),  # Convert to sentence case
-    Genus_orig = ifelse(Genus_orig == "", NA, Genus_orig),  # Convert empty values to NA
-    Genus_orig = str_trim(Genus_orig)  # Remove leading and trailing whitespace
-  ) %>% 
-  filter(grepl("\\s|[^A-Za-z0-9]", Genus_orig))
+  mutate(genus_new = str_trim(Genus)) %>%   # Remove leading and trailing whitespace
+  filter(grepl("\\s|[^A-Za-z0-9]", genus_new))
 
-# 2. species should be one word to pull from FishBase. Identify species entries
+# 2. Species should be one word to pull from FishBase. Identify Species entries
 #    that need fix
-
 species_fix <- spp_orig %>%
-  mutate(Species_orig=ifelse(is.na(Species) & !is.na(Genus), "spp", Species)) %>% 
-  filter(grepl("\\s|[^A-Za-z0-9]", Species_orig)) %>% distinct(Species_orig)
+  #mutate(Species_new = if_else(is.na(Species) & !is.na(Genus), "spp", Species)) %>% 
+  filter(grepl("\\s|[^A-Za-z0-9]", Species)) %>% distinct(Species) %>% 
+  filter(!(Species == "chiliensis chiliensis")) # This will be corrected manually
 
 # 3. Format data and apply corrections
-
 spp <- spp_orig %>% 
-  # Format genus
-  mutate(
-    Genus_orig = str_to_sentence(Genus),  # Convert to sentence case
-    Genus_orig = ifelse(Genus_orig == "", NA, Genus_orig),  # Convert empty values to NA
-    Genus_orig = str_trim(Genus_orig)  # Remove leading and trailing whitespace
-  ) %>% 
+  mutate(across(everything(), str_trim)) %>% # Remove leading and trailing whitespace across all entries
   #Fix Genus
-  mutate(Genus = recode(Genus_orig, 
-                        "Thylacodes/petaloconchus" = "Thylacodes",
-                        "Synchirus/rimicola" = "Synchirus",
-                        "Loxorhynchus/scyra" = "Loxorhynchus",
-                        "Diopatra/chaetopterus" = "Diopatra",
-                        ))%>%
+  mutate(genus_new = recode(Genus, 
+                            "Thylacodes/Petaloconchus" = "Thylacodes",
+                            "Synchirus/Rimicola" = "Synchirus",
+                            "Loxorhynchus/Scyra" = "Loxorhynchus",
+                            "Diopatra/Chaetopterus" = "Diopatra")) %>%
   # Add "spp" when missing
-  mutate(Species_orig=ifelse(is.na(Species) & !is.na(Genus), "spp", Species)) %>% 
-  #Fix Species name 
-  mutate(Species=recode(Species_orig,
-                        "<10 cm Sebastes sp."="spp", # updated to capital S by CL on 11 Aug 2023
-                        "(10-15" = "spp",
-                        "atrovirens,carnatus,chrysomelas,caurinus" = "spp",
-                        "brevispinus, ochraceus, or giganteus" = "spp",
-                        "californicum/reticulatum" = "spp",
-                        "californicus /syn./ Parastichopus californicus" = "spp",
-                        "californicus or Pycnopodia helianthoides" = "spp",
-                        "carnatus, caurinus" = "spp",
-                        "chrysomelas/carnatus young of year" = "spp",
-                        "columbiana/mcpeaki" = "spp",
-                        "coriacea /syn./ Tealia coriacea" = "spp",
-                        "crispatus/acutifrons" = "spp",
-                        "dawsoni or stimpsoni" = "spp",
-                        "foliolata or Astropecten armatus" = "spp",
-                        "franciscanus /syn./ Strongylocentrotus franciscanus" = 'spp',
-                        "franciscanus or Strongylocentrotus purpuratus" = "spp",
-                        "inflata or Hippasteria spinosa" = "spp",
-                        "leukothele /syn./ Parastichopus leukothele" = "spp",
-                        "lofotensis /syn./ Tealia lofotensis" = "spp",
-                        "magister /syn./ Cancer magister" = "spp",
-                        "melanops / mystinus/ diaconus" = "spp",
-                        "melanops or mystinus" = "spp",
-                        "miniata or Mediaster aequalis" = "spp",
-                        "mystinus or diaconus" = "spp",
-                        "N/A" = "spp",
-                        "nobilis /syn./ Anisodoris nobilis" = "spp",
-                        "opalescens (eggs)" = "spp",
-                        "parvimensis /syn./ Parastichopus parvimensis"="spp",
-                        "pinniger or miniatus" = "spp",
-                        "ritteri /syn./ Heteropolypus ritteri"="spp",
-                        "serranoides or flavidus" = "spp",
-                        "serranoides,flavidus" = "spp",
-                        "serranoides,flavidus,melanops"= "spp",
-                        "sp." = "spp",
-                        "squamigerus/montereyensis" = "spp",
-                        ))%>%
-  # Add scientific name
-  mutate(species_nwords=freeR::nwords(Species),
-         sciname=ifelse(species_nwords==1, paste(Genus, Species), Species)) %>% 
-  # Remove missing scientific names
-  mutate(sciname=ifelse(sciname=="NA NA", NA, sciname),
-         sciname=ifelse(sciname=="", NA, sciname)) %>% 
-  # Sentence case
-  mutate(sciname=sciname %>% stringr::str_squish() %>% stringr::str_to_sentence()) %>% 
-  # Simplify
-  #select(species_id, genus, sciname) %>% 
-  unique() %>% 
+  mutate(species_new = if_else(is.na(Species) & !is.na(genus_new), "spp", Species)) %>% 
+  # Correct any Species from species_fix to "spp"
+  mutate(species_new = if_else(species_new %in% species_fix$Species, "spp", species_new)) %>% 
+  mutate(species_nwords = freeR::nwords(species_new), # Keep as check -- only one is Sarda chiliensis chiliensis which we will keep
+         sciname = if_else(!is.na(genus_new) & !is.na(species_new), paste(genus_new, species_new), NA)) %>% 
   # Fix scientific name
-  # NOTE: a lot of these are already fixed the genus and species above. 
+  # NOTE: a lot of these are already fixed the Genus and Species above. 
   # But saving in case we need this later since it was a lot of work!
-  mutate(sciname=recode(sciname,
-   #                     "<10 cm sebastes sp." = "Sebastes spp",
-    #                    # "Actinostella bradleyi"                              
-     #                   # "Antiopella barbarensis"                              
-      #                  # "Atrimitra idae"                                     
-                        "Beringraja binoculata"  = "Beringraja spp",                             
-                        "Beringraja stellulata" = "Beringraja spp", # Corrected from Beringraha to Beringraja by CL on 14 Aug 2023
-         #               "Diopatra/chaetopterus spp" = "Diopatra spp",
-          #              "Loxorhynchus/scyra spp" = "Loxorhynchus spp",
-           #             "Synchirus/rimicola spp" = "Synchirus",
-            #            "Thylacodes/petaloconchus spp" = "Thylacodes spp",
-             #           "Brevispinus, ochraceus, or giganteus"="Pisaster brevispinus/ochraceus/giganteus",               
-                        "Californiconus californicus" = "Californiconus spp",                        
-               #         "Californicus /syn./ parastichopus californicus"="Apostichopus californicus",    
-                #        "Californicus or pycnopodia helianthoides"="Rathbunaster californicus, Pycnopodia helianthoides",       
-                 #       "Carnatus, caurinus"="Sebastes carnatus/caurinus",
-                        "Ceramium flaccidum"="Gayliella flaccida",                              
-                        "Chiliensis chiliensis"="Sarda chiliensis",
-                        "Clupea pallasii" = "Clupea spp",
-                        "Cribrinopsis albopunctata" = "Cribrinopsis spp",
-                    #    "Chrysomelas/carnatus young of year"="Sebastes chrysomelas/carnatus",               
-                     #   "Coriacea /syn./ tealia coriacea"="Urticina coriacea",                    
-                      #   "Cribrinopsis albopunctata" = "Cribrinopsis spp",                       
-                         "Cyanoplax hartwegii"   = "Cyanoplax spp",                              
-                        #"Dawsoni or stimpsoni"="Solaster dawsoni/stimpsoni",
-                         "Diaperoforma californica" = "Diaperoforma spp",                           
-                      #  # "Dictyoneurum californicum/reticulatum"              
-                    #    # "Dodecaceria fewkesi/concharum"                       
-                         "Epitonium tinctum"    = "Epitonium spp",                               
-                         "Evasterias troschelii"    = "Evasterias spp",                          
-              #          # "Felimare californiensis"                             
-            #            # "Felimare porterae"                                  
-          #              # "Felimida macfarlandi"                                
-        #                # "Flabellinopsis iodinea"                             
-      #                  "Foliolata or astropecten armatus"="Luidia foliolata, Astropecten armatus",                
-    #                    "Franciscanus /syn./ strongylocentrotus franciscanus"="Mesocentrotus franciscanus",
-  #                      "Franciscanus or strongylocentrotus purpuratus"="Mesocentrotus franciscanus, Strongylocentrotus purpuratus",
-                        "Halichondria (halichondria)"="Halichondria panicea",
-     #                   "Haliclona (reniera)"="Haliclona cinerea",
-                        "Haliclona reniera" = "Haliclona spp",
-                        "Halichondria halichondria" = "Halichondria spp",
-                        "Hedophyllum sessile"   = "Hedopphyllum spp",                             
-        #                "Holothuria (vaneyothuria) zacae"="Holothuria zacae",
-         #               "Inflata or hippasteria spinosa"="Poraniopsis inflata, Hippasteria spinosa",
-                          "Kyphosus azurea" = "Kyphosus spp",
-          #              "Leukothele /syn./ parastichopus leukothele"="Apostichopus leukothele",        
-                        "Lirobittium munitum"     = "Lirobittium spp",                           
-                         "Lithopoma undosum"        = "Lithopoma spp",                           
-             #           "Lofotensis /syn./ tealia lofotensis"="Urticina lofotensis",              
-                        "Loligo opalescens"="Doryteuthis opalescens",   
-               #         "Synchirus" = "Synchirus spp",
-                #        # "Lopholithodes mandtii/foraminatus"                  
-                 #       # "Loxorhynchus/scyra crispatus/acutifrons"             
-                  #      "Magister /syn./ cancer magister"="Metacarcinus magister",                    
-                   #     "Melanops / mystinus/ diaconus"="Sebastes melanops/mystinus/diaconus",                      
-                    #    "Melanops or mystinus"="Sebastes melanops/mystinus",                               
-                         "Mexacanthina lugubris"          = "Mexacanthina spp",                     
-                      #  "Miniata or mediaster aequalis"="Patiria miniata, Mediaster aequalis",
-                    #    "Mystinus or diaconus"="Sebastes mystinus/diaconus",
-                         "Nemalion elminthoides"  = "Nemalion spp",                            
-                         "Neoagarum fimbriatum"     = "Neoagarum spp",                           
-                        "Neobernaya spadicea"   = "Neobernaya spp",                             
-                         "Neogastroclonium subarticulatum"    = "Neogastroclonium spp",                 
-          #              "Nobilis /syn./ anisodoris nobilis"="Montereina nobilis",
-                         "Norrisia norrisii"      = "Norrisia spp",                             
-                         "Okenia rosacea"   = "Okenia spp",                                  
-    #                    "Opalescens (eggs)"="Doryteuthis opalescens",
-  #                      "Parvimensis /syn./ parastichopus parvimensis"="Apostichopus parvimensis",       
-    #                    # "Peltodoris nobilis"                                  
-                         "Phyllospadix scouleri"    = "Phyllospadix spp",                          
-                         "Phyllospadix serrulatus"       = "Phyllospadix spp",                      
-                         "Phyllospadix torreyi"    = "Phyllospadix spp" ,                         
-        #                "Pinniger or miniatus"="Sebastes pinniger/miniatus",                              
-                         "Plocamium violaceum"       = "Plocamium spp",                         
-                         "Pseudobatos productus"    = "Pseudobatos spp",                           
-                        "Psolus chitonoides"    = "Psolus spp",                             
-                         "Pugettia foliata"   = "Pugettia spp",                                 
-             #           "Ritteri /syn./ heteropolypus ritteri"="Heteropolypus ritteri",               
-              #          # "Scyra/oregonia acutifrons/gracilis"                  
-               #         "Sebastes (10-15"="Sebastes spp",                                  
-                #        "Sebastes atrovirens,carnatus,chrysomelas,caurinus"="Sebastes atrovirens/carnatus/chrysomelas/caurinus",   
-                 #       "Sebastes dalli"="Sebastes dallii",                                   
-                         "Sebastes diaconus"   = "Sebastes spp",
-                        "Sebastes diaconua" = "Sebastes spp",
-                    #    "Sebastes n/a"="Sebastes spp",                                        
-                     #   "Sebastes serranoides,flavidus"="Sebastes serranoides/flavidus",                         
-                      #  "Sebastes serranoides,flavidus,melanops"="Sebastes serranoides/flavidus/melanops",         
-                    #    "Serranoides or flavidus"="Sebastes serranoides/flavidus",                        
-                  #      # "Stephanocystis dioica"                              
-                         "Stephanocystis osmundacea"   = "Stephanocystis spp",                        
-                         "Taonia lennebackerae"     = "Taonia spp",                          
-                         "Tethya aurantia"  = "Tethya spp",                                   
-          #              "Tetilla sp"="Tetilla spp",                                        
-                         "Tetronarce californica"  = "Tetronarce spp",                            
-      #                  # "Thylacodes/petaloconchus squamigerus/montereyensis" 
-    #                    # "Trikentrion helium"    ,
-                        "Urobatis halleri" = "Urobatis spp",
-  #                      # "Urticina columbiana/mcpeaki"                        
-                         "Xenistius californiensis" = "Xenistius spp",                           
-                         "Xystreurys rubescens" = "Xystreurys spp"
-                        )) %>% 
+  mutate(sciname = recode(sciname,  
+                          "Beringraja binoculata"  = "Beringraja spp",                             
+                          "Beringraja stellulata" = "Beringraja spp", 
+                          "Californiconus californicus" = "Californiconus spp",                        
+                          "Ceramium flaccidum"="Gayliella flaccida",      
+                          "Clupea pallasii" = "Clupea spp",
+                          "Cribrinopsis albopunctata" = "Cribrinopsis spp",              
+                          "Cyanoplax hartwegii"   = "Cyanoplax spp",               
+                          "Diaperoforma californica" = "Diaperoforma spp",             
+                          "Epitonium tinctum"    = "Epitonium spp",                               
+                          "Evasterias troschelii"    = "Evasterias spp",      
+                          "Halichondria Halichondria" = "Halichondria panicea",
+                          "Haliclona Reniera" = "Haliclona spp",
+                          "Hedophyllum sessile"   = "Hedopphyllum spp",                             
+                          "Kyphosus azurea" = "Kyphosus spp",     
+                          "Lirobittium munitum"     = "Lirobittium spp",                           
+                          "Lithopoma undosum"        = "Lithopoma spp",                                      
+                          "Loligo opalescens"="Doryteuthis opalescens",            
+                          "Mexacanthina lugubris"          = "Mexacanthina spp",   
+                          "Nemalion elminthoides"  = "Nemalion spp",                            
+                          "Neoagarum fimbriatum"     = "Neoagarum spp",                           
+                          "Neobernaya spadicea"   = "Neobernaya spp",                             
+                          "Neogastroclonium subarticulatum"    = "Neogastroclonium spp", 
+                          "Norrisia norrisii"      = "Norrisia spp",                             
+                          "Okenia rosacea"   = "Okenia spp",                               
+                          "Phyllospadix scouleri"    = "Phyllospadix spp",                          
+                          "Phyllospadix serrulatus"       = "Phyllospadix spp",                      
+                          "Phyllospadix torreyi"    = "Phyllospadix spp" ,                                
+                          "Plocamium violaceum"       = "Plocamium spp",                         
+                          "Pseudobatos productus"    = "Pseudobatos spp",                           
+                          "Psolus chitonoides"    = "Psolus spp",                             
+                          "Pugettia foliata"   = "Pugettia spp",
+                          "Sarda chiliensis chiliensis" = "Sarda chiliensis",
+                          "Sebastes diaconus"   = "Sebastes spp",
+                          "Sebastes diaconua" = "Sebastes spp",                    
+                          "Stephanocystis osmundacea"   = "Stephanocystis spp",                        
+                          "Taonia lennebackerae"     = "Taonia spp",                          
+                          "Tethya aurantia"  = "Tethya spp",                                   
+                          "Tetronarce californica"  = "Tetronarce spp",    
+                          "Urobatis halleri" = "Urobatis spp",                     
+                          "Xenistius californiensis" = "Xenistius spp",                           
+                          "Xystreurys rubescens" = "Xystreurys spp"
+  )) %>% 
   # Mark level
   mutate(level=ifelse(grepl("spp|/|,", sciname) | is.na(Genus), "group", "species"))
 
 # Inspect
-sort(unique(spp$Genus))
+sort(unique(spp$genus_new))
 
 # Check names
-spp_names <- spp$sciname[spp$level=="species"] %>% unique() %>% sort() 
+spp_names <- spp$sciname[spp$level=="Species"] %>% unique() %>% sort() 
 wrong_names <- freeR::check_names(spp_names)
 wrong_names 
 
@@ -230,6 +116,7 @@ gen_names
 
 # Export
 write.csv(spp, file=file.path(datadir, "species_key.csv"), row.names = F)
+
 
 
 # Get length weight data
