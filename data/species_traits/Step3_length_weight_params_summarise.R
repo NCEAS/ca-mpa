@@ -69,6 +69,7 @@ lw_fam <- data_orig %>%
   summarize(a=median(a, na.rm=T),
             b=median(b, na.rm=T)) %>% 
   ungroup()
+
 write.csv(lw_fam, file=file.path(datadir, "fishbase_lw_parameters_by_family.csv"), row.names = F)
 
 # Create final data

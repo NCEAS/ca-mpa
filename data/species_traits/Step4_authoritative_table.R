@@ -16,16 +16,16 @@ datadir <- file.path(basedir, "species_traits/")
 fishbase_params <- read.csv("/home/shares/ca-mpa/data/sync-data/species_traits/processed/fishbase_lw_parameters_by_species.csv") #FishBase params from Step3
 
 # file sent to us by Rachel Brooks, rachel.brooks@sjsu.edu, on 11/30/2022
-ccfrp_params <- read_xlsx(file.path(datadir, "raw/CCFRP_Biomass_Conversion_20220206.xlsx"), sheet = "CCFRP_Biomass_Conversion_Table_") %>%
+ccfrp_params <- readxl::read_excel(file.path(datadir, "raw/CCFRP_Biomass_Conversion_20220206.xlsx"), sheet = "CCFRP_Biomass_Conversion_Table_") %>%
   mutate(source = "ccfrp") %>% 
   rename(units = ...16)%>%  # fix column with no header in original file
   mutate(source = "Brooks") #add source of params
 
 
 ################################################################################
-#workflow:
+# Wrkflow:
 
-# Brooks et al. conducted a lit review for relevant params in this system. 
+#  Brooks et al. conducted a lit review for relevant params in this system. 
 #  Use params from Brooks et al. first, then fishbase. 
 
 
@@ -45,11 +45,14 @@ fishbase_params1 <- fishbase_params %>%
 ################################################################################
 #prep Brooks for join
 ccfrp_params1 <- ccfrp_params %>%
-                  #drop species not ID to species level. We'll use the genus level 
-                  #params for these instead when we merge with fishbase_params1.
-                  filter(!(ScientificName_accepted %in% c("Sebastes serranoides/flavidus",
-                                                          "Sebastes spp.")))%>%
-                  filter(!(is.na(ScientificName_accepted)))
+  # drop species not ID to species level. We'll use the genus level 
+  # params for these instead when we merge with fishbase_params1.
+  filter(!(ScientificName_accepted %in% c("Sebastes serranoides/flavidus",
+                                          "Sebastes spp.")))%>%
+  filter(!(is.na(ScientificName_accepted))) %>% 
+  # drop species where data is NA
+  filter(!(is.na(WL_a) | is.na(WL_b)))
+  
 
 ################################################################################
 #drop species from fishbase params that are already in Brooks
