@@ -28,7 +28,8 @@ surf_zone_raw <- read.csv(file.path(datadir, "monitoring_sandy-beach/surf_zone_f
   clean_names()
 
 # Read taxonomy lookup table
-taxon_tab <- read.csv("/home/shares/ca-mpa/data/sync-data/species_traits/processed/species_key.csv")
+taxon_tab <- read.csv("/home/shares/ca-mpa/data/sync-data/species_traits/processed/species_key.csv") %>% 
+  filter(habitat == "Surf Zone")
 
 # Read regions from MPA attributes table
 regions <- readRDS("/home/shares/ca-mpa/data/sync-data/mpa_traits/processed/mpa_attributes_general.Rds") %>% 
@@ -81,6 +82,16 @@ data <- surf_zone_raw %>%
                 count, total_weight_kg) %>%
   mutate(total_weight_g = ifelse(species_code == "NOSP", 0, total_weight_g),
          total_weight_kg = ifelse(species_code == "NOSP", 0, total_weight_kg))
+
+
+# Test for matching taxa 
+taxa_match <- data %>% 
+  select(species_code:target_status) %>% unique() %>% 
+  left_join(taxon_tab, by = c("species_code" = "habitat_specific_code")) %>% 
+  filter(is.na(sciname))
+
+  # Add taxa 
+  left_join(taxon_tab, by = c("species_code" = "habitat_specific_code"))
 
 # Write data ------------------------------------------------------------------------
 #write.csv(data, row.names = FALSE, file.path(outdir, "biomass_processed", "surf_zone_fish_biomass.csv"))

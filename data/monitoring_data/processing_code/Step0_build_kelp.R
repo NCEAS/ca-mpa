@@ -85,6 +85,11 @@ data <- kelp_forest_raw %>%
          zone, level, transect, classcode, count, fish_tl, min_tl, max_tl, sciname,
          kingdom, phylum, class, order, family, genus, species, target_status)
 
+# Test taxa match
+taxa_match <- data %>% 
+  select(classcode, sciname:target_status) %>% distinct() %>% 
+  filter(is.na(sciname))
+
 # Write processed data
 #write.csv(data, file.path(outdir, "kelp_processed.csv"))
 

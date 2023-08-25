@@ -83,20 +83,16 @@ params_tab <- read.csv("/home/shares/ca-mpa/data/sync-data/species_traits/proces
 data <- ccfrp_caught_fishes %>% 
   # Combine catch information with drift information (full join to retain drifts w/ zero catch)
   full_join(ccfrp_drift, by = "drift_id") %>% 
-  # Add trip information 
-  left_join(ccfrp_trip_info) %>% 
-  # Add area information
-  left_join(ccfrp_areas) %>% 
-  # Add taxa
-  left_join(taxon_tab, by = c("species_code" = "habitat_specific_code")) %>% 
+  left_join(ccfrp_trip_info) %>% # Add trip information 
+  left_join(ccfrp_areas) %>% # Add area information
+  left_join(taxon_tab, by = c("species_code" = "habitat_specific_code")) %>% # Add taxa
   # Update species code for drifts with no catches
   mutate(species_code = ifelse(is.na(species_code) & total_fishes_caught == 0, "NO_ORG", species_code)) %>% 
   # Add defacto (all MPAs are defacto SMR for CCFRP)
   mutate(mpa_defacto_class = "smr",
          mpa_defacto_designation = case_when(site_mpa_ref == "MPA" ~ "smr",
                                              site_mpa_ref == "REF" ~ "ref")) %>% 
-  # Add regions
-  left_join(regions) %>% 
+  left_join(regions) %>% # Add regions
   select(year, month, day, # temporal
          bioregion, region4, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation, #  spatial
          drift_id, id_cell_per_trip, grid_cell_id, # sample
@@ -120,6 +116,11 @@ data2 <- data %>%
   filter(is.na(excluded_drift_comment)) %>% select(-excluded_drift_comment) %>% 
   filter(!(grid_cell_id %in% excluded_cells)) %>% #%>% 
   filter(drift_time_hrs > (2/60)) # Drop drifts less than 2 min
+
+# Test taxa match
+taxa_match <- data2 %>% 
+  select(species_code, sciname) %>% distinct() %>% 
+  filter(is.na(sciname))
   
 # PI Recommend drop Trinidad (but likely better to do this later as there are other sites
 # with no affiliated MPA)
