@@ -13,6 +13,7 @@
 # - Several species still weren't matching with taxonomy table - fixed
 # - Removed step that added duplicates for multiple affiliated MPAs (until can confirm - see below)
 # - Removed conversion of Point Buchon SMR to Point Buchon SMCA (until can confirm w/ JS)
+# - BIG NOTE: Removed changes to target status for now (until confirm best place to make those adjustments)
 
 # Note potential concerns for next steps:
 # - There are several combinations of group-site-designation that aren't in the main
@@ -214,5 +215,5 @@ data2 <- data %>%
          line_id, dive, line, scientific_name, count, fish_tl,
          class, order, family, sciname, target_status)
 
-write.csv(data2, row.names = F, file.path(outdir,"/biomass_processed/deep_reef_processed.csv"))  
+write.csv(data2, row.names = F, file.path(outdir,"/deep_reef_processed.csv"))  
 
