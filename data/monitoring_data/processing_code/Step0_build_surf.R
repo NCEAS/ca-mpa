@@ -6,9 +6,12 @@
 
 # Summary of key changes from original code:
 # - Added column for whether reference site is actually inside SMCA
+# - Added taxa information from species_key 
+
 
 # Note potential concerns for next steps:
 # - Some of the lengths seem to be already converted to centimeters
+# - There are some taxa that don't match fully (mostly higher groupings)
 
 
 # Setup --------------------------------------------------------------------------------
@@ -42,9 +45,9 @@ defacto_smr_surf <- readxl::read_excel("/home/shares/ca-mpa/data/sync-data/mpa_t
   dplyr::select(affiliated_mpa, mpa_defacto_class = mpa_class)
 
 # Read length-weight parameters
-params_tab <- read.csv("/home/shares/ca-mpa/data/sync-data/species_traits/processed/fish_lw_parameters_by_species.csv") %>%
-  mutate(ScientificName_accepted = recode(ScientificName_accepted, "Sebastes spp." = "Sebastes spp")) %>%
-  filter(!is.na(ScientificName_accepted))
+# params_tab <- read.csv("/home/shares/ca-mpa/data/sync-data/species_traits/processed/fish_lw_parameters_by_species.csv") %>%
+#   mutate(ScientificName_accepted = recode(ScientificName_accepted, "Sebastes spp." = "Sebastes spp")) %>%
+#   filter(!is.na(ScientificName_accepted))
 
 # Process Data ------------------------------------------------------------------------
 
@@ -81,19 +84,18 @@ data <- surf_zone_raw %>%
                 family, genus, species, target_status = targeted, fish_length, weight_g, total_weight_g, 
                 count, total_weight_kg) %>%
   mutate(total_weight_g = ifelse(species_code == "NOSP", 0, total_weight_g),
-         total_weight_kg = ifelse(species_code == "NOSP", 0, total_weight_kg))
+         total_weight_kg = ifelse(species_code == "NOSP", 0, total_weight_kg)) %>% 
+  # Add taxa
+  left_join(taxon_tab %>% select(habitat_specific_code, genus_new:level), by = c("species_code" = "habitat_specific_code"))
 
 
 # Test for matching taxa 
 taxa_match <- data %>% 
   select(species_code:target_status) %>% unique() %>% 
-  left_join(taxon_tab, by = c("species_code" = "habitat_specific_code")) %>% 
-  filter(is.na(sciname))
-
-  # Add taxa 
-  left_join(taxon_tab, by = c("species_code" = "habitat_specific_code"))
+  left_join(taxon_tab, by = c("species_code" = "habitat_specific_code"), na_matches = "never") %>% 
+  filter(is.na(sciname)) 
 
 # Write data ------------------------------------------------------------------------
-#write.csv(data, row.names = FALSE, file.path(outdir, "biomass_processed", "surf_zone_fish_biomass.csv"))
+write.csv(data, row.names = FALSE, file.path(outdir, "surf_zone_fish_processed.csv"))
 
 
