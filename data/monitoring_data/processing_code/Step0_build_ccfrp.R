@@ -9,10 +9,14 @@
 # for errors and potential concerns that could propagate.
 
 # Summary of key changes from original code:
-# - 
+# - Corrected NA values upon reading data (several just empty)
+# - Keeping total_fishes_caught longer in the processing highlights that there
+#   are a few values where there is length data but no species code listed - 
+#   these were dropped or coded as NO_ORG drifts but there are actually fish
+#   counted at higher levels
 
 # Note potential concerns for next steps:
-# - 
+# - See above
 
 # Setup --------------------------------------------------------------------------------
 rm(list=ls())
@@ -20,7 +24,6 @@ rm(list=ls())
 # Load required packages
 library(tidyverse)
 library(janitor)
-library(readxl)
 
 # Directories
 datadir <- "/home/shares/ca-mpa/data/sync-data/monitoring/monitoring_ccfrp/"
@@ -74,9 +77,9 @@ defacto_smr_ccfrp <- readxl::read_excel("/home/shares/ca-mpa/data/sync-data/mpa_
   dplyr::select(affiliated_mpa, mpa_defacto_class = mpa_class)
 
 # Read length-weight parameters
-params_tab <- read.csv("/home/shares/ca-mpa/data/sync-data/species_traits/processed/fish_lw_parameters_by_species.csv") %>%
-  mutate(ScientificName_accepted = recode(ScientificName_accepted, "Sebastes spp." = "Sebastes spp")) %>%
-  filter(!is.na(ScientificName_accepted))
+# params_tab <- read.csv("/home/shares/ca-mpa/data/sync-data/species_traits/processed/fish_lw_parameters_by_species.csv") %>%
+#   mutate(ScientificName_accepted = recode(ScientificName_accepted, "Sebastes spp." = "Sebastes spp")) %>%
+#   filter(!is.na(ScientificName_accepted))
 
 # Process Data ------------------------------------------------------------------------
 # Note: the unit of replication for CCFRP is grid cell
@@ -96,7 +99,8 @@ data <- ccfrp_caught_fishes %>%
   select(year, month, day, # temporal
          bioregion, region4, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation, #  spatial
          drift_id, id_cell_per_trip, grid_cell_id, # sample
-         total_angler_hrs, species_code, sciname, TL_cm = length_cm, # data
+         total_angler_hrs, species_code, sciname, 
+         class, order, family, genus, species, TL_cm = length_cm, # data
          target_status, excluded_drift_comment, drift_time_hrs, total_fishes_caught) # extra
 
 
@@ -115,15 +119,25 @@ excluded_cells = c("TDRR", "CMMM", "CMRR", "TMMM", "TMRR",
 data2 <- data %>% 
   filter(is.na(excluded_drift_comment)) %>% select(-excluded_drift_comment) %>% 
   filter(!(grid_cell_id %in% excluded_cells)) %>% #%>% 
-  filter(drift_time_hrs > (2/60)) # Drop drifts less than 2 min
+  filter(drift_time_hrs > (2/60)) %>%  # Drop drifts less than 2 min
+  # There is a drift where there are 2 fishes recorded but total_fishes_caught is zero?
+  mutate(total_fishes_caught = if_else(drift_id %in% c("PCM1008181201"), 2, total_fishes_caught))
 
-# Test taxa match
-taxa_match <- data2 %>% 
-  select(species_code, sciname) %>% distinct() %>% 
-  filter(is.na(sciname))
-  
-# PI Recommend drop Trinidad (but likely better to do this later as there are other sites
-# with no affiliated MPA)
+# Write to csv
+write.csv(data2, file.path(outdir, "ccfrp_processed.csv"))
+
+# Note: there are other drifts where the total_fishes_caught does not match
+# the number of fishes recorded for the drift?
+total_fish_mismatch <- data2 %>% 
+  filter(!(species_code == "NO_ORG")) %>% 
+  group_by(drift_id) %>% 
+  summarize(test_total = n(),
+            total_fishes_caught = mean(total_fishes_caught)) %>% 
+  ungroup() %>% 
+  mutate(match = if_else(test_total == total_fishes_caught, "Yes", "No"))
+
+# PI Recommend drop Trinidad (but likely better to do this later as there 
+# may be other sites with no affiliated MPA; esp in other habitats)
 
 # Calculate the total angler hours per cell per day
 effort <- data2 %>% 
@@ -148,6 +162,4 @@ test <- ccfrp_drift %>%
 # to QAQC our processed data. cpue and no. caught fishes should match exactly. 
 # bpue might be slightly different since we are using our own conversion params. 
 # it would be worthwhile at some point to compare how well our estimates align with theirs. 
-
-
 
