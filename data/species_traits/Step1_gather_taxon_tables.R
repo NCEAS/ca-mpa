@@ -56,7 +56,10 @@ surf_taxon <- surf_taxon1 %>%
   mutate(habitat = "Surf Zone")%>%
   dplyr::select(habitat, habitat_specific_code = "species_code", habitat_specific_spp_name = "ScientificName_accepted",
                 Kingdom, Phylum, Class, Order, Family, Genus = genus, Species = species, target_status = Targeted) %>%
-  distinct()
+  distinct() %>% 
+  # Fix incorrect species code
+  mutate(habitat_specific_code = if_else(habitat_specific_code == "CLIN" &
+                                           habitat_specific_spp_name == "Genyonemus lineatus", "GELI", habitat_specific_code))
 
 ################################################################################
 #clean rocky intertidal
