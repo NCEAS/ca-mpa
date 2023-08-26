@@ -44,22 +44,29 @@ ccfrp_taxon1 <- readxl::read_excel(
 # Full taxonomy for all methods
 data_path <- "/home/shares/ca-mpa/data/sync-data/monitoring/taxonomy_tables"
 input_file <- "DeepReef-ROV-Taxonomy.xlsx"  
-deep_reef_taxon1 <- readxl::read_excel(file.path(data_path,input_file),sheet = 1)%>%
+deep_reef_taxon1 <- readxl::read_excel(file.path(data_path,input_file),sheet = 1, na = "NA")%>%
   janitor::clean_names()
 
+# Many species in deep reef dataset are not in the taxonomy table -- read here to complete
+deep_reef_data <- read.csv(file.path("/home/shares/ca-mpa/data/sync-data/monitoring/monitoring_deep-reef/ROV_Dataset/ROVLengths2005-2019Merged-2021-02-02SLZ.csv"), 
+                          na = c("N/A", "", " ")) %>% clean_names() 
 
 
 ################################################################################
 #clean surf zone
 
 surf_taxon <- surf_taxon1 %>%
-  mutate(habitat = "Surf Zone")%>%
+  mutate(habitat = "Surf Zone") %>%
   dplyr::select(habitat, habitat_specific_code = "species_code", habitat_specific_spp_name = "ScientificName_accepted",
                 Kingdom, Phylum, Class, Order, Family, Genus = genus, Species = species, target_status = Targeted) %>%
   distinct() %>% 
   # Fix incorrect species code
   mutate(habitat_specific_code = if_else(habitat_specific_code == "CLIN" &
-                                           habitat_specific_spp_name == "Genyonemus lineatus", "GELI", habitat_specific_code))
+                                           habitat_specific_spp_name == "Genyonemus lineatus", "GELI", habitat_specific_code)) %>% 
+  mutate(habitat_specific_spp_name = case_when(
+    habitat_specific_code == "FFUN" ~ "Unidentified flatfish", 
+    habitat_specific_code == "HALI" ~ "Unidentified halibut",
+    TRUE ~ habitat_specific_spp_name))
 
 ################################################################################
 #clean rocky intertidal
@@ -95,14 +102,71 @@ CCFRP_taxon <- ccfrp_taxon1%>%
 
 ################################################################################
 #clean Deep reef
+# Extract taxonomy from deep reef data that's missing in taxon table
+# (Some are new species, some are misspellings of known species)
+deep_reef_data_taxa <- deep_reef_data %>% 
+  select(habitat_specific_spp_name = scientific_name) %>% distinct() %>% 
+  filter(!(habitat_specific_spp_name %in% deep_reef_taxon1$scientific_name)) %>% 
+  mutate(habitat = "Deep Reef") %>% 
+  # Build out taxa information
+  mutate(scientific_name = str_trim(str_to_sentence(str_replace_all(habitat_specific_spp_name, "[^[:alnum:]]", " ")))) %>% 
+  # Correct misspellings
+  mutate(scientific_name = recode(scientific_name,
+                                  "Attractoscion nobilis" =  "Atractoscion nobilis",
+                                  "Hexagrammus decagrammus" =  "Hexagrammos decagrammus",            
+                                  "Hydrolagus collei" = "Hydrolagus colliei",
+                                  "Oxylebius rictus" = "Oxylebius pictus",
+                                  "Racochilus vacca" = "Rhacochilus vacca",
+                                  "Rhacocohils vacca" = "Rhacochilus vacca",
+                                  "Sebases serranoides" = "Sebastes serranoides",                     
+                                  "Sebaste miniatus"  = "Sebastes miniatus",    
+                                  "Sebastes dalii" = "Sebastes dallii",
+                                  "Sebastes hopskini" = "Sebastes hopkinsi",                    
+                                  "Sebastes letiginosus" = "Sebastes lentiginosus", 
+                                  "Sebastes minatus"  = "Sebastes miniatus",                        
+                                  "Sebastes paucipinis" = "Sebastes paucispinis",                   
+                                  "Sebastes pauscipinis" = "Sebastes paucispinis",
+                                  "Sebastes services" =  "Sebastes serriceps", 
+                                  "Starry rockfish" =  "Sebastes constellatus", 
+                                  "Torpedo california" = "Torpedo californica",
+                                  "Unidentified sebastes sp" = "Sebastes spp")) %>% 
+  separate(scientific_name, into = c("genus", "species"), sep = " ", extra = "merge", remove = F) %>% 
+  # Add other taxonomy from main taxon table if it exists
+  left_join(deep_reef_taxon1) %>% 
+  # Fix the family
+  mutate(family = case_when(habitat_specific_spp_name == "Unidentified Macrouridae"~ "Macrouridae",
+                            habitat_specific_spp_name == "Pleuronectidae spp."~ "Pleuronectidae",
+                            TRUE ~ family)) %>% 
+  mutate(genus = if_else(habitat_specific_spp_name %in% c("Unidentified Macrouridae", "Pleuronectidae spp."), NA, genus),
+         species = if_else(habitat_specific_spp_name %in% c("Unidentified Macrouridae", "Pleuronectidae spp."), NA, species)) %>% 
+  select(habitat, habitat_specific_spp_name, 
+         Kingdom = kingdom, Phylum = phylum, Class = class, Order = order, Family = family, 
+         Genus = genus, Species = species, target_status=targeted)
+  
 
+# Process main taxon table
 deep_reef_taxon <- deep_reef_taxon1%>%
   mutate(habitat = "Deep reef")%>%
-  dplyr::select(habitat, habitat_specific_code = "pisco_code", habitat_specific_spp_name = "scientific_name",
+  mutate(habitat_specific_code = NA) %>% 
+  dplyr::select(habitat, habitat_specific_spp_name = "scientific_name", habitat_specific_code,
                 Kingdom = kingdom, Phylum = phylum, Class = class, Order = order, Family = family, 
                 Genus = genus, Species = species, target_status=targeted) %>%
-  distinct()
-deep_reef_taxon[deep_reef_taxon == "NA"] <- NA
+  distinct() %>% 
+  # Add missing taxa to taxon table 
+  full_join(deep_reef_data_taxa) %>% 
+  # Remove synonyms in species names
+  mutate(Species = if_else(str_detect(Species, "/syn./"), word(Species, 1), Species)) %>% 
+  # Update target status
+  mutate(target_status = if_else(Genus == "Sebastes" &
+                                   Species %in% c("serranoides", "caurinus", "carnatus",
+                                                  "diaconus",
+                                                  "melanops or mystinus",
+                                                  "melanops or mystinus or diaconus",
+                                                  "mystinus or diagonus",
+                                                  "pinniger or miniatus",
+                                                  "serranoides or flavidus"), "Targeted", target_status))
+           
+
 
 
 ################################################################################
