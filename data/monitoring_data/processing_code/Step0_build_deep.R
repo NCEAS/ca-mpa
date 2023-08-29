@@ -52,13 +52,9 @@ deep_reef_raw <- read.csv(file.path(datadir, "/ROVLengths2005-2019Merged-2021-02
 
 # Read additional data ----------------------------------------------------------------
 # Read taxonomy table 
-taxon_tab <- read.csv("/home/shares/ca-mpa/data/sync-data/species_traits/processed/species_key.csv") %>% 
-  clean_names() 
-
-taxon_deep <- taxon_tab %>% 
-  filter(habitat == "Deep reef") %>% 
-  # Update deep reef entry in taxon table to simplify matching later
-  mutate(habitat_specific_spp_name = recode(habitat_specific_spp_name, "Sebastes" = "Sebastes spp"))
+taxon_deep <- read.csv("/home/shares/ca-mpa/data/sync-data/species_traits/processed/species_key.csv") %>% 
+  clean_names() %>% 
+  filter(habitat == "Deep reef")
 
 # Read regions from MPA attributes table
 regions <- readRDS("/home/shares/ca-mpa/data/sync-data/mpa_traits/processed/mpa_attributes_general.Rds") %>% 
@@ -70,12 +66,6 @@ defacto_smr_deep_reef <- readxl::read_excel("/home/shares/ca-mpa/data/sync-data/
   filter(group=="deep_reef") %>%
   dplyr::select(affiliated_mpa, mpa_defacto_class = mpa_class) %>% 
   mutate(affiliated_mpa = recode(affiliated_mpa, "ano nuevo smr" = "año nuevo smr")) 
-
-# Read length-weight parameters - currently not used in this script
-# params_tab <- read.csv("/home/shares/ca-mpa/data/sync-data/species_traits/processed/fish_lw_parameters_by_species.csv") %>%
-#   mutate(ScientificName_accepted = recode(ScientificName_accepted, "Sebastes spp." = "Sebastes spp")) %>%
-#   filter(!is.na(ScientificName_accepted))
-
 
 # Build Data ------------------------------------------------------------------------
 # Secondary/Tertiary Naming Correction:
@@ -141,79 +131,23 @@ data <- deep_reef_raw %>%
   mutate(mpa_defacto_designation = if_else(is.na(mpa_defacto_designation) & mpa_state_class == "SMR", "SMR", mpa_defacto_designation)) %>% 
   # Add regions
   left_join(regions, by = "affiliated_mpa") %>% 
-  # Remove special characters from scientific names & trim whitespace
-  mutate(scientific_name = str_trim(str_replace_all(scientific_name, "[^[:alnum:]]", " "))) %>% 
-  # Manually correct misspelled scientific names
-  mutate(scientific_name = recode(scientific_name,
-                                  "Beringraja binoculata" = "Beringraja spp",                   
-                                  "Beringraja rhina" = "Beringraja spp",                     
-                                  "Chromis Punctipinnis" = "Chromis punctipinnis",                 
-                                  "Hexagrammus decagrammus" =  "Hexagrammos decagrammus",            
-                                  "Hydrolagus collei" = "Hydrolagus colliei",
-                                  "Oxylebius rictus" = "Oxylebius pictus",
-                                  "Sebastes aurora or diploproa" = "Sebastes spp",
-                                  "Sebases serranoides" = "Sebastes serranoides",                     
-                                  "Sebaste miniatus"  = "Sebastes miniatus",                     
-                                  "Sebastes Caurinus" = "Sebastes caurinus",   
-                                  "Sebastes dalii" = "Sebastes dallii",
-                                  "Sebastes hopskini" = "Sebastes hopkinsi",                    
-                                  "Sebastes letiginosus" = "Sebastes lentiginosus", 
-                                  "Sebastes minatus"  = "Sebastes miniatus",                        
-                                  "Sebastes paucipinis" = "Sebastes paucispinis",                   
-                                  "Sebastes pauscipinis" = "Sebastes paucispinis",
-                                  "Sebastes services" =  "Sebastes serriceps", 
-                                  "Starry Rockfish" =  "Sebastes constellatus", 
-                                  "Unidentified Sebastes sp" = "Sebastes spp",
-                                  "Zaniolepis Spp" = "Zaniolepis spp",  
-                                  "Racochilus vacca" = "Rhacochilus vacca",
-                                  "rhacochilus vacca" = "Rhacochilus vacca",                 
-                                  "sebastes maliger" = "Sebastes maliger",                      
-                                  "sebastes miniatus" = "Sebastes miniatus",
-                                  "Torpedo california" = "Torpedo californica",
-                                  "Young of year   10 cm Sebastes sp" = "Sebastes spp"))
-  
-# Some species are in the deep reef dataset but not in the deep reef 
-# taxonomy table. Will add their taxonomy information from the tables
-# from other habitats or complete from fishbase (cannot only complete from
-# fishbase because the summary "Genus spp" will not complete via fishbase)
-taxa_match <- data %>% 
-  # Add taxa information to see where it will be incomplete
-  left_join(taxon_deep, by=c("scientific_name"="habitat_specific_spp_name")) %>% 
-  select(scientific_name, habitat:level) %>% distinct() %>% 
-  filter(!is.na(scientific_name))
-
-taxa_add <- taxa_match %>% 
-  filter(is.na(sciname)) %>% 
-  select(scientific_name) %>%
-  # Add taxon table from other habitats 
-  left_join(taxon_tab, multiple = "any", by = c("scientific_name" = "sciname")) %>% 
-  select(scientific_name, kingdom:target_status) 
-
-taxa_complete_from_other_habitats <- taxa_add %>% 
-  filter(!is.na(kingdom)) %>% 
-  mutate(sciname = scientific_name)
-
-# Complete any remaining entries from fishbase
-taxa_complete_from_fishbase <- freeR::taxa(species=taxa_add$scientific_name[is.na(taxa_add$kingdom)]) %>% 
-  mutate(scientific_name = sciname,
-         kingdom = "Animalia",
-         phylum = "Chordata") %>% 
-  select(-type)
-
-# Join into one main taxon table
-taxa_complete <- taxa_match %>% 
-  left_join(taxa_complete_from_other_habitats, na_matches = "never") %>% 
-  left_join(taxa_complete_from_fishbase,  na_matches = "never")
-
-# Add the completed taxon table to the main data
-data2 <- data %>%
+  # Add taxon table 
   # Add taxa information to data
-  left_join(taxa_complete) %>% 
+  # Add taxa
+  left_join(taxon_deep, by = c("scientific_name" = "habitat_specific_spp_name")) %>% 
   select(year, mpa_group, type, designation, # keep these for now until confirm site treatment
          bioregion, region4, affiliated_mpa, secondary_mpa, tertiary_mpa,
          mpa_state_class, mpa_state_designation, mpa_defacto_class, mpa_defacto_designation,
          line_id, dive, line, scientific_name, count, fish_tl,
-         class, order, family, sciname, target_status)
+         class, order, family, genus, species, 
+         sciname, target_status, level)
+# Note: Warning "Expected 3 Pieces" is OK (not every entry has secondary & tertiary mpa)
 
-write.csv(data2, row.names = F, file.path(outdir,"/deep_reef_processed.csv"))  
+# Check for entries with missing sciname (6 ok)
+taxa_na <- data %>% 
+  filter(is.na(sciname)) %>% 
+  distinct(scientific_name)
+
+# Write to CSV
+write.csv(data, row.names = F, file.path(outdir,"/deep_reef_processed.csv"))  
 
