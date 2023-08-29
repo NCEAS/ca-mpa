@@ -16,6 +16,9 @@
 # - Some sites have no affiliated MPA (Yellowbanks, Valley, Trinidad)
 # - No sciname for "UNID" and "BAITBALL" data (baitball are perciformes; 109 observations)
 # - Counts with no length data (113 observations)
+# - Matching taxa: how do we want to treat Clupeiformes spp? Right now this entry is
+#   the only one that is identified to the Order level, so may make most sense to 
+#   group it with other unspecified categories? (confirm with JS)
 
 # Setup --------------------------------------------------------------------------------
 rm(list=ls())
@@ -53,11 +56,6 @@ defacto_smr_kelp <- readxl::read_excel("/home/shares/ca-mpa/data/sync-data/mpa_t
   add_row(affiliated_mpa = "arrow point to lion head point smca", # NEW CL 
           mpa_defacto_class = "smca")
 
-# Read length-weight parameters
-params_tab <- read.csv("/home/shares/ca-mpa/data/sync-data/species_traits/processed/fish_lw_parameters_by_species.csv") %>%
-  mutate(ScientificName_accepted = recode(ScientificName_accepted, "Sebastes spp." = "Sebastes spp")) #%>%
- # filter(!is.na(ScientificName_accepted)) # commented for inspecting only
-
 # Build ----
 # Note: the unit of replication for kelp forest is transect
 
@@ -83,15 +81,16 @@ data <- kelp_forest_raw %>%
   select(year, month, day, affiliated_mpa, mpa_state_class, mpa_state_designation,
          mpa_defacto_class, mpa_defacto_designation, bioregion, region4, site, 
          zone, level, transect, classcode, count, fish_tl, min_tl, max_tl, sciname,
-         kingdom, phylum, class, order, family, genus, species, target_status)
+         kingdom, phylum, class, order, family, 
+         genus, species, target_status, level)
 
-# Test taxa match
+# Test taxa match -- four are OK for now (NO ORG, UNID, BAITBALL, CLUP)
 taxa_match <- data %>% 
   select(classcode, sciname:target_status) %>% distinct() %>% 
-  filter(is.na(sciname))
+  filter(is.na(sciname)) 
 
 # Write processed data
-#write.csv(data, file.path(outdir, "kelp_processed.csv"))
+write.csv(data, file.path(outdir, "kelp_processed.csv"), row.names = F)
 
 
 # In the next script:
