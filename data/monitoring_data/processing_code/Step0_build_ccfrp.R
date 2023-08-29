@@ -17,6 +17,8 @@
 
 # Note potential concerns for next steps:
 # - See above
+# - Still need to review and update effort calculations to match approach from
+#   DataOne (and compare with the provided effort table)
 
 # Setup --------------------------------------------------------------------------------
 rm(list=ls())
@@ -55,7 +57,9 @@ ccfrp_areas <- read_csv(file.path(datadir, "CCFRP_database/CCFRP_database_2007-2
   mutate(affiliated_mpa = paste(tolower(name), tolower(mpa_designation), sep = " "), 
          affiliated_mpa = recode(affiliated_mpa, "se farallon islands smr" = "southeast farallon island smr"))
 
-# THIS DERIVED EFFORT TABLE IS LOADED BUT NOT USED
+# This derived effort talbe will be used at the very end to compare the calculated
+# effort values to those calculated by the team in the technical report (note: 
+# they should be very close but may not be exact)
 # ccfrp_effort <- read.csv(file.path(datadir, "CCFRP_derived_data_tables_DataONE/CCFRP_derived_effort_table.csv")) %>%
 #   clean_names()
 
@@ -100,8 +104,9 @@ data <- ccfrp_caught_fishes %>%
          bioregion, region4, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation, #  spatial
          drift_id, id_cell_per_trip, grid_cell_id, # sample
          total_angler_hrs, species_code, sciname, 
-         class, order, family, genus, species, TL_cm = length_cm, # data
-         target_status, excluded_drift_comment, drift_time_hrs, total_fishes_caught) # extra
+         class, order, family, 
+         genus, species, TL_cm = length_cm, # data
+         target_status, level, excluded_drift_comment, drift_time_hrs, total_fishes_caught) # extra
 
 
 # Per instructions on DataONE, exclude certain drifts and cells
@@ -123,21 +128,32 @@ data2 <- data %>%
   # There is a drift where there are 2 fishes recorded but total_fishes_caught is zero?
   mutate(total_fishes_caught = if_else(drift_id %in% c("PCM1008181201"), 2, total_fishes_caught))
 
+# Test to confirm all taxa in the data are already in the CCFRP taxon table
+# - Only two in this dataframe should be NA and NO_ORG
+taxa_match <- data2 %>% 
+  select(species_code) %>% 
+  distinct() %>% 
+  filter(!(species_code %in% taxon_tab$habitat_specific_code)) #
+
 # Write to csv
-write.csv(data2, file.path(outdir, "ccfrp_processed.csv"))
+#write.csv(data2, file.path(outdir, "ccfrp_processed.csv"), row.names = F)
 
 # Note: there are other drifts where the total_fishes_caught does not match
-# the number of fishes recorded for the drift?
+# the number of fishes recorded for the drift? 
 total_fish_mismatch <- data2 %>% 
   filter(!(species_code == "NO_ORG")) %>% 
   group_by(drift_id) %>% 
   summarize(test_total = n(),
             total_fishes_caught = mean(total_fishes_caught)) %>% 
   ungroup() %>% 
-  mutate(match = if_else(test_total == total_fishes_caught, "Yes", "No"))
+  mutate(match = if_else(test_total == total_fishes_caught, "Yes", "No")) %>% 
+  filter(match == "No")
 
 # PI Recommend drop Trinidad (but likely better to do this later as there 
-# may be other sites with no affiliated MPA; esp in other habitats)
+# may be other sites with no affiliated MPA; esp in other habitats) 
+
+## THE BELOW CODE NEEDS TO BE COMPARED WITH ORIGINAL EFFORT CALCULATIONS AND 
+## UPDATED TO MATCH THE APPROACH USED IN DATA ONE (note by CL on 29 Aug 2023)
 
 # Calculate the total angler hours per cell per day
 effort <- data2 %>% 
