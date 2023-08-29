@@ -1,5 +1,6 @@
 rm(list=ls())
 
+library(janitor)
 require(dplyr)
 require(stringr)
 require(tidyr)
@@ -30,26 +31,32 @@ surf_taxon1 <- read.csv(file.path("/home/shares/ca-mpa/data/sync-data/monitoring
 #a unique taqxonomy table. We are only using the long term data here so will
 #not load the biodiversity table for now. 
 rocky_taxon1 <- readxl::read_excel(
-  file.path("/home/shares/ca-mpa/data/sync-data/monitoring/taxonomy_tables","RockyIntertidal-LongTerm-Taxonomy.xlsx"), sheet=1, skip = 0, na="NA")
+  file.path("/home/shares/ca-mpa/data/sync-data/monitoring/taxonomy_tables","RockyIntertidal-LongTerm-Taxonomy.xlsx"), 
+  sheet=1, skip = 0, na=c("NA", "", "NULL"))
 
 # Full taxonomy for all methods
 kelp_taxon1 <-readxl::read_excel(
-  file.path("/home/shares/ca-mpa/data/sync-data/monitoring/taxonomy_tables/Kelp-Taxonomy.xlsx"), sheet=1, skip = 0, na="NA")
+  file.path("/home/shares/ca-mpa/data/sync-data/monitoring/taxonomy_tables/Kelp-Taxonomy.xlsx"), 
+  sheet=1, skip = 0, na="NA")
 
 # Full taxonomy for all methods
 ccfrp_taxon1 <- readxl::read_excel(
-  file.path("/home/shares/ca-mpa/data/sync-data/monitoring/taxonomy_tables/CCFRP_Taxonomy.xlsx"), sheet=2, skip = 0, na="NA")
+  file.path("/home/shares/ca-mpa/data/sync-data/monitoring/taxonomy_tables/CCFRP_Taxonomy.xlsx"), 
+  sheet=2, skip = 0, na=c("NA", "?"))
 
 
 # Full taxonomy for all methods
 data_path <- "/home/shares/ca-mpa/data/sync-data/monitoring/taxonomy_tables"
 input_file <- "DeepReef-ROV-Taxonomy.xlsx"  
-deep_reef_taxon1 <- readxl::read_excel(file.path(data_path,input_file),sheet = 1, na = "NA")%>%
+deep_reef_taxon1 <- readxl::read_excel(
+  file.path(data_path,input_file),
+  sheet = 1, na = c("NA", "N/A", "", " ")) %>%
   janitor::clean_names()
 
 # Many species in deep reef dataset are not in the taxonomy table -- read here to complete
-deep_reef_data <- read.csv(file.path("/home/shares/ca-mpa/data/sync-data/monitoring/monitoring_deep-reef/ROV_Dataset/ROVLengths2005-2019Merged-2021-02-02SLZ.csv"), 
-                          na = c("N/A", "", " ")) %>% clean_names() 
+deep_reef_data <- read.csv(
+  file.path("/home/shares/ca-mpa/data/sync-data/monitoring/monitoring_deep-reef/ROV_Dataset/ROVLengths2005-2019Merged-2021-02-02SLZ.csv"), 
+  na = c("N/A", "", " ")) %>% clean_names() 
 
 
 ################################################################################
@@ -61,22 +68,29 @@ surf_taxon <- surf_taxon1 %>%
                 Kingdom, Phylum, Class, Order, Family, Genus = genus, Species = species, target_status = Targeted) %>%
   distinct() %>% 
   # Fix incorrect species code
-  mutate(habitat_specific_code = if_else(habitat_specific_code == "CLIN" &
-                                           habitat_specific_spp_name == "Genyonemus lineatus", "GELI", habitat_specific_code)) %>% 
+  mutate(habitat_specific_code = if_else(habitat_specific_spp_name == "Genyonemus lineatus", "GELI", habitat_specific_code)) %>% 
   mutate(habitat_specific_spp_name = case_when(
     habitat_specific_code == "FFUN" ~ "Unidentified flatfish", 
     habitat_specific_code == "HALI" ~ "Unidentified halibut",
-    TRUE ~ habitat_specific_spp_name))
+    TRUE ~ habitat_specific_spp_name)) %>% 
+  # Drop the NA row with no species info
+  filter(!is.na(habitat_specific_code))
+
+surf_taxon$Species[surf_taxon$Species %in% c("sp.", "spp")] <- NA
+surf_taxon$Genus[surf_taxon$Genus == surf_taxon$Family] <- NA
 
 ################################################################################
 #clean rocky intertidal
 rocky_taxon <- rocky_taxon1 %>%
-                mutate(habitat = "Rocky intertidal",
-                       target_status = NA)%>%
-                dplyr::select(habitat, habitat_specific_code = "marine_species_code", habitat_specific_spp_name = "marine_species_name",
-                              Kingdom, Phylum, Class, Order, Family, Genus, Species, target_status) 
-rocky_taxon[rocky_taxon == "NULL"] <- NA
-rocky_taxon <- rocky_taxon %>% mutate(Species = word(Species, -1))
+  mutate(habitat = "Rocky intertidal",
+         target_status = NA) %>%
+  dplyr::select(habitat, habitat_specific_code = "marine_species_code", habitat_specific_spp_name = "marine_species_name",
+                Kingdom, Phylum, Class, Order, Family, Genus, Species, target_status) %>% 
+  mutate(Species = str_to_lower(word(Species, -1))) %>% 
+  mutate(Species = case_when(habitat_specific_spp_name == "haliclona cinerea" ~ "cinerea", 
+                             habitat_specific_spp_name == "halichondria panicea" ~ "panicea", 
+                             habitat_specific_spp_name == "norrisia norrisi" ~ "norrisi",
+                             TRUE ~ Species)) 
 
 rocky_taxon$Phylum <-  gsub("[()]", "", rocky_taxon$Phylum)  
 rocky_taxon$Species <-  gsub("[()]", "", rocky_taxon$Species)  
@@ -84,12 +98,23 @@ rocky_taxon$Species <-  gsub("[()]", "", rocky_taxon$Species)
 ################################################################################
 #clean kelp forest
 kelp_taxon <- kelp_taxon1 %>%
-              mutate(habitat = "Kelp forest")%>%
+              mutate(habitat = "Kelp forest") %>%
                 dplyr::select(habitat, habitat_specific_code = "pisco_classcode", habitat_specific_spp_name = "ScientificName_accepted",
                 Kingdom, Phylum, Class, Order, Family, Genus = genus, Species = species, target_status = Targeted) %>%
-              distinct()
-kelp_taxon[kelp_taxon == "spp"] <- NA
-kelp_taxon[kelp_taxon == "spp."] <- NA
+              distinct() %>% 
+  # Fix Sarda chiliensis 
+  mutate(Species = recode(Species, "chiliensis chiliensis" = "chiliensis")) %>%
+  # Fix entries with dual names
+  mutate(Species = if_else(str_detect(Genus, "/"), sub("\\/.*", "", Species), Species)) %>% # if there's a / in Genus, remove everything after the / in Species
+  mutate(Genus = sub("\\/.*", "", Genus)) %>%  # remove everything after the / in Genus
+  # All remaining species names with special characters convert to spp
+  mutate(Species = if_else(grepl("\\s|[^A-Za-z0-9]", Species), "spp", Species))
+
+kelp_taxon$Species[kelp_taxon$Species == "spp"] <- NA
+kelp_taxon$Genus[kelp_taxon$Genus == kelp_taxon$Family] <- NA
+kelp_taxon$Genus[kelp_taxon$Genus == kelp_taxon$Order] <- NA
+kelp_taxon$Genus[kelp_taxon$Genus == kelp_taxon$Class] <- NA
+
 
 ################################################################################
 #clean CCFRP
@@ -98,17 +123,20 @@ CCFRP_taxon <- ccfrp_taxon1%>%
   mutate(habitat = "Rocky reef")%>%
   dplyr::select(habitat, habitat_specific_code = "Species_Code", habitat_specific_spp_name = "Scientific_Name",
                 Kingdom, Phylum, Class, Order, Family, Genus, Species = species, target_status=Fished) %>%
-  distinct()
+  distinct() %>% 
+  mutate(across(everything(), str_trim)) %>% 
+  mutate(Species = recode(Species, "diaconua" = "diaconus"))
 
 ################################################################################
 #clean Deep reef
 # Extract taxonomy from deep reef data that's missing in taxon table
 # (Some are new species, some are misspellings of known species)
 deep_reef_data_taxa <- deep_reef_data %>% 
+  mutate(across(everything(), str_trim)) %>% # this is the one step that must be repeated everywhere for deep
   select(habitat_specific_spp_name = scientific_name) %>% distinct() %>% 
   filter(!(habitat_specific_spp_name %in% deep_reef_taxon1$scientific_name)) %>% 
-  mutate(habitat = "Deep Reef") %>% 
-  # Build out taxa information
+  mutate(habitat = "Deep reef") %>% 
+  # Build out taxa information 
   mutate(scientific_name = str_trim(str_to_sentence(str_replace_all(habitat_specific_spp_name, "[^[:alnum:]]", " ")))) %>% 
   # Correct misspellings
   mutate(scientific_name = recode(scientific_name,
@@ -142,21 +170,33 @@ deep_reef_data_taxa <- deep_reef_data %>%
   select(habitat, habitat_specific_spp_name, 
          Kingdom = kingdom, Phylum = phylum, Class = class, Order = order, Family = family, 
          Genus = genus, Species = species, target_status=targeted)
-  
 
 # Process main taxon table
-deep_reef_taxon <- deep_reef_taxon1%>%
+deep_reef_taxon2 <- deep_reef_taxon1%>%
+  mutate(across(everything(), str_trim)) %>% # this is the one step that must be repeated everywhere for deep
   mutate(habitat = "Deep reef")%>%
-  mutate(habitat_specific_code = NA) %>% 
+  mutate(habitat_specific_code = NA) %>% # the original ones were pisco anyway, and we wont use this for matching
+  mutate(across(everything(), str_trim)) %>% 
   dplyr::select(habitat, habitat_specific_spp_name = "scientific_name", habitat_specific_code,
                 Kingdom = kingdom, Phylum = phylum, Class = class, Order = order, Family = family, 
                 Genus = genus, Species = species, target_status=targeted) %>%
   distinct() %>% 
+  filter(!is.na(habitat_specific_spp_name)) %>% 
   # Add missing taxa to taxon table 
   full_join(deep_reef_data_taxa) %>% 
   # Remove synonyms in species names
   mutate(Species = if_else(str_detect(Species, "/syn./"), word(Species, 1), Species)) %>% 
-  # Update target status
+  # Recode "Synodus lucioceps or Ophiodon elongatus" (species listed as lucioceps)
+  mutate(Species = if_else(habitat_specific_spp_name == "Synodus lucioceps or Ophiodon elongatus", NA, Species)) %>% 
+  # Recode "Metacarcinus magister /syn./ Cancer magister - genus is incorrect 
+  mutate(Genus = if_else(Species == "magister", "Metacarcinus", Genus)) %>% 
+  # Recode "Octopus rubescens" - genus, order, family is incorrect 
+  mutate(Genus =  if_else(habitat_specific_spp_name == "Octopus rubescens", "Octopus", Genus),
+         Family = if_else(habitat_specific_spp_name == "Octopus rubescens", "Octopodidae", Family),
+         Order =  if_else(habitat_specific_spp_name == "Octopus rubescens", "Octopoda", Order)) %>% 
+  # Correct misspellings
+  mutate(Species = if_else(habitat_specific_spp_name == "Psolus chitonoides", "chitinoides", Species)) %>% 
+  # Update target status (from previous script)
   mutate(target_status = if_else(Genus == "Sebastes" &
                                    Species %in% c("serranoides", "caurinus", "carnatus",
                                                   "diaconus",
@@ -165,14 +205,36 @@ deep_reef_taxon <- deep_reef_taxon1%>%
                                                   "mystinus or diagonus",
                                                   "pinniger or miniatus",
                                                   "serranoides or flavidus"), "Targeted", target_status))
-           
 
+# Test to confirm remaining fixes
+deep_reef_fix <- deep_reef_taxon2 %>% 
+  filter(grepl("\\s|[^A-Za-z0-9]", Species)) %>% 
+  mutate(test_species = if_else(Genus %in% c("Sebastes", "Solaster", "Pisaster") &
+                          grepl("\\s|[^A-Za-z0-9]", Species), "spp", Species)) %>% 
+  mutate(test_genus = if_else(grepl("\\s|[^A-Za-z0-9]", test_species), NA, Genus)) %>% 
+  mutate(test_species = if_else(grepl("\\s|[^A-Za-z0-9]", test_species), NA, test_species))
+
+# -- All cases where Genus is (Sebastes, Solaster, Pisaster) can be converted to NA (will ultimately be sciname: Genus spp))
+# -- All other remaining cases are not confirmed to one genus and should revert to family (Genus & Species go to NA, will become Family spp)
+
+deep_reef_taxon <- deep_reef_taxon2 %>% 
+  mutate(Species = if_else((Genus %in% c("Sebastes", "Solaster", "Pisaster") & grepl("\\s|[^A-Za-z0-9]", Species)), NA, Species)) %>% 
+  mutate(Genus = if_else(grepl("\\s|[^A-Za-z0-9]", Species), NA, Genus)) %>% 
+  mutate(Species =  if_else(grepl("\\s|[^A-Za-z0-9]", Species), NA, Species)) 
+
+# Confirm that there are no more changes to fix
+deep_reef_fix <- deep_reef_taxon %>% 
+  filter(grepl("\\s|[^A-Za-z0-9]", Genus)|grepl("\\s|[^A-Za-z0-9]", Species))
+
+deep_reef_taxon$Species[deep_reef_taxon$Species == "spp"] <- NA
 
 
 ################################################################################
 #merge
 
-taxon_tab <- rbind(surf_taxon, rocky_taxon, kelp_taxon, CCFRP_taxon, deep_reef_taxon)
+taxon_tab <- rbind(surf_taxon, rocky_taxon, kelp_taxon, CCFRP_taxon, deep_reef_taxon) %>% 
+  mutate(across(everything(), str_trim))
+
 taxon_tab[taxon_tab == "NA"] <- NA
 taxon_tab[taxon_tab == "?"] <- NA
 taxon_tab[taxon_tab == "Non-targeted"] <- "Nontargeted"
