@@ -7,11 +7,10 @@
 # - Compares the full table to taxonomy drawn from Fishbase and Sealife Base
 # - Applies corrections to ensure taxonomy is correct
 # - Identify taxononmic level for each entry (species, genus, family)
-# - 
+# - Export as species_key.csv
 
 
-# Read data
-################################################################################
+# Setup ------------------------------------------------------------------------------
 
 # Clear workspace
 rm(list = ls())
@@ -41,10 +40,7 @@ sp_slb <- rfishbase::load_taxa("sealifebase") %>%
 fb_all <- full_join(sp_fb, sp_slb) 
 rm(sp_fb, sp_slb)
 
-# Format taxa key
-################################################################################
-
-###Steps for formatting
+# Format species_key ---------------------------------------------------------------
 
 # 1. Genus should be one word to pull from FishBase. Identify Genus entries
 #    that contain special characters or are not in the FB/SLB list
@@ -87,14 +83,18 @@ spp <- spp_orig %>%
                           "Tethya aurantia" = "Tethya aurantium", # https://www.marinespecies.org/aphia.php?p=taxdetails&id=134311
                           "Urolophus halleri" = "Urobatis halleri", # https://www.fishbase.se/summary/urobatis-halleri
                           "Xenistius californiensis" = "Brachygenys californiensis" #https://www.fishbase.se/summary/3570
-                          ))
+                          )) %>% 
+  mutate(Family = recode(Family,
+                         "Scopalinidae" = "Esperiopsidae",
+                         "Cottidae/Gobiesocidae" = "Cottidae",
+                         "Onuphidae, Chaetopteridae" = "Onuphidae"))
 
 # 4. Test for wrong names from fishbase/sealifebase after above corrections
 check_names <- spp %>% 
   filter(Kingdom == "Animalia") %>% 
   filter(!str_detect(sciname, "spp")) %>% 
   filter(!(sciname %in% fb_all$Species))%>% 
-  distinct(sciname, Genus, Species, habitat) %>% 
+  distinct(sciname, Family, Genus, Species, habitat) %>% 
   arrange(sciname)
 
 ## These names come up as incorrect but were validated as the correct name on 25 Aug 2023 (CL)
@@ -104,10 +104,24 @@ check_names <- spp %>%
 ##  Evasterias troschelii https://www.marinespecies.org/aphia.php?p=taxdetails&id=255040
 ##  Heteropolypus ritteri (corrected above; still not found)
 ##  Lirobittium munitum https://www.marinespecies.org/aphia.php?p=taxdetails&id=580440
-##  Mexacanthina lugubrishttps://www.marinespecies.org/aphia.php?p=taxdetails&id=404505
+##  Mexacanthina lugubris https://www.marinespecies.org/aphia.php?p=taxdetails&id=404505
 ##  Neobernaya spadicea
 ##  Peltodoris nobilis https://www.marinespecies.org/aphia.php?p=taxdetails&id=594422
 ##  Pugettia foliata https://www.marinespecies.org/aphia.php?p=taxdetails&id=851288
+
+# Check for incorrect families
+check_family <- spp %>% 
+  filter(Kingdom == "Animalia") %>% # dont bother with algae (sorry algae friends)
+  distinct(Family, Genus, Species, sciname, habitat) %>% 
+  filter(!(Family %in% fb_all$Family))
+
+# Check for incorrect genus -- 8 obs here confirmed OK
+check_genus <- spp %>% 
+  filter(Kingdom == "Animalia") %>% # dont bother with algae (sorry algae friends)
+  distinct(Family, Genus, Species, sciname, habitat) %>% 
+  filter(!is.na(Genus)) %>% 
+  filter(!(Genus %in% fb_all$Genus))
+
 
 ## 5. Correct those remaining species to "Genus spp" and add taxonomic level
 spp <- spp %>% 
@@ -116,23 +130,19 @@ spp <- spp %>%
   mutate(level = case_when(!is.na(Species) & !is.na(Genus) ~ "species",
                            is.na(Species) & !is.na(Genus) ~ "genus",
                            is.na(Species) & is.na(Genus) & !is.na(Family) ~ "family",
-                           TRUE ~ NA
-    ))
+                           TRUE ~ NA))
 
-## 6. Get correct taxonomy from Fishbase/Sealifebase 
+## 6. Examine NA for sciname (currently 107 obs; most algae/higher order/unknown)
+## Leaving for review -- these will mostly be excluded from analyses.. ok?
+spp_na <- spp %>% 
+  filter(is.na(sciname))
 
-  
-  
-# Inspect
-sort(unique(spp$Genus))
+# Export species key to csv -----------------------------------------------------------
+#write.csv(spp, file=file.path(datadir, "species_key.csv"), row.names = F)
 
-# Export
-write.csv(spp, file=file.path(datadir, "species_key.csv"), row.names = F)
 
-## NOTE: SCRIPT NOT FINALIZED BELOW
 
-# Get length weight data
-################################################################################
+# Get length weight data -----------------------------------------------------------
 
 # Get length weight tables from fishbase
 lw_fb <-  rfishbase::length_weight(server = "fishbase") %>% 
@@ -150,48 +160,9 @@ lw <- plyr::rbind.fill(lw_fb, lw_slb) %>%
   # Filter for only the family, genus, species in our data
   filter(Family %in% spp$Family |
            Genus %in% spp$Genus |
-           Species %in% spp$sciname) %>% 
+           Species %in% spp$sciname) %>%
   select(database, Class, Order, Family, Genus, Species, everything())
 
-write.csv(lw, file=file.path(datadir, "species_lw_parameters_from_fishbase_full_new.csv"), row.names = F)
+# Write length weight parameters to csv ----------------------------------------------------------
+#write.csv(lw, file=file.path(datadir, "species_lw_parameters_from_fishbase_full_new.csv"), row.names = F)
 
-
-### BELOW: OLD RECODING LIST FROM CHRIS'S FUNCTION:
-# mutate(sciname = recode(sciname,  
-#                         "Beringraja binoculata"  = "Beringraja spp",                             
-#                         "Beringraja stellulata" = "Beringraja spp", 
-#                         "Californiconus californicus" = "Californiconus spp",                        
-#                         "Ceramium flaccidum"="Gayliella flaccida",      
-#                         "Clupea pallasii" = "Clupea spp",
-#                         "Cribrinopsis albopunctata" = "Cribrinopsis spp",              
-#                         "Cyanoplax hartwegii"   = "Cyanoplax spp",               
-#                         "Diaperoforma californica" = "Diaperoforma spp",             
-#                         "Epitonium tinctum"    = "Epitonium spp",                               
-#                         "Evasterias troschelii"    = "Evasterias spp",      
-#                         "Hedophyllum sessile"   = "Hedopphyllum spp",                             
-#                         "Kyphosus azurea" = "Kyphosus spp",     
-#                         "Lirobittium munitum"     = "Lirobittium spp",                           
-#                         "Lithopoma undosum"        = "Lithopoma spp",        
-#                         "Mexacanthina lugubris"          = "Mexacanthina spp",   
-#                         "Nemalion elminthoides"  = "Nemalion spp",                            
-#                         "Neoagarum fimbriatum"     = "Neoagarum spp",                           
-#                         "Neobernaya spadicea"   = "Neobernaya spp",                             
-#                         "Neogastroclonium subarticulatum"    = "Neogastroclonium spp", 
-#                         "Norrisia norrisii"      = "Norrisia spp",                             
-#                         "Okenia rosacea"   = "Okenia spp",                               
-#                         "Phyllospadix scouleri"    = "Phyllospadix spp",                          
-#                         "Phyllospadix serrulatus"       = "Phyllospadix spp",                      
-#                         "Phyllospadix torreyi"    = "Phyllospadix spp" ,                                
-#                         "Plocamium violaceum"       = "Plocamium spp",                         
-#                         "Pseudobatos productus"    = "Pseudobatos spp",                           
-#                         "Psolus chitonoides"    = "Psolus spp",                             
-#                         "Pugettia foliata"   = "Pugettia spp",
-#                         "Sebastes diaconus"   = "Sebastes spp",
-#                         "Sebastes diaconua" = "Sebastes spp",                    
-#                         "Stephanocystis osmundacea"   = "Stephanocystis spp",                        
-#                         "Taonia lennebackerae"     = "Taonia spp",                          
-#                         "Tethya aurantia"  = "Tethya spp",                                   
-#                         "Tetronarce californica"  = "Tetronarce spp",    
-#                         "Urobatis halleri" = "Urobatis spp",                     
-#                         "Xenistius californiensis" = "Xenistius spp",                           
-#                         "Xystreurys rubescens" = "Xystreurys spp"

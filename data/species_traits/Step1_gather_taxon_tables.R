@@ -196,6 +196,13 @@ deep_reef_taxon2 <- deep_reef_taxon1%>%
          Order =  if_else(habitat_specific_spp_name == "Octopus rubescens", "Octopoda", Order)) %>% 
   # Correct misspellings
   mutate(Species = if_else(habitat_specific_spp_name == "Psolus chitonoides", "chitinoides", Species)) %>% 
+  mutate(Family = recode(Family,
+                         "Dendrotidae" = "Dendronotidae",
+                         "Haliperidae" = "Halipteridae",
+                         "Fisurellidae" = "Fissurellidae",
+                         "Pleurobranchaeidae" = "Pleurobranchidae",
+                         "Poranidae" = "Poraniidae",
+                         "Epaultidae" = "Epialtidae")) %>% 
   # Update target status (from previous script)
   mutate(target_status = if_else(Genus == "Sebastes" &
                                    Species %in% c("serranoides", "caurinus", "carnatus",
