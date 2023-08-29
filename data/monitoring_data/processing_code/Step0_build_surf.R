@@ -44,10 +44,6 @@ defacto_smr_surf <- readxl::read_excel("/home/shares/ca-mpa/data/sync-data/mpa_t
   filter(group == "surf") %>%
   dplyr::select(affiliated_mpa, mpa_defacto_class = mpa_class)
 
-# Read length-weight parameters
-# params_tab <- read.csv("/home/shares/ca-mpa/data/sync-data/species_traits/processed/fish_lw_parameters_by_species.csv") %>%
-#   mutate(ScientificName_accepted = recode(ScientificName_accepted, "Sebastes spp." = "Sebastes spp")) %>%
-#   filter(!is.na(ScientificName_accepted))
 
 # Process Data ------------------------------------------------------------------------
 
@@ -80,20 +76,36 @@ data <- surf_zone_raw %>%
   mutate(mpa_defacto_designation = ifelse(mpa_state_designation == "ref", "ref", tolower(mpa_defacto_class))) %>% 
   dplyr::select(year, month, day, bioregion, region4, affiliated_mpa, 
                 mpa_state_class, mpa_state_designation, mpa_defacto_class, 
-                mpa_defacto_designation, ref_is_mpa, haul_number, species_code, class, order, 
-                family, genus, species, target_status = targeted, fish_length, weight_g, total_weight_g, 
+                mpa_defacto_designation, ref_is_mpa, haul_number, 
+                species_code, # Intentionally drop other taxa info - default to the surf taxon table
+                fish_length, weight_g, total_weight_g, 
                 count, total_weight_kg) %>%
-  mutate(total_weight_g = ifelse(species_code == "NOSP", 0, total_weight_g),
-         total_weight_kg = ifelse(species_code == "NOSP", 0, total_weight_kg)) %>% 
-  # Add taxa
-  left_join(taxon_tab %>% select(habitat_specific_code, genus_new:level), by = c("species_code" = "habitat_specific_code"))
+  # Change "NOSP" to "NO_ORG" to match other habitats
+  mutate(species_code = recode(species_code, "NOSP" = "NO_ORG")) %>% 
+  mutate(total_weight_g = ifelse(species_code == "NO_ORG", 0, total_weight_g),
+         total_weight_kg = ifelse(species_code == "NO_ORG", 0, total_weight_kg)) %>% 
+  # Add taxa info from surf taxon table
+  left_join(taxon_tab, by = c("species_code" = "habitat_specific_code"))
 
+# Check taxa NAs
+taxa_na <- data %>% 
+  filter(is.na(sciname) & !(species_code == "NO_ORG"))
 
-# Test for matching taxa 
+# Test for matching taxa
 taxa_match <- data %>% 
-  select(species_code:target_status) %>% unique() %>% 
-  left_join(taxon_tab, by = c("species_code" = "habitat_specific_code"), na_matches = "never") %>% 
-  filter(is.na(sciname)) 
+  distinct(species_code) %>% 
+  filter(!is.na(species_code)) %>% 
+  filter(!(species_code == "NO_ORG")) %>% 
+  filter(!(species_code %in% taxon_tab$habitat_specific_code))
+
+## Note: There are still 4 with no taxonomic info that need to be updated in 
+## the main species_key if we want to include beyond tracking effort (e.g. 
+## manually fill in appropriate taxa information across columns when processing
+## surf zone taxon table)
+## Unspecified
+## HALI (Unidentified halibut)
+## RFYOY (Assumed: Rockfish young of year)
+## FFUN (Unidentified flatfish)
 
 # Write data ------------------------------------------------------------------------
 write.csv(data, row.names = FALSE, file.path(outdir, "surf_zone_fish_processed.csv"))
