@@ -317,6 +317,3 @@ write.csv(taxon_tab, file.path(export_path, "full_taxon_table_new.csv"), row.nam
 
 
 
-
-
-
