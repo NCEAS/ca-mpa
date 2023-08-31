@@ -66,7 +66,8 @@ data <- surf_zone_raw %>%
   rename(weight_g = fish_weight_individual,
          total_weight_g = fish_weight) %>%
   mutate(total_weight_kg = total_weight_g / 1000,
-         fish_length = fish_length / 10, # NOTE CONCERN: SOME ALREADY CONVERTED?
+         tl_cm = tl_mm / 10, # changed to calculate from tl_mm instead of fish_length -JGS
+         sl_cm = sl_mm / 10,
          affiliated_mpa = tolower(affiliated_mpa)) %>% 
   # Add de-facto smr designations
   left_join(defacto_smr_surf) %>% 
@@ -78,7 +79,7 @@ data <- surf_zone_raw %>%
                 mpa_state_class, mpa_state_designation, mpa_defacto_class, 
                 mpa_defacto_designation, ref_is_mpa, haul_number, 
                 species_code, # Intentionally drop other taxa info - default to the surf taxon table
-                fish_length, weight_g, total_weight_g, 
+                tl_cm,sl_cm, weight_g, total_weight_g, 
                 count, total_weight_kg) %>%
   # Change "NOSP" to "NO_ORG" to match other habitats
   mutate(species_code = recode(species_code, "NOSP" = "NO_ORG")) %>% 
@@ -102,10 +103,10 @@ taxa_match <- data %>%
 ## the main species_key if we want to include beyond tracking effort (e.g. 
 ## manually fill in appropriate taxa information across columns when processing
 ## surf zone taxon table)
-## Unspecified
-## HALI (Unidentified halibut)
-## RFYOY (Assumed: Rockfish young of year)
-## FFUN (Unidentified flatfish)
+
+#added to surf zone taxon table on 8/31/23 -JGS
+# Unspecified, HALI, RFYOY, FFUN
+
 
 # Write data ------------------------------------------------------------------------
 write.csv(data, row.names = FALSE, file.path(outdir, "surf_zone_fish_processed.csv"))
