@@ -94,8 +94,8 @@ HALI <-  data.frame(
 
 unspecified <-  data.frame(
   habitat = "Surf Zone", 
-  habitat_specific_code = "Unspecified",
-  habitat_specific_spp_name = "Unidentified",
+  habitat_specific_code = "unspecified",
+  habitat_specific_spp_name = "unidentified",
   Kingdom = "Animalia",
   Phylum = "Chordata",
   Class = NA,
