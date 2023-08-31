@@ -10,8 +10,8 @@
 
 
 # Note potential concerns for next steps:
-# - Some of the lengths seem to be already converted to centimeters
-# - There are some taxa that don't match fully (mostly higher groupings)
+# - Some of the lengths seem to be already converted to centimeters -8/31/23 used tl_mm instead (not fish_length) -JGS
+# - There are some taxa that don't match fully (mostly higher groupings) - 8/31/23 added these to taxon table -JGS
 
 
 # Setup --------------------------------------------------------------------------------
@@ -104,7 +104,7 @@ taxa_match <- data %>%
 ## manually fill in appropriate taxa information across columns when processing
 ## surf zone taxon table)
 
-#added to surf zone taxon table on 8/31/23 -JGS
+#added above to surf zone taxon table on 8/31/23 -JGS
 # Unspecified, HALI, RFYOY, FFUN
 
 
