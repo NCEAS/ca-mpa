@@ -72,9 +72,69 @@ surf_taxon <- surf_taxon1 %>%
   mutate(habitat_specific_spp_name = case_when(
     habitat_specific_code == "FFUN" ~ "Unidentified flatfish", 
     habitat_specific_code == "HALI" ~ "Unidentified halibut",
+    habitat_specific_code == "RFYOY" ~"Rockfish young of year",
     TRUE ~ habitat_specific_spp_name)) %>% 
   # Drop the NA row with no species info
-  filter(!is.na(habitat_specific_code))
+  filter(!is.na(habitat_specific_code)) 
+
+#add rows that are in the raw data but not in the taxonomy table
+HALI <-  data.frame(
+    habitat = "Surf Zone", 
+    habitat_specific_code = "HALI",
+    habitat_specific_spp_name = "Unidentified halibut",
+    Kingdom = "Animalia",
+    Phylum = "Chordata",
+    Class = "Actinopteri",
+    Order = "Pleuronectimformes",
+    Family = "Paralichthyidae",
+    Genus = NA,
+    Species = NA,
+    target_status = NA
+  )
+
+unspecified <-  data.frame(
+  habitat = "Surf Zone", 
+  habitat_specific_code = "unspecified",
+  habitat_specific_spp_name = "unidentified",
+  Kingdom = "Animalia",
+  Phylum = "Chordata",
+  Class = NA,
+  Order = NA,
+  Family = NA,
+  Genus = NA,
+  Species = NA,
+  target_status = NA
+)
+
+RFYOY <-  data.frame(
+  habitat = "Surf Zone", 
+  habitat_specific_code = "RFYOY",
+  habitat_specific_spp_name = "Rockfish young of year",
+  Kingdom = "Animalia",
+  Phylum = "Chordata",
+  Class = "Actinopteri",
+  Order = "Perciformes",
+  Family = "Sebastidae",
+  Genus = "Sebastes",
+  Species = NA,
+  target_status = NA
+)
+
+FFUN <-   data.frame(
+  habitat = "Surf Zone", 
+  habitat_specific_code = "FFUN",
+  habitat_specific_spp_name = "Unidentified flatfish",
+  Kingdom = "Animalia",
+  Phylum = "Chordata",
+  Class = "Actinopteri",
+  Order = "Pleuronectimformes",
+  Family = NA,
+  Genus = NA,
+  Species = NA,
+  target_status = NA
+)
+
+surf_taxon <- rbind(surf_taxon, HALI, unspecified, RFYOY, FFUN)
 
 surf_taxon$Species[surf_taxon$Species %in% c("sp.", "spp")] <- NA
 surf_taxon$Genus[surf_taxon$Genus == surf_taxon$Family] <- NA
@@ -250,9 +310,6 @@ taxon_tab[taxon_tab == "Non-targeted"] <- "Nontargeted"
 
 #export
 write.csv(taxon_tab, file.path(export_path, "full_taxon_table_new.csv"), row.names = FALSE)
-
-
-
 
 
 

@@ -31,11 +31,12 @@ spp_orig <- read.csv(file.path(datadir, "full_taxon_table_new.csv"), na = c("", 
 # Read taxa from fishbase and sealifebase
 sp_fb <- rfishbase::load_taxa("fishbase") %>% 
   mutate(database = "fishbase") %>% 
-  select(database, SpecCode, Species, Genus, Family, Order, Class) 
+  dplyr::select(database, SpecCode, Species, Genus, Family, Order, Class) %>% 
+  as.data.frame()
 
 sp_slb <- rfishbase::load_taxa("sealifebase") %>% 
   mutate(database = "sealifebase") %>% 
-  select(database, SpecCode, Species, Genus, Family, Order, Class)
+  dplyr::select(database, SpecCode, Species, Genus, Family, Order, Class)
 
 fb_all <- full_join(sp_fb, sp_slb) 
 rm(sp_fb, sp_slb)
