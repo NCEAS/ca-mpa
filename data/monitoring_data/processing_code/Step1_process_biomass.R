@@ -1,16 +1,49 @@
 #Processing monitoring data for mpa-year level analyses
 #Joshua G Smith; joshsmith@nceas.ucsb.edu; March 17, 2023
 
+# About --------------------------------------------------------------------------------
+# Updated by Cori Lopazanski August 2023
+
+# This script uses the cleaned monitoring data (outputs from Step0) to
+# calculate biomass from length/weight parameters
+
+
+# Setup --------------------------------------------------------------------------------
 rm(list=ls())
 
-#load required packages
+# Load required packages
 require(dplyr)
 require(stringr)
 
-#set directories and load data
-
+# Directories
 datadir <- "/home/shares/ca-mpa/data/sync-data/monitoring/"
 outdir <-  "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data"
+
+# Read monitoring data
+surf  <- read_csv(file.path(datadir, "processed_data/surf_zone_fish_processed.csv"))
+deep  <- read_csv(file.path(datadir, "processed_data/deep_reef_processed.csv"))
+ccfrp <- read_csv(file.path(datadir, "processed_data/ccfrp_processed.csv"))
+kelp  <- read_csv(file.path(datadir, "processed_data/kelp_processed.csv"))
+
+# Read length-weight parameters
+params_tab <- read_csv("/home/shares/ca-mpa/data/sync-data/species_traits/processed/fish_lw_parameters_by_species.csv") 
+
+family_sum <- read_csv("/home/shares/ca-mpa/data/sync-data/species_traits/processed/fishbase_lw_parameters_by_family.csv")
+genus_sum  <- read_csv("/home/shares/ca-mpa/data/sync-data/species_traits/processed/fishbase_lw_parameters_by_genus.csv") %>% 
+  mutate(sciname = paste(genus, " spp", sep = ""))
+
+# Read taxa
+taxon_tab <- read.csv("/home/shares/ca-mpa/data/sync-data/species_traits/processed/species_key.csv")
+
+test <- taxon_tab %>% 
+  filter(level == "group") %>% 
+  filter(!is.na(target_status)) %>% 
+  select(sciname, level, target_status, habitat)
+
+length(unique(test$sciname))
+
+# Build --------------------------------------------------------------------------------
+
 
 #load raw monitoring data
 ccfrp_caught_fishes <- read.csv(file.path(datadir, "/monitoring_ccfrp/CCFRP_database/CCFRP_database_2007-2020_csv/4-Caught_Fishes.csv"))%>%
@@ -301,8 +334,8 @@ ccfrp_areas1 <- ccfrp_areas %>% dplyr::select(area_code, name, mpa_designation)
 
 #join everything
 ccfrp_build0 <- merge(ccfrp_caught_fishes1, ccfrp_drift1, by="drift_id", all=TRUE)
-ccfrp_build1 <- merge(ccfrp_build1, ccfrp_trip_info1, by="trip_id", all=TRUE)
-ccfrp_build2 <- left_join(ccfrp_build2, ccfrp_areas1, by=c("area"="area_code")) %>%
+ccfrp_build1 <- merge(ccfrp_build0, ccfrp_trip_info1, by="trip_id", all=TRUE) # cori trying build1 to build0
+ccfrp_build2 <- left_join(ccfrp_build1, ccfrp_areas1, by=c("area"="area_code")) %>% # cori trying build2 to build1
                   dplyr::select(year, month, day, trip_id, drift_id, id_cell_per_trip, grid_cell_id, name, mpa_designation, site_mpa_ref, 
                                  total_angler_hrs, species_code,
                                 length_cm, excluded_drift_comment, drift_time_hrs) 
@@ -555,7 +588,7 @@ deep_reef_build4 <- left_join(deep_reef_build3, regions, by=c("affiliated_mpa"="
                       dplyr::rename(fish_tl = estimated_length_cm)
 
 
-#add taxa and correct species spellings
+4#add taxa and correct species spellings
 deep_reef_taxa <- taxon_tab %>% filter(habitat=="Deep reef") %>%
                     #fix target status
                     mutate(target_status = ifelse(habitat_specific_spp_name == "Sebastes melanops or mystinus", "Targeted",target_status),

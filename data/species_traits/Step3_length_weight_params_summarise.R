@@ -1,6 +1,11 @@
+# Summarize length weight parameters
+# CL 29 Aug 2023
 
-# Read data
-################################################################################
+# This script reads the species key and length weight parameter data created in
+# Step 1 and Step 2. 
+
+
+# Setup ------------------------------------------------------------------------------
 
 # Clear workspace
 rm(list = ls())
@@ -13,42 +18,65 @@ library(tidyverse)
 basedir <- "/home/shares/ca-mpa/data/sync-data/" #Josh
 datadir <- file.path(basedir, "species_traits/processed")
 
-# Read data
-data_orig <- read.csv(file.path(datadir, "species_lw_parameters_from_fishbase_full.csv"), as.is=T)
-spp_orig <- read.csv(file.path(datadir, "species_key.csv"), as.is=T)
+# Read length weight parameter data
+lw_orig <- read.csv(file.path(datadir, "species_lw_parameters_from_fishbase_full_new.csv"), as.is=T) %>% 
+  clean_names() %>% 
+  rename(sciname = species)
 
+# Read species key (cleaned taxonomy data for all habitats)
+spp_orig <- read.csv(file.path(datadir, "species_key.csv"), as.is=T) %>% 
+  clean_names() %>% 
+  filter(kingdom == "Animalia") # sorry algae, love you 
 
-# Id species of interest
-################################################################################
+# Read taxa from fishbase and sealifebase
+sp_fb <- rfishbase::load_taxa("fishbase") %>% 
+  mutate(database = "fishbase") %>% 
+  select(database, SpecCode, sciname = Species, Genus, Family, Order, Class) 
 
-# Retrieve taxa
-taxa <- freeR::taxa(species=unique(spp_orig$sciname))
+sp_slb <- rfishbase::load_taxa("sealifebase") %>% 
+  mutate(database = "sealifebase") %>% 
+  select(database, SpecCode, sciname = Species, Genus, Family, Order, Class)
 
-# Species of interest
-# Only fish id'ed to species level
-# THESE ARE THE SPECIES ACROSS ALL HABITATS THAT WILL GET CONVERTED TO BIOMASS
+taxa <- full_join(sp_fb, sp_slb) %>% setNames(tolower(colnames(.))) 
+
+rm(sp_fb, sp_slb)
+
+freeR::complete(data_orig)
+
+# Examine groups of interest -----------------------------------------------------------------
 spp <- spp_orig %>% 
-  select(sciname, level) %>% 
-  unique() %>% 
-  filter(level=="species") %>% 
-  left_join(taxa %>% select(family, genus, sciname, type), by="sciname") %>% 
-  filter(type=="fish") %>% 
-  select(-level)
+  distinct(sciname, level)  %>% 
+  filter(level == "species") %>% 
+  mutate(in_taxa = if_else(sciname %in% taxa$sciname, "Yes", "No"),
+         has_lw = if_else(sciname %in% lw_orig$sciname, "Yes", "No"))
+
+# Genus of interest
+gen <- spp_orig %>% 
+  distinct(genus, sciname, level) %>% 
+  filter(level == "genus") %>% 
+  mutate(in_taxa = if_else(genus %in% taxa$genus, "Yes", "No"),
+         has_lw = if_else(genus %in% lw_orig$genus, "Yes", "No"))
+# Note: 5 genuses will not match: "Acanthinucella" "Cyanoplax" "Mexacanthina" "Neobernaya"  "Diaperoforma"
 
 
-# LW params
-################################################################################
+# Family of interest
+fam <- spp_orig %>% 
+  distinct(family, sciname, level) %>% 
+  filter(level == "family") %>% 
+  mutate(in_taxa = if_else(family %in% taxa$family, "Yes", "No"),
+         has_lw = if_else(family %in% lw_orig$family, "Yes", "No"))
 
-# Retrieve taxa
-taxa_data <- freeR::taxa(species=unique(data_orig$species))
+# Build LW params ---------------------------------------------------------------
 
 # Species summary
-lw_spp <- data_orig %>% 
-  filter(species %in% spp$sciname & type=="TL") %>% 
-  group_by(species) %>% 
+lw_spp <- lw_orig %>% 
+  filter(sciname %in% spp$sciname) %>% 
+  group_by(sciname, type) %>% 
   summarize(a=median(a, na.rm=T),
-            b=median(b, na.rm=T)) %>% 
+            b=median(b, na.rm=T),
+            n=n()) %>% 
   ungroup()
+
 
 # Genus summary
 lw_gen <- data_orig %>% 

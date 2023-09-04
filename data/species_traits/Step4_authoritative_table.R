@@ -40,7 +40,7 @@ fishbase_params1 <- fishbase_params %>%
                 WL_a = a, WL_b = b,
                 WL_W_units,
                 WL_L_units,
-                WL_input_length, source)
+                WL_input_length, source, lw_source)
 
 ################################################################################
 #prep Brooks for join

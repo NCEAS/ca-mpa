@@ -127,15 +127,17 @@ check_genus <- spp %>%
 spp <- spp %>% 
   mutate(sciname = if_else(sciname %in% check_names$sciname, paste(Genus, "spp"), sciname)) %>% 
   # Create level
-  mutate(level = case_when(!is.na(Species) & !is.na(Genus) ~ "species",
+  mutate(level = case_when(!is.na(Species) & !is.na(Genus) & !(str_detect(sciname, "spp")) ~ "species",
                            is.na(Species) & !is.na(Genus) ~ "genus",
                            is.na(Species) & is.na(Genus) & !is.na(Family) ~ "family",
+                           !is.na(Species) & !is.na(Genus) & str_detect(sciname, "spp") ~ "genus", # fixes level for the species above without overwriting the correct species name 
                            TRUE ~ NA))
 
 ## 6. Examine NA for sciname (currently 107 obs; most algae/higher order/unknown)
 ## Leaving for review -- these will mostly be excluded from analyses.. ok?
 spp_na <- spp %>% 
   filter(is.na(sciname))
+
 
 # Export species key to csv -----------------------------------------------------------
 #write.csv(spp, file=file.path(datadir, "species_key.csv"), row.names = F)
