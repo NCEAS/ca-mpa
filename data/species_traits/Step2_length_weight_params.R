@@ -192,7 +192,7 @@ spp_na <- spp %>%
 
 
 # Export species key to csv -----------------------------------------------------------
-write.csv(spp, file=file.path(datadir, "species_key.csv"), row.names = F)
+write.csv(spp_corrected, file=file.path(datadir, "species_key.csv"), row.names = F)
 
 
 

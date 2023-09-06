@@ -6,7 +6,6 @@
 
 
 # Setup ------------------------------------------------------------------------------
-
 # Clear workspace
 rm(list = ls())
 
@@ -25,10 +24,9 @@ lw_orig <- read.csv(file.path(datadir, "species_lw_parameters_from_fishbase_full
 
 # Read species key (cleaned taxonomy data for all habitats)
 spp_orig <- read.csv(file.path(datadir, "species_key.csv"), as.is=T) %>% 
-  clean_names() %>% 
-  filter(kingdom == "Animalia") # sorry algae, love you 
+  clean_names()
 
-# Read taxa from fishbase and sealifebase
+# Get taxa from fishbase and sealife base ------------------------------------------
 sp_fb <- rfishbase::load_taxa("fishbase") %>% 
   mutate(database = "fishbase") %>% 
   select(database, SpecCode, sciname = Species, Genus, Family, Order, Class) 
@@ -37,117 +35,147 @@ sp_slb <- rfishbase::load_taxa("sealifebase") %>%
   mutate(database = "sealifebase") %>% 
   select(database, SpecCode, sciname = Species, Genus, Family, Order, Class)
 
-taxa <- full_join(sp_fb, sp_slb) %>% setNames(tolower(colnames(.))) 
-
+# Combine into one taxa list and remove previous
+taxa <- full_join(sp_fb, sp_slb) %>% 
+  setNames(tolower(colnames(.)))
+  
 rm(sp_fb, sp_slb)
 
-freeR::complete(data_orig)
+# Get length-length data for conversion when needed --------------------------------
+# NOTE: Fishbase's formulat for calculating between weights is as follows:
+#  Length 2 = a + b * Length 1
+#  Because this is opposite of convention, we will rename explicitly as 
+#  slope and intercept such that
+#  Output Length = Intercept + Slope * Input Length
 
-# Examine groups of interest -----------------------------------------------------------------
-spp <- spp_orig %>% 
-  distinct(sciname, level)  %>% 
-  filter(level == "species") %>% 
-  mutate(in_taxa = if_else(sciname %in% taxa$sciname, "Yes", "No"),
-         has_lw = if_else(sciname %in% lw_orig$sciname, "Yes", "No"))
+ll_fb <- rfishbase::length_length(server = "fishbase") %>% 
+  mutate(database = "fishbase") %>% select(database, everything()) 
 
-# Genus of interest
-gen <- spp_orig %>% 
-  distinct(genus, sciname, level) %>% 
-  filter(level == "genus") %>% 
-  mutate(in_taxa = if_else(genus %in% taxa$genus, "Yes", "No"),
-         has_lw = if_else(genus %in% lw_orig$genus, "Yes", "No"))
-# Note: 5 genuses will not match: "Acanthinucella" "Cyanoplax" "Mexacanthina" "Neobernaya"  "Diaperoforma"
+ll_slb <- rfishbase::length_length(server = "sealifebase") %>% 
+  mutate(database = "sealifebase") %>% select(database, everything()) 
 
+ll <- plyr::rbind.fill(ll_fb, ll_slb) %>% 
+  select(database, speccode = SpecCode, input_length = Length1, output_length = Length2, intercept_ll = a, slope_ll = b) %>% 
+  left_join(taxa, by = c("database", "speccode")) %>% 
+  arrange(sciname)
 
-# Family of interest
-fam <- spp_orig %>% 
-  distinct(family, sciname, level) %>% 
-  filter(level == "family") %>% 
-  mutate(in_taxa = if_else(family %in% taxa$family, "Yes", "No"),
-         has_lw = if_else(family %in% lw_orig$family, "Yes", "No"))
+rm(ll_fb, ll_slb)
+
+ll_tl <- ll %>% 
+  filter(input_length == "TL") %>% # only keep conversions from TL
+  select(database, sciname, input_length, output_length, intercept_ll, slope_ll) %>% 
+  group_by(database, sciname, input_length, output_length) %>% 
+  # There are a few cases where there are multiple conversions for a single species and length-length type
+  summarize(intercept_ll = median(intercept_ll, na.rm = T),
+            slope_ll = median(slope_ll, na.rm = T)) %>% ungroup()
+
+# Build species list -----------------------------------------------------------------
+# Filter out fish identified at least to family level or lower
+# (Remove unidentified groups, algae, inverts)
+spp_fish <- spp_orig %>% 
+  filter(!is.na(sciname)) %>% # sciname includes groupings up to family level; all else treated as unknown
+  filter(phylum == "Chordata" | is.na(phylum)) # keep the is.na because phylum not entered for all species
 
 # Build LW params ---------------------------------------------------------------
 
 # Species summary
 lw_spp <- lw_orig %>% 
-  filter(sciname %in% spp$sciname) %>% 
+  filter(sciname %in% spp_fish$sciname & !is.na(type)) %>% 
   group_by(sciname, type) %>% 
-  summarize(a=median(a, na.rm=T),
-            b=median(b, na.rm=T),
-            n=n()) %>% 
-  ungroup()
-
+  summarize(a_spp=median(a, na.rm=T),
+            b_spp=median(b, na.rm=T)) %>% 
+  ungroup() %>% 
+  group_by(sciname) %>% 
+  mutate(has_tl = any(type == "TL")) %>% # Create identifier for whether species has TL parameters
+  ungroup() %>% 
+  filter(!has_tl | (has_tl & type == "TL")) %>% # Remove other types when species has TL
+  select(-has_tl) %>% # Remove identifier
+  left_join(ll_tl, by = c("sciname", "type" = "output_length")) %>% # Join LL conversions for non-TL parameters
+  filter(type %in% c("TL", "WD", "FL") |!is.na(intercept_ll)) %>% 
+  select(-database, -input_length) %>% rename(type_spp = type)
 
 # Genus summary
-lw_gen <- data_orig %>% 
-  left_join(taxa_data %>% select(sciname, genus), by=c("species"="sciname")) %>% 
-  filter(genus %in% spp$genus & type=="TL") %>% 
-  group_by(genus) %>% 
-  summarize(a=median(a, na.rm=T),
-            b=median(b, na.rm=T)) %>% 
-  ungroup()
+ll_gen <- ll_tl %>% 
+  left_join(taxa %>% select(sciname, genus)) %>% 
+  filter(genus %in% spp_fish$genus) %>% 
+  group_by(genus, output_length) %>% 
+  summarize(intercept_ll_gen = median(intercept_ll, na.rm=T),
+            slope_ll_gen = median(slope_ll, na.rm = T)) %>% ungroup()
 
-write.csv(lw_gen, file=file.path(datadir, "fishbase_lw_parameters_by_genus.csv"), row.names = F)
+lw_gen <- lw_orig %>%
+  filter(genus %in% spp_fish$genus & !is.na(type)) %>% 
+  group_by(genus, type) %>% 
+  summarize(a_gen = median(a, na.rm = T),
+            b_gen = median(b, na.rm = T)) %>% ungroup() %>% 
+  group_by(genus) %>% 
+  mutate(has_tl = any(type == "TL")) %>% ungroup() %>% 
+  filter(!has_tl | (has_tl & type == "TL")) %>% 
+  select(-has_tl) %>% 
+  left_join(ll_gen, by = c("genus", "type" = "output_length")) %>% # Join LL conversions for non-TL parameters
+  filter(type %in% c("TL", "WD", "FL") | !is.na(intercept_ll_gen)) %>% 
+  rename(type_gen = type)
+  
+#write.csv(lw_gen, file=file.path(datadir, "fishbase_lw_parameters_by_genus.csv"), row.names = F)
 
 # Family summary
-lw_fam <- data_orig %>% 
-  left_join(taxa_data %>% select(sciname, family), by=c("species"="sciname")) %>% 
-  filter(family %in% spp$family & type=="TL") %>% 
-  group_by(family) %>% 
-  summarize(a=median(a, na.rm=T),
-            b=median(b, na.rm=T)) %>% 
-  ungroup()
+lw_fam <- lw_orig %>% 
+  filter(family %in% spp_fish$family & !is.na(type)) %>% 
+  group_by(family, type) %>% 
+  summarize(a_fam = median(a, na.rm = T),
+            b_fam = median(b, na.rm = T)) %>% 
+  ungroup() %>% 
+  filter(type == "TL") %>%  # Note: all families have TL 
+  rename(type_fam = type)
 
-write.csv(lw_fam, file=file.path(datadir, "fishbase_lw_parameters_by_family.csv"), row.names = F)
+#write.csv(lw_fam, file=file.path(datadir, "fishbase_lw_parameters_by_family.csv"), row.names = F)
 
 # Create final data
-data <- spp %>% 
-  # Arrange
-  select(type, family, genus, sciname) %>% 
-  # Add species lw
-  left_join(lw_spp, by=c("sciname"="species")) %>% 
-  rename(a_spp=a, b_spp=b) %>% 
-  # Add genus lw
-  left_join(lw_gen, by=c("genus"="genus")) %>% 
-  rename(a_gen=a, b_gen=b) %>%
-  # Add family lw
-  left_join(lw_fam, by=c("family"="family")) %>% 
-  rename(a_fam=a, b_fam=b) %>% 
-  # Final lw parama
-  mutate(lw_source=case_when(!is.na(a_spp) ~ "Species",
-                             !is.na(a_gen) & is.na(a_spp) ~ "Genus",
-                             !is.na(a_fam) & is.na(a_spp) & is.na(a_gen) ~ "Family",
-                             T ~ "Unknown")) %>% 
-  mutate(a=case_when(lw_source=="Species" ~ a_spp,
-                     lw_source=="Genus" ~ a_gen,
-                     lw_source=="Family" ~ a_fam,
-                     T ~ 0),
-         a=ifelse(a==0, NA, a),
-         b=case_when(lw_source=="Species" ~ b_spp,
-                     lw_source=="Genus" ~ b_gen,
-                     lw_source=="Family" ~ b_fam,
-                     T ~ 0),
-         b=ifelse(b==0, NA, b)) %>% 
-  # Simplify
-  select(type, family, genus, sciname, lw_source, a, b) %>% 
-  arrange(type, family, genus, sciname)
+data <- spp_fish %>% 
+  distinct(family, genus, sciname) %>% 
+  left_join(lw_spp, by=c("sciname")) %>% # Add species lw
+  left_join(lw_gen, by=c("genus")) %>% # Add genus lw
+  left_join(lw_fam, by=c("family")) %>%  # Add family lw
+  # Select lowest classification possible
+  mutate(lw_source = case_when(!is.na(a_spp) ~ "species",
+                               !is.na(a_gen) & is.na(a_spp) ~ "genus",
+                               !is.na(a_fam) & is.na(a_spp) & is.na(a_gen) ~ "family",
+                               T ~ "Unknown")) %>% 
+  mutate(a = case_when(lw_source=="species" ~ a_spp,
+                       lw_source=="genus" ~ a_gen,
+                       lw_source=="family" ~ a_fam,
+                       T ~ NA),
+         b = case_when(lw_source == "species" ~ b_spp,
+                       lw_source == "genus" ~ b_gen,
+                       lw_source == "family" ~ b_fam,
+                       T ~ NA),
+         type = case_when(lw_source == "species" ~ type_spp,
+                          lw_source == "genus" ~ type_gen,
+                          lw_source == "family" ~ type_fam,
+                          T ~ NA)) %>% 
+  mutate(intercept_ll = case_when(lw_source == "species" & !(type == "TL") ~ intercept_ll,
+                                  lw_source == "genus" & !(type == "TL") ~ intercept_ll_gen,
+                                  T ~ NA),
+         slope_ll = case_when(lw_source == "species" & !(type == "TL") ~ slope_ll,
+                              lw_source == "genus" & !(type == "TL") ~ slope_ll_gen,
+                              T ~ NA)) %>% 
+  select(family, genus, sciname, lw_source, a, b, lw_type = type, slope_ll, intercept_ll)
 
 # Export data
-write.csv(data, file=file.path(datadir, "fishbase_lw_parameters_by_species.csv"), row.names = F)
+# Currently still not overwriting old files:
+#write.csv(data, file=file.path(datadir, "fishbase_lw_parameters_by_species.csv"), row.names = F)
 
+write.csv(data, file=file.path(datadir, "fishbase_lw_parameters.csv"), row.names = F)
 
-# Add LW to common name
-################################################################################
-
-# LW by common name
-data2 <- spp_orig %>%
-  # Add LW params
-  left_join(data %>% select(sciname, family, lw_source, a, b), by="sciname") %>%
-  # Simplify
-  select(species_id, sciname, lw_source, a, b)
-
-# Export data
-write.csv(data2, file=file.path(datadir, "fishbase_lw_parameters_by_species_id.csv"), row.names = F)
+# NOTE: Don't do this, because will use CCFRP first then fishbase in next step
+# # Add LW to species key based on sciname 
+# ################################################################################
+# 
+# data2 <- spp_orig %>%
+#   # Add LW params
+#   left_join(data) 
+# 
+# # Export data
+# write.csv(data2, file=file.path(datadir, "species_key_with_lw.csv"), row.names = F)
 
 
 
