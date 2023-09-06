@@ -99,6 +99,8 @@ data <- ccfrp_caught_fishes %>%
   mutate(mpa_defacto_class = "smr",
          mpa_defacto_designation = case_when(site_mpa_ref == "MPA" ~ "smr",
                                              site_mpa_ref == "REF" ~ "ref")) %>% 
+  # Correct swamis spelling
+  mutate(affiliated_mpa = recode(affiliated_mpa, "swamis smca" = "swami's smca")) %>% 
   left_join(regions) %>% # Add regions
   select(year, month, day, # temporal
          bioregion, region4, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation, #  spatial
@@ -136,7 +138,7 @@ taxa_match <- data2 %>%
   filter(!(species_code %in% taxon_tab$habitat_specific_code)) #
 
 # Write to csv
-# write.csv(data2, file.path(outdir, "ccfrp_processed.csv"), row.names = F)
+write.csv(data2, file.path(outdir, "ccfrp_processed.csv"), row.names = F)
 # last write 6 Sept 2023
 
 # Note: there are other drifts where the total_fishes_caught does not match
