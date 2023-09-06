@@ -36,6 +36,13 @@ ccfrp_params <- readxl::read_excel(file.path(datadir, "raw/CCFRP_Biomass_Convers
   clean_names()
 
 # Build CCFRP Data ---------------------------------------------------------------------------
+# Conversion to a prime:
+# Parameters are unit-specific. Since fishbase converts all parameters to a_prime with length in 
+# cm and weight in g, we will convert the a values provided by CCFRP to match those units.
+# Converting here simplifies the eventual biomass conversion function and will allow us to examine
+# potential errors more closely here, rather than with the full dataset.
+# Equations used are here: https://fishbase.de/manual/fishbasethe_length_weight_table.htm
+
 # Fixing length-length conversion: 
 # There are two entries that have additional "cm" or "*10" written in their equations,
 # but testing either mm input or cm input with those given equations makes it seem like 
@@ -44,11 +51,11 @@ ccfrp_params <- readxl::read_excel(file.path(datadir, "raw/CCFRP_Biomass_Convers
 # conversion from SL > TL, therefore we use the provided values with no added conversion.
 
 # Across all values, regardless of the wl_input_length (cm vs mm), the given length-length 
-# slope and intercept appear to already be converted so the equation takes cm
-# as input, and produces cm as output. This is confirmed once adjusting the "REVERSE"
-# parameters below - see ccfrp_params1, last two columns test converting a hypothetical
-# 25cm (250mm) species measured in TL to the SL needed for the length-weight conversion. 
-# These values look reasonable. 
+# slope and intercept appear to already be converted such that the given equation takes cm
+# as input, and produces cm as output. This is confirmed once adjusting the 
+# parameters for "REVERSE" below (explanation in next note). See ccfrp_params1, last two 
+# columns test converting a hypothetical 25cm (250mm) species measured in TL to the SL 
+# needed for the length-weight conversion. These values look reasonable. 
 
 # Reversing equation: Several of the CCFRP length-length conversions have REVERSE
 # for input type, which means that instead of taking TL as the input and producing 
@@ -126,7 +133,7 @@ fishbase_params_subset <- fishbase_params %>%
 params <- full_join(ccfrp_params2, fishbase_params_subset)
 
 # Write to csv
-write.csv(params, file.path(datadir, "processed/lw_parameters_fish.csv"))
+#write.csv(params, file.path(datadir, "processed/lw_parameters_fish.csv"))
 
 # Still not overwriting original files
 #write.csv(params_tab, file.path(datadir, "processed/fish_lw_parameters_by_species.csv"),row.names = FALSE)
