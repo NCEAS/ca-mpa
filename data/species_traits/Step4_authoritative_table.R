@@ -19,12 +19,12 @@ rm(list = ls())
 library(tidyverse)
 
 # Directories
-basedir <- "/home/shares/ca-mpa/data/sync-data/" 
-datadir <- file.path(basedir, "species_traits/")
+basedir <- "/home/shares/ca-mpa/data/sync-data" 
+datadir <- file.path(basedir, "species_traits")
 
 # Read Data ---------------------------------------------------------------------------
 # Length-weight parameters pulled from fishbase in Step 3
-fishbase_params <- read.csv(file.path(data.dir, "processed/fishbase_lw_parameters.csv")) %>% 
+fishbase_params <- read.csv(file.path(datadir, "processed/fishbase_lw_parameters.csv")) %>% 
   mutate(source = "fishbase")
 
 # Length-weight parameters from CCFRP literature review
@@ -133,7 +133,7 @@ fishbase_params_subset <- fishbase_params %>%
 params <- full_join(ccfrp_params2, fishbase_params_subset)
 
 # Write to csv
-#write.csv(params, file.path(datadir, "processed/lw_parameters_fish.csv"))
+write.csv(params, file.path(datadir, "processed/lw_parameters_fish.csv"), row.names = F)
 
 # Still not overwriting original files
 #write.csv(params_tab, file.path(datadir, "processed/fish_lw_parameters_by_species.csv"),row.names = FALSE)
