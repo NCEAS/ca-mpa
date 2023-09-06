@@ -39,6 +39,7 @@ sp_slb <- rfishbase::load_taxa("sealifebase") %>%
   dplyr::select(database, SpecCode, Species, Genus, Family, Order, Class)
 
 fb_all <- full_join(sp_fb, sp_slb) 
+  
 rm(sp_fb, sp_slb)
 
 # Format species_key ---------------------------------------------------------------
@@ -50,6 +51,7 @@ genus_fix <- spp_orig %>%
   filter(!is.na(Genus)) %>% 
   filter(grepl("\\s|[^A-Za-z0-9]", Genus) |
            !(Genus %in% fb_all$Genus)) %>% distinct(Genus, Species, habitat)
+# Note: currently 8 obs
 
 # 2. Species should be one word to pull from FishBase. Identify Species entries
 #    that contain special characters or are not in the FB/SLB list
@@ -58,6 +60,7 @@ species_fix <- spp_orig %>%
   filter(!is.na(Species)) %>% 
   mutate(sciname = if_else(!is.na(Genus) & !is.na(Species), paste(Genus, Species), NA)) %>% 
   filter(grepl("\\s|[^A-Za-z0-9]", Species) | !(sciname %in% fb_all$Species)) %>% distinct(Genus, Species, sciname, habitat)
+# Note: currently 32 obs
 
 # 3. Format data and apply corrections
 spp <- spp_orig %>% 
@@ -77,11 +80,13 @@ spp <- spp_orig %>%
                           "Lithopoma undosum" = "Megastraea undosa", #https://www.marinespecies.org/aphia.php?p=taxdetails&id=528084
                           "Okenia rosacea" = "Hopkinsia rosacea", # https://www.sealifebase.se/summary/Okenia-rosacea.html
                           "Raja binoculata" = "Beringraja binoculata",
+                          "Raja inornata" = "Caliraja inornata", 
                           "Raja rhina" = "Beringraja rhina",
                           "Raja stellulata" = "Beringraja stellulata",
                           "Rhacochilus vacca" = "Phanerodon vacca",
                           "Stylissa stipitata" = "Semisuberites cribrosa", # https://www.marinespecies.org/aphia.php?p=taxdetails&id=168379
                           "Tethya aurantia" = "Tethya aurantium", # https://www.marinespecies.org/aphia.php?p=taxdetails&id=134311
+                          "Torpedo californica" = "Tetronarce californica", # https://www.fishbase.se/summary/Tetronarce-californica
                           "Urolophus halleri" = "Urobatis halleri", # https://www.fishbase.se/summary/urobatis-halleri
                           "Xenistius californiensis" = "Brachygenys californiensis" #https://www.fishbase.se/summary/3570
                           )) %>% 
@@ -90,9 +95,9 @@ spp <- spp_orig %>%
                          "Cottidae/Gobiesocidae" = "Cottidae",
                          "Onuphidae, Chaetopteridae" = "Onuphidae"))
 
-# 4. Test for wrong names from fishbase/sealifebase after above corrections
+# 4. Test for wrong names from fishbase/sealifebase after above corrections -- 13 confirmed ok
 check_names <- spp %>% 
-  filter(Kingdom == "Animalia") %>% 
+  filter(Kingdom == "Animalia"|is.na(Kingdom)) %>% 
   filter(!str_detect(sciname, "spp")) %>% 
   filter(!(sciname %in% fb_all$Species))%>% 
   distinct(sciname, Family, Genus, Species, habitat) %>% 
@@ -109,16 +114,18 @@ check_names <- spp %>%
 ##  Neobernaya spadicea
 ##  Peltodoris nobilis https://www.marinespecies.org/aphia.php?p=taxdetails&id=594422
 ##  Pugettia foliata https://www.marinespecies.org/aphia.php?p=taxdetails&id=851288
+##  Sebastes crocotulus 
+##  Caliraja inornata https://www.fishbase.se/summary/2558
 
-# Check for incorrect families
+# Check for incorrect families -- should be 0
 check_family <- spp %>% 
-  filter(Kingdom == "Animalia") %>% # dont bother with algae (sorry algae friends)
+  filter(Kingdom == "Animalia"|is.na(Kingdom)) %>% # dont bother with algae (sorry algae friends)
   distinct(Family, Genus, Species, sciname, habitat) %>% 
   filter(!(Family %in% fb_all$Family))
 
 # Check for incorrect genus -- 8 obs here confirmed OK
 check_genus <- spp %>% 
-  filter(Kingdom == "Animalia") %>% # dont bother with algae (sorry algae friends)
+  filter(Kingdom == "Animalia"|is.na(Kingdom)) %>% # dont bother with algae (sorry algae friends)
   distinct(Family, Genus, Species, sciname, habitat) %>% 
   filter(!is.na(Genus)) %>% 
   filter(!(Genus %in% fb_all$Genus))
@@ -126,22 +133,66 @@ check_genus <- spp %>%
 
 ## 5. Correct those remaining species to "Genus spp" and add taxonomic level
 spp <- spp %>% 
-  mutate(sciname = if_else(sciname %in% check_names$sciname, paste(Genus, "spp"), sciname)) %>% 
+  mutate(sciname = if_else(sciname %in% check_names$sciname, paste(word(sciname, 1), "spp"), sciname)) %>% 
   # Create level
   mutate(level = case_when(!is.na(Species) & !is.na(Genus) & !(str_detect(sciname, "spp")) ~ "species",
                            is.na(Species) & !is.na(Genus) ~ "genus",
                            is.na(Species) & is.na(Genus) & !is.na(Family) ~ "family",
                            !is.na(Species) & !is.na(Genus) & str_detect(sciname, "spp") ~ "genus", # fixes level for the species above without overwriting the correct species name 
-                           TRUE ~ NA))
+                           TRUE ~ NA)) %>% 
+  # Add higher order values for key missing species
+  mutate(Family = case_when(Genus == "Zaniolepis" ~ "Zaniolepididae",
+                            Genus == "Sebastes" ~ "Sebastidae",
+                            Genus == "Diaperoforma" ~ "Cyclostomatida",
+                            Genus == "Raja" ~ "Rajidae",
+                            TRUE~Family))
 
-## 6. Examine NA for sciname (currently 107 obs; most algae/higher order/unknown)
+## 6. Examine discrepancies between our taxonomic list and FB/SLB
+taxa_match <- spp %>% 
+  select(Kingdom:Species, sciname) %>% distinct() %>% 
+  left_join(fb_all %>% 
+              select(Genus, Family, Order, Class, Species) %>% 
+              mutate(Order = sub("\\/.*", "", Order)),  # remove everyting after / in Order,
+            by = c("sciname" = "Species")) %>% 
+  mutate(Genus = coalesce(Genus.y, Genus.x),
+         Family = coalesce(Family.y, Family.x),
+         Order = coalesce(Order.y, Order.x),
+         Class = coalesce(Class.y, Class.x)) %>% 
+  mutate(Genus.match = if_else(Genus.x == Genus.y, TRUE, FALSE),
+         Family.match = if_else(Family.x == Family.y, TRUE, FALSE), 
+         Order.match = if_else(Order.x == Order.y, TRUE, FALSE), 
+         Class.match = if_else(Class.x == Class.y, TRUE, FALSE)) %>% 
+  select(sciname, Genus, Genus.x, Genus.y, Genus.match,
+         Family, Family.x, Family.y, Family.match,
+         Order, Order.x, Order.y, Order.match,
+         Class, Class.x, Class.y, Class.match) 
+
+match_class <- taxa_match %>% filter(!Class.match) # 277 will update
+match_family <- taxa_match %>% filter(!Family.match) # 43 will update
+match_genus <- taxa_match %>% filter(!Genus.match)  # 16 will update
+match_order <- taxa_match %>% filter(!Order.match) # 155 will update
+
+## Fix corrections -- any changes beyond are reflected above
+spp_corrected <- spp %>% 
+  left_join(fb_all %>% select(Genus, Family, Order, Class, Species) %>% 
+              mutate(Order = sub("\\/.*", "", Order)), by = c("sciname" = "Species")) %>% 
+  # Fill in NAs with values from FB/SLB. If there is a discrepancy, default to FB/SLB.
+  mutate(Genus = coalesce(Genus.y, Genus.x),
+         Family = coalesce(Family.y, Family.x),
+         Order = coalesce(Order.y, Order.x),
+         Class = coalesce(Class.y, Class.x)) %>% 
+  select(habitat, habitat_specific_code, habitat_specific_spp_name,
+         Kingdom, Phylum, Class, Order, Family, Genus, Species,
+         sciname, target_status, level)
+
+## Examine NA for sciname (currently 109 obs; most algae/higher order/unknown species)
 ## Leaving for review -- these will mostly be excluded from analyses.. ok?
 spp_na <- spp %>% 
   filter(is.na(sciname))
 
 
 # Export species key to csv -----------------------------------------------------------
-#write.csv(spp, file=file.path(datadir, "species_key.csv"), row.names = F)
+write.csv(spp, file=file.path(datadir, "species_key.csv"), row.names = F)
 
 
 
