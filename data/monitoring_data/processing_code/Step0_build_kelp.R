@@ -90,8 +90,8 @@ taxa_match <- data %>%
   filter(is.na(sciname)) 
 
 # Write processed data
-write.csv(data, file.path(outdir, "kelp_processed.csv"), row.names = F)
-
+# write.csv(data, file.path(outdir, "kelp_processed.csv"), row.names = F)
+# Last write 6 Sept 2023
 
 # In the next script:
 # Run biomass conversion

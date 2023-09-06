@@ -149,19 +149,5 @@ taxa_na <- data %>%
   distinct(scientific_name)
 
 # Write to CSV
-write.csv(data, row.names = F, file.path(outdir,"/deep_reef_processed.csv"))  
-
-# 
-# test <- data %>% 
-#   select(mpa_group, type, designation, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation) %>% distinct() 
-# 
-# write.csv(test, row.names = F, file.path("deep-reef-sites.csv"))
-# 
-# 
-# test2 <-data %>% 
-#   filter(type == "Reference" & designation == "Reference")
-# 
-# test3 <- data %>% 
-#   select(scientific_name, sciname, target_status, level, class, order, family, genus, species) %>% 
-#   distinct()
-# write.csv(test3, "deep-reef-taxa.csv")
+#write.csv(data, row.names = F, file.path(outdir,"/deep_reef_processed.csv"))  
+# last write 6 Sept 2023

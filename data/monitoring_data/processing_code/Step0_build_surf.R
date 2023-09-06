@@ -109,6 +109,6 @@ taxa_match <- data %>%
 
 
 # Write data ------------------------------------------------------------------------
-write.csv(data, row.names = FALSE, file.path(outdir, "surf_zone_fish_processed.csv"))
-
+# write.csv(data, row.names = FALSE, file.path(outdir, "surf_zone_fish_processed.csv"))
+# last write 6 Sept 2023
 

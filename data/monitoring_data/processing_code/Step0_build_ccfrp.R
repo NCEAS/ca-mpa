@@ -136,7 +136,8 @@ taxa_match <- data2 %>%
   filter(!(species_code %in% taxon_tab$habitat_specific_code)) #
 
 # Write to csv
-#write.csv(data2, file.path(outdir, "ccfrp_processed.csv"), row.names = F)
+# write.csv(data2, file.path(outdir, "ccfrp_processed.csv"), row.names = F)
+# last write 6 Sept 2023
 
 # Note: there are other drifts where the total_fishes_caught does not match
 # the number of fishes recorded for the drift? 
