@@ -1,49 +1,163 @@
-#Processing monitoring data for mpa-year level analyses
-#Joshua G Smith; joshsmith@nceas.ucsb.edu; March 17, 2023
+# Processing monitoring data for mpa-year level analyses
+# Joshua G Smith; joshsmith@nceas.ucsb.edu; March 17, 2023
 
 # About --------------------------------------------------------------------------------
 # Updated by Cori Lopazanski August 2023
 
 # This script uses the cleaned monitoring data (outputs from Step0) to
-# calculate biomass from length/weight parameters
+# calculate biomass from length/weight parameters (output from species_traits/Step4). 
+
+# Important Notes:
+# - Species w/o size data cannot be converted to biomass, but leave these for now since we 
+#   want to track effort (true zeros).
+
+# - We need to track true zeros. Standardize convention by replacing spp code with "NO_ORG" 
+#   for all replicates where nothing was observed.
+
+# - Don't drop any species at this stage, including unidentified/unknown species. We will 
+#   do this in the next processing step.
+
+# - For biomass conversion estimates, we elected to use parameters listed by the kelp
+#   forest monitoring group, who conducted a literature review for dozens of species. Since the 
+#   list is not comprehensive for species found in all other habitats, we added parameters
+#   from fish base. The processing script for this is available here:
+#   https://github.com/NCEAS/ca-mpa/tree/main/data/species_traits
+
+# - Notes about key variables:
+#     * mpa_class = whether the MPA is a SMR or SMCA (or something else)
+#     * mpa_designation = whether the SITE was inside or outside
+#     * habitat_specific_spp_name = used to join species_key to raw monitoring data (in Step0)
+#     * sciname = corrected name for joining length-weight parameters
+
+# - Size units in raw data should all be cm. Conversion parameters are all in cm and g.
 
 
 # Setup --------------------------------------------------------------------------------
 rm(list=ls())
 
 # Load required packages
-require(dplyr)
-require(stringr)
+library(tidyverse)
+library(janitor)
+library(stringr)
 
 # Directories
-datadir <- "/home/shares/ca-mpa/data/sync-data/monitoring/"
-outdir <-  "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data"
+traitsdir <- "/home/shares/ca-mpa/data/sync-data/species_traits/processed"
+datadir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data"
 
 # Read monitoring data
-surf  <- read_csv(file.path(datadir, "processed_data/surf_zone_fish_processed.csv"))
-deep  <- read_csv(file.path(datadir, "processed_data/deep_reef_processed.csv"))
-ccfrp <- read_csv(file.path(datadir, "processed_data/ccfrp_processed.csv"))
-kelp  <- read_csv(file.path(datadir, "processed_data/kelp_processed.csv"))
+surf  <- read_csv(file.path(datadir, "surf_zone_fish_processed.csv")) %>% clean_names()
+deep  <- read_csv(file.path(datadir, "deep_reef_processed.csv")) 
+
+ccfrp <- read_csv(file.path(datadir, "ccfrp_processed.csv")) %>% clean_names() %>% 
+  mutate(sl_cm = NA, count = 1)
+
+kelp  <- read_csv(file.path(datadir, "kelp_processed.csv")) %>% clean_names() %>% 
+  rename(tl_cm = fish_tl) %>% mutate(sl_cm = NA)
 
 # Read length-weight parameters
-params_tab <- read_csv("/home/shares/ca-mpa/data/sync-data/species_traits/processed/fish_lw_parameters_by_species.csv") 
+params <- read_csv(file.path(traitsdir, "lw_parameters_fish.csv"))
 
-family_sum <- read_csv("/home/shares/ca-mpa/data/sync-data/species_traits/processed/fishbase_lw_parameters_by_family.csv")
-genus_sum  <- read_csv("/home/shares/ca-mpa/data/sync-data/species_traits/processed/fishbase_lw_parameters_by_genus.csv") %>% 
-  mutate(sciname = paste(genus, " spp", sep = ""))
+# Read species key
+species_key <- read.csv(file.path(traitsdir, "species_key.csv"))
+  
+# Biomass conversion function ----------------------------------------------------------------
 
-# Read taxa
-taxon_tab <- read.csv("/home/shares/ca-mpa/data/sync-data/species_traits/processed/species_key.csv")
+bio_fun <- function(params, data) {
+  
+  data %>% 
+    # Join data with parameters
+    left_join(params, multiple = "all") %>% 
+    
+    # Compute from the cm inputs the type of length and units needed by the formula 
+    mutate(length_to_use = 
+             case_when(
+               # Use given length (TL in cm)
+               lw_type %in% c("TL", "WD") ~ tl_cm,
+               lw_type == "FL" & is.na(slope_ll) ~ tl_cm,
+               
+               # For surf zone: use given SL when necessary & available
+               lw_type == "SL" & !is.na(sl_cm) ~ sl_cm,
+               
+               # Convert from TL to SL using length-length conversion
+               lw_type == "FL" & !is.na(slope_ll) ~ tl_cm*slope_ll+intercept_ll,
+               lw_type == "SL" & is.na(sl_cm) ~ tl_cm*slope_ll+intercept_ll,
+               
+               # Data not available
+               is.na(lw_type) ~ NA,
+               TRUE~-9999),
+           
+           # Calculate weight in grams = a*L^b
+           weight_g = a*length_to_use^b*count,
+           
+           # Correct NA to true zeros for NO_ORG observations
+           weight_g = if_else(species_code == "NO_ORG", 0, weight_g)
+           )
+}
 
-test <- taxon_tab %>% 
-  filter(level == "group") %>% 
-  filter(!is.na(target_status)) %>% 
-  select(sciname, level, target_status, habitat)
 
-length(unique(test$sciname))
+# Calculate biomass  ----------------------------------------------------------------
 
-# Build --------------------------------------------------------------------------------
+#ccfrp_biomass <- bio_fun(params, ccfrp)
 
+#deep_biomass <- bio_fun(params, deep)
+
+#kelp_biomass <- bio_fun(params, kelp)
+
+#surf_biomass <- bio_fun(params, surf)
+
+
+# IN PROGRESS: Explore everything that's going wrong -----------------------------------
+
+test <- deep %>% 
+  distinct(year, affiliated_mpa, mpa_state_class, mpa_state_designation,
+           mpa_defacto_class, mpa_defacto_designation, dive, line_id) %>% 
+  mutate(multiple = if_else(line_id %in% line_id[duplicated(line_id)], T, F),
+         year_id = paste(year, line_id, sep = "_"),
+         multipl2 = if_else(year_id %in% year_id[duplicated(year_id)], T, F)) %>% 
+  arrange(-multiple, line_id)
+           
+test3 <- test %>% 
+  filter(multipl2) 
+
+test2 <- deep %>% 
+  filter(line_id %in% test3$line_id) %>% 
+  select(year, mpa_group, type, designation, affiliated_mpa, mpa_defacto_designation, line_id, scientific_name, count, tl_cm) %>% 
+  arrange(line_id, scientific_name, tl_cm, mpa_defacto_designation, affiliated_mpa)
+
+# Surf 
+# Need to correct the cases where they didn't measure everything in a haul
+# Length data are in tl_cm and sl_cm. Often both are included, but not always.
+# surf_explore <- surf %>% 
+#   left_join(params, by = "sciname") %>% 
+#   mutate(need_convert = case_when(lw_type == "TL" & is.na(tl_cm) ~ "Yes",
+#                                   lw_type == "SL" & is.na(sl_cm) ~ "Yes",
+#                                   lw_type == "TL" & !is.na(tl_cm) ~ "No",
+#                                   lw_type == "SL" & !is.na(sl_cm) ~ "No",
+#                                   is.na(sciname) ~ "No",
+#                                   T ~ "Review"
+#                                   ),
+#          missing_length = case_when(is.na(tl_cm) & !is.na(sl_cm) ~ "TL",
+#                                     is.na(tl_cm) & is.na(sl_cm) ~ "Both",
+#                                     !is.na(tl_cm) & is.na(sl_cm) ~ "SL",
+#                                     !is.na(tl_cm) & !is.na(sl_cm) ~ "No"),
+#          missing_params = case_when(is.na(lw_source) & !is.na(sciname) ~ "Yes",
+#                                    T~NA)) %>% 
+#   group_by(sciname, need_convert, missing_length, missing_params) %>% 
+#   summarize(n = n(),
+#             total_count = sum(count))
+# 
+# surf_na <- surf %>% 
+#   filter(is.na(sciname) & !(species_code == "NO_ORG"))
+
+# Write to csv -----------------------------------------------------------------------------
+
+# No biomass conversions have been written yet - don't want to overwrite while 
+# still troubleshooting.
+# Could save with different file names if desired.
+
+
+# OLD CODE BELOW STILL FOR REFERENCE ------------------------------------------------------------------------
+# WILL REMOVE WHEN CONFIRM CALCULATIONS ARE REASONABLE WITHOUT SIGNIFICANT ERRORS
 
 #load raw monitoring data
 ccfrp_caught_fishes <- read.csv(file.path(datadir, "/monitoring_ccfrp/CCFRP_database/CCFRP_database_2007-2020_csv/4-Caught_Fishes.csv"))%>%
