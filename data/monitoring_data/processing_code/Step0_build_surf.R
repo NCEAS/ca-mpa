@@ -86,7 +86,11 @@ data <- surf_zone_raw %>%
   mutate(total_weight_g = ifelse(species_code == "NO_ORG", 0, total_weight_g),
          total_weight_kg = ifelse(species_code == "NO_ORG", 0, total_weight_kg)) %>% 
   # Add taxa info from surf taxon table
-  left_join(taxon_tab, by = c("species_code" = "habitat_specific_code"))
+  left_join(taxon_tab, by = c("species_code" = "habitat_specific_code")) %>% 
+  # Change unidentified to match other habitats
+  mutate(species_code = case_when(species_code %in% c("unspecified", "FFUN") ~ "UNKNOWN",
+                                  is.na(species_code) & count > 0 ~ "UNKNOWN", # length data but missing species data
+                                  T~species_code))
 
 # Check taxa NAs
 taxa_na <- data %>% 
@@ -109,6 +113,6 @@ taxa_match <- data %>%
 
 
 # Write data ------------------------------------------------------------------------
-# write.csv(data, row.names = FALSE, file.path(outdir, "surf_zone_fish_processed.csv"))
-# last write 6 Sept 2023
+#write.csv(data, row.names = FALSE, file.path(outdir, "surf_zone_fish_processed.csv"))
+# last write 7 Sept 2023
 
