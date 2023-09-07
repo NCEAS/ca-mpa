@@ -88,11 +88,11 @@ data <- deep_reef_raw %>%
   mutate(mpa_name = str_remove_all(mpa_name, "_REF"),
          mpa_name = str_replace_all(mpa_name, "_", " ")) %>% 
   # Correct naming across all columns
-  mutate((across(location:designation, str_replace, 'Ano Nuevo','Año Nuevo'))) %>%
-  mutate((across(location:designation, str_replace, 'Islands','Island'))) %>%
-  mutate((across(location:designation, str_replace, 'SE ','Southeast '))) %>%
-  mutate((across(location:designation, str_replace, 'Bodega Bay','Bodega Head'))) %>%
-  mutate((across(location:designation, str_replace, 'Point St. George','Point St. George Reef Offshore'))) %>%
+  mutate(across(location:designation, str_replace, 'Ano Nuevo','Año Nuevo')) %>%
+  mutate(across(location:designation, str_replace, 'Islands','Island')) %>%
+  mutate(across(location:designation, str_replace, 'SE ','Southeast ')) %>%
+  mutate(across(location:designation, str_replace, 'Bodega Bay','Bodega Head')) %>%
+  mutate(across(location:designation, str_replace, 'Point St. George','Point St. George Reef Offshore')) %>%
   # Correct Ano Nuevo to SMR (incorrectly listed as SMCA) 
   mutate(type = if_else(mpa_group == 'Año Nuevo', "SMR", type)) %>% 
   # Create affiliated_mpa variable 
@@ -115,11 +115,16 @@ data <- deep_reef_raw %>%
   # These MPAs have both SMR and SMCA - select SMCA as secondary affiliated MPA
   mutate(secondary_mpa = if_else(type == "Reference" & mpa_group %in% c("Big Creek", "Bodega Bay", "Point Sur"),
                                  paste(mpa_group, "SMCA", sep = " "), secondary_mpa)) %>% 
-  select(year = survey_year, mpa_group:line, scientific_name, common_name, 
-         count, fish_tl = estimated_length_cm, 
-         affiliated_mpa, secondary_mpa, tertiary_mpa) %>% 
-  # Convert affilaited mpa columns to lowercase 
-  mutate((across(affiliated_mpa:tertiary_mpa, str_to_lower))) %>% 
+  # Create date columns
+  # Note: day not used b/c recorded in GMT and therefore sometimes crosses over to next day
+  mutate(survey_date = mdy(case_when(dive == 320 ~ "8/19/2006", # Use date instead of survey_year b/c sometimes survey_year is NA
+                                     dive == 332 ~ "9/1/2006",
+                                     dive == 341 ~ "9/26/2006",
+                                     TRUE~survey_date)),
+         year = year(survey_date),
+         month = month(survey_date)) %>%
+  # Convert affiliated mpa columns to lowercase 
+  mutate((across(c(affiliated_mpa, secondary_mpa, tertiary_mpa), str_to_lower))) %>% 
   # Add defacto SMRs based on affiliated_mpa
   left_join(defacto_smr_deep_reef, by = "affiliated_mpa") %>% 
   mutate(mpa_defacto_class = if_else(is.na(mpa_defacto_class) & type == "SMR", "SMR", mpa_defacto_class),
@@ -131,16 +136,21 @@ data <- deep_reef_raw %>%
   mutate(mpa_defacto_designation = if_else(is.na(mpa_defacto_designation) & mpa_state_class == "SMR", "SMR", mpa_defacto_designation)) %>% 
   # Add regions
   left_join(regions, by = "affiliated_mpa") %>% 
-  # Add taxon table 
-  # Add taxa information to data
   # Add taxa
   left_join(taxon_deep, by = c("scientific_name" = "habitat_specific_spp_name")) %>% 
-  select(year, mpa_group, type, designation, # keep these for now until confirm site treatment
+  # Assign NO_ORG for empty transects
+  mutate(species_code = case_when(is.na(scientific_name) & is.na(estimated_length_cm) ~ "NO_ORG", 
+                                  !is.na(scientific_name) & is.na(sciname) ~ "UNKNOWN", 
+                                  is.na(scientific_name) & is.na(sciname) & !is.na(estimated_length_cm) ~ "UNKNOWN", # length recorded but not identified
+                                  T~NA)) %>% 
+  mutate(sl_cm = NA) %>% # create to match other habitats
+  select(year, month,
+         mpa_group, type, designation, # keep these for now until confirm site treatment
          bioregion, region4, affiliated_mpa, secondary_mpa, tertiary_mpa,
          mpa_state_class, mpa_state_designation, mpa_defacto_class, mpa_defacto_designation,
-         line_id, dive, line, scientific_name, count, fish_tl,
+         line_id, dive, line, scientific_name, count, tl_cm = estimated_length_cm, sl_cm,
          class, order, family, genus, species, 
-         sciname, target_status, level)
+         sciname, species_code, target_status, level)
 # Note: Warning "Expected 3 Pieces" is OK (not every entry has secondary & tertiary mpa)
 
 # Check for entries with missing sciname (6 ok)
@@ -150,4 +160,24 @@ taxa_na <- data %>%
 
 # Write to CSV
 #write.csv(data, row.names = F, file.path(outdir,"/deep_reef_processed.csv"))  
-# last write 6 Sept 2023
+# last write 7 Sept 2023
+
+### EXPLORING ISSUES BELOW
+
+# Test fixing dates
+fix_dates <- data %>% 
+  distinct(survey_year, survey_date, year, month, day, line_id, dive) %>% 
+  group_by(dive) %>% 
+  summarize(n_dates = length(unique(survey_date)),
+            n_years = length(unique(year))) %>% 
+  filter(n_dates > 1 | n_years > 1)
+
+dives <- data %>% 
+  distinct(year, month, dive, line_id)
+
+test4 <- data %>% 
+  mutate(transect_id = paste(year, line_id, sep = "_")) %>% 
+  distinct(survey_year, year, month, line_id, dive, transect_id, affiliated_mpa, mpa_defacto_designation) %>% 
+  mutate(multiple = if_else(transect_id %in% transect_id[duplicated(transect_id)], T, F)) %>% 
+  filter(multiple)
+
