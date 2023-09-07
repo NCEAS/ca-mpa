@@ -49,7 +49,7 @@ surf  <- read_csv(file.path(datadir, "surf_zone_fish_processed.csv")) %>% clean_
 deep  <- read_csv(file.path(datadir, "deep_reef_processed.csv")) 
 
 ccfrp <- read_csv(file.path(datadir, "ccfrp_processed.csv")) %>% clean_names() %>% 
-  mutate(sl_cm = NA, count = 1)
+  mutate(sl_cm = NA, count = 1) # will need to make this differently for NO_ORG in ccfrp actual data
 
 kelp  <- read_csv(file.path(datadir, "kelp_processed.csv")) %>% clean_names() %>% 
   rename(tl_cm = fish_tl) %>% mutate(sl_cm = NA)
@@ -97,57 +97,46 @@ bio_fun <- function(params, data) {
 
 # Calculate biomass  ----------------------------------------------------------------
 
-#ccfrp_biomass <- bio_fun(params, ccfrp)
+ccfrp_biomass <- bio_fun(params, ccfrp)
 
-#deep_biomass <- bio_fun(params, deep)
+deep_biomass <- bio_fun(params, deep)
 
-#kelp_biomass <- bio_fun(params, kelp)
+kelp_biomass <- bio_fun(params, kelp)
 
-#surf_biomass <- bio_fun(params, surf)
+surf_biomass <- bio_fun(params, surf)
 
 
 # IN PROGRESS: Explore everything that's going wrong -----------------------------------
 
-test <- deep %>% 
+# KELP KELP
+# See kelp forest processing code for outstanding concerns
+
+
+# DEEP REEF
+# Some of the deep reef transects seem duplicated -- reference sites for
+# two mpas with same species/length list
+deep_duplicate_list <- deep %>% 
   distinct(year, affiliated_mpa, mpa_state_class, mpa_state_designation,
            mpa_defacto_class, mpa_defacto_designation, dive, line_id) %>% 
   mutate(multiple = if_else(line_id %in% line_id[duplicated(line_id)], T, F),
          year_id = paste(year, line_id, sep = "_"),
-         multipl2 = if_else(year_id %in% year_id[duplicated(year_id)], T, F)) %>% 
-  arrange(-multiple, line_id)
+         multiple2 = if_else(year_id %in% year_id[duplicated(year_id)], T, F)) %>% 
+  arrange(-multiple, line_id) %>% 
+  filter(multiple2)
+
+deep_duplicate_obs <- deep %>% 
+  filter(line_id %in% deep_duplicate_list$line_id) %>% 
+  select(year, affiliated_mpa, mpa_state_designation, line_id,
+         sciname, count, tl_cm) %>% 
+  arrange(year, line_id, sciname, count, tl_cm, affiliated_mpa)
            
-test3 <- test %>% 
-  filter(multipl2) 
+# SURF ZONE
+# Appears that some schooling species only have length measurements for 
+# the first ~ 20-30 fish, and the rest are just counted. 
+surf_missing <- surf %>% 
+  group_by(sciname) %>% 
+  summarize(missing_both = sum(is.na(tl_cm) & is.na(sl_cm)))
 
-test2 <- deep %>% 
-  filter(line_id %in% test3$line_id) %>% 
-  select(year, mpa_group, type, designation, affiliated_mpa, mpa_defacto_designation, line_id, scientific_name, count, tl_cm) %>% 
-  arrange(line_id, scientific_name, tl_cm, mpa_defacto_designation, affiliated_mpa)
-
-# Surf 
-# Need to correct the cases where they didn't measure everything in a haul
-# Length data are in tl_cm and sl_cm. Often both are included, but not always.
-# surf_explore <- surf %>% 
-#   left_join(params, by = "sciname") %>% 
-#   mutate(need_convert = case_when(lw_type == "TL" & is.na(tl_cm) ~ "Yes",
-#                                   lw_type == "SL" & is.na(sl_cm) ~ "Yes",
-#                                   lw_type == "TL" & !is.na(tl_cm) ~ "No",
-#                                   lw_type == "SL" & !is.na(sl_cm) ~ "No",
-#                                   is.na(sciname) ~ "No",
-#                                   T ~ "Review"
-#                                   ),
-#          missing_length = case_when(is.na(tl_cm) & !is.na(sl_cm) ~ "TL",
-#                                     is.na(tl_cm) & is.na(sl_cm) ~ "Both",
-#                                     !is.na(tl_cm) & is.na(sl_cm) ~ "SL",
-#                                     !is.na(tl_cm) & !is.na(sl_cm) ~ "No"),
-#          missing_params = case_when(is.na(lw_source) & !is.na(sciname) ~ "Yes",
-#                                    T~NA)) %>% 
-#   group_by(sciname, need_convert, missing_length, missing_params) %>% 
-#   summarize(n = n(),
-#             total_count = sum(count))
-# 
-# surf_na <- surf %>% 
-#   filter(is.na(sciname) & !(species_code == "NO_ORG"))
 
 # Write to csv -----------------------------------------------------------------------------
 
