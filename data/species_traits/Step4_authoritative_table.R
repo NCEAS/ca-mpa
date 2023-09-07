@@ -110,11 +110,14 @@ ccfrp_params1 <- ccfrp_params %>%
  
 # Clean up and save appropriate columns to join with fishbase parameters
 ccfrp_params2 <- ccfrp_params1 %>% 
+  mutate(type = recode(type, "DW" = "WD")) %>% 
+  # Drop cases where conversion is missing
+  filter(!(type == "SL" & is.na(slope_ll_prime))) %>% 
   # Fix scientific names
   mutate(sciname = recode(sciname,
                           "Rhacochilus vacca" = "Phanerodon vacca",
                           "Xenistius californiensis" = "Brachygenys californiensis")) %>% 
-  left_join(fishbase_params %>% select(sciname, family, genus)) %>% 
+  left_join(fishbase_params %>% select(sciname, family, genus)) %>% # add family and genus from fishbase taxa
   mutate(lw_source = "species") %>% 
   select(family, genus, sciname, lw_source,
          a = a_prime, # a_prime has been converted to cm and g as in fishbase
@@ -127,7 +130,8 @@ ccfrp_params2 <- ccfrp_params1 %>%
 # Combine parameter datasets -------------------------------------------------
 # Drop species from fishbase parameters that are already in CCFRP
 fishbase_params_subset <- fishbase_params %>% 
-  filter(!sciname %in% ccfrp_params2$sciname)
+  filter(!sciname %in% ccfrp_params2$sciname) %>% 
+  filter(!lw_type == "Unknown")
 
 # Combine fishbase subset with CCFRP data
 params <- full_join(ccfrp_params2, fishbase_params_subset)
