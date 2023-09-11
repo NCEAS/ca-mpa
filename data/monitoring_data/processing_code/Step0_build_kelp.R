@@ -78,20 +78,27 @@ data <- kelp_forest_raw %>%
   left_join(kelp_sites, by="site") %>% 
   # Join taxonomy 
   left_join(kelp_code, by = c("classcode"="habitat_specific_code")) %>% 
-  select(year, month, day, affiliated_mpa, mpa_state_class, mpa_state_designation,
-         mpa_defacto_class, mpa_defacto_designation, bioregion, region4, site, 
-         zone, level, transect, classcode, count, fish_tl, min_tl, max_tl, sciname,
+  # Modify columns to match other habitats
+  mutate(sl_cm = NA,
+         species_code = if_else(classcode == "UNID", "UNKNOWN", classcode)) %>% 
+  select(year, month, day, # temporal
+         bioregion, region4, affiliated_mpa, # spatial
+         mpa_state_class, mpa_state_designation,
+         mpa_defacto_class, mpa_defacto_designation, 
+         site, zone, level, transect, # sample
+         tl_cm = fish_tl, sl_cm, count, min_tl, max_tl,
+         species_code,  sciname, 
          kingdom, phylum, class, order, family, 
          genus, species, target_status, level)
 
 # Test taxa match -- four are OK for now (NO ORG, UNID, BAITBALL, CLUP)
 taxa_match <- data %>% 
-  select(classcode, sciname:target_status) %>% distinct() %>% 
+  select(species_code, sciname:target_status) %>% distinct() %>% 
   filter(is.na(sciname)) 
 
 # Write processed data
 # write.csv(data, file.path(outdir, "kelp_processed.csv"), row.names = F)
-# Last write 6 Sept 2023
+# Last write 11 Sept 2023
 
 # In the next script:
 # Run biomass conversion
