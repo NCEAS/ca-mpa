@@ -47,12 +47,8 @@ datadir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data"
 # Read monitoring data
 surf  <- read_csv(file.path(datadir, "surf_zone_fish_processed.csv")) %>% clean_names()
 deep  <- read_csv(file.path(datadir, "deep_reef_processed.csv")) 
-
-ccfrp <- read_csv(file.path(datadir, "ccfrp_processed.csv")) %>% clean_names() %>% 
-  mutate(sl_cm = NA, count = 1) # will need to make this differently for NO_ORG in ccfrp actual data
-
-kelp  <- read_csv(file.path(datadir, "kelp_processed.csv")) %>% clean_names() %>% 
-  rename(tl_cm = fish_tl) %>% mutate(sl_cm = NA)
+ccfrp <- read_csv(file.path(datadir, "ccfrp_processed.csv")) 
+kelp  <- read_csv(file.path(datadir, "kelp_processed.csv")) 
 
 # Read length-weight parameters
 params <- read_csv(file.path(traitsdir, "lw_parameters_fish.csv"))
@@ -90,7 +86,8 @@ bio_fun <- function(params, data) {
            weight_g = a*length_to_use^b*count,
            
            # Correct NA to true zeros for NO_ORG observations
-           weight_g = if_else(species_code == "NO_ORG", 0, weight_g)
+           weight_g = case_when(species_code == "NO_ORG" ~ 0,
+                                T ~ weight_g)
            )
 }
 
@@ -105,14 +102,34 @@ kelp_biomass <- bio_fun(params, kelp)
 
 surf_biomass <- bio_fun(params, surf)
 
+# RUN UP TO THIS POINT TO HAVE CORRECT DATAFRAMES FOR STEP 2
+# RUN THIS ROW IF YOU WANT A CLEANER WORKSPACE FOR STEP 2
+#rm(ccfrp, deep, kelp, surf)
 
 # IN PROGRESS: Explore everything that's going wrong -----------------------------------
 
+# CCFRP
+# Check cases where there is length and species info but no biomass calculation
+# No problems so far!
+test_ccfrp <- ccfrp_biomass %>% 
+  filter(is.na(weight_g)) %>% 
+  filter(!is.na(tl_cm))
+
+
 # KELP KELP
-# See kelp forest processing code for outstanding concerns
+# See kelp forest processing code for outstanding concerns --
+# Check cases where there is length and species info but no biomass calculation
+# Added these species to list 
+test_kelp <- kelp_biomass %>% 
+  filter(is.na(weight_g) & ! is.na(tl_cm)) %>% 
+  distinct(sciname, species_code, target_status)
 
 
 # DEEP REEF
+# Waiting for revised target status from Rick -- update will go in processing
+# Waiting for revised mpa_designation from Rick -- update will go in processing
+
+# Waiting for info about duplication from Rick:
 # Some of the deep reef transects seem duplicated -- reference sites for
 # two mpas with same species/length list
 deep_duplicate_list <- deep %>% 
@@ -129,6 +146,12 @@ deep_duplicate_obs <- deep %>%
   select(year, affiliated_mpa, mpa_state_designation, line_id,
          sciname, count, tl_cm) %>% 
   arrange(year, line_id, sciname, count, tl_cm, affiliated_mpa)
+
+# Check cases where there is length and species info but no biomass calculation
+# Added these species to the list
+test_deep <- deep_biomass %>% 
+  filter(is.na(weight_g) & ! is.na(tl_cm)) %>% 
+  distinct(sciname, species_code, target_status)
            
 # SURF ZONE
 # Appears that some schooling species only have length measurements for 
@@ -137,12 +160,59 @@ surf_missing <- surf %>%
   group_by(sciname) %>% 
   summarize(missing_both = sum(is.na(tl_cm) & is.na(sl_cm)))
 
+# Check cases where there is length and species info but no biomass calculation
+# Added these species to the list
+test_surf <- surf_biomass %>% 
+  filter(is.na(weight_g) & !(is.na(tl_cm) & is.na(sl_cm))) %>% 
+  distinct(sciname, species_code)
+  
 
 # Write to csv -----------------------------------------------------------------------------
 
 # No biomass conversions have been written yet - don't want to overwrite while 
 # still troubleshooting.
 # Could save with different file names if desired.
+
+# Exploring some things for step 2 -----------------------------------------------------------------------------
+
+# CCFRP -----------------------------------------------------
+
+# Calculated biomass per unit effort (trip-cell)
+ccfrp_bpue <- ccfrp_biomass %>% 
+  select(year, affiliated_mpa, 
+         mpa_defacto_class, mpa_defacto_designation,
+         id_cell_per_trip, species_code, sciname, target_status,
+         total_angler_hrs_cell, weight_g) %>% 
+  filter(!is.na(weight_g)) %>% 
+  # Calculate biomass per unit effort (trip-cell)
+  mutate(bpue = weight_g/total_angler_hrs_cell)
+
+# Calculate the total targeted/non-targeted BPUE for each trip-cell
+ccfrp_trip <- ccfrp_bpue %>%
+  filter(!is.na(target_status)) %>% # drop for now
+  group_by(year, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation, 
+           id_cell_per_trip, target_status) %>% 
+  # Calculated total bpue for targeted and nontargeted species for each trip
+  summarize(total_bpue = sum(bpue, na.rm = T)) %>% ungroup()
+
+ccfrp_summary <- ccfrp_trip %>%    
+  group_by(year, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation,
+           target_status) %>% 
+  summarize(mean_bpue = mean(total_bpue),
+            n_rep = n(),
+            sd = sd(total_bpue, na.rm=TRUE),
+            se = sd/sqrt(n_rep)) %>% 
+  filter(!(mpa_defacto_class == "smca")) %>%  # drop smcas
+  filter(!(target_status == "Nontargeted")) %>% # drop nontargeted (for now)
+  filter(!(affiliated_mpa == "trinidad NA")) %>% # drop trinidad
+  pivot_wider(names_from = "mpa_defacto_designation",
+              values_from = c(mean_bpue, n_rep, sd, se)) %>% 
+  mutate(habitat = "shallow reef")
+
+# Kelp -----------------------------------------------------
+
+
+
 
 
 # OLD CODE BELOW STILL FOR REFERENCE ------------------------------------------------------------------------
