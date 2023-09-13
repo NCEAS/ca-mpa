@@ -44,7 +44,8 @@ datadir <- "/home/shares/ca-mpa/data/sync-data/monitoring/monitoring_deep-reef/R
 outdir <-  "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data"
 
 # Read deep reef monitoring data ---------------------------------------------
-deep_reef_raw <- read.csv(file.path(datadir, "/ROVLengths2005-2019Merged-2021-02-02SLZ.csv"), na = c("N/A", "", " ")) %>% 
+deep_reef_raw <- read_csv(file.path(datadir, "/ROVLengths2005-2019Merged-2021-02-02SLZ.csv"), 
+                          na = c("N/A", "", " ")) %>% 
   clean_names() 
 
 # This is their site table from DataOne but it is incomplete given sites in the data
@@ -52,7 +53,7 @@ deep_reef_raw <- read.csv(file.path(datadir, "/ROVLengths2005-2019Merged-2021-02
 
 # Read additional data ----------------------------------------------------------------
 # Read taxonomy table 
-taxon_deep <- read.csv("/home/shares/ca-mpa/data/sync-data/species_traits/processed/species_key.csv") %>% 
+taxon_deep <- read_csv("/home/shares/ca-mpa/data/sync-data/species_traits/processed/species_key.csv") %>% 
   clean_names() %>% 
   filter(habitat == "Deep reef")
 
@@ -65,7 +66,8 @@ regions <- readRDS("/home/shares/ca-mpa/data/sync-data/mpa_traits/processed/mpa_
 defacto_smr_deep_reef <- readxl::read_excel("/home/shares/ca-mpa/data/sync-data/mpa_traits/mpa-attributes.xlsx", sheet = 5, skip = 0, na = "NA") %>% 
   filter(group=="deep_reef") %>%
   dplyr::select(affiliated_mpa, mpa_defacto_class = mpa_class) %>% 
-  mutate(affiliated_mpa = recode(affiliated_mpa, "ano nuevo smr" = "año nuevo smr")) 
+  mutate(affiliated_mpa = recode(affiliated_mpa, "ano nuevo smr" = "año nuevo smr"),
+         mpa_defacto_class = tolower(mpa_defacto_class)) 
 
 # Build Data ------------------------------------------------------------------------
 # Secondary/Tertiary Naming Correction:
@@ -142,8 +144,13 @@ data <- deep_reef_raw %>%
   mutate(species_code = case_when(is.na(scientific_name) & is.na(estimated_length_cm) ~ "NO_ORG", 
                                   !is.na(scientific_name) & is.na(sciname) ~ "UNKNOWN", 
                                   is.na(scientific_name) & is.na(sciname) & !is.na(estimated_length_cm) ~ "UNKNOWN", # length recorded but not identified
-                                  T~NA)) %>% 
-  mutate(sl_cm = NA) %>% # create to match other habitats
+                                  T ~ NA)) %>% 
+  mutate(sl_cm = NA,# create to match other habitats
+         mpa_defacto_designation = str_to_lower(mpa_defacto_designation), # lower to match other habitats
+         mpa_defacto_class = str_to_lower(mpa_defacto_class)) %>% 
+  # Fix dive with error
+  mutate(dive = if_else(scientific_name == "Sebastes mystinus or diaconus" & line_id == "143_1", "143", dive)) %>% 
+  mutate(dive = if_else(scientific_name == "Young of year (<10 cm Sebastes sp.)" & line_id == "141_780", "141", dive)) %>% 
   select(year, month,
          mpa_group, type, designation, # keep these for now until confirm site treatment
          bioregion, region4, affiliated_mpa, secondary_mpa, tertiary_mpa,
@@ -160,24 +167,19 @@ taxa_na <- data %>%
 
 # Write to CSV
 #write.csv(data, row.names = F, file.path(outdir,"/deep_reef_processed.csv"))  
-# last write 7 Sept 2023
+# last write 13 Sept 2023
 
 ### EXPLORING ISSUES BELOW
-
-# Test fixing dates
-fix_dates <- data %>% 
-  distinct(survey_year, survey_date, year, month, day, line_id, dive) %>% 
-  group_by(dive) %>% 
-  summarize(n_dates = length(unique(survey_date)),
-            n_years = length(unique(year))) %>% 
-  filter(n_dates > 1 | n_years > 1)
 
 dives <- data %>% 
   distinct(year, month, dive, line_id)
 
 test4 <- data %>% 
   mutate(transect_id = paste(year, line_id, sep = "_")) %>% 
-  distinct(survey_year, year, month, line_id, dive, transect_id, affiliated_mpa, mpa_defacto_designation) %>% 
+  distinct(year, month, line_id, dive, transect_id, affiliated_mpa, mpa_defacto_designation) %>% 
   mutate(multiple = if_else(transect_id %in% transect_id[duplicated(transect_id)], T, F)) %>% 
   filter(multiple)
+
+test <- data %>% 
+  filter(species_code == "NO_ORG")
 
