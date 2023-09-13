@@ -42,7 +42,8 @@ regions <- readRDS("/home/shares/ca-mpa/data/sync-data/mpa_traits/processed/mpa_
 # Read de-facto SMRs
 defacto_smr_surf <- readxl::read_excel("/home/shares/ca-mpa/data/sync-data/mpa_traits/mpa-attributes.xlsx", sheet = 5, skip = 0, na = "NA") %>%
   filter(group == "surf") %>%
-  dplyr::select(affiliated_mpa, mpa_defacto_class = mpa_class)
+  dplyr::select(affiliated_mpa, mpa_defacto_class = mpa_class) %>% 
+  mutate(mpa_defacto_class = str_to_lower(mpa_defacto_class))
 
 
 # Process Data ------------------------------------------------------------------------
@@ -54,8 +55,8 @@ pairs <- surf_zone_raw %>%
   dplyr::select(site_code, site_type, mpa_name_short, affiliated_mpa, site_pair, mpa_status, mpa_type) %>% 
   distinct() %>%
   # Surf zone called any SMR or SMCA a 'MPA', so use the affiliated_mpa name to identify the state class 
-  mutate(mpa_state_class = word(affiliated_mpa, -1),
-         mpa_state_designation = ifelse(mpa_status == "Reference", "ref", tolower(mpa_state_class))) %>% 
+  mutate(mpa_state_class = tolower(word(affiliated_mpa, -1)),
+         mpa_state_designation = ifelse(mpa_status == "Reference", "ref", mpa_state_class)) %>% 
   # Creat column that notes that the reference is an SMCA - 6 in surf zone
   mutate(ref_is_mpa = if_else(mpa_status == "Reference" & !(mpa_name_short == ""), "yes", "no"))
 
@@ -114,5 +115,5 @@ taxa_match <- data %>%
 
 # Write data ------------------------------------------------------------------------
 #write.csv(data, row.names = FALSE, file.path(outdir, "surf_zone_fish_processed.csv"))
-# last write 7 Sept 2023
+# last write 13 Sept 2023
 
