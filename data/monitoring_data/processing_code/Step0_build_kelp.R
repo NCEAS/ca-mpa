@@ -15,10 +15,11 @@
 # Note potential concerns for next steps:
 # - Some sites have no affiliated MPA (Yellowbanks, Valley, Trinidad)
 # - No sciname for "UNID" and "BAITBALL" data (baitball are perciformes; 109 observations)
-# - Counts with no length data (113 observations)
+#   these will eventually be dropped from analyses
+# - Counts with no length data (113 observations) will eventually be dropped from analyses
 # - Matching taxa: how do we want to treat Clupeiformes spp? Right now this entry is
 #   the only one that is identified to the Order level, so may make most sense to 
-#   group it with other unspecified categories? (confirm with JS)
+#   group it with other unspecified categories? (awaiting to confirm with JS)
 
 # Setup --------------------------------------------------------------------------------
 rm(list=ls())
@@ -89,7 +90,10 @@ data <- kelp_forest_raw %>%
          tl_cm = fish_tl, sl_cm, count, min_tl, max_tl,
          species_code,  sciname, 
          kingdom, phylum, class, order, family, 
-         genus, species, target_status, level)
+         genus, species, target_status, level) %>% 
+  # PI (Jenn Caselle) recommends drop 1999, "year of figuring things out" and 
+  # there are some concerning entries where there are both NO_ORG and species recorded
+  filter(!(year == 1999)) 
 
 # Test taxa match -- four are OK for now (NO ORG, UNID, BAITBALL, CLUP)
 taxa_match <- data %>% 
@@ -97,10 +101,7 @@ taxa_match <- data %>%
   filter(is.na(sciname)) 
 
 # Write processed data
-# write.csv(data, file.path(outdir, "kelp_processed.csv"), row.names = F)
-# Last write 11 Sept 2023
+write.csv(data, file.path(outdir, "kelp_processed.csv"), row.names = F)
+# Last write 11 October 2023
 
-# In the next script:
-# Run biomass conversion
-# Convert grams to kilogram (total_biom_kg = total_biom_g/1000)
   
