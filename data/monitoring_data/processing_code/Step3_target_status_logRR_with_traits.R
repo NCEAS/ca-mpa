@@ -15,7 +15,8 @@ tab_dir <- here::here("analyses","1performance_eco","tables")
 dat_path <- here::here("analyses","1performance_eco","output")
 
 # Load biomass data 
-biomass_raw <- read.csv(file.path(biomass_dat,"targeted_nontargeted_biomass_MPA_means.csv"))
+#biomass_raw <- read.csv(file.path(biomass_dat,"targeted_nontargeted_biomass_MPA_means.csv"))
+biomass_raw <- read_csv(file.path(biomass_dat, "target_status_biomass_MPA_means.csv"))
 
 # Load MPA traits
 #load habitat data
@@ -109,10 +110,10 @@ left_join(settlement_join, by = c("habitat","affiliated_mpa"))  %>%
 
 
 
+# Old Version - Do Not Overwrite
+#saveRDS(biomass_with_mods, file = file.path(dat_path,"biomass_with_moderators.Rds"))
 
-saveRDS(biomass_with_mods, file = file.path(dat_path,"biomass_with_moderators.Rds"))
-
-
+saveRDS(biomass_with_mods, file.path(dat_path, "biomass_with_moderators_temp.Rds"))
 
 
 
