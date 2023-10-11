@@ -9,6 +9,9 @@
 # - Identify taxononmic level for each entry (species, genus, family)
 # - Export as species_key.csv
 
+# This script also brings in the length-weight parameters from fishbase, using
+# the corrected species key.
+# - Export as: "species_lw_parameters_from_fishbase_full_new.csv"
 
 # Setup ------------------------------------------------------------------------------
 
@@ -219,4 +222,4 @@ lw <- plyr::rbind.fill(lw_fb, lw_slb) %>%
 
 # Write length weight parameters to csv ----------------------------------------------------------
 #write.csv(lw, file=file.path(datadir, "species_lw_parameters_from_fishbase_full_new.csv"), row.names = F)
-
+# last write Oct 11, 2023

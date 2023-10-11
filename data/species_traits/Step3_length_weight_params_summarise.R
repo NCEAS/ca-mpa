@@ -161,21 +161,7 @@ data <- spp_fish %>%
   select(family, genus, sciname, lw_source, a, b, lw_type = type, slope_ll, intercept_ll)
 
 # Export data
-# Currently still not overwriting old files:
-#write.csv(data, file=file.path(datadir, "fishbase_lw_parameters_by_species.csv"), row.names = F)
-
 write.csv(data, file=file.path(datadir, "fishbase_lw_parameters.csv"), row.names = F)
-
-# NOTE: Don't do this, because will use CCFRP first then fishbase in next step
-# # Add LW to species key based on sciname 
-# ################################################################################
-# 
-# data2 <- spp_orig %>%
-#   # Add LW params
-#   left_join(data) 
-# 
-# # Export data
-# write.csv(data2, file=file.path(datadir, "species_key_with_lw.csv"), row.names = F)
 
 
 

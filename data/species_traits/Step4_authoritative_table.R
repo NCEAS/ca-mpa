@@ -138,6 +138,7 @@ params <- full_join(ccfrp_params2, fishbase_params_subset)
 
 # Write to csv
 write.csv(params, file.path(datadir, "processed/lw_parameters_fish.csv"), row.names = F)
+# last write Oct 11 2023
 
 # Still not overwriting original files
 #write.csv(params_tab, file.path(datadir, "processed/fish_lw_parameters_by_species.csv"),row.names = FALSE)

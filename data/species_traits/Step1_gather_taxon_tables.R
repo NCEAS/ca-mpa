@@ -1,13 +1,8 @@
-rm(list=ls())
+# Gather and process taxonomy tables for each habitat
+# Cori Lopazanski
+# August 2023
 
-library(janitor)
-require(dplyr)
-require(stringr)
-require(tidyr)
-
-export_path <- "/home/shares/ca-mpa/data/sync-data/species_traits/processed"
-
-################################################################################
+# About --------------------------------------------------------------------------------
 # This script gathers all of the taxanomoy tables from Surf Zone, Rocky Intertidal,
 # Kelp Forest, CCFRP, and Deep Reef. 
 
@@ -18,18 +13,32 @@ export_path <- "/home/shares/ca-mpa/data/sync-data/species_traits/processed"
 # Taxa should not be duplicated within a habitat (distinct rows only), but
 # they may be duplicated across habitats at this stage. We need to keep track
 # of habitat specific codes so that we can join the taxonomy with each habitat's raw data. 
+# Note that there may appear to be duplicates, but these would be to correct misspelings and
+# other character issues.
 
-################################################################################
-#load taxonomy tables
+# OUTPUT: full_taxon_table_new.csv
+
+# Setup --------------------------------------------------------------------------------
+
+rm(list=ls())
+
+library(janitor)
+require(dplyr)
+require(stringr)
+require(tidyr)
+
+export_path <- "/home/shares/ca-mpa/data/sync-data/species_traits/processed"
+
+# Load taxonomy tables ------------------------------------------------------------------
 
 # Surf zone has multiple sampling methods each with a unique taxonomy table. 
 # We are only using the seine data so will load that table only. 
 
 surf_taxon1 <- read.csv(file.path("/home/shares/ca-mpa/data/sync-data/monitoring/taxonomy_tables","surf_zone_fish_seine_species.csv"))
 
-##Rocky intertidal has two survey types (biodiversity and long term) each with 
-#a unique taqxonomy table. We are only using the long term data here so will
-#not load the biodiversity table for now. 
+# Rocky intertidal has two survey types (biodiversity and long term) each with 
+# a unique taqxonomy table. We are only using the long term data here so will
+# not load the biodiversity table for now. 
 rocky_taxon1 <- readxl::read_excel(
   file.path("/home/shares/ca-mpa/data/sync-data/monitoring/taxonomy_tables","RockyIntertidal-LongTerm-Taxonomy.xlsx"), 
   sheet=1, skip = 0, na=c("NA", "", "NULL"))
@@ -43,7 +52,6 @@ kelp_taxon1 <-readxl::read_excel(
 ccfrp_taxon1 <- readxl::read_excel(
   file.path("/home/shares/ca-mpa/data/sync-data/monitoring/taxonomy_tables/CCFRP_Taxonomy.xlsx"), 
   sheet=2, skip = 0, na=c("NA", "?"))
-
 
 # Full taxonomy for all methods
 data_path <- "/home/shares/ca-mpa/data/sync-data/monitoring/taxonomy_tables"
@@ -59,8 +67,7 @@ deep_reef_data <- read.csv(
   na = c("N/A", "", " ")) %>% clean_names() 
 
 
-################################################################################
-#clean surf zone
+# Clean surf zone ------------------------------------------------------------------
 
 surf_taxon <- surf_taxon1 %>%
   mutate(habitat = "Surf Zone") %>%
@@ -77,7 +84,7 @@ surf_taxon <- surf_taxon1 %>%
   # Drop the NA row with no species info
   filter(!is.na(habitat_specific_code)) 
 
-#add rows that are in the raw data but not in the taxonomy table
+# add rows that are in the raw data but not in the taxonomy table
 HALI <-  data.frame(
     habitat = "Surf Zone", 
     habitat_specific_code = "HALI",
@@ -139,8 +146,8 @@ surf_taxon <- rbind(surf_taxon, HALI, unspecified, RFYOY, FFUN)
 surf_taxon$Species[surf_taxon$Species %in% c("sp.", "spp")] <- NA
 surf_taxon$Genus[surf_taxon$Genus == surf_taxon$Family] <- NA
 
-################################################################################
-#clean rocky intertidal
+# Clean rocky intertidal ------------------------------------------------------------------
+
 rocky_taxon <- rocky_taxon1 %>%
   mutate(habitat = "Rocky intertidal",
          target_status = NA) %>%
@@ -155,8 +162,8 @@ rocky_taxon <- rocky_taxon1 %>%
 rocky_taxon$Phylum <-  gsub("[()]", "", rocky_taxon$Phylum)  
 rocky_taxon$Species <-  gsub("[()]", "", rocky_taxon$Species)  
 
-################################################################################
-#clean kelp forest
+
+# Clean kelp forest -----------------------------------------------------------------
 kelp_taxon <- kelp_taxon1 %>%
               mutate(habitat = "Kelp forest") %>%
                 dplyr::select(habitat, habitat_specific_code = "pisco_classcode", habitat_specific_spp_name = "ScientificName_accepted",
@@ -176,8 +183,8 @@ kelp_taxon$Genus[kelp_taxon$Genus == kelp_taxon$Order] <- NA
 kelp_taxon$Genus[kelp_taxon$Genus == kelp_taxon$Class] <- NA
 
 
-################################################################################
-#clean CCFRP
+
+# Clean CCFRP ----------------------------------------------------------------------
 
 CCFRP_taxon <- ccfrp_taxon1%>%
   mutate(habitat = "Rocky reef")%>%
@@ -185,10 +192,17 @@ CCFRP_taxon <- ccfrp_taxon1%>%
                 Kingdom, Phylum, Class, Order, Family, Genus, Species = species, target_status=Fished) %>%
   distinct() %>% 
   mutate(across(everything(), str_trim)) %>% 
-  mutate(Species = recode(Species, "diaconua" = "diaconus"))
+  mutate(Species = recode(Species, "diaconua" = "diaconus")) %>% 
+  mutate(target_status = case_when(habitat_specific_spp_name == "Atherinops affinis" ~ "targeted", # targeted in surf zone
+                                   habitat_specific_spp_name == "Atherinopsidae spp" ~ "nontargeted", # nontargeted in kelp forest
+                                   habitat_specific_spp_name == "Atherinopsis californiensis" ~ "targeted", #not in other habitats
+                                   habitat_specific_spp_name == "Pteroplatytrygon violate" ~ "nontargeted", # not in other habitats but its a stingray...
+                                   habitat_specific_spp_name == "Squalus acanthias" ~ "targeted", # targeted in deep and kelp
+                                   T~target_status))
 
-################################################################################
-#clean Deep reef
+
+# Clean Deep reef ---------------------------------------------------------------------
+
 # Extract taxonomy from deep reef data that's missing in taxon table
 # (Some are new species, some are misspellings of known species)
 deep_reef_data_taxa <- deep_reef_data %>% 
@@ -273,7 +287,7 @@ deep_reef_taxon2 <- deep_reef_taxon1%>%
                                                   "pinniger or miniatus",
                                                   "serranoides or flavidus"), "Targeted", target_status))
 
-# Test to confirm remaining fixes
+# Test to confirm remaining fixes - should be 16 here
 deep_reef_fix <- deep_reef_taxon2 %>% 
   filter(grepl("\\s|[^A-Za-z0-9]", Species)) %>% 
   mutate(test_species = if_else(Genus %in% c("Sebastes", "Solaster", "Pisaster") &
@@ -284,17 +298,56 @@ deep_reef_fix <- deep_reef_taxon2 %>%
 # -- All cases where Genus is (Sebastes, Solaster, Pisaster) can be converted to NA (will ultimately be sciname: Genus spp))
 # -- All other remaining cases are not confirmed to one genus and should revert to family (Genus & Species go to NA, will become Family spp)
 
-deep_reef_taxon <- deep_reef_taxon2 %>% 
+deep_reef_taxon3 <- deep_reef_taxon2 %>% 
   mutate(Species = if_else((Genus %in% c("Sebastes", "Solaster", "Pisaster") & grepl("\\s|[^A-Za-z0-9]", Species)), NA, Species)) %>% 
   mutate(Genus = if_else(grepl("\\s|[^A-Za-z0-9]", Species), NA, Genus)) %>% 
   mutate(Species =  if_else(grepl("\\s|[^A-Za-z0-9]", Species), NA, Species)) 
 
 # Confirm that there are no more changes to fix
-deep_reef_fix <- deep_reef_taxon %>% 
+deep_reef_fix <- deep_reef_taxon3 %>% 
   filter(grepl("\\s|[^A-Za-z0-9]", Genus)|grepl("\\s|[^A-Za-z0-9]", Species))
 
-deep_reef_taxon$Species[deep_reef_taxon$Species == "spp"] <- NA
+deep_reef_taxon3$Species[deep_reef_taxon3$Species == "spp"] <- NA
 
+# Check missing target status - several are missing target status, this data will show
+# 170, but many of these are not fishes and therefore not included in the analyses. We 
+# shared the list of missing target status for fishes with Rick Starr, and he provided the
+# correction for each of the species in September 2023. 
+deep_missing_target <- deep_reef_taxon3 %>% filter(is.na(target_status))
+
+# List nontargeted species as classified by Rick - these names will match those provided
+# in the deep reef raw dataset (may be incorrect/misspelled - LEAVE AS IS)
+nontargeted_list <- c("Apristurus brunneus", "Entosphenus tridentatus", "Gibbonsia metzi",
+                      "Rhinogobiops nicholsii", "Torpedo california",
+                      "Torpedo californica", "Unidentified Agonidae", "Unidentified Cottidae",
+                      "Unidentified fish", "Unidentified Gadidae", "Unidentified Gobiidae",
+                      "Unidentified Macrouridae", "Unidentified small benthic fish",
+                      "Unidentified Zoarcidae", "Zaniolepis frenata or latipinnis",
+                      "Zaniolepis Spp.", "Zaniolepis spp.")
+
+# List targeted species as classified by Rick
+targeted_list <- c("Beringraja binoculata","Beringraja rhina", "Hyperprosopon ellipticum",
+                   "Lycodes pacificus", "Pegusa lascaris", "Pleuronectidae spp.",
+                   "Raja inornata", "Schooling (10-15 cm Sebastes sp.)", "Scorpaena guttata", 
+                   "Sebastes aurora", "Sebastes aurora or diploproa", "Sebastes borealis", 
+                   "Sebastes crameri", "Sebastes crocotulus", "Sebastes diploproa", 
+                   "Sebastes ensifer", "Sebastes goodei", "Sebastes hopkinsi or entomelas", 
+                   "Sebastes lentiginosus", "Sebastes letiginosus", "Sebastes melanops or mystinus or diaconus", 
+                   "Sebastes melanostomus", "Sebastes mystinus or diaconus", "Sebastes simulator", 
+                   "Sebastolobus alascanus or altivelis", "Synodus lucioceps or Ophiodon elongatus", 
+                   "Unidentified Citharichthys sp.", "Unidentified Elasmobranchii (ray)", 
+                   "Unidentified Embiotocidae", "Unidentified Hexagrammos sp.", "Unidentified Osmeridae", 
+                   "Unidentified Pleuronectidae", "Unidentified Raja sp.", "Unidentified schooling pelagic fish", 
+                   "Unidentified Sciaenidae", "Unidentified Scorpaenidae", "Unidentified Sebastes sp.", 
+                   "Unidentified Sebastomus sp.")
+  
+# Update the target status 
+deep_reef_taxon <- deep_reef_taxon3 %>% 
+  mutate(target_status = case_when(is.na(target_status) & habitat_specific_spp_name %in% nontargeted_list ~ "nontargeted",
+                                   is.na(target_status) & habitat_specific_spp_name %in% targeted_list ~ "targeted",
+                                   T~target_status))
+
+deep_missing_target <- deep_reef_taxon %>% filter(is.na(target_status)) # 115 left
 
 ################################################################################
 #merge
