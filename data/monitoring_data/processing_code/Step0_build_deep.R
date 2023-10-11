@@ -45,8 +45,7 @@ outdir <-  "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data"
 
 # Read deep reef monitoring data ---------------------------------------------
 deep_reef_raw <- read_csv(file.path(datadir, "/ROVLengths2005-2019Merged-2021-02-02SLZ.csv"), 
-                          na = c("N/A", "", " ")) %>% 
-  clean_names() 
+                          na = c("N/A", "", " ")) %>% clean_names() 
 
 # This is their site table from DataOne but it is incomplete given sites in the data
 #deep_reef_sites <- readxl::read_excel(file.path(datadir, "/MidDepth_ROV_Site_Table.xlsx")) %>% clean_names()
@@ -70,7 +69,7 @@ defacto_smr_deep_reef <- readxl::read_excel("/home/shares/ca-mpa/data/sync-data/
          mpa_defacto_class = tolower(mpa_defacto_class)) 
 
 # Build Data ------------------------------------------------------------------------
-# Secondary/Tertiary Naming Correction:
+# Note: keeping this description for clarity but have confirmed will only use primary (Sept 2023)
 # Names are not always consistently listed in order -- create primary, secondary, tertiary as follows:
 # - When there is only one mpa_name given, it always matches the mpa_group + type listed 
 # - If no mpa_name is given, the affiliated_mpa is the mpa_group + type listed with no secondary
@@ -97,7 +96,7 @@ data <- deep_reef_raw %>%
   mutate(across(location:designation, str_replace, 'Point St. George','Point St. George Reef Offshore')) %>%
   # Correct Ano Nuevo to SMR (incorrectly listed as SMCA) 
   mutate(type = if_else(mpa_group == 'Año Nuevo', "SMR", type)) %>% 
-  # Create affiliated_mpa variable 
+  # Create affiliated_mpa variable - confirmed in Sept 2023 that will only use primary!
   mutate(affiliated_mpa = 
            case_when(type %in% c("SMCA", "SMR") ~ paste(mpa_group, type, sep = " "),
                      # Provide the full affiliated MPA name for sites called "Reference"
@@ -126,7 +125,7 @@ data <- deep_reef_raw %>%
          year = year(survey_date),
          month = month(survey_date)) %>%
   # Convert affiliated mpa columns to lowercase 
-  mutate((across(c(affiliated_mpa, secondary_mpa, tertiary_mpa), str_to_lower))) %>% 
+  mutate((across(c(affiliated_mpa, secondary_mpa, tertiary_mpa), \(x) str_to_lower(x)))) %>% 
   # Add defacto SMRs based on affiliated_mpa
   left_join(defacto_smr_deep_reef, by = "affiliated_mpa") %>% 
   mutate(mpa_defacto_class = if_else(is.na(mpa_defacto_class) & type == "SMR", "SMR", mpa_defacto_class),
@@ -174,7 +173,7 @@ taxa_na <- data %>%
 dives <- data %>% 
   distinct(year, month, dive, line_id)
 
-test4 <- data %>% 
+duplicates <- data %>% 
   mutate(transect_id = paste(year, line_id, sep = "_")) %>% 
   distinct(year, month, line_id, dive, transect_id, affiliated_mpa, mpa_defacto_designation) %>% 
   mutate(multiple = if_else(transect_id %in% transect_id[duplicated(transect_id)], T, F)) %>% 
