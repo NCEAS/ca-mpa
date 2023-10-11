@@ -17,8 +17,8 @@
 # - Don't drop any species at this stage, including unidentified/unknown species. We will 
 #   do this in the next processing step.
 
-# - For biomass conversion estimates, we elected to use parameters listed by the kelp
-#   forest monitoring group, who conducted a literature review for dozens of species. Since the 
+# - For biomass conversion estimates, we elected to use parameters listed by the rocky reef
+#   monitoring group, who conducted a literature review for dozens of species. Since the 
 #   list is not comprehensive for species found in all other habitats, we added parameters
 #   from fish base. The processing script for this is available here:
 #   https://github.com/NCEAS/ca-mpa/tree/main/data/species_traits
@@ -114,8 +114,7 @@ rm(ccfrp, deep, kelp, surf)
 # Check cases where there is length and species info but no biomass calculation
 # No problems so far!
 test_ccfrp <- ccfrp_biomass %>% 
-  filter(is.na(weight_g)) %>% 
-  filter(!is.na(tl_cm))
+  filter(is.na(weight_g) & !is.na(tl_cm)) # 22 with no species info
 
 
 # KELP KELP

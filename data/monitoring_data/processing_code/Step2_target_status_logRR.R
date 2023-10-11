@@ -65,6 +65,7 @@ surf_effort <- surf_biomass %>%
   arrange(year, month, day, affiliated_mpa, mpa_defacto_designation, haul_number)
 
 # Compare effort to see how many hauls are dropped when NAs excluded above
+# one full haul is dropped (918 to 917)
 surf_effort_drop <- surf_zone_raw %>% 
   distinct(year, month, day, affiliated_mpa, mpa_defacto_designation, haul_number)
   
@@ -90,12 +91,8 @@ surf_build1 <- surf_zone_raw %>%
 # Calculate MPA average and error
 surf_build2 <- surf_build1 %>%
   #leave out haul number to take the average across hauls for a given MPA
-  group_by(year,
-           #bioregion, region4,
-           affiliated_mpa,
-           mpa_defacto_class,
-           mpa_defacto_designation,
-           target_status) %>%
+  group_by(year, affiliated_mpa, mpa_defacto_class,
+           mpa_defacto_designation, target_status) %>%
   summarize(
     biomass = mean(total_biomass_kg),
     n_rep = n(),
@@ -117,21 +114,21 @@ surf_build3 <- surf_build2 %>%
 ## Kelp Forest --------------------------------------------------------------------------------------------
 
 # Identify distinct transects in full dataset (before NAs dropped)
-# 71109
+# 70563 
 kelp_effort_transect <- kelp_biomass %>% 
   distinct(year, month, day, site, # need this to get actual individual transects - updated by CL
            affiliated_mpa, mpa_defacto_class, mpa_defacto_designation,
            zone, level, transect) 
 
 # Identify distinct transects after NAs dropped (for subsequent analyses)
-# 68982
+# 68436
 kelp_effort_transect_drop <- kelp_raw %>% 
   distinct(year, month, day, site, # need this to get actual individual transects - updated by CL
            affiliated_mpa, mpa_defacto_class, mpa_defacto_designation,
            zone, level, transect) %>% 
   arrange(year, month, day, site, affiliated_mpa, mpa_defacto_designation, zone, level, transect) # Could then group to calculate transects; not needed yet
 
-# calculate effort as n transects per MPA year (individually for smr and ref)
+# calculate effort as n transects per MPA year (separately for smr and ref)
 kelp_effort_mpa <- kelp_effort_transect_drop %>% 
   group_by(year, affiliated_mpa, mpa_defacto_class,  mpa_defacto_designation) %>% 
   summarize(n_rep = n()) # for comparison later
@@ -145,8 +142,10 @@ kelp_build1 <- kelp_raw %>% # updated by CL - filter separately
   summarise(total_biomass = sum(weight_kg)) %>%
   # Widen to inspect and correct true zeroes
   pivot_wider(names_from = target_status, values_from = total_biomass) %>%
-  # There are 127 transects where there are both species listed and an entry for "NO_ORG" (see google doc for notes/data)
-  # Assume that the NO_ORG was entered incorrectly (for now) and remove these cases
+  # There are 6 transects where there are both species listed and an entry for "NO_ORG" 
+  # Can check by stopping here and running: 
+  #filter(!is.na(NO_ORG) & (!is.na(Targeted) | !is.na(Nontargeted)))
+  # Assume that the NO_ORG was entered incorrectly and fully remove these cases
   filter(is.na(NO_ORG) | # keep transects where there's no NO_ORG entry
            (!is.na(NO_ORG) & is.na(Targeted) & is.na(Nontargeted))) %>%  # OR where NO_ORG = 0 and there are no other species listed
   # Drop NO_ORG column
@@ -184,13 +183,9 @@ kelp_build3 <- kelp_build2 %>%
          sd_smr, sd_ref,se_smr, se_ref)
 
 
-####NOTE
-#THESE Sites have missing reference sites for ALL years, indicating there might
-#be an issue with the pair
-
-### I THINK I FIXED THIS 08/09.2023 -JS
-## ARE YOU SURE? Sept 12 2023 - CL
-## THESE FIVE WILL BE DROPPED FROM ANALYSES AS OF NOW
+# Note: These MPAs have missing reference sites for ALL years, indicating there is no
+# reference measurement (ever). These five MPAs are dropped from the analyses in previous
+# step - but demonstrating here for clarity.
 affiliated_mpa_with_all_na <- kelp_build2 %>%
   pivot_wider(names_from = "mpa_defacto_designation", 
               values_from = c(biomass, n_rep, sd, se)) %>% 
@@ -201,47 +196,20 @@ affiliated_mpa_with_all_na <- kelp_build2 %>%
 
 
 ## CCFRP ---------------------------------------------------------------------------------------
-### Original approach ----
-# #calculate total biom for each rep unit
-# ccfrp_build1 <- rocky_reef_raw %>%
-#   #drop species without biomass estimate
-#   filter(!(is.na(total_biomass)))%>%
-#   #some cells were sampled more than once in a year. 
-#   #calculate mean between these
-#   group_by(year, bioregion, region4, affiliated_mpa,
-#            mpa_defacto_class, mpa_defacto_designation,
-#            grid_cell_id, species_code)%>%
-#   dplyr::summarize(cell_bpue = mean(bpue)) %>%
-#   #since all CCFRP species are targeted, we can now calculate total cell biomass
-#   group_by(year, bioregion, region4, affiliated_mpa,
-#            mpa_defacto_class, mpa_defacto_designation,
-#            grid_cell_id)%>%
-#   dplyr::summarize(total_biomass = sum(cell_bpue)) 
-# 
-# 
-# #REshape
-# ccfrp_targeted_RR <- ccfrp_build2 %>% 
-#   #drop smcas
-#   filter(!(mpa_defacto_class == "smca"))%>%
-#   pivot_wider(names_from = "mpa_defacto_designation",
-#               values_from = c(biomass, n_rep, sd, se)) %>%
-#   #drop sites that do not have pairs
-#   mutate(habitat = "Shallow reef")
-
-
-### CL Adjusted Approach -----
 ### Treats cell-trip as the unit of replication
+### Approached updated by CL September 2023
 
 # Calculate number of cell-trips in full data - 2413
 ccfrp_effort <- ccfrp_biomass %>% 
   distinct(id_cell_per_trip)
 
 # Calculate number of cell-trips after NA drop - 2411
+# 2 full cell-trips are dropped due to missing data
 ccfrp_effort_drop <- rocky_reef_raw %>% 
   distinct(id_cell_per_trip)
 
 # Calculated biomass per unit effort (trip-cell)
-ccfrp_build1b <- rocky_reef_raw %>% 
+ccfrp_build1 <- rocky_reef_raw %>% 
   select(year, affiliated_mpa, 
          mpa_defacto_class, mpa_defacto_designation,
          id_cell_per_trip, species_code, sciname, target_status,
@@ -272,14 +240,14 @@ ccfrp_build1b <- rocky_reef_raw %>%
                names_to = "target_status", 
                values_to = "total_biomass_kg") 
 
-ccfrp_build2b <- ccfrp_build1b %>%    
+ccfrp_build2 <- ccfrp_build1 %>%    
   group_by(year, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation, target_status) %>% 
   summarize(biomass = mean(total_biomass_kg),
             n_rep = n(),
             sd = sd(total_biomass_kg, na.rm=TRUE),
             se = sd/sqrt(n_rep)) 
 
-ccfrp_build3b <- ccfrp_build2b %>% 
+ccfrp_build3 <- ccfrp_build2 %>% 
   filter(!(mpa_defacto_class == "smca")) %>%  # drop smcas
   filter(!(target_status == "Nontargeted")) %>% # drop nontargeted (for now); many many zeroes
   filter(!(affiliated_mpa == "trinidad NA")) %>% # drop trinidad
@@ -341,18 +309,13 @@ deep_build3 <- deep_build2 %>%
          sd_smr, sd_ref,se_smr, se_ref)
 
 # Join data ----------------------------------------------------------------------------
-# 
-# target_RR_full <- rbind(surf_target_RR, kelp_target_RR, ccfrp_targeted_RR, deep_reef_target_RR) %>%
-#                     dplyr::select(habitat, everything())
-# Makes sure colnames match
 identical(colnames(surf_build3), colnames(kelp_build3))
-identical(colnames(kelp_build3), colnames(ccfrp_build3b))
-identical(colnames(ccfrp_build3b), colnames(deep_build3))
+identical(colnames(kelp_build3), colnames(ccfrp_build3))
+identical(colnames(ccfrp_build3), colnames(deep_build3))
 
-target_full <- rbind(surf_build3, kelp_build3, ccfrp_build3b, deep_build3)
+target_full <- rbind(surf_build3, kelp_build3, ccfrp_build3, deep_build3)
 
-################################################################################
-# calculate response ratio
+# Calculate response ratio ------------------------------------------------------------------------
 
 target_status_RR <- target_full %>%
                     #deal with the 0s by adding 10% of the mean for each group. 
@@ -364,9 +327,9 @@ target_status_RR <- target_full %>%
 
 hist(target_status_RR$logRR)
 
-# New Version Sept 13 2023 (after CL processing)
+# New Version Sept 2023 (after CL processing)
 write.csv(target_status_RR, row.names = F, "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/biomass_processed/target_status_biomass_MPA_means.csv")
-# Last write 13 Sept 2023
+# Last write 11 October 2023
 
 # Old Version:                    
 #write.csv(row.names = FALSE, target_status_RR, file.path(datadir, "targeted_nontargeted_biomass_MPA_means.csv"))
