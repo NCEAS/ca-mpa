@@ -87,7 +87,9 @@ bio_fun <- function(params, data) {
            
            # Correct NA to true zeros for NO_ORG observations
            weight_g = case_when(species_code == "NO_ORG" ~ 0,
-                                T ~ weight_g)
+                                T ~ weight_g),
+           
+           weight_kg = weight_g/1000
            )
 }
 
@@ -104,7 +106,7 @@ surf_biomass <- bio_fun(params, surf)
 
 # RUN UP TO THIS POINT TO HAVE CORRECT DATAFRAMES FOR STEP 2
 # RUN THIS ROW IF YOU WANT A CLEANER WORKSPACE FOR STEP 2
-#rm(ccfrp, deep, kelp, surf)
+rm(ccfrp, deep, kelp, surf)
 
 # IN PROGRESS: Explore everything that's going wrong -----------------------------------
 
