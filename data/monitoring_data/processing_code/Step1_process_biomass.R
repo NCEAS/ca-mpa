@@ -104,9 +104,11 @@ kelp_biomass <- bio_fun(params, kelp)
 
 surf_biomass <- bio_fun(params, surf)
 
-# RUN UP TO THIS POINT TO HAVE CORRECT DATAFRAMES FOR STEP 2
-# RUN THIS ROW IF YOU WANT A CLEANER WORKSPACE FOR STEP 2
-rm(ccfrp, deep, kelp, surf)
+# Write to csv ----------------------------------------------------------------
+write.csv(surf_biomass, row.names = F, file.path(datadir,"/biomass_processed/surf_zone_fish_biomass_updated.csv"))  
+write.csv(kelp_biomass, row.names = F, file.path(datadir,"/biomass_processed/kelpforest_fish_biomass_updated.csv"))
+write.csv(ccfrp_biomass, row.names = F, file.path(datadir,"/biomass_processed/ccfrp_fish_biomass_updated.csv"))         
+write.csv(deep_biomass, row.names = F, file.path(datadir,"/biomass_processed/deep_reef_fish_biomass_updated.csv"))  
 
 # IN PROGRESS: Explore everything that's going wrong -----------------------------------
 
@@ -167,11 +169,6 @@ test_surf <- surf_biomass %>%
   filter(is.na(weight_g) & !(is.na(tl_cm) & is.na(sl_cm))) 
   
 
-# Write to csv -----------------------------------------------------------------------------
-
-# No biomass conversions have been written yet - don't want to overwrite while 
-# still troubleshooting.
-# Could save with different file names if desired.
 
 # Exploring some things for step 2 -----------------------------------------------------------------------------
 

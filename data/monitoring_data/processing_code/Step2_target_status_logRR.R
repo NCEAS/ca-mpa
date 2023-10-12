@@ -21,19 +21,11 @@ library(tidyverse)
 datadir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/biomass_processed"
 
 # Load data
-# surf_zone_raw <- read.csv(file.path(datadir, "surf_zone_fish_biomass.csv"))
-# kelp_raw <- read.csv(file.path(datadir, "kelpforest_fish_biomass.csv")) 
-# rocky_reef_raw <- read.csv(file.path(datadir, "ccfrp_fish_biomass.csv"))
-# deep_reef_raw <- read.csv(file.path(datadir, "deep_reef_fish_biomass.csv"))
+surf_biomass <- read.csv(file.path(datadir, "surf_zone_fish_biomass_updated.csv"))
+kelp_biomass <- read.csv(file.path(datadir, "kelpforest_fish_biomass_updated.csv")) 
+ccfrp_biomass <- read.csv(file.path(datadir, "ccfrp_fish_biomass_updated.csv"))
+deep_biomass <- read.csv(file.path(datadir, "deep_reef_fish_biomass_updated.csv"))
 
-# Currently avoiding overwriting any files - these four dataframes will read directly from
-# step one (e.g. run step one through the biomass conversion, and then the following lines
-# will set each dataset up appropriately to run the analysis). Once processing is confirmed 
-# I will write the biomass dataframes to csv and read directly as in above. For now can compare
-# results by toggling whether you use the above "load data" dataframes (with original calcs before
-# CL code review) or the ones below.
-
-# START HERE IF PROCEEDING DIRECTLY AFTER STEP 1 WITHOUT CLEARING WS:
 # Process Biomass DFs -----
 surf_zone_raw <- surf_biomass %>% 
   filter(!is.na(weight_g)) %>%  # drop for now - these are all fishes that are unknown or species with no lengths (WARNING: currently drops one full haul!)

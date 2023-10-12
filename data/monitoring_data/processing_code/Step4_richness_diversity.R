@@ -1,23 +1,9 @@
 #Processing monitoring data for mpa-year level analyses
 #Joshua G Smith; joshsmith@nceas.ucsb.edu; March 22, 2023
+#Cori Lopazanski;lopazanski@bren.ucsb.edu
 
-rm(list=ls())
+# About ----------------------------------------------------------------------------
 
-#load required packages
-require(dplyr)
-require(stringr)
-
-#set directories and load data
-
-datadir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/biomass_processed"
-
-surf_zone_raw <- read.csv(file.path(datadir, "surf_zone_fish_biomass.csv"))
-kelp_raw <- read.csv(file.path(datadir, "kelpforest_fish_biomass.csv"))
-deep_reef_raw <- read.csv(file.path(datadir, "deep_reef_fish_biomass.csv"))
-shallow_reef <- read.csv(file.path(datadir, "ccfrp_fish_biomass.csv"))
-
-
-################################################################################
 # processing notes
 
 #1. use NO_ORG to keep track of effort when no species were observed. 
@@ -33,167 +19,123 @@ shallow_reef <- read.csv(file.path(datadir, "ccfrp_fish_biomass.csv"))
 #   we will weight each diversity and richness estimate by the number of replicates 
 #   at that location. 
 
+# Setup ----------------------------------------------------------------------------
 
-################################################################################
-# Surf zone
+rm(list=ls())
 
-#calculate effort for each MPA
-surf_effort <- surf_zone_raw %>%
-  #keep track of hauls with no spp, but these get dropped below
-  mutate(species = ifelse(species_code == "NOSP","NO_ORG",species))%>%
-  #drop species with NA
-  filter(!(is.na(species))) %>%
-  #find number of hauls for each MPA
-  distinct(year, bioregion, region4, affiliated_mpa,
-          mpa_state_class, mpa_state_designation,
-          mpa_defacto_class, mpa_defacto_designation, haul_number)%>%
-  group_by(year, bioregion, region4, affiliated_mpa,
-           mpa_state_class, mpa_state_designation,
-           mpa_defacto_class, mpa_defacto_designation)%>%
-  dplyr::summarize(n_hauls = n())%>%
-  ungroup()
+librarian::shelf(tidyverse, here, janitor, stringr, vegan)
+
+#set directories and load data
+
+datadir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/biomass_processed"
+
+surf_biomass <- read.csv(file.path(datadir, "surf_zone_fish_biomass_updated.csv"))
+kelp_biomass <- read.csv(file.path(datadir, "kelpforest_fish_biomass_updated.csv"))
+deep_biomass <- read.csv(file.path(datadir, "deep_reef_fish_biomass_updated.csv"))
+ccfrp_biomass <- read.csv(file.path(datadir, "ccfrp_fish_biomass_updated.csv"))
 
 
-#find total counts of each species per MPA
-surf_diversity_build1 <- surf_zone_raw %>%
-  #drop anything not ID to species level
-  filter(!(is.na(species))) %>%
-  group_by(year, bioregion, region4, affiliated_mpa,
-           mpa_state_class, mpa_state_designation,
-           mpa_defacto_class, mpa_defacto_designation,
-           species_code, class, order, family, genus, species)%>%
-  #summarize counts of individuals for each species 
-  dplyr::summarize(count_of_individuals = sum(count)) %>% 
-  #calculate MPA-level diversity
-  group_by(year, bioregion, region4, affiliated_mpa,
-           mpa_state_class, mpa_state_designation,
-           mpa_defacto_class, mpa_defacto_designation)%>%
-  dplyr::summarize(shannon_unweighted = diversity(count_of_individuals, index = "shannon"), #n MPAs should match with surf_effort
-                   richness_unweighted = length(unique(species_code)))%>%
-  #join effort
-  left_join(surf_effort, by=c("year", "bioregion", "region4", "affiliated_mpa",
-           "mpa_state_class", "mpa_state_designation",
-           "mpa_defacto_class", "mpa_defacto_designation")) %>%
-  #calculate weighted diversity and richness
-  mutate(shannon_weighted = shannon_unweighted / n_hauls,
-         richness_weighted = richness_unweighted / n_hauls)
+# Process Biomass DFs --------------------------------------------------------------
+# This step mirrors the processing steps taken in Step2 for calculating mpa-level means
+
+surf <- surf_biomass %>% 
+  filter(!is.na(weight_g)) %>%  # drop for now - these are all fishes that are unknown or species with no lengths (WARNING: currently drops one full haul!)
+  mutate(target_status = if_else(species_code == "NO_ORG", "NO_ORG", target_status)) %>%  # helpful for inspecting 
+  filter(!is.na(target_status))  # this drops: RFYOY, FFUN, HALI, Zoarcidae spp (after previous step to avoid dropping NO_ORG)
+
+kelp <- kelp_biomass %>% # WARNING: THE NA REMOVALS HERE DROPS LOTS OF TRANSECTS (~3000)
+  filter(!is.na(affiliated_mpa)) %>% # drops sites with no mpa (yellowbanks, trinidad, etc - see kf processing for details)
+  filter(!is.na(weight_kg)) %>%  # drops fishes unknown or without lengths/conversion params
+  mutate(target_status = if_else(species_code == "NO_ORG", "NO_ORG", target_status))
+
+rocky<- ccfrp_biomass %>% # WARNING: NA REMOVALS DROPS 2 CELL TRIPS
+  filter(!is.na(weight_kg)) %>%   #  drops fishes unknown or without lengths/conversion params
+  mutate(target_status = if_else(species_code == "NO_ORG", "NO_ORG", target_status)) %>%  # helpful for inspecting 
+  filter(!is.na(target_status)) # drop for now - spp without target status identified (see notes for details)
+
+deep <-  deep_biomass %>% # WARNING: NA REMOVALS DROPS 12 TRANSECTS
+  filter(!is.na(weight_kg)) %>% # drop fishes unknown or without lengths/conversion params
+  mutate(target_status = if_else(species_code == "NO_ORG" & is.na(target_status), "NO_ORG", target_status)) %>%  # helpful for inspecting 
+  filter(!is.na(target_status))
 
 
-#check if there were any MPAs where no species were observed
-surf_diversity_MPAs <- surf_diversity_build1 %>% 
-  group_by(year, bioregion, region4, affiliated_mpa,
-           mpa_state_class, mpa_state_designation,
-           mpa_defacto_class, mpa_defacto_designation) %>% distinct()
+# Calculate effort for each MPA -------------------------------------------------------
 
-nrow(surf_effort) - nrow(surf_diversity_MPAs) #one MPA has no fish
+## Surf zone ----------------------------------------------------------------------------
 
-no_fish_MPA <- anti_join(surf_effort, surf_diversity_MPAs)
+# Calculate effort
+surf_effort <- surf %>% 
+  # Individual hauls
+  distinct(year, month, day, affiliated_mpa, mpa_defacto_designation, haul_number) %>% 
+  # Calculate number of hauls per mpa, per year
+  group_by(year, affiliated_mpa, mpa_defacto_designation) %>% 
+  summarize(n_rep = n()) 
 
-surf_diversity_build2 <- rbind(surf_diversity_build1, no_fish_MPA) %>%
-                          #replace with true zeros
-                            mutate(
-                              shannon_unweighted = coalesce(shannon_unweighted, 0),
-                              richness_unweighted = coalesce(richness_unweighted, 0),
-                              shannon_weighted = coalesce(shannon_weighted, 0),
-                              richness_weighted = coalesce(richness_weighted, 0)
-                            )
-
-#yay!
+# Find total counts of each species per MPA, per year
+surf_diversity_build1 <- surf %>%
+  # Drop anything not ID to species level
+  filter(!is.na(sciname)) %>% # updated to sciname here CL Oct 11 2023 (CONFIRM REASONING WITH JS)
+  group_by(year, affiliated_mpa, mpa_defacto_designation,
+           species_code, class, order, family, genus, species, sciname) %>%
+  # Summarize counts of individuals for each species in a given mpa/ref site per year
+  summarize(n_fish = sum(count)) %>% 
+  # Calculate MPA-level diversity
+  group_by(year, affiliated_mpa, mpa_defacto_designation) %>%
+  summarize(shannon_unweighted = diversity(n_fish, index = "shannon"), #n MPAs should match with surf_effort
+            richness_unweighted = length(unique(sciname))) %>%
+  # Join effort
+  full_join(., surf_effort) %>% # note that ten mile smr ref had all empty transects
+  replace_na(list(shannon_unweighted = 0, richness_unweighted = 0)) %>% # replace those NAs with true zeroes
+  # Calculate weighted diversity and richness
+  mutate(shannon_weighted = shannon_unweighted / n_rep,
+         richness_weighted = richness_unweighted / n_rep) %>% ungroup()
 
 #Reshape
-surf_RR <- surf_diversity_build2 %>% 
-  #drop smcas. We only want to include no-take SMRs in our analysis
-  filter(!(mpa_defacto_class == "SMCA"))%>%
-  ungroup()%>%
-  dplyr::select(!(c(mpa_state_class, mpa_state_designation, mpa_defacto_class)))%>%
-  ungroup()%>%
-  group_by(year, bioregion, region4, affiliated_mpa)%>%
+surf_diversity <- surf_diversity_build1 %>% 
+  # Drop smcas. We only want to include no-take SMRs in our analysis
+  filter(!(mpa_defacto_designation == "smca")) %>%
+  group_by(year, affiliated_mpa) %>%
   pivot_wider(names_from = "mpa_defacto_designation",
-              values_from = c("shannon_unweighted", "richness_unweighted", "n_hauls" ,"shannon_weighted", "richness_weighted"))
-
-
-surf_H_R <-surf_RR %>%
-  rename("n_rep_ref" = n_hauls_ref,
-         "n_rep_smr" = n_hauls_smr) %>%
+              values_from = c("shannon_unweighted", "richness_unweighted", "n_rep" ,"shannon_weighted", "richness_weighted")) %>% 
   mutate(habitat = "Surf zone")
 
+## Kelp forest -----------------------------------------------------------------------
 
+# Calculate effort
+kelp_effort <- kelp %>% 
+  distinct(year, month, day, site, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation,
+           zone, level, transect) %>% 
+  group_by(year, affiliated_mpa, mpa_defacto_designation) %>% 
+  summarize(n_rep = n())
 
-################################################################################
-# Kelp forest
-
-#calculate effort
-kelp_effort <- kelp_raw %>%
-  separate(sciname, into = c("genus", "species"), sep = " ")%>%
-  #rename dummy var for any species to get dropped. Keep for now to calculate effort
-  mutate(species = ifelse(species == "spp" | is.na(species),"NO_ORG",species))%>%
-  #find number of transects for each MPA
-  distinct(year, bioregion, region4, affiliated_mpa,
-           mpa_state_class, mpa_state_designation,
-           mpa_defacto_class, mpa_defacto_designation, zone, level, transect)%>%
-  #determine n_transects for each MPA
-  group_by(year, bioregion, region4, affiliated_mpa,
-           mpa_state_class, mpa_state_designation,
-           mpa_defacto_class, mpa_defacto_designation)%>%
-  dplyr::summarize(n_transects = n())%>%
-  ungroup()
-
-
-#find total count of each species per MPA 
-kelp_diversity <- kelp_raw %>%
-  separate(sciname, into = c("genus", "species"), sep = " ")%>%
-  group_by(year, bioregion, region4, affiliated_mpa,
-           mpa_state_class, mpa_state_designation,
-           mpa_defacto_class, mpa_defacto_designation,
-           classcode, genus, species)%>%
-  dplyr::summarize(count_of_individuals = sum(count)) %>% 
-  #calculate MPA-level diversity
-  group_by(year, bioregion, region4, affiliated_mpa,
-           mpa_state_class, mpa_state_designation,
-           mpa_defacto_class, mpa_defacto_designation)%>%
-  dplyr::summarize(shannon_unweighted = diversity(count_of_individuals, index = "shannon"), #n MPAs should match with surf_effort
-                   richness_unweighted = length(unique(classcode))) %>%
+# Find total counts of each species per MPA, per year
+kelp_diversity_build <- kelp %>%
+  filter(!is.na(sciname)) %>%
+  group_by(year, affiliated_mpa, mpa_defacto_designation,
+           species_code, family, genus, species, sciname) %>%
+  dplyr::summarize(n_fish = sum(count)) %>% 
+  # Calculate MPA-level diversity
+  group_by(year, affiliated_mpa, mpa_defacto_designation) %>%
+  dplyr::summarize(shannon_unweighted = diversity(n_fish, index = "shannon"), 
+                   richness_unweighted = length(unique(sciname))) %>% # using sciname means "Sebastes spp" only counted as one species
   #join effort
-  left_join(kelp_effort, by=c("year", "bioregion", "region4", "affiliated_mpa",
-                              "mpa_state_class", "mpa_state_designation",
-                              "mpa_defacto_class", "mpa_defacto_designation"))%>%
+  full_join(., kelp_effort) %>%
   #calculate weighted diversity and richness
-  mutate(shannon_weighted = shannon_unweighted / n_transects,
-         richness_weighted = richness_unweighted / n_transects)
-
-#check if there were any MPAs where no species were observed
-kelp_diversity_MPAs <- kelp_diversity %>% 
-  group_by(year, bioregion, region4, affiliated_mpa,
-           mpa_state_class, mpa_state_designation,
-           mpa_defacto_class, mpa_defacto_designation) %>% distinct()
-
-nrow(kelp_effort) - nrow(kelp_diversity_MPAs) #all MPAs had at least one fish. Yay!
-
-
+  mutate(shannon_weighted = shannon_unweighted / n_rep,
+         richness_weighted = richness_unweighted / n_rep)
 #Reshape
-kelp_RR <- kelp_diversity %>% 
+kelp_diversity <- kelp_diversity_build %>% 
   #drop smcas. We only want to include no-take SMRs in our analysis
-  filter(!(mpa_defacto_class == "smca"))%>%
-  ungroup()%>%
-  dplyr::select(!(c(mpa_state_class, mpa_state_designation, mpa_defacto_class)))%>%
-  ungroup()%>%
-  group_by(year, bioregion, region4, affiliated_mpa)%>%
+  filter(!(mpa_defacto_designation == "smca")) %>%
+  group_by(year, affiliated_mpa) %>%
   pivot_wider(names_from = "mpa_defacto_designation",
-              values_from = c("shannon_unweighted", "richness_unweighted", "n_transects" ,"shannon_weighted", "richness_weighted"))
-
-###What about NAs? Need to figure out effort
-
-
-kelp_H_R <-kelp_RR %>%
-  rename("n_rep_ref" = n_transects_ref,
-         "n_rep_smr" = n_transects_smr) %>%
-  mutate(habitat = "Kelp forest") %>%
-  #some years have missing pairs, so these get dropped
+              values_from = c("shannon_unweighted", "richness_unweighted", "n_rep" ,"shannon_weighted", "richness_weighted")) %>% 
+  mutate(habitat = "Kelp forest") %>% 
+  # Some years have missing pairs (e.g. didn't sample both inside and outside), so these get dropped
   filter(!(is.na(n_rep_ref) | is.na(n_rep_smr)))
 
 
-################################################################################
-#shallow reef
+# Shallow reef -----------------------------------------------------------------------
 
 #calculate effort for each MPA
 shallow_effort <- shallow_reef %>%
