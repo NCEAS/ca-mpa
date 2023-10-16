@@ -32,7 +32,7 @@ surf_zone_raw <- surf_biomass %>%
   mutate(target_status = if_else(species_code == "NO_ORG", "NO_ORG", target_status)) %>%  # helpful for inspecting 
   filter(!is.na(target_status))  # this drops: RFYOY, FFUN, HALI, Zoarcidae spp (after previous step to avoid dropping NO_ORG)
 
-kelp_raw <- kelp_biomass %>% # WARNING: THE NA REMOVALS HERE DROPS LOTS OF TRANSECTS (~3000)
+kelp_raw <- kelp_biomass %>% # WARNING: THE NA REMOVALS HERE DROPS LOTS OF TRANSECTS (~871)
   filter(!is.na(affiliated_mpa)) %>% # drops sites with no mpa (yellowbanks, trinidad, etc - see kf processing for details)
   filter(!is.na(weight_kg)) %>%  # drops fishes unknown or without lengths/conversion params
   mutate(target_status = if_else(species_code == "NO_ORG", "NO_ORG", target_status))
@@ -106,19 +106,19 @@ surf_build3 <- surf_build2 %>%
 ## Kelp Forest --------------------------------------------------------------------------------------------
 
 # Identify distinct transects in full dataset (before NAs dropped)
-# 70563 
+# 29173
 kelp_effort_transect <- kelp_biomass %>% 
   distinct(year, month, day, site, # need this to get actual individual transects - updated by CL
            affiliated_mpa, mpa_defacto_class, mpa_defacto_designation,
-           zone, level, transect) 
+           zone, transect) 
 
 # Identify distinct transects after NAs dropped (for subsequent analyses)
-# 68436
+# 28300
 kelp_effort_transect_drop <- kelp_raw %>% 
   distinct(year, month, day, site, # need this to get actual individual transects - updated by CL
            affiliated_mpa, mpa_defacto_class, mpa_defacto_designation,
-           zone, level, transect) %>% 
-  arrange(year, month, day, site, affiliated_mpa, mpa_defacto_designation, zone, level, transect) # Could then group to calculate transects; not needed yet
+           zone, transect) %>% 
+  arrange(year, month, day, site, affiliated_mpa, mpa_defacto_designation, zone, transect) # Could then group to calculate transects; not needed yet
 
 # calculate effort as n transects per MPA year (separately for smr and ref)
 kelp_effort_mpa <- kelp_effort_transect_drop %>% 
