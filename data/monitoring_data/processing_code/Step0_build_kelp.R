@@ -11,9 +11,16 @@
 # - Corrected NA values upon reading data
 # - Added smca as the defacto designation for arrow point to lion head point as the
 #   default option (no info provided for that mpa)
+# - Removed CANOPY transects (per PI recommendation) - Central Coast stopped measuring
+#   canopy ~ early 2010s therefore want to be consistent across programs
+# - Combine MID and BOT for each transect (per PI recommendation following conversation
+#   with APF at UCSB) - the bottom and midwater transects are conducted simultaneously
+#   by stacked divers and therefore the KFM groups typically combine them to get 
+#   density measures.
 
 # Note potential concerns for next steps:
-# - Some sites have no affiliated MPA (Yellowbanks, Valley, Trinidad)
+# - Some sites have no affiliated MPA (Yellowbanks, Valley, Trinidad) - these will be 
+#   ultimately dropped 
 # - No sciname for "UNID" and "BAITBALL" data (baitball are perciformes; 109 observations)
 #   these will eventually be dropped from analyses
 # - Counts with no length data (113 observations) will eventually be dropped from analyses
@@ -58,7 +65,9 @@ defacto_smr_kelp <- readxl::read_excel("/home/shares/ca-mpa/data/sync-data/mpa_t
           mpa_defacto_class = "smca")
 
 # Build ----
-# Note: the unit of replication for kelp forest is transect
+# Note: the unit of replication for kelp forest is transect, which now corresponds to 
+# removing the fishes associated with canopy counts (level == CAN) and combines the 
+# bottom (BOT) and midwater (MID) into a single transect.
 
 # Process kelp forest sites 
 kelp_sites <- kelp_sites_raw %>%
@@ -90,10 +99,24 @@ data <- kelp_forest_raw %>%
          tl_cm = fish_tl, sl_cm, count, min_tl, max_tl,
          species_code,  sciname, 
          kingdom, phylum, class, order, family, 
-         genus, species, target_status, level) %>% 
+         genus, species, target_status, taxon_group) %>% 
   # PI (Jenn Caselle) recommends drop 1999, "year of figuring things out" and 
   # there are some concerning entries where there are both NO_ORG and species recorded
-  filter(!(year == 1999)) 
+  filter(!(year == 1999)) %>% 
+  # PI recommends drop CANOPY counts because not consistently measured across sites/years
+  filter(!(level == "CAN")) %>% 
+  # PI recommends combine BOT and MID; group by everything except LEVEL: 
+  group_by(year, month, day, # temporal
+           bioregion, region4, affiliated_mpa, # spatial
+           mpa_state_class, mpa_state_designation,
+           mpa_defacto_class, mpa_defacto_designation, 
+           site, zone, transect, # not grouping by LEVEL here
+           tl_cm, sl_cm, count, min_tl, max_tl,
+           species_code,  sciname, 
+           kingdom, phylum, class, order, family, 
+           genus, species, target_status, taxon_group) %>% 
+  summarize(count = sum(count)) %>% ungroup() %>% 
+  rename(level = taxon_group) 
 
 # Test taxa match -- four are OK for now (NO ORG, UNID, BAITBALL, CLUP)
 taxa_match <- data %>% 
@@ -102,6 +125,6 @@ taxa_match <- data %>%
 
 # Write processed data
 write.csv(data, file.path(outdir, "kelp_processed.csv"), row.names = F)
-# Last write 11 October 2023
+# Last write 16 October 2023
 
   
