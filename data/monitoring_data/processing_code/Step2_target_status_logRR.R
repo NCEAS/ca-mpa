@@ -130,7 +130,7 @@ kelp_build1 <- kelp_raw %>% # updated by CL - filter separately
   group_by(year, 
            month, day, site, # updated by CL
            affiliated_mpa, mpa_defacto_class, mpa_defacto_designation, 
-           zone, level, transect, target_status) %>%
+           zone, transect, target_status) %>%
   summarise(total_biomass = sum(weight_kg)) %>%
   # Widen to inspect and correct true zeroes
   pivot_wider(names_from = target_status, values_from = total_biomass) %>%
@@ -321,7 +321,7 @@ hist(target_status_RR$logRR)
 
 # New Version Sept 2023 (after CL processing)
 write.csv(target_status_RR, row.names = F, "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/biomass_processed/target_status_biomass_MPA_means.csv")
-# Last write 11 October 2023
+# Last write 16 October 2023
 
 # Old Version:                    
 #write.csv(row.names = FALSE, target_status_RR, file.path(datadir, "targeted_nontargeted_biomass_MPA_means.csv"))
