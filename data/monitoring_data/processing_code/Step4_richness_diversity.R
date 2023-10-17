@@ -29,10 +29,10 @@ librarian::shelf(tidyverse, here, janitor, stringr, vegan)
 
 datadir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/biomass_processed"
 
-surf_biomass <- read.csv(file.path(datadir, "surf_zone_fish_biomass_updated.csv"))
-kelp_biomass <- read.csv(file.path(datadir, "kelpforest_fish_biomass_updated.csv"))
-deep_biomass <- read.csv(file.path(datadir, "deep_reef_fish_biomass_updated.csv"))
-ccfrp_biomass <- read.csv(file.path(datadir, "ccfrp_fish_biomass_updated.csv"))
+surf_biomass <- read_csv(file.path(datadir, "surf_zone_fish_biomass_updated.csv"))
+kelp_biomass <- read_csv(file.path(datadir, "kelpforest_fish_biomass_updated.csv"))
+deep_biomass <- read_csv(file.path(datadir, "deep_reef_fish_biomass_updated.csv"))
+ccfrp_biomass <- read_csv(file.path(datadir, "ccfrp_fish_biomass_updated.csv"))
 
 
 # Process Biomass DFs --------------------------------------------------------------
@@ -59,7 +59,7 @@ deep <-  deep_biomass %>% # WARNING: NA REMOVALS DROPS 12 TRANSECTS
   filter(!is.na(target_status))
 
 
-# Calculate effort for each MPA -------------------------------------------------------
+# Calculate Diversity --------------------------------------------------------------------
 
 ## Surf zone ----------------------------------------------------------------------------
 
@@ -97,7 +97,10 @@ surf_diversity <- surf_diversity_build1 %>%
   group_by(year, affiliated_mpa) %>%
   pivot_wider(names_from = "mpa_defacto_designation",
               values_from = c("shannon_unweighted", "richness_unweighted", "n_rep" ,"shannon_weighted", "richness_weighted")) %>% 
-  mutate(habitat = "Surf zone")
+  mutate(habitat = "Surf zone") %>% ungroup() %>% 
+  # Some years have missing pairs (e.g. didn't sample both inside and outside), so these get dropped
+  filter(!(is.na(n_rep_ref) | is.na(n_rep_smr)))
+
 
 ## Kelp forest -----------------------------------------------------------------------
 
@@ -130,29 +133,28 @@ kelp_diversity <- kelp_diversity_build %>%
   group_by(year, affiliated_mpa) %>%
   pivot_wider(names_from = "mpa_defacto_designation",
               values_from = c("shannon_unweighted", "richness_unweighted", "n_rep" ,"shannon_weighted", "richness_weighted")) %>% 
-  mutate(habitat = "Kelp forest") %>% 
+  mutate(habitat = "Kelp forest") %>% ungroup() %>% 
   # Some years have missing pairs (e.g. didn't sample both inside and outside), so these get dropped
   filter(!(is.na(n_rep_ref) | is.na(n_rep_smr)))
 
 
 ## Shallow reef (CCFRP) ------------------------------------------------------------
-
-# Calculate effort
 ccfrp_effort <- ccfrp %>%
   # Distinct cell-trips after NA drop (2411)
-  distinct(year, affiliated_mpa, mpa_defacto_designation, id_cell_per_trip, total_angler_hrs_cell) %>% 
+  distinct(year, affiliated_mpa, mpa_defacto_designation, id_cell_per_trip) %>% 
   group_by(year, affiliated_mpa, mpa_defacto_designation) %>% 
-  # Sum the total angler hours across all trips for each MPA/REF site, per year
-  summarize(n_hours = sum(total_angler_hrs_cell)) %>% ungroup()
+  # Sum the total number of cell-trips for each MPA/REF site, per year
+  summarize(n_rep = n()) %>% ungroup() 
   
-# Find total counts of each species per MPA
 ccfrp_diversity_build1 <- ccfrp %>%
-  # drop anything not ID to species level
+  # Drop anything not ID to lowest taxonomic level
   filter(!is.na(sciname)) %>%
+  # Calculate CPUE (count per total angler hours on that particular cell-trip)
+  mutate(cpue = count/total_angler_hrs_cell) %>% 
   group_by(year, affiliated_mpa, mpa_defacto_designation,
            species_code, family, genus, species, sciname) %>%
-  # summarize counts of individuals for each species 
-  dplyr::summarize(n_fish = sum(count)) %>% 
+  # Sum total CPUE of each species per MPA, per year
+  dplyr::summarize(n_fish = sum(cpue)) %>% 
   #calculate MPA-level diversity
   group_by(year, affiliated_mpa, mpa_defacto_designation) %>%
   dplyr::summarize(shannon_unweighted = diversity(n_fish, index = "shannon"), 
@@ -160,8 +162,8 @@ ccfrp_diversity_build1 <- ccfrp %>%
   #join effort
   full_join(., ccfrp_effort) %>%
   #calculate weighted diversity and richness
-  mutate(shannon_weighted = shannon_unweighted / n_hours,
-         richness_weighted = richness_unweighted / n_hours) %>% ungroup()
+  mutate(shannon_weighted = shannon_unweighted / n_rep,
+         richness_weighted = richness_unweighted / n_rep) %>% ungroup()
 
 
 # Reshape
@@ -170,9 +172,9 @@ ccfrp_diversity <- ccfrp_diversity_build1 %>%
   filter(!(mpa_defacto_designation == "smca")) %>%
   group_by(year, affiliated_mpa)%>%
   pivot_wider(names_from = "mpa_defacto_designation",
-              values_from = c("shannon_unweighted", "richness_unweighted", "n_hours" ,"shannon_weighted", "richness_weighted")) %>% 
-  mutate(habiat = "Shallow reef") %>% 
-  filter(!(is.na(n_hours_smr) | is.na(n_hours_ref)))
+              values_from = c("shannon_unweighted", "richness_unweighted", "n_rep" ,"shannon_weighted", "richness_weighted")) %>% 
+  mutate(habitat = "Shallow reef") %>% ungroup() %>% 
+  filter(!(is.na(n_rep_smr) | is.na(n_rep_ref))) # this drops the 2 years trinidad was sampled (ref only)
 
 
 
@@ -217,42 +219,33 @@ deep_diversity <- deep_diversity_build1 %>%
   pivot_wider(names_from = "mpa_defacto_designation",
               values_from = c("shannon_unweighted", "richness_unweighted", "n_rep" ,"shannon_weighted", "richness_weighted")) %>% 
   filter(!(is.na(n_rep_ref) | is.na(n_rep_smr))) %>% 
-  mutate(habitat = "Deep reef")
+  mutate(habitat = "Deep reef") %>%  ungroup()
 
-################################################################################
-# join data
-
-richness_diversity_full <- rbind(surf_H_R, kelp_H_R, shallow_H_R, deep_H_R) %>%
-  dplyr::select(habitat, everything())
+# Join data ----------------------------------------------------------------------------
+diversity_full <- bind_rows(surf_diversity, kelp_diversity, ccfrp_diversity, deep_diversity)
 
 
-################################################################################
-# calculate response ratio
-
+# Calculate response ratio ---------------------------------------------------------------
 
 # Step 1: Pivot longer
-pivot_longer_result <- richness_diversity_full %>%
+diversity_long <- diversity_full %>%
   pivot_longer(
-    cols = starts_with(c("shannon_unweighted_ref", "shannon_weighted_smr", 
-                         "richness_unweighted_ref", "richness_unweighted_smr", 
-                         "shannon_weighted_ref", "shannon_weighted_smr", 
-                         "richness_weighted_ref", "richness_weighted_smr")),
+    cols = c("shannon_unweighted_ref", "shannon_unweighted_smr", 
+             "richness_unweighted_ref", "richness_unweighted_smr", 
+             "shannon_weighted_ref", "shannon_weighted_smr", 
+             "richness_weighted_ref", "richness_weighted_smr"),
     names_to = "factor",
     values_to = "value"
   )
 
-# Step 2: Calculate 10% of the mean and create 'scalar'
-pivot_longer_result <- pivot_longer_result %>%
+# Step 2: Calculate 10% of the mean and create 'scalar', add to each factor level
+diversity_long_scaled <- diversity_long %>%
   group_by(year, habitat, factor) %>%
-  mutate(scalar = 0.1 * mean(value, na.rm = TRUE))
+  mutate(value = value + 0.1 * mean(value, na.rm = TRUE)) %>% 
+  arrange(year, habitat, factor)
 
-# Step 3: Add 'scalar' to each factor level
-pivot_longer_result <- pivot_longer_result %>%
-  mutate(value = value + scalar) %>%
-  dplyr::select(-scalar)
-
-# Step 4: Pivot wider back to the original format
-pivot_wider_result <- pivot_longer_result %>%
+# Step 3: Pivot wider back to the original format
+diversity_scaled <- diversity_long_scaled %>%
   pivot_wider(
     names_from = factor,
     values_from = value
