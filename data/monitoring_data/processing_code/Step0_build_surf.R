@@ -7,6 +7,9 @@
 # Summary of key changes from original code:
 # - Added column for whether reference site is actually inside SMCA
 # - Added taxa information from species_key 
+# - Estimated tl_cm for "Seriphus politus" and "Atherinops affinis" since these species were subsampled. 
+#   the original data used the mean tl_cm, but we opted to draw from the size frequency distribution of the subsampled individuals 
+#   at the MPA-year level. 
 
 
 # Note potential concerns for next steps:
@@ -93,12 +96,79 @@ data <- surf_zone_raw %>%
                                   is.na(species_code) & count > 0 ~ "UNKNOWN", # length data but missing species data
                                   T~species_code))
 
+
+# estimate tl_cm for schooling fishes ------------------------------------------
+
+# Step 1 - Filter the subsampled schooling fishes 
+sub_fish <- data %>%
+  filter(habitat_specific_spp_name %in% c("Seriphus politus", "Atherinops affinis"))
+
+#find the known size frequency distribution at the MPA-year level. i.e., counts per size
+size_distribution <- sub_fish %>%
+  filter(!is.na(tl_cm)) %>%
+  group_by(year, month, day, bioregion, region4, affiliated_mpa, mpa_state_class, mpa_state_designation, mpa_defacto_class, mpa_defacto_designation, tl_cm) %>%
+  summarize(n = n()) %>%
+  ungroup()
+
+
+# Step 2 - Estimate size distribution for rows with NA in tl_cm
+na_rows <- sub_fish %>% filter(is.na(tl_cm))
+
+inferred_tl_cm <- data.frame()
+set.seed(1985)
+for (i in 1:nrow(na_rows)) {
+  row <- na_rows[i, ]
+  # Match the row to the size distribution
+  matching_distribution <- size_distribution %>%
+    filter(year == row$year, month == row$month, day == row$day, bioregion == row$bioregion, 
+           region4 == row$region4, affiliated_mpa == row$affiliated_mpa, mpa_state_class == row$mpa_state_class, 
+           mpa_state_designation == row$mpa_state_designation, mpa_defacto_class == row$mpa_defacto_class, 
+           mpa_defacto_designation == row$mpa_defacto_designation)
+  
+  # Sample a size value from the matching distribution
+  sampled_size <- sample(matching_distribution$tl_cm, size = 1, prob = matching_distribution$n) 
+                            #matching_distribution$tl_cm extracts the tl_cm from matching_distribution which contains the known sizes at the MPA year level
+                            #size = 1 samples one value from the distribution
+                            #prob sets the sampling distribution from the known distribution
+  
+  # Create a new row with the inferred size
+  inferred_row <- row
+  inferred_row$tl_cm <- sampled_size
+  
+  # Add the inferred row to the result
+  inferred_tl_cm <- rbind(inferred_tl_cm, inferred_row)
+}
+
+# Step 3-  Update the original data frame with the inferred tl_cm
+inferred_size <- rbind(
+  data %>%
+    filter(!(habitat_specific_spp_name %in% c("Seriphus politus", "Atherinops affinis") & is.na(tl_cm))),
+  inferred_tl_cm
+)
+
+#check that it worked
+nrow(inferred_size)
+nrow(data)
+
+#new dist
+ggplot(inferred_size %>% filter(habitat_specific_spp_name %in% c("Seriphus politus", "Atherinops affinis")), aes(x = tl_cm)) +
+  geom_histogram(binwidth = 1) +
+  facet_wrap(~ habitat_specific_spp_name, scales = "free_x") 
+
+#orig dist
+ggplot(data %>% filter(habitat_specific_spp_name %in% c("Seriphus politus", "Atherinops affinis")), aes(x = tl_cm)) +
+  geom_histogram(binwidth = 1) +
+  facet_wrap(~ habitat_specific_spp_name, scales = "free_x") 
+
+
 # Check taxa NAs
-taxa_na <- data %>% 
+taxa_na <- #data %>% #old
+  inferred_size %>%
   filter(is.na(sciname) & !(species_code == "NO_ORG"))
 
 # Test for matching taxa
-taxa_match <- data %>% 
+taxa_match <- #data %>% #old
+  inferred_size %>%
   distinct(species_code) %>% 
   filter(!is.na(species_code)) %>% 
   filter(!(species_code == "NO_ORG")) %>% 
@@ -117,3 +187,6 @@ taxa_match <- data %>%
 #write.csv(data, row.names = FALSE, file.path(outdir, "surf_zone_fish_processed.csv"))
 # last write 13 Sept 2023
 
+
+write.csv(inferred_size, row.names = FALSE, file.path(outdir, "surf_zone_fish_processed.csv"))
+#note yet exported
