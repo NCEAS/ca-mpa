@@ -38,6 +38,13 @@ for(i in 1:length(habitats)){
   # Fit model
   rf_fit <- randomForest::randomForest(logRR ~ size + age_at_survey + habitat_richness + habitat_diversity + fishing_pressure + prop_rock, data=sdata)
   
+  # Inspect fit
+  preds <- predict(rf_fit, sdata)
+  obs <- sdata$logRR
+  r2 <- 1 - sum((obs-preds)^2)/sum((obs-mean(obs))^2)
+  r2_df <- tibble(habitat=habitat_do,
+                  r2=r2)
+  
   # Inspect importance
   # randomForest::importance(rf_fit, type=2, scale=T)
   # randomForest::varImpPlot(rf_fit)
@@ -62,9 +69,11 @@ for(i in 1:length(habitats)){
   if(i == 1){
     data_imp <- hab_imp
     data_marg <- marg_effects
+    data_r2 <- r2_df
   }else{
     data_imp <- bind_rows(data_imp, hab_imp)
     data_marg <- bind_rows(data_marg, marg_effects)
+    data_r2 <- bind_rows(data_r2, r2_df)
   }
   
 }
@@ -72,6 +81,11 @@ for(i in 1:length(habitats)){
 
 # Format data
 ################################################################################
+
+# Format r2
+data_r2_use <- data_r2 %>% 
+  # Format habitat
+  mutate(habitat=factor(habitat, levels=c("Surf zone", "Kelp forest", "Rocky reef", "Deep reef"))) 
 
 # Format variable importance
 data_imp1 <- data_imp %>% 
@@ -138,12 +152,15 @@ g1 <- ggplot(data_imp1, aes(y=importance_scaled,
                             fill=habitat)) +
   facet_wrap(~habitat, nrow=1, scales="free_x") +
   geom_bar(stat="identity") + 
+  # Add r2
+  geom_text(data_r2_use, mapping=aes(x=6.2, y=0.95, label=round(r2,2), color=habitat), hjust=1, size=2.2) +
   # Labels
   labs(x="", y="Trait importance\n(scaled to max value)", tag="A") +
   # Scales
   tidytext::scale_x_reordered() +
   # Legend
   scale_fill_discrete(name="", guide="none") +
+  scale_color_discrete(name="", guide="none") +
   # Theme
   theme_bw() + my_theme +
   theme(axis.title.x=element_blank(),
