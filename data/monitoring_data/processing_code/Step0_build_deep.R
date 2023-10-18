@@ -175,10 +175,141 @@ dives <- data %>%
 
 duplicates <- data %>% 
   mutate(transect_id = paste(year, line_id, sep = "_")) %>% 
-  distinct(year, month, line_id, dive, transect_id, affiliated_mpa, mpa_defacto_designation) %>% 
+  distinct(year, month, line_id, dive, transect_id, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation) %>% 
   mutate(multiple = if_else(transect_id %in% transect_id[duplicated(transect_id)], T, F)) %>% 
   filter(multiple)
 
 test <- data %>% 
   filter(species_code == "NO_ORG")
+
+
+
+#Fix duplicates ----------------------------------------------------------------
+
+#NOTE: per PI, when a single reference was used for more than one MPA, the fish
+#observations (rows) were duplicated. We are going to drop the duplicates and 
+#ensure that each MPA site has a single paired reference sites. 
+
+#Steps:
+
+#check structure
+str(data)
+str(duplicates)
+
+#step 1: identify unique levels of 'type' for each mpa_group in the duplicates and
+# drop the reference site for the SMCA if there is both an SMCA and SMR. 
+
+drop_levels <- duplicates %>%
+  mutate(mpa_group = str_replace(affiliated_mpa, "\\s\\w+$", ""),
+    type = toupper(word(affiliated_mpa, -1)),
+    transect_id_desig = paste0(transect_id,"_",mpa_defacto_designation)) %>%
+  filter(mpa_defacto_class == "smca") %>%
+  dplyr::select(-multiple) 
+  
+
+#drop duplicates
+data2 <- data %>%
+  mutate(transect_id_desig = paste0(year,"_",line_id,"_",mpa_defacto_designation))%>%
+  filter(!(transect_id_desig %in% drop_levels$transect_id_desig))
+
+
+#recheck duplicates
+duplicates2 <- data2 %>% 
+  mutate(transect_id = paste(year, line_id, sep = "_")) %>% 
+  distinct(year, month, line_id, dive, transect_id, affiliated_mpa, mpa_defacto_designation) %>% 
+  mutate(multiple = if_else(transect_id %in% transect_id[duplicated(transect_id)], T, F)) %>% 
+  filter(multiple)
+
+unique(duplicates2$affiliated_mpa)
+
+#step 2: balance reference sites that were used for multiple smrs
+
+dup_transects <- duplicates2 %>%
+  mutate(transect_id_desig = paste0(year,"_",line_id,"_",mpa_defacto_designation))%>%
+  group_by(transect_id_desig) %>%
+  distinct(affiliated_mpa)
+
+#find south point / gull island transects
+sp_gi <- dup_transects %>% filter(affiliated_mpa %in% c("south point smr","gull island smr"))
+
+#find point sur/ piedras blancas transects
+pbr_pb <- dup_transects %>% filter(affiliated_mpa %in% c("point buchon smr","piedras blancas smr"))
+
+g <- as.vector(unique(sp_gi$transect_id_desig))
+p <- as.vector(unique(pbr_pb$transect_id_desig))
+
+transect_drop_levels <- dup_transects %>%
+  #case-by-case corrections
+  filter(
+    #point arena smca / point arena smr duplicate -- drop smca
+    (transect_id_desig == "2011_207_1990_smr" & affiliated_mpa == "point arena smca") |
+          #point sur / point buchon -- drop point sur smca
+           affiliated_mpa == "point sur smca" |
+      #alternate drop between gull island and south point to balance samples
+      (transect_id_desig == g[1] & affiliated_mpa == "gull island smr")|
+      (transect_id_desig == g[2] & affiliated_mpa == "south point smr")|
+      (transect_id_desig == g[3] & affiliated_mpa == "gull island smr")|
+      (transect_id_desig == g[4] & affiliated_mpa == "south point smr")|
+      (transect_id_desig == g[5] & affiliated_mpa == "gull island smr")|
+      (transect_id_desig == g[6] & affiliated_mpa == "south point smr")|
+      (transect_id_desig == g[7] & affiliated_mpa == "gull island smr")|
+      (transect_id_desig == g[8] & affiliated_mpa == "south point smr")|
+      (transect_id_desig == g[9] & affiliated_mpa == "gull island smr")|
+      (transect_id_desig == g[10] & affiliated_mpa == "south point smr")|
+      (transect_id_desig == g[11] & affiliated_mpa == "gull island smr")|
+      (transect_id_desig == g[12] & affiliated_mpa == "south point smr")|
+      (transect_id_desig == g[13] & affiliated_mpa == "gull island smr")|
+      (transect_id_desig == g[14] & affiliated_mpa == "south point smr")|
+      (transect_id_desig == g[15] & affiliated_mpa == "gull island smr")|
+      (transect_id_desig == g[16] & affiliated_mpa == "south point smr")|
+      (transect_id_desig == g[17] & affiliated_mpa == "gull island smr")|
+      (transect_id_desig == g[18] & affiliated_mpa == "south point smr")|
+      (transect_id_desig == g[19] & affiliated_mpa == "gull island smr")|
+      (transect_id_desig == g[20] & affiliated_mpa == "south point smr")|
+      (transect_id_desig == g[21] & affiliated_mpa == "gull island smr")|
+      (transect_id_desig == g[22] & affiliated_mpa == "south point smr")|
+      (transect_id_desig == g[23] & affiliated_mpa == "gull island smr")|
+      (transect_id_desig == g[24] & affiliated_mpa == "south point smr")|
+      (transect_id_desig == g[25] & affiliated_mpa == "south point smr")|
+      (transect_id_desig == g[26] & affiliated_mpa == "gull island smr")|
+      (transect_id_desig == g[27] & affiliated_mpa == "south point smr")|
+      (transect_id_desig == g[28] & affiliated_mpa == "gull island smr")|
+      (transect_id_desig == g[29] & affiliated_mpa == "south point smr")|
+      (transect_id_desig == g[30] & affiliated_mpa == "gull island smr")|
+      #now balance samples for point buchon / piedras blancas
+      (transect_id_desig == p[1] & affiliated_mpa == "point buchon smr")|
+      (transect_id_desig == p[2] & affiliated_mpa == "piedras blancas smr")|
+      (transect_id_desig == p[3] & affiliated_mpa == "point buchon smr"))
+      
+
+data3 <- data2 %>%
+          filter(!(transect_id_desig %in% transect_drop_levels$transect_id_desig &
+                     affiliated_mpa %in% transect_drop_levels$affiliated_mpa &
+                     mpa_defacto_designation == "ref")) %>%
+          #drop final duplicate
+          filter(!(transect_id_desig == "2011_207_1990_smr" & affiliated_mpa == "point arena smca"))
+
+
+#recheck duplicates
+duplicates3 <- data3 %>% 
+  mutate(transect_id = paste(year, line_id, sep = "_")) %>% 
+  distinct(year, month, line_id, dive, transect_id, affiliated_mpa, mpa_defacto_designation) %>% 
+  mutate(multiple = if_else(transect_id %in% transect_id[duplicated(transect_id)], T, F)) %>% 
+  filter(multiple)
+
+#check
+nrow(data) - nrow(data2)
+
+
+
+################################################################################
+#export
+
+# data3 is the current final df to export
+
+
+
+
+
+
 
