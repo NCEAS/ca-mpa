@@ -12,7 +12,7 @@ library(terrainr)
 library(tidyverse)
 
 # Directories
-basedir <- "/Volumes/GoogleDrive/.shortcut-targets-by-id/1kCsF8rkm1yhpjh2_VMzf8ukSPf9d4tqO/MPA Network Assessment: Working Group Shared Folder/data/sync-data" #Chris
+basedir <- "/Users/cfree/Library/CloudStorage/GoogleDrive-cfree@ucsb.edu/.shortcut-targets-by-id/1kCsF8rkm1yhpjh2_VMzf8ukSPf9d4tqO/MPA Network Assessment: Working Group Shared Folder/data/sync-data" #Chris
 indir <- file.path(basedir, "habitat_anita/raw")
 outdir <- file.path(basedir, "habitat_anita/processed")
 
@@ -23,6 +23,11 @@ data_all <- raster::raster(file.path(basedir, "habitat_cdfw/processed/CA_bottom_
 # 1=hard substrate, 0=soft abstrate
 ci_orig <- raster::raster(file.path(indir, "CIN_rock/All_CI_N_rock_2m.tif"))
 
+
+# Reclassify
+################################################################################
+
+data <- data_all + 1
 
 # Project
 ################################################################################

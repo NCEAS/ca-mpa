@@ -10,28 +10,56 @@ rm(list = ls())
 library(tidyverse)
 
 # Directories
-basedir <- "/Volumes/GoogleDrive/.shortcut-targets-by-id/1kCsF8rkm1yhpjh2_VMzf8ukSPf9d4tqO/MPA Network Assessment: Working Group Shared Folder/data/sync-data"
+basedir <- "/Users/cfree/Library/CloudStorage/GoogleDrive-cfree@ucsb.edu/.shortcut-targets-by-id/1kCsF8rkm1yhpjh2_VMzf8ukSPf9d4tqO/MPA Network Assessment: Working Group Shared Folder/data/sync-data" #Chris
 indir <- file.path(basedir, "habitat_cdfw/raw")
 outdir <- file.path(basedir, "habitat_cdfw/processed")
 plotdir <- "data/habitat_cdfw/figures"
 
 # Read data
-# wetlands_orig <- sf::st_read(file.path(indir, "Wetlands", "HAB_CA_Wetlands.shp"))
-# shoretypes_orig <- sf::st_read(file.path(indir, "Shoretypes", "HAB_CA_ShoreTypes.shp"))
-# art_reefs_orig <- sf::st_read(file.path(indir, "HAB_SCSR_ArtificialReefs_Cen", "HAB_SCSR_ArtificialReefs_Cen.shp"))
-# eelgrass_orig <- sf::st_read(file.path(indir, "HAB_CA_Eelgrass", "HAB_CA_Eelgrass_161128.shp"))
-# estuaries_orig <- sf::st_read(file.path(indir, "Estuaries", "HAB_CA_Estuaries.shp"))
-# marsh_orig <- sf::st_read(file.path(indir, "CoastalMarsh", "HAB_CA_coastalmarsh.shp"))
-substrate_orig <- sf::st_read(file.path(indir, "HAB_CA_PredictedSubstrate_WZ", "HAB_CA_PredictedSubstrate_WZ.shp"))
+data_orig <- sf::st_read(file.path(indir, "HAB_CA_PredictedSubstrate_WZ", "HAB_CA_PredictedSubstrate_WZ.shp"))
+
+# Read Stanford data to get its useful projection
+# stanford_orig <- sf::st_read(file.path(basedir, "habitat_stanford/raw", "HAB_SCSR_PredictedSubstrateWDepth.shp"))
 
 # Projections
 wgs84 <- sf::st_crs("+proj=longlat +datum=WGS84")
 
 # NAD83 / California Albers = EPSG:3310
-sf::st_crs(substrate_orig)
+sf::st_crs(data_orig)
 
 
-# Rasterize substrate
+
+# Format shapefile
+################################################################################
+
+# Format data
+data <- data_orig %>% 
+  # Rename
+  janitor::clean_names("snake") %>%
+  # Simplify
+  select(sub, zone) %>% 
+  setNames(c("substrate", "depth", "geometry")) %>% # rename is very slow
+  # Add numeric substrate
+  mutate(substrate_code=recode(substrate,
+                               "Hard"="1",
+                               "Soft"="0") %>% as.numeric()) %>% 
+  # Select
+  select(substrate, substrate_code, depth, geometry)
+
+
+# Inspect
+str(data)
+freeR::complete(data)
+table(data$substrate)
+table(data$depth)
+table(data$substrate_code)
+
+# Export
+saveRDS(data, file=file.path(outdir, "CA_substrate_polygon_cdfw.Rds"))
+sf::st_write(data, dsn=file.path("~/Desktop", "CA_substrate_polygon_cdfw.shp")) # sf won'twri
+
+
+# Rasterize shapefile
 ################################################################################
 
 # Format substrate

@@ -151,18 +151,10 @@ sf::st_write(data_sf, dsn=file.path("~/Desktop", "CA_substrate_polygon_stanford.
 #                            ymx=bbox$ymax, 
 #                            crs='+init=EPSG:3310')
 
-# Format for rasterization
-data_sf_use <- data_sf %>% 
-  filter(substrate!="Unknown") %>% 
-  mutate(substrate_num=recode(substrate, 
-                              "Soft"="0",
-                              "Hard"="1") %>% as.numeric())
-
-
 # Rasterize substrate polygon
-substrate_ras <- fasterize::fasterize(sf=data_sf_use,
+substrate_ras <- fasterize::fasterize(sf=data_sf,
                                       raster=data_all,
-                                      field="substrate_num",
+                                      field="substrate_code",
                                       fun="first",
                                       background=NA)
 
