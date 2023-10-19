@@ -7,11 +7,13 @@
 # - Compares the full table to taxonomy drawn from Fishbase and Sealife Base
 # - Applies corrections to ensure taxonomy is correct
 # - Identify taxononmic level for each entry (species, genus, family)
-# - Export as species_key.csv
+# - OUTPUT: species_key.csv
+# - LOCATION: "/home/shares/ca-mpa/data/sync-data/species_traits/processed"
 
 # This script also brings in the length-weight parameters from fishbase, using
 # the corrected species key.
-# - Export as: "species_lw_parameters_from_fishbase_full_new.csv"
+# - OUTPUT: "species_lw_parameters_from_fishbase_full_new.csv"
+# - LOCATION:  "/home/shares/ca-mpa/data/sync-data/species_traits/processed"
 
 # Setup ------------------------------------------------------------------------------
 
@@ -195,25 +197,26 @@ spp_na <- spp %>%
 
 
 # Export species key to csv -----------------------------------------------------------
-write.csv(spp_corrected, file=file.path(datadir, "species_key.csv"), row.names = F)
-
+#write.csv(spp_corrected, file=file.path(datadir, "species_key.csv"), row.names = F)
+# last write Oct 19, 2023
 
 
 # Get length weight data -----------------------------------------------------------
+# This is now happening in the next script.
 
 # Get length weight tables from fishbase
-lw_fb <-  rfishbase::length_weight(server = "fishbase") %>% 
-  mutate(database = "fishbase") %>% select(database, everything()) 
+lw_fb <-  rfishbase::length_weight(server = "fishbase") %>%
+  mutate(database = "fishbase") %>% select(database, everything())
 
-lw_slb <- rfishbase::length_weight(server = "sealifebase") %>% 
-  mutate(database = "sealifebase") %>% select(database, everything()) 
+lw_slb <- rfishbase::length_weight(server = "sealifebase") %>%
+  mutate(database = "sealifebase") %>% select(database, everything())
 
-lw <- plyr::rbind.fill(lw_fb, lw_slb) %>% 
-  select(database, SpecCode, LengthMin, LengthMax, Type, a, aTL, b, EsQ) %>% 
-  rename(length_min_cm=LengthMin, length_max_cm=LengthMax, a_tl=aTL, doubtful=EsQ) %>% 
+lw <- plyr::rbind.fill(lw_fb, lw_slb) %>%
+  select(database, SpecCode, LengthMin, LengthMax, Type, a, aTL, b, EsQ) %>%
+  rename(length_min_cm=LengthMin, length_max_cm=LengthMax, a_tl=aTL, doubtful=EsQ) %>%
   # Join with taxa from fb/slb
-  left_join(fb_all, by = c("database", "SpecCode")) %>% 
-  arrange(Species) %>% 
+  left_join(fb_all, by = c("database", "SpecCode")) %>%
+  arrange(Species) %>%
   # Filter for only the family, genus, species in our data
   filter(Family %in% spp$Family |
            Genus %in% spp$Genus |
@@ -222,4 +225,4 @@ lw <- plyr::rbind.fill(lw_fb, lw_slb) %>%
 
 # Write length weight parameters to csv ----------------------------------------------------------
 #write.csv(lw, file=file.path(datadir, "species_lw_parameters_from_fishbase_full_new.csv"), row.names = F)
-# last write Oct 11, 2023
+# last write Oct 19, 2023

@@ -17,6 +17,7 @@
 # other character issues.
 
 # OUTPUT: full_taxon_table_new.csv
+# LOCATION:  "/home/shares/ca-mpa/data/sync-data/species_traits/processed"
 
 # Setup --------------------------------------------------------------------------------
 
@@ -347,7 +348,7 @@ deep_reef_taxon <- deep_reef_taxon3 %>%
                                    is.na(target_status) & habitat_specific_spp_name %in% targeted_list ~ "targeted",
                                    T~target_status))
 
-deep_missing_target <- deep_reef_taxon %>% filter(is.na(target_status)) # 115 left
+deep_missing_target <- deep_reef_taxon %>% filter(is.na(target_status)) # 115 left = this is ok
 
 ################################################################################
 #merge
@@ -362,8 +363,8 @@ taxon_tab[taxon_tab == "Non-targeted"] <- "Nontargeted"
 
 
 #export
-write.csv(taxon_tab, file.path(export_path, "full_taxon_table_new.csv"), row.names = FALSE)
-
+#write.csv(taxon_tab, file.path(export_path, "full_taxon_table_new.csv"), row.names = FALSE)
+# last write Oct 19, 2023
 
 
 

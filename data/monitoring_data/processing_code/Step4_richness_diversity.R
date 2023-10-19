@@ -3,9 +3,21 @@
 #Cori Lopazanski;lopazanski@bren.ucsb.edu
 
 # About ----------------------------------------------------------------------------
+# This script reads the clean biomass data created in Step 1 for each habitat. We are not
+# using weight data, but want to leverage the same dataframe structure to ultimately combine
+# with the biomass data. 
+# We use the same processing steps as in Step 2 (repeated; note to CL to update for efficiency if/when 
+# time allows). For each habitat group, for each MPA (inside or reference), for each year: We calculate
+# the total effort, the total count for each species (or cpue, for CCFRP), and then use the vegan 
+# package to calculate unweighted shannon diversity and richness. Note that this is taxonomic diversity
+# and taxonomic richness, because we take the lowest classification used by the habitat group
+# when identifying species. We use the effort calculations to calculate the weighted shannon diversity
+# and richness, and then calculate the log response ratio for MPA/REF pairs for each year. 
 
-# processing notes
+# OUTPUT: richness_diversity_MPA_means.csv
+# LOCATION: /home/shares/ca-mpa/data/sync-data/monitoring/processed_data/biomass_processed"
 
+# Processing notes
 #1. use NO_ORG to keep track of effort when no species were observed. 
 
 #2. we can only use species-level data for diversity, so drop higher taxa. All habitats recorded 
@@ -256,17 +268,15 @@ pivot_wider_result <- pivot_wider_result %>%
   dplyr::select(original_order, everything())
 
 # Step 5: calculate response ratio
-
-
-richness_diversity_RR <- pivot_wider_result %>%
-                          mutate(shannon_weighted_logRR  = log(shannon_weighted_smr/shannon_unweighted_ref),
-                                 shannon_unweighted_logRR = log(shannon_unweighted_smr/shannon_unweighted_ref),
-                                 richness_weighted_logRR = log(richness_weighted_smr/richness_weighted_ref),
-                                 richness_unweighted_logRR = log(richness_unweighted_smr/richness_unweighted_ref))
+richness_diversity_RR <- diversity_scaled %>%
+  mutate(shannon_weighted_logRR    = log(shannon_weighted_smr/shannon_unweighted_ref),
+         shannon_unweighted_logRR  = log(shannon_unweighted_smr/shannon_unweighted_ref),
+         richness_weighted_logRR   = log(richness_weighted_smr/richness_weighted_ref),
+         richness_unweighted_logRR = log(richness_unweighted_smr/richness_unweighted_ref))
   
 
-write.csv(row.names = FALSE, richness_diversity_RR, file.path(datadir, "richness_diversity_MPA_means.csv"))
-
+#write.csv(row.names = FALSE, richness_diversity_RR, file.path(datadir, "richness_diversity_MPA_means.csv"))
+# last write Oct 19 2023
 
 
 

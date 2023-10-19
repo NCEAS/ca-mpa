@@ -2,8 +2,22 @@
 # CL 29 Aug 2023
 
 # This script reads the species key and length weight parameter data created in
-# Step 1 and Step 2. 
+# Step 1 and Step 2. The species key contains an identifier to match with every
+# observation in the raw data (habitat_specific_spp_name) and the correct taxonomic
+# details verified through fishbase. The length weight parameters are pulled directly 
+# from Fishbase, filtered to include any Class, Genus, or Species in the species_key.
 
+# We build a dataframe which contains the length-weight parameters from Fishbase 
+# for each species in the species_key. We include the lw parameters at the species,
+# genus, and class. When multiple lw parameters are provided, we take the average.
+# We take the lowest classificaiton possible -- if there are no lw params for the species,
+# we use the average lw parameters for the genus, and so forth.
+
+# OUTPUT: fishbase_lw_parameters.csv
+# LOCATION: "/home/shares/ca-mpa/data/sync-data/species_traits/processed"
+
+# The next script will select the appropriate parameter from either this list
+# or the literature review. 
 
 # Setup ------------------------------------------------------------------------------
 # Clear workspace
@@ -42,7 +56,7 @@ taxa <- full_join(sp_fb, sp_slb) %>%
 rm(sp_fb, sp_slb)
 
 # Get length-length data for conversion when needed --------------------------------
-# NOTE: Fishbase's formulat for calculating between weights is as follows:
+# NOTE: Fishbase's formula for calculating between weights is as follows:
 #  Length 2 = a + b * Length 1
 #  Because this is opposite of convention, we will rename explicitly as 
 #  slope and intercept such that
@@ -161,8 +175,8 @@ data <- spp_fish %>%
   select(family, genus, sciname, lw_source, a, b, lw_type = type, slope_ll, intercept_ll)
 
 # Export data
-write.csv(data, file=file.path(datadir, "fishbase_lw_parameters.csv"), row.names = F)
-
+#write.csv(data, file=file.path(datadir, "fishbase_lw_parameters.csv"), row.names = F)
+# last write Oct 19 2023
 
 
 
