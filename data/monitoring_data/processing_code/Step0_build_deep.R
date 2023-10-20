@@ -6,31 +6,24 @@
 # Reading and processing steps adapted from Josh Smith, Step1_process_biomass.R
 
 # Goal: Separate processing code from biomass conversion code, and review all steps
-# for errors and potential concerns that could propagate.
+# for errors and potential concerns that could propagate. This script contains all major
+# cleaning of the raw deep reef ROV data.
 
 # Summary of key changes from original code:
 # - Corrected treatment of NA values 
 # - Several species still weren't matching with taxonomy table - fixed
 # - Removed step that added duplicates for multiple affiliated MPAs (until can confirm - see below)
-# - Removed conversion of Point Buchon SMR to Point Buchon SMCA (until can confirm w/ JS)
-# - BIG NOTE: Removed changes to target status for now (until confirm best place to make those adjustments)
-
-# Note potential concerns for next steps:
+# - Updated target status for those that were not listed in original target status table
 # - There are several combinations of group-site-designation that aren't in the main
-#   deep reef site table
-# - How to treat "Farallon Island" site (for which MPA?)
-# - Site-related concerns: mpa_name sometimes has multiple sites listed; this is almost
-#   always when a reference site is affiliated with MPAs, but there are two combinations where
-#   MPA sites are associated with multiple references. There also does not seem to be a consistent
-#   order of how these multiple names are listed (e.g. South Point and Gull Island) which makes
-#   it difficult to determine which could be the "primary" vs "secondary" affiliated MPA
-# - There is a combination where type == Reference and designation == Reference. For now we
-#   treat these as reference sites.
-# - Want to make sure we are consistent to how we assign the affiliated MPA when the transect
-#   is near a cluster ... e.g. Asilomar and Pacific Grove are listed together, but why not also
-#   Lovers Point and Julia Platt? Another concern: how would sites near San Miguel be appropriate
-#   references for Santa Cruz Island?
-# 
+#   deep reef site table - these have been discussed with the PI (RS) and confirmed 
+#   treatment for each. Many of these cases are type == Reference and designation == Reference,
+#   which we assume to be cases where a Reference site was sampled, and the type was incorrectly 
+#   listed as "Reference" when it should have been either "SMR" or "SMCA." These were confirmed 
+#   individually. 
+#     * Farallon Island is associated with Southeast Farallon Island SMCA
+#     * The mpa_name sometimes has multiple sites lislted; we do not use this and only
+#       consider the MPA from the mpa_group column
+
 
 # Setup --------------------------------------------------------------------------------
 rm(list=ls())
@@ -81,7 +74,7 @@ defacto_smr_deep_reef <- readxl::read_excel("/home/shares/ca-mpa/data/sync-data/
 #         becomes the secondary_mpa 
 
 data <- deep_reef_raw %>% 
-  # Trim whitespace across all columns
+  # Trim white space across all columns
   mutate(across(everything(), str_trim)) %>% 
   # Per PI instructions: Only keep transects affiliated with MPAs and that do not cross boundaries
   filter(type %in% c("SMR", "SMCA", "Reference")) %>% 
@@ -94,6 +87,8 @@ data <- deep_reef_raw %>%
   mutate(across(location:designation, str_replace, 'SE ','Southeast ')) %>%
   mutate(across(location:designation, str_replace, 'Bodega Bay','Bodega Head')) %>%
   mutate(across(location:designation, str_replace, 'Point St. George','Point St. George Reef Offshore')) %>%
+  # Correct Farallon Island to Southeast Farallon Island SMCA (Confirmed with RS Sept 2023)
+  mutate(mpa_name = if_else(mpa_group == "Farallon Island", "Southeast Farallon Island SMCA", mpa_name)) %>% 
   # Correct Ano Nuevo to SMR (incorrectly listed as SMCA) 
   mutate(type = if_else(mpa_group == 'Año Nuevo', "SMR", type)) %>% 
   # Create affiliated_mpa variable - confirmed in Sept 2023 that will only use primary!

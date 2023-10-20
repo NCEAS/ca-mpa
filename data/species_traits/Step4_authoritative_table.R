@@ -11,6 +11,10 @@
 # This script combines the CCFRP parameter table with the length-weight 
 # parameters that were pulled from fishbase in Step 3.
 
+# There are a few species that are not in the CCFRP dataset OR fishbase. For these,
+# we use the length-weight parameters provided from literature reviews by the kelp forest
+# monitoring group. There are 9 species that use KF parameters.
+
 # Setup ---------------------------------------------------------------------------
 # Clear workspace
 rm(list = ls())
@@ -34,6 +38,21 @@ ccfrp_params <- readxl::read_excel(file.path(datadir, "raw/CCFRP_Biomass_Convers
   mutate(source = "ccfrp") %>% 
   rename(units = ...16) %>%  # fix column with no header in original file
   clean_names()
+
+# Read the cleaned species key to use with kelp forest parameters
+spp_orig <- read.csv(file.path("/home/shares/ca-mpa/data/sync-data/species_traits/processed/species_key.csv"), as.is=T) %>% 
+  clean_names() %>% filter(habitat == "Kelp forest")
+
+# Length-weight parameters from Kelp Forest literature review
+kelp_params <-readxl::read_excel(
+  file.path("/home/shares/ca-mpa/data/sync-data/monitoring/taxonomy_tables/Kelp-Taxonomy.xlsx"), 
+  sheet=1, skip = 0, na="NA") %>% clean_names() %>% 
+  select(pisco_classcode, scientific_name_accepted, wl_a:ll_equation_for_wl) %>% 
+  # go ahead and drop rows with no parameters
+  filter_at(vars(wl_a:ll_equation_for_wl), any_vars(!is.na(.))) %>% 
+  left_join(spp_orig, by = c("scientific_name_accepted" = "habitat_specific_spp_name", 
+                             "pisco_classcode" = "habitat_specific_code")) %>% 
+  filter(!is.na(sciname))
 
 # Build CCFRP Data ---------------------------------------------------------------------------
 # Conversion to a prime:
@@ -126,6 +145,22 @@ ccfrp_params2 <- ccfrp_params1 %>%
          slope_ll = slope_ll_prime,
          intercept_ll = intercept_ll_prime, 
          source)
+
+# Build Kelp Forest Data -----------------------------------------------------
+kelp_params1 <- kelp_params %>% 
+  select(sciname, family, genus, species, level,
+         a = wl_a,
+         b = wl_b,
+         units_w = wl_w_units,
+         units_l = wl_l_units,
+         type = wl_input_length,
+         slope_ll = lc_a_for_wl,
+         intercept_ll = lc_b_for_wl,
+         conversion_type = lc_type_for_wl,
+         ll_equation = ll_equation_for_wl,
+         source = source_lw_lc,
+         notes = wl_reference_notes) 
+
 
 # Combine parameter datasets -------------------------------------------------
 # Drop species from fishbase parameters that are already in CCFRP
