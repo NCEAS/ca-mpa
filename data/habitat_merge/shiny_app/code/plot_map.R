@@ -1,7 +1,7 @@
 
 # Plot map
 # mpa <- mpas[15]
-plot_map <- function(mpa){
+plot_map <- function(mpa, mpas_sf, substrate_orig, land, state_waters_line){
   
   # MPA
   mpa_do <- mpa

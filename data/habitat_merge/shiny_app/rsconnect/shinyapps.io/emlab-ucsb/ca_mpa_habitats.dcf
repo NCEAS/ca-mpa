@@ -5,7 +5,7 @@ account: emlab-ucsb
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 7363416
-bundleId: 7836000
+bundleId: 7840204
 url: https://emlab-ucsb.shinyapps.io/ca_mpa_habitats/
 asMultiple: FALSE
 asStatic: FALSE

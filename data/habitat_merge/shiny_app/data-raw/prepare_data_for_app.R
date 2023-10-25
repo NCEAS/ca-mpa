@@ -22,14 +22,19 @@ data_orig <- raster::raster(file.path(indir, "CA_bottom_substrate_10m.tif"))
 saveRDS(data_wide, file=file.path(outdir, "bottom_substrate_by_mpa_wide.Rds"))
 saveRDS(data_long, file=file.path(outdir, "bottom_substrate_by_mpa_long.Rds"))
 
+# Projection
+nad83_utm <- "+proj=aea +lat_0=0 +lon_0=-120 +lat_1=34 +lat_2=40.5 +x_0=0 +y_0=-4000000 +datum=NAD83 +units=m +no_defs"
+
 # Get MPAs
 mpas_orig <- wcfish::mpas_ca %>% 
-  sf::st_transform("+proj=aea +lat_0=0 +lon_0=-120 +lat_1=34 +lat_2=40.5 +x_0=0 +y_0=-4000000 +datum=NAD83 +units=m +no_defs")
+  sf::st_transform(crs=nad83_utm)
+saveRDS(mpas_orig, file=file.path(outdir, "ca_mpas.Rds"))
 
 # Get land
 land <- rnaturalearth::ne_countries(country=c("United States of America", "Mexico"),
                                     scale="large", returnclass = "sf") %>% 
-  sf::st_transform(crs="+proj=aea +lat_0=0 +lon_0=-120 +lat_1=34 +lat_2=40.5 +x_0=0 +y_0=-4000000 +datum=NAD83 +units=m +no_defs")
+  sf::st_transform(crs=nad83_utm)
+saveRDS(land, file=file.path(outdir, "land.Rds"))
 
 
 

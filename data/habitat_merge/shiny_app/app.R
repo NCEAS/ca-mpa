@@ -8,7 +8,7 @@ options(dplyr.summarise.inform=F)
 
 # Packages
 library(wcfish)
-library(shiny)
+library(shiny)  
 library(shinythemes)
 library(tidyverse)
 library(RColorBrewer)
@@ -30,13 +30,10 @@ substrate_by_mpa <- readRDS(file.path(datadir, "bottom_substrate_by_mpa_long.Rds
 substrate_orig <- readRDS(file.path(datadir, "mpa_substrate_rasters.Rds")) 
 
 # Get MPAs
-mpas_sf <- wcfish::mpas_ca %>% 
-  sf::st_transform(crs=nad83_utm)
+mpas_sf <- readRDS(file.path(datadir, "ca_mpas.Rds"))
 
 # Get land
-land <- rnaturalearth::ne_countries(country=c("United States of America", "Mexico"),
-                                    scale="large", returnclass = "sf") %>% 
-  sf::st_transform(crs=nad83_utm)
+land <- readRDS(file.path(datadir, "land.Rds"))
 
 # Get state waters
 state_waters_line <- readRDS(file.path(datadir, "CA_state_waters_polyline.Rds")) %>% 
@@ -81,7 +78,11 @@ server <- function(input, output, session){
 
   # Plot map
   output$plot_map <- renderPlot({
-    g <- plot_map(mpa = input$mpa)
+    g <- plot_map(mpa = input$mpa,
+                  mpas_sf = mpas_sf,
+                  substrate_orig = substrate_orig,
+                  land = land,
+                  state_waters_line = state_waters_line)
     g
   })
   
