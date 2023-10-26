@@ -45,7 +45,7 @@ traitsdir <- "/home/shares/ca-mpa/data/sync-data/species_traits/processed"
 datadir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data"
 
 # Read monitoring data
-surf  <- read_csv(file.path(datadir, "surf_zone_fish_processed.csv")) %>% clean_names()
+surf  <- read_csv(file.path(datadir, "surf_zone_processed.csv")) %>% clean_names()
 deep  <- read_csv(file.path(datadir, "deep_reef_processed.csv")) 
 ccfrp <- read_csv(file.path(datadir, "ccfrp_processed.csv")) 
 kelp  <- read_csv(file.path(datadir, "kelp_processed.csv")) 
