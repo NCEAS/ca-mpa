@@ -15,7 +15,7 @@ tab_dir <- here::here("analyses","1performance_eco","tables")
 dat_path <- here::here("analyses","1performance_eco","output")
 
 #read data
-biomass_mod <- readRDS(file.path(dat_path, "biomass_with_moderators.Rds")) 
+biomass_mod <- readRDS(file.path(dat_path, "biomass_with_moderators_new.Rds")) 
 
 
 ################################################################################
@@ -52,6 +52,7 @@ pooled_results <- filtered_data %>%
  arrange(state_region, target_status == "Nontargeted", desc(-estimate)) %>%
   mutate(affiliated_mpa = factor(affiliated_mpa, levels = unique(affiliated_mpa)))
 
+##warning is OK -- tau^2 can't be estimated for MPAs with only one habitat. 
 
 # Calculate the total count of MPAs where logRR > 0 and logRR < 0
 total_counts <- pooled_results %>%
@@ -108,17 +109,18 @@ g <- ggplot(pooled_results, aes(x = estimate, y = affiliated_mpa)) +
     color = "navyblue", hjust = 4.1, vjust = -1.5, size = 3, show.legend = FALSE) +
   geom_vline(xintercept = 0, linetype = "dashed", color = "grey20") +
   scale_color_gradientn(colors = c("navyblue", "grey80", "indianred"),
-                        values = scales::rescale(c(-2.4, 0, 0.1, 1)),
+                        values = scales::rescale(c(-1.4, -0.2, 0, 2)),
                         name = "Effect size") +
   scale_fill_gradientn(colors = c("navyblue", "grey80", "indianred"),
-                       values = scales::rescale(c(-2.4, 0, 0.1, 1)),
+                       values = scales::rescale(c(-1.4, -0.2, 0, 2)),
                        name = "Effect size") +
-  scale_size_continuous(name = "No. habitats") +
+  scale_size_continuous(name = "No. ecosystems") +
   xlab("Effect size (log ratio)") +
   ylab("") +
   theme_bw() + my_theme 
 g
 
-ggsave(g, filename=file.path(fig_dir, "Fig2_mpa_effect_size6.png"), bg = "white",
+
+ggsave(g, filename=file.path(fig_dir, "Fig2_mpa_effect_size7.png"), bg = "white",
       width=7.5, height=9, units="in", dpi=600) 
 
