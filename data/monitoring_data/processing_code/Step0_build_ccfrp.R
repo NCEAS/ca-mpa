@@ -169,7 +169,7 @@ taxa_match <- data2 %>%
 
 # Write to csv ---------------------------------------------------------------------------------------
 write.csv(data3, file.path(outdir, "ccfrp_processed.csv"), row.names = F)
-# last write 11 Sept 2023
+# last write 26 Oct 2023
 
 
 # Explore potential remaining concerns ---------------------------------------------------------------
