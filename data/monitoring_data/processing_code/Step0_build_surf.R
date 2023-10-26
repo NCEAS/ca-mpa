@@ -188,5 +188,7 @@ taxa_match <- #data %>% #old
 # last write 13 Sept 2023
 
 
-write.csv(inferred_size, row.names = FALSE, file.path(outdir, "surf_zone_fish_processed.csv"))
-#note yet exported
+write.csv(inferred_size, row.names = FALSE, file.path(outdir, "surf_zone_processed.csv"))
+#last export 26 Oct 2023
+
+

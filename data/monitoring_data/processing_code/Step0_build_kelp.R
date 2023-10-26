@@ -125,6 +125,6 @@ taxa_match <- data %>%
 
 # Write processed data
 write.csv(data, file.path(outdir, "kelp_processed.csv"), row.names = F)
-# Last write 16 October 2023
+# Last write 26 October 2023
 
   

@@ -300,9 +300,9 @@ nrow(data) - nrow(data2)
 ################################################################################
 #export
 
-# data3 is the current final df to export
+write.csv(data3, row.names = F, file.path(outdir,"/deep_reef_processed.csv"))  
 
-
+# last write 26 Oct 2023
 
 
 
