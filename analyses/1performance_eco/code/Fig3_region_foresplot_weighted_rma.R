@@ -15,7 +15,7 @@ tab_dir <- here::here("analyses","1performance_eco","tables")
 dat_path <- here::here("analyses","1performance_eco","output")
 
 #read data
-biomass_mod <- readRDS(file.path(dat_path, "biomass_with_moderators.Rds")) 
+biomass_mod <- readRDS(file.path(dat_path, "biomass_with_moderators_new.Rds")) 
 
 
 ################################################################################
@@ -186,6 +186,7 @@ g <- ggplot(meta_results, aes(x = estimate, y = state_region, color = target_sta
   scale_color_manual(values = c("navyblue", "indianred"),
                      name = "Target status") +  
   scale_size_continuous(name = "No. MPAs", range = c(1, 3)) +
+  scale_x_continuous(limits= c(-2,2.3))+
   #guides(color = guide_legend(override.aes = list(shape = c(15, 15))),  # Set the shape to 15 (square) for color legend
   #      size = guide_legend(override.aes = list(shape = c(15, 15)))) +  # Set the shape to 15 (square) for size legend
   theme_minimal() +
@@ -197,7 +198,7 @@ g <- ggplot(meta_results, aes(x = estimate, y = state_region, color = target_sta
 
 g
 
-ggsave(g, filename=file.path(fig_dir, "Fig3_habitat_meta_forestplot5.png"), bg = "white",
+ggsave(g, filename=file.path(fig_dir, "Fig3_habitat_meta_forestplot6.png"), bg = "white",
        width=6, height=7, units="in", dpi=600) 
 
 
