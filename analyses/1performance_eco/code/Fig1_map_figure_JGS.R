@@ -47,7 +47,7 @@ sites <- mpa_dat %>%
          )%>%
   #join spatial data with each mpa
   left_join(mpas_orig, by = c("affiliated_mpa" = "mpa")) %>%
-  dplyr::select(habitat, year, state_region, bioregion, region4, affiliated_mpa, 
+  dplyr::select(habitat, year, state_region,  affiliated_mpa, 
                 mpa_full, mpa_short, mlpa, authority, type, ccr, ccr_int, region_code, 
                 region, block_id, area_sqkm, long_dd, lat_dd, everything())
 

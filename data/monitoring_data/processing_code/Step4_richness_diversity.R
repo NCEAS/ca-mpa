@@ -276,7 +276,7 @@ richness_diversity_RR <- diversity_scaled %>%
   
 
 #write.csv(row.names = FALSE, richness_diversity_RR, file.path(datadir, "richness_diversity_MPA_means.csv"))
-# last write Oct 19 2023
+# last write Oct 26 2023
 
 
 
