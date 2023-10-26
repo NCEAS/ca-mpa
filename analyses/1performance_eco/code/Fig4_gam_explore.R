@@ -34,7 +34,8 @@ habitat_year <- filtered_data %>%
   dplyr::select(year, tau2)
 
 # Step 2: Join tau
-mod_dat <- left_join(filtered_data, habitat_year, by = "year") 
+mod_dat <- left_join(filtered_data, habitat_year, by = "year")
+          
 
 # Step 3: Build the meta-GAM
 meta_gam_model <- gam(yi ~ 
@@ -46,19 +47,60 @@ meta_gam_model <- gam(yi ~
                         s(age_at_survey, k =3)+
                         s(settlement_habitat) +
                         s(settlement_mpa_total) +
-                        s(year, bs = "cc"), 
+                        s(year, bs = "cc"),
                       weights = 1 / (vi + tau2),
                       data = mod_dat)
 
 summary(meta_gam_model)
 
 
-library(ggeffects)
-library(emmeans)
-plotme<-ggemmeans(meta_gam_model,terms=c("settlement_mpa_total"))
-plot(plotme)
+viz <- getViz(meta_gam_model)
+print(plot(viz, allTerms = T), pages = 1)
+
+my_theme <-  theme(axis.text=element_text(size=6, color = "black"),
+                   axis.text.y = element_text(color = "black"),
+                   axis.title=element_text(size=8, color = "black"),
+                   plot.tag=element_text(size= 8, color = "black"), #element_text(size=8),
+                   plot.title =element_text(size=7, face="bold", color = "black"),
+                   # Gridlines 
+                   panel.grid.major = element_blank(), 
+                   panel.grid.minor = element_blank(),
+                   panel.background = element_blank(), 
+                   axis.line = element_line(colour = "black"),
+                   # Legend
+                   legend.key = element_blank(),
+                   legend.background = element_rect(fill=alpha('blue', 0)),
+                   legend.key.height = unit(1, "lines"), 
+                   legend.text = element_text(size = 6, color = "black"),
+                   legend.title = element_text(size = 7, color = "black"),
+                   #legend.spacing.y = unit(0.75, "cm"),
+                   #facets
+                   strip.background = element_blank(),
+                   strip.text = element_text(size = 6 , face="bold", color = "black")
+)
+
+trt <- plot(viz, allTerms = T) +
+  l_points(shape = 19, size =0.5) +
+  l_fitLine(linetype = "solid", color = "indianred", size=1.5)  +
+  l_ciLine(linetype = "dashed", color = "navyblue", size = 1) +
+  l_ciBar() +
+  l_rug() +
+  theme_bw() +
+  my_theme
+
+print(trt, pages = 1)
 
 
+
+
+trt <- plot(viz, allTerms = T) +
+  l_dens(type = "cond") +
+  l_fitLine(linetype = 2, color = "indianred")  +
+  l_ciLine(linetype = 3, color = "navyblue") +
+  theme_bw() +
+  my_theme
+
+print(trt, pages = 1)
 
 ################################################################################
 #test reduced gam with surface plot
