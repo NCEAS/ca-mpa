@@ -57,11 +57,11 @@ summary(meta_gam_model)
 viz <- getViz(meta_gam_model)
 print(plot(viz, allTerms = T), pages = 1)
 
-my_theme <-  theme(axis.text=element_text(size=6, color = "black"),
+my_theme <-  theme(axis.text=element_text(size=10, color = "black"),
                    axis.text.y = element_text(color = "black"),
-                   axis.title=element_text(size=8, color = "black"),
-                   plot.tag=element_text(size= 8, color = "black"), #element_text(size=8),
-                   plot.title =element_text(size=7, face="bold", color = "black"),
+                   axis.title=element_text(size=12, color = "black"),
+                   plot.tag=element_text(size= 12, color = "black"), #element_text(size=8),
+                   plot.title =element_text(size=11, face="bold", color = "black"),
                    # Gridlines 
                    panel.grid.major = element_blank(), 
                    panel.grid.minor = element_blank(),
@@ -71,12 +71,12 @@ my_theme <-  theme(axis.text=element_text(size=6, color = "black"),
                    legend.key = element_blank(),
                    legend.background = element_rect(fill=alpha('blue', 0)),
                    legend.key.height = unit(1, "lines"), 
-                   legend.text = element_text(size = 6, color = "black"),
-                   legend.title = element_text(size = 7, color = "black"),
+                   legend.text = element_text(size = 10, color = "black"),
+                   legend.title = element_text(size = 11, color = "black"),
                    #legend.spacing.y = unit(0.75, "cm"),
                    #facets
                    strip.background = element_blank(),
-                   strip.text = element_text(size = 6 , face="bold", color = "black")
+                   strip.text = element_text(size = 10 , face="bold", color = "black")
 )
 
 trt <- plot(viz, allTerms = T) +
@@ -88,19 +88,28 @@ trt <- plot(viz, allTerms = T) +
   theme_bw() +
   my_theme
 
-print(trt, pages = 1)
 
+print(trt, pages = 1)
 
 
 
 trt <- plot(viz, allTerms = T) +
-  l_dens(type = "cond") +
-  l_fitLine(linetype = 2, color = "indianred")  +
-  l_ciLine(linetype = 3, color = "navyblue") +
+  l_dens(type = "cond")+
+ # l_points(shape = 19, size =0.5) +
+  l_fitLine(linetype = "solid", color = "black", size=1.5)  +
+  l_ciLine(linetype = "dashed", color = "black", size = 1) +
+  l_ciBar() +
+  l_rug() +
   theme_bw() +
   my_theme
 
 print(trt, pages = 1)
+
+
+ggsave(g, filename=file.path(fig_dir, "Fig4_GAM_cond.png"), bg = "white",
+       width=5, height=6, units="in", dpi=600) 
+
+
 
 ################################################################################
 #test reduced gam with surface plot
