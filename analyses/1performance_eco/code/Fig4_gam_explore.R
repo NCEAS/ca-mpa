@@ -5,7 +5,7 @@
 rm(list=ls())
 
 #required packages
-librarian::shelf(ggplot2, tidyverse, here, mgcv, ggeffects, mgcViz)
+librarian::shelf(ggplot2, tidyverse, here, mgcv, gratia, ggeffects, mgcViz, tidymv)
 
 #set directories
 data_path <- "/home/shares/ca-mpa/data/sync-data/"
@@ -34,7 +34,8 @@ habitat_year <- filtered_data %>%
   dplyr::select(year, tau2)
 
 # Step 2: Join tau
-mod_dat <- left_join(filtered_data, habitat_year, by = "year")
+mod_dat <- left_join(filtered_data, habitat_year, by = "year") %>%
+  filter(settlement_habitat < 400)
           
 
 # Step 3: Build the meta-GAM
@@ -53,15 +54,44 @@ meta_gam_model <- gam(yi ~
 
 summary(meta_gam_model)
 
+################################################################################
+#structure data for plotting
 
-viz <- getViz(meta_gam_model)
-print(plot(viz, allTerms = T), pages = 1)
+sm_dat <- gratia::smooth_estimates(meta_gam_model) %>%
+  add_confint()%>%
+  pivot_longer(cols = 6:14, names_to = "var", values_to = "var_val") %>%
+  mutate(smooth = str_replace(smooth, "s\\((.+)\\)", "\\1"),
+         smooth = str_replace_all(smooth, "_", " "),
+         smooth = str_to_sentence(smooth))
 
-my_theme <-  theme(axis.text=element_text(size=10, color = "black"),
-                   axis.text.y = element_text(color = "black"),
-                   axis.title=element_text(size=12, color = "black"),
-                   plot.tag=element_text(size= 12, color = "black"), #element_text(size=8),
-                   plot.title =element_text(size=11, face="bold", color = "black"),
+
+#add residuals to data
+resid_dat <- mod_dat %>% na.omit() %>% add_partial_residuals(meta_gam_model) %>%
+  #make smooth vars longer
+  pivot_longer(cols = 33:ncol(.), names_to = "smooth", values_to = "res_val") %>%
+  #make predictors longer
+  pivot_longer(cols = c("size","habitat_richness","habitat_diversity",
+                        "prop_rock","fishing_pressure","age_at_survey",
+                        "settlement_habitat","settlement_mpa_total","year"), 
+               names_to = "pred_var", values_to = "pred_val")%>%
+  dplyr::select(smooth, res_val, pred_var, pred_val) %>%
+  mutate(match_var = paste0("s(",pred_var,")"))%>%
+  filter(smooth == match_var) %>%
+  dplyr::select(smooth, res_val, pred_val)%>%
+  mutate(smooth = str_replace(smooth, "s\\((.+)\\)", "\\1"),
+         smooth = str_replace_all(smooth, "_", " "),
+         smooth = str_to_sentence(smooth))
+
+
+################################################################################
+#plot
+
+my_theme <-  theme(axis.text=element_text(size=4, color = "black"),
+                   axis.text.y = element_text(color = "black",size=6),
+                   axis.text.x = element_text(color = "black",size=6),
+                   axis.title=element_text(size=7, color = "black"),
+                   plot.tag=element_text(size= 7, color = "black"), #element_text(size=8),
+                   plot.title =element_text(size=6, face="bold", color = "black"),
                    # Gridlines 
                    panel.grid.major = element_blank(), 
                    panel.grid.minor = element_blank(),
@@ -71,45 +101,63 @@ my_theme <-  theme(axis.text=element_text(size=10, color = "black"),
                    legend.key = element_blank(),
                    legend.background = element_rect(fill=alpha('blue', 0)),
                    legend.key.height = unit(1, "lines"), 
-                   legend.text = element_text(size = 10, color = "black"),
-                   legend.title = element_text(size = 11, color = "black"),
+                   legend.text = element_text(size = 7, color = "black"),
+                   legend.title = element_text(size = 8, color = "black"),
                    #legend.spacing.y = unit(0.75, "cm"),
                    #facets
                    strip.background = element_blank(),
-                   strip.text = element_text(size = 10 , face="bold", color = "black")
+                   strip.text = element_text(size = 6 , face="bold", color = "black", hjust=0)
 )
 
-trt <- plot(viz, allTerms = T) +
-  l_points(shape = 19, size =0.5) +
-  l_fitLine(linetype = "solid", color = "indianred", size=1.5)  +
-  l_ciLine(linetype = "dashed", color = "navyblue", size = 1) +
-  l_ciBar() +
-  l_rug() +
-  theme_bw() +
-  my_theme
+
+#create dummy color ramp
+
+p <- sm_dat %>%
+  ggplot() +
+  geom_density_2d_filled(aes(x = pred_val, y = res_val), alpha=0.7, data = resid_dat,
+                         contour_var = "ndensity", bins=100,
+                         show.legend = FALSE)+
+  geom_ribbon(aes(ymin = lower_ci, ymax = upper_ci, x = var_val), color = "black", linetype = "dashed", fill = NA) +
+  #add residuals
+  #geom_point(aes(x = pred_val, y = res_val),
+   #          data = resid_dat, colour = "steelblue3") +
+  geom_line(aes(x = var_val, y = est), lwd = 0.8) +
+  facet_wrap(~smooth, scales = "free")+
+  labs(y = "Partial effect", x  = "Predictor value")+
+  theme_bw() + my_theme
+  
+p
+
+ggsave(p, filename=file.path(fig_dir, "Fig4_GAM.png"), bg = "white",
+       width=5, height=4, units="in", dpi=600) 
 
 
-print(trt, pages = 1)
 
 
 
-trt <- plot(viz, allTerms = T) +
-  l_dens(type = "cond")+
- # l_points(shape = 19, size =0.5) +
-  l_fitLine(linetype = "solid", color = "black", size=1.5)  +
-  l_ciLine(linetype = "dashed", color = "black", size = 1) +
-  l_ciBar() +
-  l_rug() +
-  theme_bw() +
-  my_theme
-
-print(trt, pages = 1)
 
 
-ggsave(g, filename=file.path(fig_dir, "Fig4_GAM_cond.png"), bg = "white",
-       width=5, height=6, units="in", dpi=600) 
 
 
+
+
+library(manipulate)
+
+manipulate(
+  sm_dat %>%
+  ggplot() +
+    stat_density_2d(geom = "raster", aes(fill = ..density..,
+                                         x = pred_val,
+                                         y=res_val), contour = F, 
+                    data = resid_dat,
+                    h = c(x_bandwidth, y_bandwidth),
+                    n = grid_points) +
+    facet_wrap(~smooth, scales = "free")+
+    scale_fill_distiller(palette = "Viridis", direction = -1),
+  x_bandwidth = slider(0.1, 20, 1, step = 0.1),
+  y_bandwidth = slider(0.1, 20, 1, step = 0.1),
+  grid_points = slider(1, 500, 50)
+)
 
 ################################################################################
 #test reduced gam with surface plot
