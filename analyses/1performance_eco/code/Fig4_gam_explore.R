@@ -50,7 +50,7 @@ meta_gam_model <- gam(yi ~
                         s(settlement_mpa_total) +
                         s(year, bs = "cc"),
                       weights = 1 / (vi + tau2),
-                      data = mod_dat)
+                      data = mod_dat) 
 
 summary(meta_gam_model)
 
@@ -106,7 +106,8 @@ my_theme <-  theme(axis.text=element_text(size=4, color = "black"),
                    #legend.spacing.y = unit(0.75, "cm"),
                    #facets
                    strip.background = element_blank(),
-                   strip.text = element_text(size = 6 , face="bold", color = "black", hjust=0)
+                   strip.placement = "outside",
+                   strip.text = element_text(size = 6 , face="plain", color = "black", vjust=4)
 )
 
 
@@ -122,14 +123,24 @@ p <- sm_dat %>%
   #geom_point(aes(x = pred_val, y = res_val),
    #          data = resid_dat, colour = "steelblue3") +
   geom_line(aes(x = var_val, y = est), lwd = 0.8) +
-  facet_wrap(~smooth, scales = "free")+
-  labs(y = "Partial effect", x  = "Predictor value")+
-  theme_bw() + my_theme
+  facet_wrap(~smooth, scales = "free",
+             labeller = as_labeller(
+               c("Age at survey" = "Age at survey \n(years)", "Fishing pressure" = "Pre-implementation landings \n(pounds per km²)",
+                 "Habitat diversity" = "Habitat diversity \n(Shannon index)","Habitat richness"= "Habitat richness \n(no. habitats)",
+                 "Prop rock" = "Rocky substratum \n(proportion)", "Settlement habitat"="Settlement to \nhabitat",
+                 "Settlement mpa total" = "Settlement to \nMPA", "Size" = "Size \n(km²)",
+                 "Year" = "Year \n")), 
+             strip.position = "bottom"
+             )+
+  labs(y = "Partial effect", x  = "")+
+  theme_bw() + my_theme 
   
 p
 
-ggsave(p, filename=file.path(fig_dir, "Fig4_GAM.png"), bg = "white",
-       width=5, height=4, units="in", dpi=600) 
+
+
+ggsave(p, filename=file.path(fig_dir, "Fig4_GAM2.png"), bg = "white",
+       width=5, height=5, units="in", dpi=600) 
 
 
 
