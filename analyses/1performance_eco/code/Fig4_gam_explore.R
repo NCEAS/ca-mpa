@@ -111,13 +111,13 @@ my_theme <-  theme(axis.text=element_text(size=4, color = "black"),
 )
 
 
-#create dummy color ramp
-
 p <- sm_dat %>%
   ggplot() +
-  geom_density_2d_filled(aes(x = pred_val, y = res_val), alpha=0.7, data = resid_dat,
-                         contour_var = "ndensity", bins=100,
-                         show.legend = FALSE)+
+  geom_density_2d_filled(aes(x = pred_val, y = res_val), alpha=0.8, data = resid_dat,
+                         contour_var = "ndensity", bins=9,
+                        show.legend = TRUE)+
+  scale_fill_brewer(palette = "Blues")+
+  #scale_fill_brewer()+
   geom_ribbon(aes(ymin = lower_ci, ymax = upper_ci, x = var_val), color = "black", linetype = "dashed", fill = NA) +
   #add residuals
   #geom_point(aes(x = pred_val, y = res_val),
@@ -132,14 +132,14 @@ p <- sm_dat %>%
                  "Year" = "Year \n")), 
              strip.position = "bottom"
              )+
-  labs(y = "Partial effect", x  = "")+
+  labs(y = "Partial effect", x  = "", fill = "Scaled residual \ndensity")+
   theme_bw() + my_theme 
   
 p
 
 
 
-ggsave(p, filename=file.path(fig_dir, "Fig4_GAM2.png"), bg = "white",
+ggsave(p, filename=file.path(fig_dir, "Fig4_GAM3.png"), bg = "white",
        width=5, height=5, units="in", dpi=600) 
 
 
