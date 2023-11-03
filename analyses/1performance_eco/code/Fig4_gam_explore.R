@@ -58,7 +58,8 @@ summary_info <- summary(meta_gam_model)
 
 # Extract terms and p-values
 gam_terms <- data.frame(summary_info$s.table) %>%
-          tibble::rownames_to_column(var = "smooth")
+          tibble::rownames_to_column(var = "smooth") %>%
+          rename("EDF" = "edf")
 
 
 
@@ -121,9 +122,11 @@ my_theme <-  theme(axis.text=element_text(size=4, color = "black"),
                    strip.text = element_text(size = 6 , face="plain", color = "black", vjust=4)
 )
 
-pval <- sm_dat %>% dplyr::select(smooth, p.value) %>% distinct() %>%
+pval <- sm_dat %>% dplyr::select(smooth, p.value, EDF) %>% distinct() %>%
           mutate(color = ifelse(p.value < 0.05, "red","black"),
-                 label = ifelse(p.value < 0.001, "p < 0.001", paste("p = ", round(p.value, 3))))
+                 label = paste0(ifelse(p.value < 0.001, "p < 0.001", paste("p = ", round(p.value, 3))),
+                               ", EDF: ",round(EDF,2))
+                 )
 
 p <- sm_dat %>%
   ggplot() +
@@ -149,7 +152,7 @@ p <- sm_dat %>%
   #add summary stats
   geom_text(aes(x = -Inf, y = Inf, 
                 label = pval$label),
-            hjust = -0.2, vjust = 1.3, size = 2.5, data = pval, color = pval$color) +
+            hjust = -0.1, vjust = 1.3, size = 2.5, data = pval, color = pval$color) +
   labs(y = "Partial effect", x  = "", fill = "Scaled residual \ndensity")+
   theme_bw() + my_theme 
   
@@ -157,7 +160,7 @@ p
 
 
 
-ggsave(p, filename=file.path(fig_dir, "Fig4_GAM3.png"), bg = "white",
+ggsave(p, filename=file.path(fig_dir, "Fig4_GAM4.png"), bg = "white",
        width=6, height=5, units="in", dpi=600) 
 
 
