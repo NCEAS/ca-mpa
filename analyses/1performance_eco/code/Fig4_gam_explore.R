@@ -52,7 +52,17 @@ meta_gam_model <- gam(yi ~
                       weights = 1 / (vi + tau2),
                       data = mod_dat) 
 
-summary(meta_gam_model)
+
+# Get the summary of the GAM model
+summary_info <- summary(meta_gam_model)
+
+# Extract terms and p-values
+gam_terms <- data.frame(summary_info$s.table) %>%
+          tibble::rownames_to_column(var = "smooth")
+
+
+
+
 
 ################################################################################
 #structure data for plotting
@@ -60,6 +70,7 @@ summary(meta_gam_model)
 sm_dat <- gratia::smooth_estimates(meta_gam_model) %>%
   add_confint()%>%
   pivot_longer(cols = 6:14, names_to = "var", values_to = "var_val") %>%
+  left_join(gam_terms, by = "smooth") %>%
   mutate(smooth = str_replace(smooth, "s\\((.+)\\)", "\\1"),
          smooth = str_replace_all(smooth, "_", " "),
          smooth = str_to_sentence(smooth))
@@ -100,9 +111,9 @@ my_theme <-  theme(axis.text=element_text(size=4, color = "black"),
                    # Legend
                    legend.key = element_blank(),
                    legend.background = element_rect(fill=alpha('blue', 0)),
-                   legend.key.height = unit(1, "lines"), 
-                   legend.text = element_text(size = 7, color = "black"),
-                   legend.title = element_text(size = 8, color = "black"),
+                   legend.key.size  = unit(0.5, "lines"), 
+                   legend.text = element_text(size = 6, color = "black"),
+                   legend.title = element_text(size = 7, color = "black"),
                    #legend.spacing.y = unit(0.75, "cm"),
                    #facets
                    strip.background = element_blank(),
@@ -110,6 +121,9 @@ my_theme <-  theme(axis.text=element_text(size=4, color = "black"),
                    strip.text = element_text(size = 6 , face="plain", color = "black", vjust=4)
 )
 
+pval <- sm_dat %>% dplyr::select(smooth, p.value) %>% distinct() %>%
+          mutate(color = ifelse(p.value < 0.05, "red","black"),
+                 label = ifelse(p.value < 0.001, "p < 0.001", paste("p = ", round(p.value, 3))))
 
 p <- sm_dat %>%
   ggplot() +
@@ -132,6 +146,10 @@ p <- sm_dat %>%
                  "Year" = "Year \n")), 
              strip.position = "bottom"
              )+
+  #add summary stats
+  geom_text(aes(x = -Inf, y = Inf, 
+                label = pval$label),
+            hjust = -0.2, vjust = 1.3, size = 2.5, data = pval, color = pval$color) +
   labs(y = "Partial effect", x  = "", fill = "Scaled residual \ndensity")+
   theme_bw() + my_theme 
   
@@ -140,7 +158,7 @@ p
 
 
 ggsave(p, filename=file.path(fig_dir, "Fig4_GAM3.png"), bg = "white",
-       width=5, height=5, units="in", dpi=600) 
+       width=6, height=5, units="in", dpi=600) 
 
 
 
