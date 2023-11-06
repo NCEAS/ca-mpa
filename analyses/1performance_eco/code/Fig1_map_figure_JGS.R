@@ -127,7 +127,7 @@ g1 <- ggplot() +
   geom_text(data=region_labels, mapping=aes(x=long_dd, y=lat_dd, label=label, fontface="bold"), hjust=0, size=2.3) +
   # Labels
   labs(x="", y="", tag="A") +
-  scale_size_continuous(name="No. habitats \nmonitored") +
+  scale_size_continuous(name="No. ecosystems \nmonitored") +
   # Axes
   scale_y_continuous(breaks=32:42) +
   # Crop
@@ -187,7 +187,7 @@ g <- gridExtra::grid.arrange(g1, g2, ncol=2, widths=c(0.55, 0.45))
 g
 
 # Export figure
-ggsave(g, filename=file.path(plotdir, "Fig1_map_figure3.png"), 
+ggsave(g, filename=file.path(plotdir, "Fig1_map_figure4.png"), 
        width=7.5, height=6, units="in", dpi=600)
 
 
