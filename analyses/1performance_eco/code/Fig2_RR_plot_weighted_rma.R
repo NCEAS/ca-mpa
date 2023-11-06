@@ -25,9 +25,13 @@ biomass_mod <- readRDS(file.path(dat_path, "biomass_with_moderators_new.Rds"))
 filtered_data <- biomass_mod %>%
   #filter(target_status == "Targeted")%>%
   group_by(habitat, affiliated_mpa, target_status) %>%
+  #determine the most recent year of sampling for each ecosystem
   filter(year == max(year))%>%
   ungroup() %>%
   na.omit()
+
+unique(filtered_data$affiliated_mpa)
+
 
 ################################################################################
 #use rma to calculate among study variance and find the overall (pooled) ES
@@ -48,8 +52,9 @@ pooled_results <- filtered_data %>%
                                                                                                   "North Central \nCoast", 
                                                                                                   "Central \nCoast", 
                                                                                                   "South \nCoast")),
-          target_status = factor(target_status, levels = c("Targeted","Nontargeted")))%>%
- arrange(state_region, target_status == "Nontargeted", desc(-estimate)) %>%
+         target_status = factor(str_replace(target_status, "Nontargeted", "Non-targeted"),
+                                levels = c("Targeted", "Non-targeted"))) %>%
+ arrange(state_region, target_status == "Non-targeted", desc(-estimate)) %>%
   mutate(affiliated_mpa = factor(affiliated_mpa, levels = unique(affiliated_mpa)))
 
 ##warning is OK -- tau^2 can't be estimated for MPAs with only one habitat. 
@@ -115,12 +120,12 @@ g <- ggplot(pooled_results, aes(x = estimate, y = affiliated_mpa)) +
                        values = scales::rescale(c(-1.4, -0.2, 0, 2)),
                        name = "Effect size") +
   scale_size_continuous(name = "No. ecosystems") +
-  xlab("Effect size (log ratio)") +
+  xlab("Effect size \n(log response ratio)") +
   ylab("") +
   theme_bw() + my_theme 
 g
 
 
-ggsave(g, filename=file.path(fig_dir, "Fig2_mpa_effect_size7.png"), bg = "white",
-      width=7.5, height=9, units="in", dpi=600) 
+ggsave(g, filename=file.path(fig_dir, "Fig2_mpa_effect_size8.png"), bg = "white",
+      width=7.5, height=10, units="in", dpi=600) 
 
