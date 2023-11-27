@@ -69,15 +69,41 @@ deep_reef_spp <- deep_reef_raw %>%
 spp_long <- rbind(surf_zone_spp, kelp_spp, shallow_reef_spp, deep_reef_spp)
 
 ################################################################################
-# clean up
+# get full taxonomy from FishBase
 
-spp_clean1 <- spp_long %>% mutate(class = ifelse(class == "Actinopteri","Actinopterygii",class),
-                                  order = ifelse(order == "Ovalentaria incertae sedis","Perciformes",order))
+spp_taxa <- spp_long %>%
+              #drop missing genus or species
+              filter(!(is.na(genus) | is.na(species))) %>%
+              filter(!(species %in% c("spp")))%>%
+              mutate(spp = paste(genus, species))
 
-spp_wide <- spp_clean1 %>%
+
+FB_taxa <- freeR::taxa(spp_taxa$spp)
+
+
+# Perform a left join based on matching 'spp' and 'sciname'
+joined_data <- left_join(spp_taxa, FB_taxa, by = c("spp" = "sciname"))
+
+# Update columns in 'spp_taxa' with corresponding values from 'FB_taxa'
+spp_taxa <- joined_data %>%
+  mutate(
+    class = coalesce(class.y, class.x),
+    order = coalesce(order.y, order.x),
+    family = coalesce(family.y, family.x),
+    genus = coalesce(genus.y, genus.x),
+    species = coalesce(species.y, species.x)
+  ) %>%
+  select(-starts_with("class."), -starts_with("order."), -starts_with("family."), -starts_with("genus."), -starts_with("species."))
+
+
+################################################################################
+
+
+spp_wide <- spp_taxa %>%
   mutate(dumy_var = "X") %>%
   pivot_wider(names_from = habitat, values_from = dumy_var, values_fill = NA) %>%
-  mutate(across(7:10, ~ ifelse(.=="NULL",NA,"X")))
+  mutate(across(9:12, ~ ifelse(.=="NULL",NA,"X"))) %>%
+  dplyr::select(-type)
   
 ################################################################################
 #Check and clean up
@@ -100,18 +126,42 @@ spp_wide_fixed <- spp_wide %>%
   group_by(class, order, family, genus, species, target_status) %>%
   summarize_at(vars(`Surf zone`, `Kelp forest`, `Shallow reef`, `Deep reef`),
                function(x) paste(unique(na.omit(x)), collapse = ", ")) %>%
-  ungroup()
+  ungroup() %>%
+  mutate(dup_spp = paste(genus, species))
 
-duplicate_spp <- spp_wide_fixed[duplicated(spp_wide_fixed$species) | duplicated(spp_wide_fixed$species, fromLast = TRUE), ]
+duplicate_spp <- spp_wide_fixed[duplicated(spp_wide_fixed$dup_spp) | duplicated(spp_wide_fixed$dup_spp, fromLast = TRUE), ]
 
-write.csv(duplicate_spp, file.path(tabdir, "target_discrep.csv"),row.names = FALSE)
 
-###need to reconcile species that were considered targeted by one habitat and
-#not by another
+#write.csv(duplicate_spp, file.path(tabdir, "target_discrep.csv"),row.names = FALSE)
+
+################################################################################
+#fix target status
+#If a habitat called a species 'targeted' then make targeted for all
+
+#make list of targeted species
+target_spp <- duplicate_spp %>% distinct(dup_spp)
+
+#fix target status
+target_status_fixed <- spp_wide_fixed %>%
+  mutate(target_status = case_when(
+    dup_spp %in% target_spp$dup_spp ~ "Targeted",
+    TRUE ~ target_status
+  )) %>% distinct(class, order, family, genus, species, target_status, .keep_all = TRUE)
+
+################################################################################
+#check for taxonomy inconsistencies from observerations not in FishBase
+
+duplicate_rows <- target_status_fixed %>%
+  filter(duplicated(dup_spp) | duplicated(dup_spp, fromLast = TRUE))
+
+#fix
+target_status_final <- target_status_fixed %>%
+                        mutate(order = ifelse(dup_spp == "Pseudobatos productus", "Rajiformes",order)) %>%
+  distinct(class, order, family, genus, species, target_status, .keep_all = TRUE)
 
 ################################################################################
 #Create table
 
-write.csv(spp_wide, file.path(tabdir, "TableS1_taxonomy.csv"),row.names = FALSE)
+write.csv(target_status_final, file.path(tabdir, "TableS1_taxonomy.csv"),row.names = FALSE)
 
 
