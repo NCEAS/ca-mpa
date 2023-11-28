@@ -57,6 +57,9 @@ pooled_results <- filtered_data %>%
  arrange(state_region, target_status == "Non-targeted", desc(-estimate)) %>%
   mutate(affiliated_mpa = factor(affiliated_mpa, levels = unique(affiliated_mpa)))
 
+#save results to .rdata to generate summary table
+save(pooled_results, file = file.path(dat_path, "mpa_level_meta_results.Rds"))
+
 ##warning is OK -- tau^2 can't be estimated for MPAs with only one habitat. 
 
 # Calculate the total count of MPAs where logRR > 0 and logRR < 0
