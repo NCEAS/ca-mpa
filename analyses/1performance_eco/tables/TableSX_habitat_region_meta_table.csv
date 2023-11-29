@@ -1,0 +1,29 @@
+"Ecosystem","Region","Target status","Effect size","Standard error","P-value","95% lower","95% upper","No. MPAs","Tau-2","Q"
+"Deep reef","North ","Targeted",0.047,0.264,0.859,-0.471,0.565,2,0,0.005
+"Deep reef","North ","Nontargeted",-0.409,0.425,0.335,-1.241,0.423,2,0.111,1.372
+"Deep reef","North Central ","Targeted",-0.158,0.22,0.473,-0.59,0.274,1,0,0
+"Deep reef","North Central ","Nontargeted",0.733,0.127,0,0.485,0.981,1,0,0
+"Deep reef","Central ","Targeted",0.158,0.346,0.649,-0.521,0.836,7,0.622,23.261
+"Deep reef","Central ","Nontargeted",0.463,0.203,0.023,0.064,0.861,7,0.197,31.182
+"Deep reef","South ","Targeted",0.911,0.251,0,0.42,1.403,6,0.283,21.313
+"Deep reef","South ","Nontargeted",0.264,0.337,0.432,-0.395,0.924,6,0.533,33.106
+"Kelp forest","North ","Targeted",-0.406,0.28,0.146,-0.954,0.142,2,0,0.045
+"Kelp forest","North ","Nontargeted",-0.509,0.203,0.012,-0.907,-0.11,2,0,0.006
+"Kelp forest","North Central ","Targeted",0.745,0.773,0.335,-0.77,2.26,3,1.629,20.497
+"Kelp forest","North Central ","Nontargeted",0.305,0.321,0.341,-0.323,0.934,3,0.235,7.745
+"Kelp forest","Central ","Targeted",0.447,0.215,0.037,0.026,0.868,10,0.349,52.097
+"Kelp forest","Central ","Nontargeted",0.255,0.154,0.098,-0.047,0.556,10,0.15,27.851
+"Kelp forest","South ","Targeted",0.727,0.237,0.002,0.263,1.192,19,0.863,411.337
+"Kelp forest","South ","Nontargeted",0.302,0.291,0.299,-0.268,0.873,19,1.358,241.525
+"Shallow reef","North ","Targeted",0.603,0.144,0,0.321,0.885,2,0,0.057
+"Shallow reef","North Central ","Targeted",1.119,0.294,0,0.544,1.695,2,0.127,3.173
+"Shallow reef","Central ","Targeted",0.896,0.288,0.002,0.331,1.46,4,0.302,38.732
+"Shallow reef","South ","Targeted",0.721,0.253,0.004,0.224,1.217,5,0.272,20.293
+"Surf zone","North ","Targeted",0.42,0.041,0,0.339,0.5,1,0,0
+"Surf zone","North ","Nontargeted",0.863,0.178,0,0.514,1.212,1,0,0
+"Surf zone","North Central ","Targeted",0.425,0.401,0.289,-0.36,1.211,1,0,0
+"Surf zone","North Central ","Nontargeted",-0.474,0.222,0.033,-0.909,-0.038,1,0,0
+"Surf zone","Central ","Targeted",-0.017,0.456,0.97,-0.911,0.877,4,0.568,14.442
+"Surf zone","Central ","Nontargeted",-0.011,0.443,0.98,-0.88,0.857,4,0.756,114.615
+"Surf zone","South ","Targeted",0.654,0.39,0.093,-0.109,1.418,5,0.63,33.513
+"Surf zone","South ","Nontargeted",0.368,0.162,0.024,0.049,0.686,5,0.084,10.211
