@@ -16,10 +16,14 @@ dat_path <- here::here("analyses","1performance_eco","output")
 
 #read data
 mpa_meta_results <- readRDS(file.path(dat_path, "mpa_level_meta_results.Rds")) 
+habitat_region_results <- readRDS(file.path(dat_path, "habitat_region_meta_results.Rds")) 
+habitat_target_results <- readRDS(file.path(dat_path, "habitat_target_meta_results.Rds")) 
+region_results <- readRDS(file.path(dat_path, "region_meta_results.Rds")) 
+state_results <- readRDS(file.path(dat_path, "state_meta_results.Rds")) 
 
 
 ################################################################################
-#extract relevant model output
+#extract relevant model output for mpa-level analyses
 
 # Apply the function to each element in 'meta_results'
 mpa_meta_out <- mpa_meta_results %>%
@@ -76,6 +80,145 @@ write.csv(mpa_meta_out, file = file.path(tab_dir,"TableSX_mpa_meta_table.csv"),r
 
 
 
+################################################################################
+#extract relevant model output for habitat x region x target_status
+
+# Apply the function to each element in 'meta_results'
+hab_region_meta_out <- habitat_region_results %>%
+  #get the habitats included in the analysis for each MPA
+  mutate(
+         Q = map_dbl(meta_result, ~ pluck(.x, "QE")))%>%
+  arrange(habitat, state_region, target_status)%>%
+  #drop columns
+  dplyr::select(-meta_result,  -zval)%>%
+  dplyr::select(habitat,state_region, target_status, everything())%>%
+  mutate(estimate = round(estimate,3),
+         se = round(se,3),
+         pval = round(pval,3),
+         ci.lb = round(ci.lb,3),
+         ci.ub = round(ci.ub,3),
+         tau2 = round(tau2,3),
+         Q = round(Q, 3))%>%
+  rename("Ecosystem" = habitat,
+         "Region" = state_region,
+         "Target status" = target_status,
+         "Effect size" = estimate,
+         "Standard error" = se,
+         "P-value" = pval,
+         "95% lower" = ci.lb,
+         "95% upper" = ci.ub,
+         "Tau-2" = tau2,
+         "No. MPAs" = n_mpas
+  ) %>%
+  mutate(Region = str_remove(Region, "Coast")) 
+
+
+write.csv(hab_region_meta_out, file = file.path(tab_dir,"TableSX_habitat_region_meta_table.csv"),row.names = FALSE)
+
+
+################################################################################
+#extract relevant model output for habitat x target_status
+
+
+# Apply the function to each element in 'meta_results'
+hab_target_meta_out <- habitat_target_results %>%
+  #get the habitats included in the analysis for each MPA
+  mutate(
+    Q = map_dbl(meta_result, ~ pluck(.x, "QE")))%>%
+  arrange(habitat, target_status)%>%
+  #drop columns
+  dplyr::select(-meta_result,  -zval, -state_region)%>%
+  dplyr::select(habitat, target_status, everything())%>%
+  mutate(estimate = round(estimate,3),
+         se = round(se,3),
+         pval = round(pval,3),
+         ci.lb = round(ci.lb,3),
+         ci.ub = round(ci.ub,3),
+         tau2 = round(tau2,3),
+         Q = round(Q, 3))%>%
+  rename("Ecosystem" = habitat,
+         "Target status" = target_status,
+         "Effect size" = estimate,
+         "Standard error" = se,
+         "P-value" = pval,
+         "95% lower" = ci.lb,
+         "95% upper" = ci.ub,
+         "Tau-2" = tau2,
+         "No. MPAs" = n_mpas
+  ) 
+
+
+write.csv(hab_target_meta_out, file = file.path(tab_dir,"TableSX_hab_target_meta_table.csv"),row.names = FALSE)
+
+
+################################################################################
+#extract relevant model output for region x target_status
+
+
+# Apply the function to each element in 'meta_results'
+region_meta_out <- region_results %>%
+  #get the habitats included in the analysis for each MPA
+  mutate(
+    Q = map_dbl(meta_result, ~ pluck(.x, "QE")))%>%
+  arrange(state_region, target_status)%>%
+  #drop columns
+  dplyr::select(-meta_result,  -zval, -habitat)%>%
+  dplyr::select(state_region, target_status, everything())%>%
+  mutate(estimate = round(estimate,3),
+         se = round(se,3),
+         pval = round(pval,3),
+         ci.lb = round(ci.lb,3),
+         ci.ub = round(ci.ub,3),
+         tau2 = round(tau2,3),
+         Q = round(Q, 3))%>%
+  rename("Region" = state_region,
+         "Target status" = target_status,
+         "Effect size" = estimate,
+         "Standard error" = se,
+         "P-value" = pval,
+         "95% lower" = ci.lb,
+         "95% upper" = ci.ub,
+         "Tau-2" = tau2,
+         "No. MPAs" = n_mpas
+  ) 
+
+
+write.csv(region_meta_out, file = file.path(tab_dir,"TableSX_region_target_meta_table.csv"),row.names = FALSE)
+
+
+################################################################################
+#extract relevant model output for state x target_status
+
+
+# Apply the function to each element in 'meta_results'
+state_meta_out <- state_results %>%
+  #get the habitats included in the analysis for each MPA
+  mutate(
+    Q = map_dbl(meta_result, ~ pluck(.x, "QE")))%>%
+  arrange(target_status)%>%
+  #drop columns
+  dplyr::select(-meta_result,  -zval, -habitat, -state_region)%>%
+  dplyr::select(target_status, everything())%>%
+  mutate(estimate = round(estimate,3),
+         se = round(se,3),
+         pval = round(pval,3),
+         ci.lb = round(ci.lb,3),
+         ci.ub = round(ci.ub,3),
+         tau2 = round(tau2,3),
+         Q = round(Q, 3))%>%
+  rename(
+         "Target status" = target_status,
+         "Effect size" = estimate,
+         "Standard error" = se,
+         "P-value" = pval,
+         "95% lower" = ci.lb,
+         "95% upper" = ci.ub,
+         "Tau-2" = tau2,
+         "No. MPAs" = n_mpas
+  ) 
+
+
+write.csv(state_meta_out, file = file.path(tab_dir,"TableSX_state_target_meta_table.csv"),row.names = FALSE)
 
 
 
