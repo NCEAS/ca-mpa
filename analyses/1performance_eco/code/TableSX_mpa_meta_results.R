@@ -110,7 +110,8 @@ hab_region_meta_out <- habitat_region_results %>%
          "Tau-2" = tau2,
          "No. MPAs" = n_mpas
   ) %>%
-  mutate(Region = str_remove(Region, "Coast")) 
+  mutate(Region = str_remove(Region, "Coast"),
+         Ecosystem = factor(Ecosystem, levels = c("Surf zone","Kelp forest","Shallow reef","Deep reef"))) 
 
 
 write.csv(hab_region_meta_out, file = file.path(tab_dir,"TableSX_habitat_region_meta_table.csv"),row.names = FALSE)
@@ -145,7 +146,8 @@ hab_target_meta_out <- habitat_target_results %>%
          "95% upper" = ci.ub,
          "Tau-2" = tau2,
          "No. MPAs" = n_mpas
-  ) 
+  ) %>%
+ mutate( Ecosystem = factor(Ecosystem, levels = c("Surf zone","Kelp forest","Shallow reef","Deep reef"))) 
 
 
 write.csv(hab_target_meta_out, file = file.path(tab_dir,"TableSX_hab_target_meta_table.csv"),row.names = FALSE)
