@@ -46,6 +46,9 @@ habitat_region <- filtered_data %>%
          tau2 = meta_result[["tau2"]]) %>%
   data.frame() 
 
+#save results to .rdata to generate summary table
+saveRDS(habitat_region, file = file.path(dat_path, "habitat_region_meta_results.Rds"))
+
 ################################################################################
 # Verify that the group_by and do() call worked using a test
 rma_test_dat <- filtered_data %>% dplyr::filter(habitat == "Kelp forest" &
@@ -74,6 +77,9 @@ habitat <- filtered_data %>%
          state_region = "Pooled" 
          )
 
+#save results to .rdata to generate summary table
+saveRDS(habitat, file = file.path(dat_path, "habitat_target_meta_results.Rds"))
+
 ################################################################################
 # Calculate the pooled effects for each region across habitat
 region <- filtered_data %>%
@@ -89,6 +95,9 @@ region <- filtered_data %>%
          #create dummy habitat
          habitat = "Pooled effect size"
   )
+
+#save results to .rdata to generate summary table
+saveRDS(region, file = file.path(dat_path, "region_meta_results.Rds"))
 
 ################################################################################
 # Calculate the pooled effect for entire state
@@ -107,6 +116,9 @@ state <- filtered_data %>%
          #create dummy habitat
          habitat = "Pooled effect size"
   )
+
+#save results to .rdata to generate summary table
+saveRDS(state, file = file.path(dat_path, "state_meta_results.Rds"))
 
 ################################################################################
 #join everything

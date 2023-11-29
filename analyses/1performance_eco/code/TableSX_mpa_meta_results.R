@@ -5,7 +5,7 @@
 rm(list=ls())
 
 #required packages
-librarian::shelf(ggplot2, tidyverse)
+librarian::shelf(ggplot2, tidyverse, purrr)
 
 #set directories
 data_path <- "/home/shares/ca-mpa/data/sync-data/"
@@ -20,11 +20,6 @@ mpa_meta_results <- readRDS(file.path(dat_path, "mpa_level_meta_results.Rds"))
 
 ################################################################################
 #extract relevant model output
-library(dplyr)
-library(purrr)
-
-# Define a function to safely extract 'habitat'
-extract_habitat <- safely(function(x) x[[1]][["data"]][["habitat"]])
 
 # Apply the function to each element in 'meta_results'
 mpa_meta_out <- mpa_meta_results %>%
@@ -42,5 +37,48 @@ mpa_meta_out <- mpa_meta_results %>%
   arrange(state_region, affiliated_mpa, target_status)%>%
   #numerate each unique MPA
   mutate(MPA_number = group_indices(., affiliated_mpa))%>%
-  dplyr::select(MPA_number, everything())
+  #drop columns
+  dplyr::select(-meta_result, -n_habitat, -zval)%>%
+  dplyr::select(MPA_number,state_region,affiliated_mpa, target_status, everything())%>%
+  mutate(estimate = round(estimate,3),
+         se = round(se,3),
+         pval = round(pval,3),
+         ci.lb = round(ci.lb,3),
+         ci.ub = round(ci.ub,3),
+        tau2 = round(tau2,3),
+        Q = round(Q, 3))%>%
+  #reformat ecosystem and year
+  mutate(Ecosystem_Year = map2(habitats, years, function(ecosystems, years) {
+    ecosystems <- str_split(ecosystems, ", ")[[1]]
+    years <- str_split(years, ", ")[[1]]
+    
+    formatted <- paste(ecosystems, " (", years, ")", sep = "")
+    return(paste(formatted, collapse = ", "))
+  }))%>%
+  dplyr::select(-habitats, -years)%>%
+  rename("Row" = MPA_number,
+         "Region" = state_region,
+         "MPA name" = affiliated_mpa,
+         "Target status" = target_status,
+         "Effect size" = estimate,
+         "Standard error" = se,
+         "P-value" = pval,
+         "95% lower" = ci.lb,
+         "95% upper" = ci.ub,
+         "Tau-2" = tau2,
+         "Ecosystem (latest year)" = Ecosystem_Year
+         ) %>%
+  mutate(Region = str_remove(Region, "Coast"),
+         `Ecosystem (latest year)` = as.character(`Ecosystem (latest year)`)) 
+
+
+write.csv(mpa_meta_out, file = file.path(tab_dir,"TableSX_mpa_meta_table.csv"),row.names = FALSE)
+
+
+
+
+
+
+
+
  
