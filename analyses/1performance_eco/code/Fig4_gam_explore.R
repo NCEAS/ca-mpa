@@ -61,7 +61,26 @@ gam_terms <- data.frame(summary_info$s.table) %>%
           tibble::rownames_to_column(var = "smooth") %>%
           rename("EDF" = "edf")
 
+################################################################################
+#export model table
+library(flextable)
+set_flextable_defaults(background.color = "white")
 
+g1 <- as_flextable(meta_gam_model) 
+g1 <- add_header_lines(g1,values = "meta-GAM model")
+
+gr <- gen_grob(g1, fit = "fixed", just = "center")
+
+# Create a blank ggplot
+plot <- ggplot() +
+  annotation_custom(gr, xmin = 0, xmax = 1, ymin = 0.5, ymax = 1)+
+  theme_void()
+plot
+
+#print(plot)
+
+ggsave(file.path(fig_dir, "TableSX_GAM_results.png"), plot, dpi = 600,
+       bg = "white", width = 9, height = 10, units = "in")
 
 
 
