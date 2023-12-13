@@ -88,7 +88,9 @@ data <- deep_reef_raw %>%
   mutate(across(location:designation, str_replace, 'Bodega Bay','Bodega Head')) %>%
   mutate(across(location:designation, str_replace, 'Point St. George','Point St. George Reef Offshore')) %>%
   # Correct Farallon Island to Southeast Farallon Island SMCA (Confirmed with RS Sept 2023)
-  mutate(mpa_name = if_else(mpa_group == "Farallon Island", "Southeast Farallon Island SMCA", mpa_name)) %>% 
+  mutate(mpa_name = if_else(mpa_group == "Farallon Island", "Southeast Farallon Island SMCA", mpa_name),
+         mpa_group = if_else(mpa_group == "Farallon Island", "Southeast Farallon Islands", mpa_group),
+         ) %>% 
   # Correct Ano Nuevo to SMR (incorrectly listed as SMCA) 
   mutate(type = if_else(mpa_group == 'Año Nuevo', "SMR", type)) %>% 
   # Create affiliated_mpa variable - confirmed in Sept 2023 that will only use primary!
@@ -96,7 +98,7 @@ data <- deep_reef_raw %>%
            case_when(type %in% c("SMCA", "SMR") ~ paste(mpa_group, type, sep = " "),
                      # Provide the full affiliated MPA name for sites called "Reference"
                      type == "Reference" &
-                       mpa_group %in% c("Campus Point", "Farallon Islands", "Pillar Point", 
+                       mpa_group %in% c("Campus Point", "Southeast Farallon Islands", "Pillar Point", 
                                         "Point St. George Reef Offshore", "Portuguese Ledge") ~ paste(mpa_group, "SMCA", sep = " "),
                      type == "Reference" & 
                        mpa_group %in% c("Año Nuevo", "Carrington Point", "Gull Island", "Harris Point", 
@@ -302,7 +304,7 @@ nrow(data) - nrow(data2)
 
 write.csv(data3, row.names = F, file.path(outdir,"/deep_reef_processed.csv"))  
 
-# last write 26 Oct 2023
+# last write 13 Dec 2023
 
 
 
