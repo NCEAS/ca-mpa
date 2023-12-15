@@ -40,11 +40,24 @@ librarian::shelf(tidyverse, here, janitor, stringr, vegan)
 #set directories and load data
 
 datadir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/biomass_processed"
+data_path <- "/home/shares/ca-mpa/data/sync-data/"
 
 surf_biomass <- read_csv(file.path(datadir, "surf_zone_fish_biomass_updated.csv"))
 kelp_biomass <- read_csv(file.path(datadir, "kelpforest_fish_biomass_updated.csv"))
 deep_biomass <- read_csv(file.path(datadir, "deep_reef_fish_biomass_updated.csv"))
 ccfrp_biomass <- read_csv(file.path(datadir, "ccfrp_fish_biomass_updated.csv"))
+
+
+# Load MPA traits
+mpa_attributes_gen <- readRDS("/home/shares/ca-mpa/data/sync-data/mpa_traits/processed/mpa_attributes_general.Rds")
+mpas_orig <- readRDS(file.path(data_path, "mpa_traits/processed", "CA_mpa_metadata.Rds")) %>% 
+  dplyr::select(name = mpa, region) %>% 
+  mutate(state_name = name,
+    name = str_replace(name, " \\s*\\([^\\)]+\\)", "")) # fix name to match join
+
+
+# Join attributes with habitat 
+mpa_traits <- left_join(mpa_attributes_gen,mpas_orig, by="name") 
 
 
 # Process Biomass DFs --------------------------------------------------------------
@@ -274,8 +287,11 @@ richness_diversity_RR <- diversity_scaled %>%
   mutate(shannon_weighted_logRR    = log(shannon_weighted_mpa/shannon_unweighted_ref),
          shannon_unweighted_logRR  = log(shannon_unweighted_mpa/shannon_unweighted_ref),
          richness_weighted_logRR   = log(richness_weighted_mpa/richness_weighted_ref),
-         richness_unweighted_logRR = log(richness_unweighted_mpa/richness_unweighted_ref))
+         richness_unweighted_logRR = log(richness_unweighted_mpa/richness_unweighted_ref)) %>%
+  #join mpa name
+  left_join(., mpa_traits, by = "affiliated_mpa")
   
+
 
 write.csv(row.names = FALSE, richness_diversity_RR, file.path(datadir, "richness_diversity_MPA_means_updated.csv"))
 # last write Dec 14 2023
