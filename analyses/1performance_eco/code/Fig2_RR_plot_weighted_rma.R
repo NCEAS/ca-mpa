@@ -17,6 +17,7 @@ dat_path <- here::here("analyses","1performance_eco","output")
 #read data
 biomass_mod <- readRDS(file.path(dat_path, "biomass_with_moderators_new2.Rds")) 
 
+unique(biomass_mod$mpa)
 
 ################################################################################
 
@@ -27,8 +28,8 @@ filtered_data <- biomass_mod %>%
   group_by(habitat, mpa, target_status) %>%
   #determine the most recent year of sampling for each ecosystem
   filter(year == max(year))%>%
-  ungroup() %>%
-  na.omit()
+  ungroup() 
+  #na.omit()
 
 unique(filtered_data$mpa)
 

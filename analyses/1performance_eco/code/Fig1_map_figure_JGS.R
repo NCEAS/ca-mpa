@@ -18,7 +18,7 @@ plotdir <- here::here("analyses","1performance_eco","figures")
 # Read data
 mpa_dat <- readRDS(file.path(basedir, "biomass_richness_diversity2.Rds"))
 
-unique(mpa_dat$affiliated_mpa)
+unique(mpa_dat$state_name)
 
 # Read data
 state_waters_poly <- readRDS(file.path(gisdir, "CA_state_waters_polygons.Rds"))
