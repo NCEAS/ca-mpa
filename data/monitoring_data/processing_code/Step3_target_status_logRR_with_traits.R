@@ -87,7 +87,9 @@ biomass_with_mods <- left_join(biomass_raw, mpa_traits, by="affiliated_mpa") %>%
            ((sd_ref^2) / (n_rep_ref*((biomass_ref + scalar_ref)^2)))) %>% #this is the within-study variance. See Eq. 2 in paper
   dplyr::select(-logRR) %>%
   #drop sites that do not have associate variance
-  filter(!(is.na(vi) | vi == 0))
+  filter(!(is.na(vi) | vi == 0)) %>%
+  #fix missing mpa name -- currently only Southeast Farallon Island SMR is missing
+  mutate(mpa = ifelse(is.na(mpa), affiliated_mpa,mpa))
 
 saveRDS(biomass_with_mods, file.path(dat_path, "biomass_with_moderators_new2.Rds"))
 # last write 13 Dec 2023
