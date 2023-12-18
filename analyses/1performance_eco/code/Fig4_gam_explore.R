@@ -5,7 +5,8 @@
 rm(list=ls())
 
 #required packages
-librarian::shelf(ggplot2, tidyverse, here, mgcv, gratia, ggeffects, mgcViz, tidymv)
+librarian::shelf(ggplot2, tidyverse, here, mgcv, gratia, ggeffects, mgcViz, 
+                 tidymv, flextable)
 
 #set directories
 data_path <- "/home/shares/ca-mpa/data/sync-data/"
@@ -15,7 +16,7 @@ tab_dir <- here::here("analyses","1performance_eco","tables")
 dat_path <- here::here("analyses","1performance_eco","output")
 
 #read data
-biomass_mod <- readRDS(file.path(dat_path, "biomass_with_moderators_new.Rds")) 
+biomass_mod <- readRDS(file.path(dat_path, "biomass_with_moderators_new2.Rds")) 
 
 
 ################################################################################
@@ -35,11 +36,15 @@ habitat_year <- filtered_data %>%
 
 # Step 2: Join tau
 mod_dat <- left_join(filtered_data, habitat_year, by = "year") %>%
-  filter(settlement_habitat < 400)
+  filter(settlement_habitat < 400) %>%
+  mutate(mpa_defacto_class = factor(mpa_defacto_class))
           
 
 # Step 3: Build the meta-GAM
 meta_gam_model <- gam(yi ~ 
+                        #add take (no-take vs. partial) as  factor
+                        mpa_defacto_class+
+                        #add all other contonuous vars as smoothers
                         s(size) +
                         s(habitat_richness, k =3) +
                         s(habitat_diversity) +
@@ -49,6 +54,8 @@ meta_gam_model <- gam(yi ~
                         s(settlement_habitat) +
                         s(settlement_mpa_total) +
                         s(year, bs = "cc"),
+                      #weight each replicate by the inverse of the within and between 
+                      #study variance
                       weights = 1 / (vi + tau2),
                       data = mod_dat) 
 
@@ -63,7 +70,6 @@ gam_terms <- data.frame(summary_info$s.table) %>%
 
 ################################################################################
 #export model table
-library(flextable)
 set_flextable_defaults(background.color = "white")
 
 g1 <- as_flextable(meta_gam_model) 
@@ -79,8 +85,8 @@ plot
 
 #print(plot)
 
-ggsave(file.path(fig_dir, "TableSX_GAM_results.png"), plot, dpi = 600,
-       bg = "white", width = 9, height = 10, units = "in")
+#ggsave(file.path(fig_dir, "TableSX_GAM_results.png"), plot, dpi = 600,
+ #      bg = "white", width = 9, height = 10, units = "in")
 
 
 
