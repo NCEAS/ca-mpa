@@ -25,7 +25,7 @@ dat_path <- here::here("analyses","1performance_eco","output")
 
 # Load biomass data 
 # biomass_raw <- read.csv(file.path(biomass_dat,"targeted_nontargeted_biomass_MPA_means.csv"))
-biomass_raw <- read_csv(file.path(biomass_dat, "target_status_biomass_MPA_means.csv"))
+biomass_raw <- read_csv(file.path(biomass_dat, "target_status_biomass_MPA_means_updated.csv"))
 
 # Load MPA traits
 # load habitat data
@@ -83,12 +83,16 @@ biomass_with_mods <- left_join(biomass_raw, mpa_traits, by="affiliated_mpa") %>%
   left_join(settlement_join, by = c("habitat","affiliated_mpa"))  %>%
   #set up yi and vi for meta analytic language
   mutate(yi = logRR,
-         vi = ((sd_smr^2) / (n_rep_smr*((biomass_smr + scalar_smr)^2))) + #the scalar comes from 10% of the mean we calculated back in Step2
+         vi = ((sd_mpa^2) / (n_rep_mpa*((biomass_mpa + scalar_mpa)^2))) + #the scalar comes from 10% of the mean we calculated back in Step2
            ((sd_ref^2) / (n_rep_ref*((biomass_ref + scalar_ref)^2)))) %>% #this is the within-study variance. See Eq. 2 in paper
   dplyr::select(-logRR) %>%
   #drop sites that do not have associate variance
-  filter(!(is.na(vi) | vi == 0))
+  filter(!(is.na(vi) | vi == 0)) %>%
+  #fix missing mpa name -- currently only Southeast Farallon Island SMR is missing
+  mutate(mpa = ifelse(is.na(mpa), affiliated_mpa,mpa))
 
+saveRDS(biomass_with_mods, file.path(dat_path, "biomass_with_moderators_new2.Rds"))
+# last write 13 Dec 2023
 
 #saveRDS(biomass_with_mods, file.path(dat_path, "biomass_with_moderators_new.Rds"))
 # last write 26 oct 2023

@@ -15,7 +15,7 @@ tab_dir <- here::here("analyses","1performance_eco","tables")
 dat_path <- here::here("analyses","1performance_eco","output")
 
 #read data
-biomass_mod <- readRDS(file.path(dat_path, "biomass_with_moderators_new.Rds")) 
+biomass_mod <- readRDS(file.path(dat_path, "biomass_with_moderators_new2.Rds")) 
 
 
 ################################################################################
@@ -23,10 +23,9 @@ biomass_mod <- readRDS(file.path(dat_path, "biomass_with_moderators_new.Rds"))
 
 filtered_data <- biomass_mod %>%
   #filter(target_status == "Targeted")%>%
-  group_by(habitat, affiliated_mpa, target_status) %>%
+  group_by(habitat, mpa, target_status) %>%
   filter(year == max(year))%>%
   ungroup() %>%
-  na.omit() %>%
   # left_join(n_habitats, by = c("affiliated_mpa","target_status"))%>%
   mutate(#state_region = factor(str_replace(state_region, "Coast$", "\nCoast"), levels = c("North \nCoast",
           #                                                                                "North Central \nCoast", 
@@ -34,10 +33,12 @@ filtered_data <- biomass_mod %>%
             #                                                                              "South \nCoast")),
          target_status = factor(target_status, levels = c("Targeted","Nontargeted")))
 
+unique(filtered_data$mpa)
+
 ################################################################################
 # Calculate the pooled effects for each habitat, region, and target_status
 habitat_region <- filtered_data %>%
-  group_by(habitat, state_region, target_status) %>%
+  group_by(habitat, state_region, mpa_defacto_class, target_status) %>%
   do(meta_result =rma(yi, vi, data = .))%>%
   mutate(coef(summary(meta_result)),
          #get sample size from list
@@ -45,6 +46,7 @@ habitat_region <- filtered_data %>%
          #get tau
          tau2 = meta_result[["tau2"]]) %>%
   data.frame() 
+
 
 #save results to .rdata to generate summary table
 saveRDS(habitat_region, file = file.path(dat_path, "habitat_region_meta_results.Rds"))
@@ -64,7 +66,7 @@ pooled_results_filtered <- pooled_results %>% dplyr::filter(habitat == "Kelp for
 ################################################################################
 # Calculate the pooled effects for each habitat and target status
 habitat <- filtered_data %>%
-  group_by(habitat, target_status) %>%
+  group_by(habitat, mpa_defacto_class, target_status) %>%
   do(meta_result =rma(yi, vi, data = .))%>%
   mutate(coef(summary(meta_result)),
          #get sample size from list
@@ -83,7 +85,7 @@ saveRDS(habitat, file = file.path(dat_path, "habitat_target_meta_results.Rds"))
 ################################################################################
 # Calculate the pooled effects for each region across habitat
 region <- filtered_data %>%
-  group_by(state_region, target_status) %>%
+  group_by(state_region, mpa_defacto_class, target_status) %>%
   do(meta_result =rma(yi, vi, data = .))%>%
   mutate(coef(summary(meta_result)),
          #get sample size from list
@@ -102,7 +104,7 @@ saveRDS(region, file = file.path(dat_path, "region_meta_results.Rds"))
 ################################################################################
 # Calculate the pooled effect for entire state
 state <- filtered_data %>%
-  group_by(target_status) %>%
+  group_by(mpa_defacto_class, target_status) %>%
   do(meta_result =rma(yi, vi, data = .))%>%
   mutate(coef(summary(meta_result)),
          #get sample size from list
@@ -138,6 +140,10 @@ meta_results <- rbind(habitat_region, habitat, region, state) %>%
 ################################################################################
 #plot
 
+
+meta_results$mpa_defacto_class <- factor(meta_results$mpa_defacto_class,
+                                         levels = c("smr", "smca"),
+                                         labels = c("No-Take", "Partial-Take"))
 meta_results$habitat <- factor(meta_results$habitat, levels = c("Surf zone", "Kelp forest", "Shallow reef", "Deep reef", "Pooled effect size"))
 meta_results$state_region <- factor(meta_results$state_region, levels = c("Pooled","South Coast", "Central Coast", "North Central Coast","North Coast"))
 meta_results$target_status <- factor(meta_results$target_status, levels = c("Targeted","Non-targeted"))  # Reversed order
@@ -170,7 +176,10 @@ my_theme <-  theme(axis.text=element_text(size=6, color = "black"),
 )
 
 
-g <- ggplot(meta_results, aes(x = estimate, y = state_region, color = target_status)) +
+g <- ggplot(meta_results %>%
+              #truncate error bar to ease visualization
+              mutate(ci.ub = ifelse(ci.ub > 3, 3, ci.ub)),
+              aes(x = estimate, y = state_region, color = target_status)) +
   geom_vline(xintercept = 0, linetype = "dashed", color = "grey") +
   # Fill the last facet. Call this first to place it behind the points. 
   geom_rect(data = subset(meta_results, habitat == 'Pooled effect size'), 
@@ -195,13 +204,13 @@ g <- ggplot(meta_results, aes(x = estimate, y = state_region, color = target_sta
   geom_hline(yintercept = which(levels(meta_results$state_region) == "South Coast") - 0.5, 
              linetype = "solid", color = "black", size = 0.2) +  
   geom_text(aes(label = significance), vjust = -0.2, size = 4, show.legend = FALSE) + 
-  facet_grid(habitat ~ ., scales = "fixed") +  
+  facet_grid(habitat~mpa_defacto_class, scales = "fixed") +  
   xlab("Effect size \n(log response ratio)") +
   ylab("") +
   scale_color_manual(values = c("indianred","navyblue"),
                      name = "Target status") +  
   scale_size_continuous(name = "No. MPAs", range = c(1, 3)) +
-  scale_x_continuous(limits= c(-2,2.3))+
+  scale_x_continuous(limits= c(-3,3))+
   #guides(color = guide_legend(override.aes = list(shape = c(15, 15))),  # Set the shape to 15 (square) for color legend
   #      size = guide_legend(override.aes = list(shape = c(15, 15)))) +  # Set the shape to 15 (square) for size legend
   theme_minimal() +
@@ -213,7 +222,33 @@ g <- ggplot(meta_results, aes(x = estimate, y = state_region, color = target_sta
 
 g
 
-ggsave(g, filename=file.path(fig_dir, "Fig3_habitat_meta_forestplot7.png"), bg = "white",
+ggsave(g, filename=file.path(fig_dir, "Fig3_habitat_meta_forestplot8.png"), bg = "white",
        width=6, height=7, units="in", dpi=600) 
+
+
+
+
+
+################################################################################
+#meta_explore
+
+
+library(meta)
+
+
+# Meta-analysis with moderators 'age_at_survey' and 'habitat_richness'
+filtered_data2 <- filtered_data %>% filter(target_status == "Targeted")
+
+meta_result <- metafor::rma(yi, vi, data = filtered_data2)
+
+# Extract results
+summary(meta_result)
+
+# Plot forest plot
+forest(meta_result)
+
+
+
+
 
 
