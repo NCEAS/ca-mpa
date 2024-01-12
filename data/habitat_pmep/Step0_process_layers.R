@@ -23,6 +23,7 @@ library(purrr)
 #gdb.dir <- "/Users/lopazanski/Documents/habitat/PMEP/PMEP_Nearshore_Zones_and_Habitat.gdb" # Local
 sync.dir <- "/home/shares/ca-mpa/data/sync-data"
 gdb.dir <- "/home/shares/ca-mpa/data/sync-data/habitat_pmep/PMEP_Nearshore_Zones_and_Habitat.gdb" # Aurora
+fig.dir <- "~/ca-mpa/analyses/7habitat/figures" 
 
 # Read Data ----------------------------------------------------------------------------
 # Check layer names
@@ -101,21 +102,8 @@ substrate_xy <- substrate_xy %>%
   filter(CMECS_SC_Category_Code == "1.1") %>% 
   filter(PMEP_Zone >= 2 & PMEP_Zone <= 5)
 
-# Select a few subsets - hard to automate because not all areas contain rock
-bbox1 <- st_bbox(c(xmin = 172000, xmax = 177000, ymin = 1012000, ymax = 1017000), crs = st_crs(substrate_xy)) # 23 - Cape Mendocino to Cape Blanco
-bbox2 <- st_bbox(c(xmin = 192000, xmax = 198000, ymin = 823000, ymax = 828000), crs = st_crs(substrate_xy)) # 30 - Cape Mendocino to Point Reyes 
-bbox3 <- st_bbox(c(xmin = 354000, xmax = 357000, ymin = 510000, ymax = 514000), crs = st_crs(substrate_xy)) # 31 - Point Reyes to Point Sur
-bbox4 <- st_bbox(c(xmin = 460000, xmax = 465000, ymin = 350000, ymax = 355000), crs = st_crs(substrate_xy)) # 32 - Point Sur to Point Arguello including Davidson Se*
-bbox5 <- st_bbox(c(xmin = 529000, xmax = 534000, ymin = 230000, ymax = 235000), crs = st_crs(substrate_xy)) # 33 - Point Arguello South including San Juan Seamount
-bbox6 <- st_bbox(c(xmin = 547000, xmax = 552000, ymin = 270000, ymax = 275000), crs = st_crs(substrate_xy)) # 40 - Point Conception to Palos Verdes
-bbox7 <- st_bbox(c(xmin = 795000, xmax = 800000, ymin = 90000, ymax = 95000), crs = st_crs(substrate_xy)) # 41 - Palos Verdes to US-Mex Border
-  
 
-sections <- c(rep(c(23, 31, 32, 33, 40, 41), times = 7)) # 30, 32, 33, 40, 41
-bboxes <- c(rep(list(bbox1, bbox3, bbox4, bbox5, bbox6, bbox7), times = 7)) # , bbox3, bbox4, bbox5, bbox6, bbox7
-resolutions <- c(rep(c(100, 50, 24, 15, 10, 5, 2), each = 6))
-
-# Conduct sensitivity analysis
+# Conduct sensitivity analysis for rasterizing at different resolutions
 # 1. Create a Function to Filter and Crop Subsets: This function will take a PMEP_Section, 
 # PMEP_Zone range, and bounding box dimensions as inputs and return a cropped subset.
 # 2. Iterate Over PMEP_Sections and Zones: Use nested loops to iterate over the different 
@@ -123,6 +111,16 @@ resolutions <- c(rep(c(100, 50, 24, 15, 10, 5, 2), each = 6))
 # 3. Calculate Areas for Each Subset: Within the loop, calculate the area for each subset 
 # using the function, collect results from each iteration for comparison.
 
+# Select a few subsets - hard to automate because not all areas contain rock
+bbox1 <- st_bbox(c(xmin = 172000, xmax = 177000, ymin = 1012000, ymax = 1017000), crs = st_crs(substrate_xy)) # 23 - Cape Mendocino to Cape Blanco
+bbox2 <- st_bbox(c(xmin = 191000, xmax = 199000, ymin = 822000, ymax = 829000), crs = st_crs(substrate_xy)) # 30 - Cape Mendocino to Point Reyes 
+bbox3 <- st_bbox(c(xmin = 354000, xmax = 357000, ymin = 510000, ymax = 514000), crs = st_crs(substrate_xy)) # 31 - Point Reyes to Point Sur
+bbox4 <- st_bbox(c(xmin = 460000, xmax = 465000, ymin = 350000, ymax = 355000), crs = st_crs(substrate_xy)) # 32 - Point Sur to Point Arguello including Davidson Se*
+bbox5 <- st_bbox(c(xmin = 529000, xmax = 534000, ymin = 230000, ymax = 235000), crs = st_crs(substrate_xy)) # 33 - Point Arguello South including San Juan Seamount
+bbox6 <- st_bbox(c(xmin = 547000, xmax = 552000, ymin = 270000, ymax = 275000), crs = st_crs(substrate_xy)) # 40 - Point Conception to Palos Verdes
+bbox7 <- st_bbox(c(xmin = 795000, xmax = 800000, ymin = 90000, ymax = 95000), crs = st_crs(substrate_xy)) # 41 - Palos Verdes to US-Mex Border
+
+# Define function for rasterizing at given res and calculating area 
 subset_area <- function(section, bbox, resolution){
   # Print the pieces
   print(paste("Section:", section))
@@ -155,23 +153,98 @@ subset_area <- function(section, bbox, resolution){
   return(area)
 }
 
+# Apply function across original boxes (all but box #2, gives error)
+sections <- c(rep(c(23, 31, 32, 33, 40, 41), times = 10)) # 30 omitted
+bboxes <- c(rep(list(bbox1, bbox3, bbox4, bbox5, bbox6, bbox7), times = 10)) # bbox2 omitted
+resolutions <- c(rep(c(500, 250, 100, 50, 30, 25, 15, 10, 5, 2), each = 6))
+
 all_results <- pmap(list(sections, bboxes, resolutions), subset_area) 
 
+# Create dataframe of results 
 area_compare <- bind_rows(all_results) %>% 
-  mutate(res = as.factor(res),
+  mutate(#res = as.factor(res),
          section = as.factor(section),
-         diff = area/poly_area) %>% 
+         diff = area/poly_area) %>%  
   mutate(diff_abs = abs(1-area/poly_area)) 
 
+# Average difference for each resolution (across different bboxes)
+average <- area_compare %>% 
+  group_by(res) %>% 
+  summarize(res_mean = mean(diff_abs),
+            res_sd = sd(diff_abs))
+
+# Plots ----
+# Plot of differences
 ggplot(data = area_compare) + 
   geom_point(aes(x = res, y = diff_abs, color = section))+
   theme_minimal()+
   labs(x = "Resolution",
        y = "Diff from polygon area",
        color = "Subset")
+#ggsave(file.path(fig.dir, "Step0_pmep_substrate_1.1_rasterize_resolutions.png"))
 
-ggplot(data = area_compare) +
-  geom_point(aes(x = poly_area, y = diff_abs, color = res))
+ggplot(data = average) + 
+  geom_point(aes(x = res, y = res_mean)) +
+  theme_minimal() +
+  labs(x = "Resolution", y = "Average proportional difference from polygon area")
+#ggsave(file.path(fig.dir, "Step0_pmep_substrate_1.1_rasterize_avg_resolutions.png"))
+
+# Chat with Anita on 11 Jan 2024 - Could look at when the difference becomes
+# statistically significant. Visually, it seems reasonable to choose the 24-30m 
+# range, which also lines up nicely with the kelp forest landsat data, which has
+# minimum 24m resolution from satellite imagery.
+
+# Rasterize full hard substrate layer --------------------------------------------
+# 1. Create empty raster grid at 24m resolution across entire extent of CA
+# 2. Select section for rasterizing
+# 3. Crop empty raster to section extent
+# 4. Rasterize section
+
+# Troubleshooting code for error geom/res ----
+section <- 30
+resolution <- 24
+bbox <- bbox2
+
+# Filter to given section
+subset <- substrate_xy %>% 
+  filter(PMEP_Section == section)
+
+# Crop substrate to area
+subset_crop <- st_crop(subset, bbox)
+
+# Plot the cropped subset
+ggplot() + geom_sf(data = subset_crop, mapping = aes(), color = "black", fill = "black") 
+
+
+# Calculate polygon area
+poly_area <- sum(st_area(subset_crop)) %>%  as.vector() 
+print(paste("Polygon area:", poly_area))
+
+# Create empty raster
+substrate_raster <- raster::raster(subset_crop, resolution = resolution)
+
+# Rasterize - this is what fails sometimes
+rock_raster <- fasterize::fasterize(sf = subset_crop, raster = substrate_raster)
+
+ggplot() + 
+  geom_sf(data = subset_crop, mapping = aes(), color = "black", fill = "black") +
+  geom_tile(rock_raster %>% as.data.frame(xy = T) %>% filter(!is.na(layer)), mapping = aes(x = x, y = y, fill = layer), show.legend = F) +
+  labs(x = NULL,
+       y = NULL)
+
+
+# Get geometry types
+geom_types <- st_geometry_type(subset_crop, by_geometry = TRUE) %>% as.data.frame()
+
+# Calculate area
+area <- rock_raster %>% 
+  as.data.frame() %>% 
+  filter(!is.na(layer)) %>% 
+  summarize(area = n() * resolution * resolution) %>% 
+  mutate(res = resolution) %>% 
+  mutate(section = section) %>% 
+  mutate(poly_area = poly_area)
+
 
 # Plots
 ggplot() +
