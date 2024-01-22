@@ -1,10 +1,18 @@
-# Explore & Process PMEP Habitat Data (Substrate + Biotic Component)
+# Explore & Process PMEP Habitat Data (Substrate Component)
 # Cori Lopazanski
 # November 2023
 
 # About --------------------------------------------------------------------------------
 # Read and clean the Pacific Marine and Estuary Partnership data
+# 1. Fix multisurface geometries 
+# 2. Sensitivity analysis for rasterizing hard substrate layer: compare the area of hard
+# substrate from the original multipolygons to rasters created at different resolutions
+# 3. Rasterize substrate section-by-section at 24m resolution for hard and soft
+# 4. Combine section rasters into one statewide raster
 
+# NOTE: This rasterizing step does *not* include the estuary portions of the 
+# substrate data, which are captured in Sections 50, 52, 53. The extent of these
+# sections are also not incorporated in the "Nearshore Zones" layer.
 
 # Setup --------------------------------------------------------------------------------
 rm(list=ls())
@@ -22,6 +30,7 @@ library(purrr)
 # Directories
 #gdb.dir <- "/Users/lopazanski/Documents/habitat/PMEP/PMEP_Nearshore_Zones_and_Habitat.gdb" # Local
 sync.dir <- "/home/shares/ca-mpa/data/sync-data"
+out.dir <- "/home/shares/ca-mpa/data/sync-data/habitat_pmep/processed"
 gdb.dir <- "/home/shares/ca-mpa/data/sync-data/habitat_pmep/PMEP_Nearshore_Zones_and_Habitat.gdb" # Aurora
 fig.dir <- "~/ca-mpa/analyses/7habitat/figures" 
 
@@ -31,25 +40,30 @@ st_layers(dsn=gdb.dir)
 
 # Read zones
 zones <- read_sf(dsn = gdb.dir, layer = "West_Coast_USA_Nearshore_Zones")
-zones_simple <- zones %>% 
-  st_drop_geometry() %>% 
-  filter(State == "CA")
 
 # Read substrate component from CA
 substrate_ca <- read_sf(dsn = gdb.dir, 
                         query = "SELECT * FROM West_Coast_USA_Nearshore_CMECS_Substrate_Habitat WHERE State = 'CA'")
-
-# Create simple version without spatial data
-substrate_ca_simple <- substrate_ca %>% st_drop_geometry()
 
 # Read MPA polygons
 mpas <- readRDS(file.path(sync.dir, "/gis_data/processed/CA_MPA_polygons.Rds")) %>% 
   # Transform to match CRS of substrate data
   st_transform(., st_crs(substrate_ca))
 
+one_nsid <- read_sf(dsn = gdb.dir,
+                    query = "SELECT * From West_Coast_USA_Nearshore_CMECS_Substrate_Habitat WHERE NS_PolyID = '12189'")
+
+
+## Create simple dfs  -----------------------------------------------
+zones_simple <- zones %>% 
+  st_drop_geometry() %>% 
+  filter(State == "CA")
+
+substrate_ca_simple <- substrate_ca %>% st_drop_geometry()
+
 mpas_simple <- mpas %>% st_drop_geometry()
 
-# Process multisurface geometries -------------------------------------------------------------------
+# Process multisurface geometries ----------------------------------
 # There is an issue with several multisurface geometries - R cannot handle
 # many spatial operations with these geometries.
 geom_types <- st_geometry_type(substrate_ca, by_geometry = TRUE) %>% as.data.frame()
@@ -89,29 +103,32 @@ class(substrate_ca) # check class
 # Check geometry types to make sure no multisurface geometries remain
 geom_types <- st_geometry_type(substrate_ca, by_geometry = TRUE) %>% as.data.frame() # works!
 
-# Remove some of the extra for now
+# Remove some of the extra intermediate dfs
 rm(multisurf, multisurf_corrected, multisurf_geoms, multisurf_mp, multisurf_sf, multisurf_simple, geom_types)
-rm(substrate_ca)
+gc()
 
-# Rasterize substrate layer -------------------------------------------------------------------
+# Sensitivity analysis for raster resolution ----------------------------------------------------------
+# Conduct sensitivity analysis for rasterizing at different resolutions
+# 1. Create a Function to Filter and Crop Subsets: This function will take 
+# PMEP_Section and bounding box as inputs and return a cropped subset.
+# 2. Iterate Over PMEP_Sections: Calculate the area for each subset using 
+# the function, collect results from each iteration for comparison.
+
+## a. Setup ------------------------------------------------------------
 # Drop Z dimension 
 substrate_xy <- st_zm(substrate_ca)
 
 # Filter to rock only
-substrate_xy <- substrate_xy %>% 
+substrate_xy_rock <- substrate_xy %>% 
   filter(CMECS_SC_Category_Code == "1.1") %>% 
   filter(PMEP_Zone >= 2 & PMEP_Zone <= 5)
 
+# Overwrite
+#substrate_xy <- substrate_xy_rock
 
-# Conduct sensitivity analysis for rasterizing at different resolutions
-# 1. Create a Function to Filter and Crop Subsets: This function will take a PMEP_Section, 
-# PMEP_Zone range, and bounding box dimensions as inputs and return a cropped subset.
-# 2. Iterate Over PMEP_Sections and Zones: Use nested loops to iterate over the different 
-# PMEP_Sections and PMEP_Zone groups.
-# 3. Calculate Areas for Each Subset: Within the loop, calculate the area for each subset 
-# using the function, collect results from each iteration for comparison.
-
-# Select a few subsets - hard to automate because not all areas contain rock
+## b. Define functions and inputs ---------------------------------------------
+# Select a few subsets within each PMEP Section
+# (Hard to automate because not all areas contain rock)
 bbox1 <- st_bbox(c(xmin = 172000, xmax = 177000, ymin = 1012000, ymax = 1017000), crs = st_crs(substrate_xy)) # 23 - Cape Mendocino to Cape Blanco
 bbox2 <- st_bbox(c(xmin = 191000, xmax = 199000, ymin = 822000, ymax = 829000), crs = st_crs(substrate_xy)) # 30 - Cape Mendocino to Point Reyes 
 bbox3 <- st_bbox(c(xmin = 354000, xmax = 357000, ymin = 510000, ymax = 514000), crs = st_crs(substrate_xy)) # 31 - Point Reyes to Point Sur
@@ -160,6 +177,7 @@ resolutions <- c(rep(c(500, 250, 100, 50, 30, 25, 15, 10, 5, 2), each = 6))
 
 all_results <- pmap(list(sections, bboxes, resolutions), subset_area) 
 
+## c. Results  -------------------------------------------------
 # Create dataframe of results 
 area_compare <- bind_rows(all_results) %>% 
   mutate(#res = as.factor(res),
@@ -173,7 +191,7 @@ average <- area_compare %>%
   summarize(res_mean = mean(diff_abs),
             res_sd = sd(diff_abs))
 
-# Plots ----
+## d. Plot differences --------------------------------------------------
 # Plot of differences
 ggplot(data = area_compare) + 
   geom_point(aes(x = res, y = diff_abs, color = section))+
@@ -194,75 +212,119 @@ ggplot(data = average) +
 # range, which also lines up nicely with the kelp forest landsat data, which has
 # minimum 24m resolution from satellite imagery.
 
-# Rasterize full hard substrate layer --------------------------------------------
-# 1. Create empty raster grid at 24m resolution across entire extent of CA
-# 2. Select section for rasterizing
-# 3. Crop empty raster to section extent
-# 4. Rasterize section
+# Rasterize hard substrate @ 24m -------------------------------------------------------
+## By section ----
+## 1. Create empty raster grid at 24m resolution across entire extent of CA, use
+# zones layer to ensure grid is maximum extent and consistent
+zones_simple <- zones %>% st_drop_geometry()
+zones_ca <- st_zm(zones) %>% 
+  filter(State == "CA")
 
-# Troubleshooting code for error geom/res ----
-section <- 30
-resolution <- 24
-bbox <- bbox2
+raster <- raster::raster(zones_ca, resolution = 24, crs = st_crs(zones_ca))
 
-# Filter to given section
-subset <- substrate_xy %>% 
-  filter(PMEP_Section == section)
+# 2. Create function to rasterize section by section
+rasterize_by_section <- function(section, substrate_code){
+  print(paste("Section:", section))
+  print(paste("Sub code:", substrate_code))
+  
+  # Select section to rasterize
+  subset <- substrate_xy %>% 
+    filter(PMEP_Section == section) %>% 
+    filter(CMECS_SC_Category_Code == substrate_code)
+  
+  zone_section <- zones_ca %>% 
+    filter(PMEP_Section == section)
+  
+  # Crop empty raster to zone section extent
+  raster_crop <- crop(raster, zone_section)
+  
+  # Rasterize
+  rock_raster <- fasterize::fasterize(sf = subset, raster = raster_crop)
+  
+  # Plot rasterized section
+  # raster_plot <- ggplot() +
+  #   geom_sf(data = subset, mapping = aes(), color = "black", fill = "black") +
+  #   geom_tile(rock_raster %>% as.data.frame(xy = T) %>% filter(!is.na(layer)), mapping = aes(x = x, y = y, fill = layer), show.legend = F) +
+  #   labs(title = paste("Section:", section),
+  #        x = NULL,
+  #        y = NULL)
+  # print(raster_plot)
+  
+  # Compare to polygon area
+  area_poly <- sum(st_area(subset)) %>% as.vector()
+  area_rast <- rock_raster %>% 
+    as.data.frame() %>% 
+    filter(!is.na(layer)) %>% 
+    summarize(area = n() * 24 * 24)
+  
+  print(area_rast/area_poly)
+  
+  # Convert to SpatRaster 
+  rock_raster <- rast(rock_raster)
+  
+  # Write raster to file
+  terra::writeRaster(rock_raster, file.path(out.dir, paste("PMEP_Substrate_", substrate_code, "_24mRes_Section", section, ".tif", sep = "")), 
+                     overwrite = T)
+  
+}
 
-# Crop substrate to area
-subset_crop <- st_crop(subset, bbox)
+# 3. Apply function to sections
+## Drop Z dimension
+substrate_xy <- st_zm(substrate_ca)
 
-# Plot the cropped subset
-ggplot() + geom_sf(data = subset_crop, mapping = aes(), color = "black", fill = "black") 
+## a. Hard substrate ----
+sections <- c(23, 30, 31, 32, 33, 40, 41)
+substrate_code <- "1.1"
+
+map2(sections, substrate_code, rasterize_by_section) 
+
+## b. Soft substrate ----
+substrate_code <- "1.2"
+map2(sections, substrate_code, rasterize_by_section) 
 
 
-# Calculate polygon area
-poly_area <- sum(st_area(subset_crop)) %>%  as.vector() 
-print(paste("Polygon area:", poly_area))
 
-# Create empty raster
-substrate_raster <- raster::raster(subset_crop, resolution = resolution)
+# Combine into a single raster -----------------------
+# List of filenames for the substrate raster sections
+filenames <- list.files(out.dir, pattern="*.tif", full.names=TRUE)
 
-# Rasterize - this is what fails sometimes
-rock_raster <- fasterize::fasterize(sf = subset_crop, raster = substrate_raster)
+# Read each of the raster sections
+hard_sections <- lapply(filenames, rast)
+
+# Create spat raster collection
+hard_sections <- sprc(hard_sections) 
+
+# Merge into a single raster
+hard_raster <- terra::merge(hard_sections)
+
+# Write to file
+terra::writeRaster(hard_raster, file.path(out.dir, "PMEP_Substrate_1.1_24mRes_Full.tif"), overwrite = T)
+
+
+# Process full substrate component --------------
+substrate_processed <- substrate_ca %>% 
+  filter(CMECS_SC_Category_Code < 3) %>%  # drop anthropogenic and unclassified polygons
+  dplyr::select(PMEP_Region:CMECS_SC_Category_Code, PMEP_NSID, NS_PolyID, Shape_Length, Shape_Area)
+
+substrate_processed_simple <- substrate_processed %>% 
+  st_drop_geometry()
+
+# Plots --------
+ggplot() +
+  geom_sf(data = zone_section, mapping = aes(), color = "black", fill = "transparent") +
+  geom_tile(raster_crop %>% as.data.frame(xy = T), 
+            mapping = aes(x = x, y = y, fill = "blue", alpha = 0.5, color = "blue"), show.legend = F)
 
 ggplot() + 
-  geom_sf(data = subset_crop, mapping = aes(), color = "black", fill = "black") +
-  geom_tile(rock_raster %>% as.data.frame(xy = T) %>% filter(!is.na(layer)), mapping = aes(x = x, y = y, fill = layer), show.legend = F) +
+  geom_sf(data = zone_section, mapping = aes(), color = "black", fill = "transparent") +
+  geom_sf(data = subset, mapping = aes(), color = "blue", fill = "blue", alpha = 0.5)
+
+ggplot() + 
+  geom_sf(data = subset, mapping = aes(), color = "black", fill = "black") +
+  geom_tile(rock_raster %>% as.data.frame(xy = T) %>% filter(!is.na(layer)), 
+            mapping = aes(x = x, y = y, fill = layer), show.legend = F) +
   labs(x = NULL,
        y = NULL)
-
-
-# Get geometry types
-geom_types <- st_geometry_type(subset_crop, by_geometry = TRUE) %>% as.data.frame()
-
-# Calculate area
-area <- rock_raster %>% 
-  as.data.frame() %>% 
-  filter(!is.na(layer)) %>% 
-  summarize(area = n() * resolution * resolution) %>% 
-  mutate(res = resolution) %>% 
-  mutate(section = section) %>% 
-  mutate(poly_area = poly_area)
-
-
-# Plots
-ggplot() +
-  geom_sf(data = subset_crop, mapping = aes(), color = "black", fill = "transparent") +
-  geom_tile(rock_raster %>% as.data.frame(xy = T) %>% filter(!is.na(layer)), mapping = aes(x = x, y = y, fill = layer)) 
-
-ggplot() +
-  geom_sf(data = subset_crop, mapping = aes(), color = "black", fill = "transparent") +
-  geom_tile(rock_raster_4 %>% as.data.frame(xy = T) %>% filter(!is.na(layer)), mapping = aes(x = x, y = y, fill = layer)) 
-
-
-
-
-
-
-
-
-
 
 
 
@@ -309,20 +371,6 @@ state_totals <- substrate_ca_simple %>%
 representation <- full_join(mpa_totals, state_totals) %>% 
   mutate(proportion = mpa_area/state_area) 
 
-### LESS OLD BUT STILL OLD ------------------------------------------------------------------------------------
-### ----------------------------------------------------------------------------------
-
-# Test with one MPA
-carr <- mpas %>% filter(name == "Carrington Point SMR")
-
-# Transform to CRS of substrate data
-carr_transform <- st_transform(carr, st_crs(substrate_ca))
-st_crs(carr_transform)
-
-# Create 2D version of the substrate data (error with handling the Z dimension potentially)
-# no longer necessary
-#substrate_ca_2d <- st_zm(substrate_ca, drop = T, what = "ZM")
-carr_substrate <- st_intersection(substrate_ca, carr_transform)
 
 library(RColorBrewer)
 hab_colors <- c("red4", # anthro
@@ -332,24 +380,6 @@ hab_colors <- c("red4", # anthro
                 "burlywood1") #unconsolidated
 
 
-ggplot(carr_substrate)+
-  geom_sf(aes(fill = CMECS_SC_Category, color = CMECS_SC_Category)) +
-  scale_fill_manual(name = "Habitat Type", 
-                    values = hab_colors) +
-  scale_color_manual(name = "Habitat Type", 
-                    values = hab_colors) 
-  #scale_colour_brewer(palette = "BrBG")+
- # scale_fill_brewer(palette = "BrBG")
-
-# multisurface <- substrate_ca %>% 
-#   filter(st_geometry_type(., by_geometry = TRUE) == "MULTISURFACE")
-
-# Fix geometries
-substrate_ca_2d <- st_make_valid(substrate_ca_2d)
-
-carr_substrate <- st_intersection(substrate_ca_2d, carr_transform)
-
-test <- st_geometry_type(substrate_ca) %>% as.data.frame()
 
 
 
