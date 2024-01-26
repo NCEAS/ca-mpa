@@ -38,9 +38,6 @@ fig.dir <- "~/ca-mpa/analyses/7habitat/figures"
 # Check layer names
 st_layers(dsn=gdb.dir)
 
-# Read zones
-zones <- read_sf(dsn = gdb.dir, layer = "West_Coast_USA_Nearshore_Zones")
-
 # Read substrate component from CA
 substrate_ca <- read_sf(dsn = gdb.dir, 
                         query = "SELECT * FROM West_Coast_USA_Nearshore_CMECS_Substrate_Habitat WHERE State = 'CA'")
@@ -52,6 +49,9 @@ mpas <- readRDS(file.path(sync.dir, "/gis_data/processed/CA_MPA_polygons.Rds")) 
 
 one_nsid <- read_sf(dsn = gdb.dir,
                     query = "SELECT * From West_Coast_USA_Nearshore_CMECS_Substrate_Habitat WHERE NS_PolyID = '12189'")
+
+# Read zones
+zones <- read_sf(dsn = gdb.dir, layer = "West_Coast_USA_Nearshore_Zones")
 
 
 ## Create simple dfs  -----------------------------------------------
