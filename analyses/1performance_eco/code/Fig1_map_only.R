@@ -7,7 +7,19 @@
 rm(list = ls())
 
 # Packages
-library(tidyverse)
+library(tidyverse, sf)
+
+#NOTE: maptools is required, but has been removed from CRAN. To install the 
+#archived tool use:
+
+package_url <- "https://cran.r-project.org/src/contrib/Archive/maptools/maptools_1.1-8.tar.gz"
+temp_dir <- tempdir()
+download.file(package_url, destfile = paste0(temp_dir, "/maptools_1.1-8.tar.gz"))
+install.packages(paste0(temp_dir, "/maptools_1.1-8.tar.gz"), repos = NULL, type = "source")
+
+#ggsn is available from:
+devtools::install_github('oswaldosantos/ggsn')
+
 
 # Directories
 basedir <- here::here("analyses","1performance_eco","output")
@@ -96,11 +108,11 @@ region_labels <- tibble(long_dd=c(-123.9, -122.9, -121, -118#, -119.5
                                 ))
 
 # Theme
-base_theme <-  theme(axis.text=element_text(size=7),
-                     axis.title=element_text(size=8),
-                     legend.text=element_text(size=7),
-                     legend.title=element_text(size=8),
-                     plot.tag=element_text(size=8),
+base_theme <-  theme(axis.text=element_text(size=7, color = "black"),
+                     axis.title=element_text(size=8,color = "black"),
+                     legend.text=element_text(size=7,color = "black"),
+                     legend.title=element_text(size=8,color = "black"),
+                     plot.tag=element_text(size=8,color = "black"),
                      # Gridlines
                      panel.grid.major = element_blank(), 
                      panel.grid.minor = element_blank(),
@@ -110,8 +122,43 @@ base_theme <-  theme(axis.text=element_text(size=7),
                      legend.key = element_rect(fill=alpha('blue', 0)),
                      legend.background = element_rect(fill=alpha('blue', 0)),
                      #facets
-                     strip.text = element_text(size=7, face = "bold")
+                     strip.text = element_text(size=7, face = "bold",color = "black")
                      )
+
+# Build inset
+g1_inset <-  ggplotGrob(
+  ggplot() +
+    # Plot land
+    geom_sf(data=foreign, fill="grey80", color="white", lwd=0.3) +
+    geom_sf(data=usa, fill="grey80", color="white", lwd=0.3) +
+    # Plot box
+    annotate("rect", xmin=-126, xmax=-117, ymin=32.5, ymax=42, color="black", fill=NA, lwd=0.8) +
+    #add north arrow
+    ggsn::north(x.min = -130, x.max = -105, 
+                y.min = 29, y.max = 52,
+                location = "topright", 
+                scale = 0.3, 
+                symbol = 10)+
+    # Labels
+    labs(x="", y="") +
+    # Crop
+    coord_sf(xlim = c(-130, -105), ylim = c(29, 52)) +
+    #add USA text
+    geom_text(data = data.frame(x = -110, y = 38, label = "USA"), aes(x = x, y = y, label = label), color = "black", size = 3.5)+
+    # Theme
+    theme_bw() + base_theme +
+    theme( plot.margin = unit(rep(0, 4), "null"),
+           panel.margin = unit(rep(0, 4), "null"),
+           panel.background = element_rect(fill='transparent'), #transparent panel bg
+           # plot.background = element_rect(fill='transparent', color=NA), #transparent plot bg
+           axis.ticks = element_blank(),
+           axis.ticks.length = unit(0, "null"),
+           axis.ticks.margin = unit(0, "null"),
+           axis.text = element_blank(),
+           axis.title=element_blank())
+)
+
+g1_inset
 
 # Plot data
 g1 <- ggplot() +
@@ -129,20 +176,43 @@ g1 <- ggplot() +
   geom_text(data=region_labels, mapping=aes(x=long_dd, y=lat_dd, label=label, fontface="bold"), hjust=0, size=2.3) +
   # Labels
   labs(x="", y="") +
-  scale_size_continuous(name="No. ecosystems \nmonitored") +
+  scale_size_continuous(name="Ecosystems \nmonitored") +
   # Axes
   scale_y_continuous(breaks=32:42) +
+  #add scale bar
+  ggsn::scalebar(x.min = -126.7, x.max = -118, 
+                 y.min = 32.5, y.max = 42,
+                 #anchor=c(x=-124.7,y=41),
+                 location="bottomleft",
+                 dist = 100, dist_unit = "km",
+                 transform=TRUE, 
+                 model = "WGS84",
+                 st.dist=0.018,
+                 st.size=3,
+                 border.size=.5,
+                 height=.01
+  )+
   # Crop
-  coord_sf(xlim = c(-126, -117), ylim = c(32.5, 42)) +
+  coord_sf(xlim = c(-126.5, -117), ylim = c(32.5, 42)) +
+  #add inset
+  annotation_custom(grob = g1_inset, 
+                    xmin = -126.98, 
+                    xmax = -125,
+                  ymin = 40.55)+
   # Theme
   theme_bw() + base_theme +
   theme(axis.text.y = element_text(angle = 90, hjust = 0.5),
         axis.title=element_blank(),
-        legend.position = c(0.85, 0.4),
+        legend.position = c(0.13, 0.2),
         legend.key.size = unit(0.4, "cm"))
 g1
 
 # Export figure
-ggsave(g1, filename=file.path(plotdir, "Fig1_map_only.png"), 
+ggsave(g1, filename=file.path(plotdir, "Fig1_map_only2.png"), 
        width=4, height=6, units="in", dpi=600)
+
+
+
+
+
 
