@@ -155,38 +155,35 @@ pval <- sm_dat %>% dplyr::select(smooth, p.value, EDF) %>% distinct() %>%
 
 p <- sm_dat %>%
   ggplot() +
-  geom_density_2d_filled(aes(x = pred_val, y = res_val), alpha=0.8, data = resid_dat,
-                         contour_var = "ndensity", bins=9,
-                        show.legend = TRUE)+
-  scale_fill_brewer(palette = "Blues")+
-  #scale_fill_brewer()+
-  geom_ribbon(aes(ymin = lower_ci, ymax = upper_ci, x = var_val), color = "black", linetype = "dashed", fill = NA) +
-  #add residuals
-  #geom_point(aes(x = pred_val, y = res_val),
-   #          data = resid_dat, colour = "steelblue3") +
-  geom_line(aes(x = var_val, y = est), lwd = 0.8) +
-  facet_wrap(~smooth, scales = "free",
-             labeller = as_labeller(
-               c("Age at survey" = "Age at survey \n(years)", "Fishing pressure" = "Pre-implementation landings \n(pounds per km²)",
-                 "Habitat diversity" = "Habitat diversity \n(Shannon index)","Habitat richness"= "Habitat richness \n(no. habitats)",
-                 "Prop rock" = "Rocky substratum \n(proportion)", "Settlement habitat"="Settlement to \nhabitat",
-                 "Settlement mpa total" = "Settlement to \nMPA", "Size" = "Size \n(km²)",
-                 "Year" = "Year \n")), 
-             strip.position = "bottom"
-             )+
-  #add summary stats
-  geom_text(aes(x = -Inf, y = Inf, 
-                label = pval$label),
-            hjust = -0.1, vjust = 1.3, size = 2.5, data = pval, color = pval$color) +
-  labs(y = "Partial effect", x  = "", fill = "Scaled residual \ndensity")+
-  theme_bw() + my_theme 
-  
+  scale_fill_brewer(palette = "Blues") +
+  geom_ribbon(aes(ymin = lower_ci, ymax = upper_ci, x = var_val), color = "darkblue", linetype = "dashed", fill = NA) +
+  geom_point(aes(x = pred_val, y = res_val), data = resid_dat, colour = "steelblue3", size=1, alpha=0.4) +
+  geom_line(aes(x = var_val, y = est), lwd = 0.8, color = "darkblue") +
+  facet_wrap(~smooth, scales = "free", labeller = as_labeller(
+    c("Age at survey" = "MPA age \n(years)", "Fishing pressure" = "Local pre-MPA landings \n(plbs/sqkm)",
+      "Habitat diversity" = "Habitat diversity \n(Shannon index)","Habitat richness"= "Habitat richness \n(no. habitats)",
+      "Prop rock" = "Proportion \nrock", "Settlement habitat"="Settlement to \necosystem",
+      "Settlement mpa total" = "Settlement to \nMPA", "Size" = "Size \n(km²)",
+      "Year" = "Year \n")), 
+    strip.position = "bottom") +
+  geom_text(aes(x = -Inf, y = Inf, label = label), data = pval, hjust = -0.1, vjust = 1.3, size = 2.5, color = pval$color) +
+  labs(y = "Partial effect", x  = "", fill = "Scaled residual density") +
+  theme_bw() + my_theme +
+  geom_hline(yintercept = 0, color = "black", linetype = "solid", size=0.2, alpha=0.6) 
+
 p
 
 
 
-ggsave(p, filename=file.path(fig_dir, "Fig4_GAM4.png"), bg = "white",
+
+ggsave(p, filename=file.path(fig_dir, "Fig4_GAM5.png"), bg = "white",
        width=6, height=5, units="in", dpi=600) 
+
+
+
+
+
+
 
 
 
@@ -205,12 +202,14 @@ manipulate(
   ggplot() +
     stat_density_2d(geom = "raster", aes(fill = ..density..,
                                          x = pred_val,
-                                         y=res_val), contour = F, 
+                                         y = res_val), contour = F, 
                     data = resid_dat,
                     h = c(x_bandwidth, y_bandwidth),
                     n = grid_points) +
-    facet_wrap(~smooth, scales = "free")+
-    scale_fill_distiller(palette = "Viridis", direction = -1),
+    facet_wrap(~smooth, scales = "free") +
+    geom_ribbon(aes(ymin = lower_ci, ymax = upper_ci, x = var_val), color = "black", linetype = "dashed", fill = NA) +
+    geom_line(aes(x = var_val, y = est), lwd = 0.8) +
+    scale_fill_distiller(palette = "Viridis", direction = -1, limits = c(0, max_density)),
   x_bandwidth = slider(0.1, 20, 1, step = 0.1),
   y_bandwidth = slider(0.1, 20, 1, step = 0.1),
   grid_points = slider(1, 500, 50)
