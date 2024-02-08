@@ -214,7 +214,7 @@ g1 <- ggplot(habitat %>%
   facet_grid(habitat~mpa_defacto_class, scales = "fixed") +  
   xlab("") +
   ylab("") +
-  scale_color_manual(values = c("indianred","navyblue"),
+  scale_color_manual(values = c("#007F00","#663399"),
                      name = "Target status") +  
   scale_size_continuous(name = "No. MPAs", range = c(1, 3)) +
   scale_x_continuous(limits= c(-3,3))+
@@ -225,8 +225,9 @@ g1 <- ggplot(habitat %>%
         strip.background = element_blank(),
         panel.spacing = unit(1, "lines"),
         panel.background = element_rect(fill = "white", color = NA)) +
-  labs(title = "Ecosystem performance",
-       tag = "A")+
+  labs(x= "Effect size \n(log response ratio)",
+    title = "Ecosystem performance",
+       tag = "C")+
   theme_bw() + my_theme + theme(plot.margin = margin(0,0,0,0,"cm"))
 
 g1
@@ -259,7 +260,7 @@ g2 <- ggplot(region %>%
   facet_grid(habitat~mpa_defacto_class, scales = "fixed") +  
   xlab("") +
   ylab("") +
-  scale_color_manual(values = c("indianred","navyblue"),
+  scale_color_manual(values = c("#007F00","#663399"),
                      name = "Target status") +  
   scale_size_continuous(name = "No. MPAs", range = c(1, 3)) +
   scale_x_continuous(limits= c(-3,3))+
@@ -302,9 +303,9 @@ g3 <- ggplot(network %>%
   #           linetype = "solid", color = "black", size = 0.2) +  
   geom_text(aes(label = significance), vjust = -0.2, size = 4, show.legend = FALSE) + 
   facet_grid(habitat~mpa_defacto_class, scales = "fixed") +  
-  xlab("Effect size \n(log response ratio)") +
+  xlab("") +
   ylab("") +
-  scale_color_manual(values = c("indianred","navyblue"),
+  scale_color_manual(values = c("#007F00","#663399"),
                      name = "Target status") +  
   scale_size_continuous(name = "No. MPAs", range = c(1, 3)) +
   scale_x_continuous(limits= c(-3,3))+
@@ -316,20 +317,20 @@ g3 <- ggplot(network %>%
         panel.spacing = unit(1, "lines"),
         panel.background = element_rect(fill = "white", color = NA))+
   labs(title = "Network performance",
-       tag = "C")+
-  theme_bw() + my_theme + theme(plot.margin = margin(-0.2,0,0,0,"cm"))
+       tag = "A")+
+  theme_bw() + my_theme + theme(plot.margin = margin(0,0,0,0,"cm"))
 
 g3
 
 
-g <- ggpubr::ggarrange(g1, g2, g3, heights=c(0.7, 0.25,0.15), ncol=1, common.legend=TRUE,
+g <- ggpubr::ggarrange(g3, g2, g1, heights=c(0.15, 0.25,0.7), ncol=1, common.legend=TRUE,
                   legend = "right", align = "v")
 
 g
 
 
 
-ggsave(g, filename=file.path(fig_dir, "Fig3_habitat_meta_forestplot9.png"), bg = "white",
+ggsave(g, filename=file.path(fig_dir, "Fig3_habitat_meta_forestplot10.png"), bg = "white",
        width=6.5, height=10, units="in", dpi=600) 
 
 
