@@ -54,7 +54,8 @@ kelp  <- read_csv(file.path(datadir, "kelp_processed.csv"))
 params <- read_csv(file.path(traitsdir, "lw_parameters_fish.csv"))
 
 # Read species key
-species_key <- read.csv(file.path(traitsdir, "species_key.csv"))
+species_key <- read.csv(file.path(traitsdir, "species_key.csv")) %>%
+                  mutate(target_status = str_to_sentence(target_status))
   
 # Biomass conversion function ----------------------------------------------------------------
 
@@ -105,10 +106,10 @@ kelp_biomass <- bio_fun(params, kelp)
 surf_biomass <- bio_fun(params, surf)
 
 # Write to csv ----------------------------------------------------------------
-write.csv(surf_biomass, row.names = F, file.path(datadir,"/biomass_processed/surf_zone_fish_biomass_updated.csv"))  #last write 14 Dec 2023
-write.csv(kelp_biomass, row.names = F, file.path(datadir,"/biomass_processed/kelpforest_fish_biomass_updated.csv")) #last write 14 Dec 2023
-write.csv(ccfrp_biomass, row.names = F, file.path(datadir,"/biomass_processed/ccfrp_fish_biomass_updated.csv")) #last write 14 Dec 2023      
-write.csv(deep_biomass, row.names = F, file.path(datadir,"/biomass_processed/deep_reef_fish_biomass_updated.csv")) #last write 14 Dec 2023
+write.csv(surf_biomass, row.names = F, file.path(datadir,"/biomass_processed/surf_zone_fish_biomass_updated.csv"))  #last write 9 Feb 2024
+write.csv(kelp_biomass, row.names = F, file.path(datadir,"/biomass_processed/kelpforest_fish_biomass_updated.csv")) #last write 9 Feb 2024
+write.csv(ccfrp_biomass, row.names = F, file.path(datadir,"/biomass_processed/ccfrp_fish_biomass_updated.csv")) #last write 9 Feb 2024
+write.csv(deep_biomass, row.names = F, file.path(datadir,"/biomass_processed/deep_reef_fish_biomass_updated.csv")) #last write 9 Feb 2024
 
 # IN PROGRESS: Explore everything that's going wrong -----------------------------------
 

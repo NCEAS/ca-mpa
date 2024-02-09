@@ -16,7 +16,10 @@ tab_dir <- here::here("analyses","1performance_eco","tables")
 dat_path <- here::here("analyses","1performance_eco","output")
 
 #read data
-biomass_mod <- readRDS(file.path(dat_path, "biomass_with_moderators_new2.Rds")) 
+biomass_mod <- readRDS(file.path(dat_path, "biomass_with_moderators_new2.Rds")) %>%
+                    #In Fig 2 we found partial take have little effect, so 
+                    #this analysis includes only SMRs and targeted species. 
+                    filter(mpa_defacto_class == "smr" & target_status == "Targeted")
 
 
 ################################################################################
@@ -43,7 +46,7 @@ mod_dat <- left_join(filtered_data, habitat_year, by = "year") %>%
 # Step 3: Build the meta-GAM
 meta_gam_model <- gam(yi ~ 
                         #add take (no-take vs. partial) as  factor
-                        mpa_defacto_class+
+                        #mpa_defacto_class+
                         #add all other contonuous vars as smoothers
                         s(size) +
                         s(habitat_richness, k =3) +
@@ -156,14 +159,17 @@ pval <- sm_dat %>% dplyr::select(smooth, p.value, EDF) %>% distinct() %>%
 p <- sm_dat %>%
   ggplot() +
   scale_fill_brewer(palette = "Blues") +
-  geom_ribbon(aes(ymin = lower_ci, ymax = upper_ci, x = var_val), color = "darkblue", linetype = "dashed", fill = NA) +
+  #add residuas
   geom_point(aes(x = pred_val, y = res_val), data = resid_dat, colour = "steelblue3", size=1, alpha=0.4) +
+  #add CI
+  geom_ribbon(aes(ymin = lower_ci, ymax = upper_ci, x = var_val), color = "darkblue", linetype = "dashed", fill = NA) +
+  #add smooth
   geom_line(aes(x = var_val, y = est), lwd = 0.8, color = "darkblue") +
   facet_wrap(~smooth, scales = "free", labeller = as_labeller(
-    c("Age at survey" = "MPA age \n(years)", "Fishing pressure" = "Local pre-MPA landings \n(plbs/sqkm)",
+    c("Age at survey" = "MPA age \n(year)", "Fishing pressure" = "Local pre-MPA landings \n(lbs/sqkm)",
       "Habitat diversity" = "Habitat diversity \n(Shannon index)","Habitat richness"= "Habitat richness \n(no. habitats)",
       "Prop rock" = "Proportion \nrock", "Settlement habitat"="Settlement to \necosystem",
-      "Settlement mpa total" = "Settlement to \nMPA", "Size" = "Size \n(km²)",
+      "Settlement mpa total" = "Settlement to \nMPA", "Size" = "MPA area \n(km²)",
       "Year" = "Year \n")), 
     strip.position = "bottom") +
   geom_text(aes(x = -Inf, y = Inf, label = label), data = pval, hjust = -0.1, vjust = 1.3, size = 2.5, color = pval$color) +
@@ -177,7 +183,7 @@ p
 
 
 ggsave(p, filename=file.path(fig_dir, "Fig4_GAM5.png"), bg = "white",
-       width=6, height=5, units="in", dpi=600) 
+       width=5, height=5, units="in", dpi=600) 
 
 
 
