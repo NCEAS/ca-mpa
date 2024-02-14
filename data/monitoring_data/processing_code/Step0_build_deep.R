@@ -47,6 +47,7 @@ deep_reef_raw <- read_csv(file.path(datadir, "/ROVLengths2005-2019Merged-2021-02
 # Read taxonomy table 
 taxon_deep <- read_csv("/home/shares/ca-mpa/data/sync-data/species_traits/processed/species_key.csv") %>% 
   clean_names() %>% 
+  mutate(target_status = str_to_sentence(target_status))%>%
   filter(habitat == "Deep reef")
 
 # Read regions from MPA attributes table
@@ -330,7 +331,7 @@ nrow(data) - nrow(data2)
 
 write.csv(data3, row.names = F, file.path(outdir,"/deep_reef_processed.csv"))  
 
-# last write 13 Dec 2023
+# last write 9 Feb 2024
 
 
 
