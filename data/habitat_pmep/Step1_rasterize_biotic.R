@@ -136,25 +136,26 @@ subset_area <- function(section, resolution, bbox){
 }
 
 ## c. Params for each habitat -------------------------------------------------
-# Kelp
-# NOTE: must use bounding boxes for kelp; otherwise st_join will crash the system
+# Kelp 
+# Must use bounding boxes for kelp; otherwise st_join will crash the system
 sections <- rep(c(23, 30,  31, 32, 33, 40, 41), times = 7) #
 bboxes <- rep(list(bbox1, bbox2, bbox3, bbox4, bbox5, bbox6, bbox7), times = 7) # 
 resolutions <- rep(c(500, 250, 100, 50, 24, 10, 5), each = 7) # 
 layer_name <- "Kelp"
 all_results <- pmap(list(sections, resolutions, bboxes), subset_area) 
 
-# Faunal Bed
+# Faunal Bed 
 sections <- c(rep(c(30, 31, 32, 33, 40, 41), times = 7)) # omit 23, no fb
 resolutions <- c(rep(c(200, 100, 50, 24, 15, 10, 5), each = 6))
 layer_name <- "FaunalBed"
 all_results <- map2(sections, resolutions, subset_area) 
 
-# Aquatic Vegetation
-sections <- c(rep(c(30, 31, 32, 33, 40, 41), times = 7)) 
-resolutions <- c(rep(c(200, 100, 50, 24, 15, 10, 5), each = 6))
-layer_name <- "FaunalBed"
-all_results <- map2(sections, resolutions, subset_area) 
+# Aquatic Vegetation 
+sections <- c(rep(c(23, 30,  31, 32, 33, 40, 41), times = 7)) # 
+bboxes <- rep(list(bbox1, bbox2, bbox3, bbox4, bbox5, bbox6, bbox7), times = 7) # 
+resolutions <- c(rep(c(200, 100, 50, 24, 15, 10, 5), each = 7)) #
+layer_name <- "AquaticVegetationBed"
+all_results <- pmap(list(sections, resolutions, bboxes), subset_area) 
 
 ## d. Results -----------------------------------------------------------------
 # Create dataframe of results 
@@ -166,6 +167,7 @@ area_compare <- bind_rows(all_results) %>%
 
 #saveRDS(area_compare, file.path(bio.dir, "resolution-sensitivity-results-kelp.Rds"))
 #saveRDS(area_compare, file.path(bio.dir, "resolution-sensitivity-results-faunalbed.Rds"))
+#saveRDS(area_compare, file.path(bio.dir, "resolution-sensitivity-results-aquaticveg.Rds"))
 
 # Average difference for each resolution (across different bboxes)
 average <- area_compare %>% 
@@ -184,6 +186,7 @@ ggplot(data = area_compare) +
        color = "Subset")
 #ggsave(file.path(fig.dir, "Step0_pmep_biotic_kelp_rasterize_resolutions.png"))
 #ggsave(file.path(fig.dir, "Step0_pmep_biotic_fanalbed_rasterize_resolutions.png"))
+#ggsave(file.path(fig.dir, "Step0_pmep_biotic_aquaticveg_rasterize_resolutions.png"))
 
 ggplot(data = average, aes(x = res, y = res_mean)) + 
   geom_col() +
@@ -192,6 +195,7 @@ ggplot(data = average, aes(x = res, y = res_mean)) +
   labs(x = "Resolution", y = "Average proportional difference from polygon area")
 #ggsave(file.path(fig.dir, "Step0_pmep_biotic_kelp_rasterize_avg_resolutions.png"))
 #ggsave(file.path(fig.dir, "Step0_pmep_biotic_fanalbed_rasterize_avg_resolutions.png"))
+#ggsave(file.path(fig.dir, "Step0_pmep_biotic_aquaticveg_rasterize_avg_resolutions.png"))
 
 
 # Rasterize by section @ 24m -------------------------------------------------------
@@ -207,52 +211,35 @@ rasterize_by_section <- function(section, layer_name){
   print(paste("Layer:", layer_name))
   
   # Select section and layer to rasterize
-  att_subset <- attribute %>% 
+  subset <- attribute %>% 
     filter(.data[[layer_name]] == "Yes") %>% 
-    filter(PMEP_Section == section)
+    filter(PMEP_Section == section) %>% 
+    left_join(., biotic) %>% 
+    st_as_sf()
   
-  print(paste("Subset Obs:", nrow(att_subset)))
-  
-  geo_subset <- biotic %>% 
-    filter(NS_PolyID %in% att_subset$NS_PolyID) %>% 
-    st_zm() %>% 
-    st_transform(crs = st_crs(zones_ca))
-  
-  print(paste("Geo Obs:", nrow(geo_subset)))
-  
+  print(paste("Subset Obs:", nrow(subset)))
+
+  # Crop empty raster to zone section extent
   zone_section <- zones_ca %>% 
     filter(PMEP_Section == section)
   
-  # Crop empty raster to zone section extent
   raster_crop <- crop(raster, zone_section)
   
-  print(extent(raster_crop))
-  print(extent(geo_subset))
-  
   # Rasterize selected layer and section
-  habitat_raster <- fasterize::fasterize(sf = geo_subset, raster = raster_crop)
-  
-  # Compare to polygon area
-  area_poly <- sum(st_area(geo_subset)) %>% as.vector()
-  area_rast <- habitat_raster %>% 
-    as.data.frame() %>% 
-    filter(!is.na(layer)) %>% 
-    summarize(area = n() * 24 * 24)
-  
-  print(area_rast/area_poly)
+  habitat_raster <- fasterize::fasterize(sf = subset, raster = raster_crop)
   
   # Convert to SpatRaster 
   habitat_raster <- rast(habitat_raster)
   
   # Write raster to file
-  terra::writeRaster(habitat_raster, file.path(bio.dir, paste("PMEP_Biotic_", layer_name, "_24mRes_Section", section, ".tif", sep = "")), 
+  terra::writeRaster(habitat_raster, file.path(bio.dir, "biotic_rasters", paste("PMEP_Biotic_", layer_name, "_24mRes_Section", section, ".tif", sep = "")), 
                      overwrite = T)
   
 }
 
 # 3. Apply function to sections
-## Drop Z dimension
-biotic_xy <- st_zm(biotic)
+# Make sure that biotic dataset is converted to XY and
+# transformed to match the substrate CRS
 
 ## a. Kelp ----
 #sections <- c(23, 30, 31, 32, 33, 40, 41)  
@@ -260,80 +247,43 @@ biotic_xy <- st_zm(biotic)
 #map2(sections, layer_name, rasterize_by_section) 
 
 # Test plot output
-kelp <- rast(file.path(bio.dir, "PMEP_Biotic_Kelp_24mRes_Section33.tif"))
+kelp <- rast(file.path(bio.dir, "biotic_rasters", "PMEP_Biotic_Kelp_24mRes_Section33.tif"))
 plot(kelp, col = "blue")
 
 ## b. Faunal Bed ----
-sections <- c(30, 31, 32, 33, 40, 41)  # none for 23
-layer_name <- "FaunalBed"
-map2(sections, layer_name, rasterize_by_section) 
-
-# Test plot output
-fb <- rast(file.path(bio.dir, "biotic_rasters", "PMEP_Biotic_FaunalBed_24mRes_Section30.tif"))
-
-fb_poly <- attribute %>% 
-  filter(PMEP_Section == 30 & FaunalBed == 'Yes') %>% 
-  left_join(., biotic) %>% 
-  st_as_sf() %>% 
-  st_transform(., crs = st_crs(fb))
-
-st_crs(fb_poly)
-
-ggplot() + 
-  geom_sf(data = fb_poly, mapping = aes(geometry = geometry),
-          color = "black", fill = "transparent") +
-  geom_tile(fb %>% as.data.frame(xy = T), 
-            mapping = aes(x = x, y = y), fill = "orange", alpha = 0.5, show.legend = F) 
-  
-
-scale_x_continuous(limits = c(810500, 810644)) +
-  scale_y_continuous(limits = c(72600, 72900))
-
-ggplot() + 
-  geom_sf(test %>% st_transform(crs = st_crs(fb)), 
-          mapping = aes(), color = "black", fill = "blue") +
-  scale_x_continuous(limits = c(810500, 810644)) +
-  scale_y_continuous(limits = c(72600, 72900))
-
-test <- biotic %>% 
-  filter(NS_PolyID %in% attribute$NS_PolyID[attribute$PMEP_Section == 41]) %>% 
-  filter(NS_PolyID %in% attribute$NS_PolyID[attribute$FaunalBed == 'Yes'])
+#sections <- c(30, 31, 32, 33, 40, 41)  # none for 23
+#layer_name <- "FaunalBed"
+#map2(sections, layer_name, rasterize_by_section) 
 
 ## c. Aquatic vegetation ----
-
+sections <- c(23, 30, 31, 32, 33, 40, 41)  
+layer_name <- "AquaticVegetationBed"
+map2(sections, layer_name, rasterize_by_section) 
 
 
 # Combine into a single raster -----------------------
-# List of filenames for the substrate raster sections
-filenames <- list.files(bio.dir, pattern="*Kelp", full.names=TRUE)
+raster.dir <- file.path(bio.dir, "biotic_rasters")
 
-# Read each of the raster sections
-kelp_sections <- lapply(filenames, rast)
+combine_sections <- function(layer_name){
+  # List filenames
+  filenames <- list.files(raster.dir, pattern = paste("*", layer_name, sep = ""), 
+                          full.names = T)
+  
+  # Read each of the sections
+  sections <- lapply(filenames, rast)
+  
+  # Create spatraster collection
+  sections <- sprc(sections)
+  
+  # Merge into single raster
+  merged <- terra::merge(sections)
+  
+  # Write to file
+  terra::writeRaster(merged, file.path(raster.dir, paste("PMEP_Biotic_", layer_name, "_24mRes_Full.tif", sep = "")), overwrite = T)
+}
 
-# Create spat raster collection
-kelp_sections <- sprc(kelp_sections) 
-
-# Merge into a single raster
-kelp_raster <- terra::merge(kelp_sections)
-
-# Write to file
-terra::writeRaster(kelp_raster, file.path(bio.dir, "PMEP_Biotic_Kelp_24mRes_Full.tif"), overwrite = T)
-
-
-
-
-kelp_33 <- rast(file.path(bio.dir, "PMEP_Biotic_Kelp_24mRes_Section33.tif"))
-kelp_33_att <- attribute %>% 
-  filter(PMEP_Section == 33 & Kelp == "Yes")
-
-ggplot() + 
-  geom_sf(data = biotic %>% filter(NS_PolyID %in% kelp_33_att$NS_PolyID) %>% 
-            st_zm() %>% st_transform(crs = st_crs(zones_ca)),
-          mapping = aes(), color = "black", fill = "transparent") +
-  geom_tile(kelp_33 %>% as.data.frame(xy = T), 
-            mapping = aes(x = x, y = y), fill = "red", alpha = 0.5, show.legend = F) +
-  scale_x_continuous(limits = c(498000, 506000)) +
-  scale_y_continuous(limits = c(230605, 235845))
-
-
+# Combine rasters and export
+#combine_sections(layer_name = "Kelp")
+#combine_sections(layer_name = "FaunalBed")
+#combine_sections(layer_name = "AquaticVegetationBed")
 

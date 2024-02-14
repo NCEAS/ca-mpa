@@ -24,7 +24,6 @@ st_layers(dsn=gdb.dir)
 # Read table without geometry
 sub_table <- terra::vect(gdb.dir, layer = 'West_Coast_USA_Nearshore_CMECS_Substrate_Habitat', 
                                  what = "attributes")
-beepr::beep()
 
 # Save
 saveRDS(sub_table, "West_Coast_USA_Nearshore_CMECS_Substrate_Habitat_Attributes.Rds")
@@ -39,5 +38,60 @@ ogr2ogr(src_datasource_name = gdb.dir,
         layer = 'West_Coast_USA_Nearshore_CMECS_Substrate_Habitat',
         where = "State='CA'",
         nlt = 'PROMOTE_TO_MULTI')
+
+
+# Subset to only the data within MPAs ------------------------------------------
+
+## Create raster object of the substrate layer
+substrate_raster <- raster::raster(substrate_ca)
+
+# Use st_intersection to create a subset of only those data within MPAs
+mpa_intersect <- st_intersection(substrate_ca, mpas)
+saveRDS(mpa_intersect, file.path(sync.dir, "habitat_pmep", "mpa_substrate_intersection.Rds"))
+
+# This approach ends up splits polygons based on MPA borders (e.g. greater number 
+# of observations because adjacent MPAs will split one poly into two)
+mpa_intersect_simple <- mpa_intersect %>% st_drop_geometry()
+
+obs_per_mpa <- mpa_intersect_simple %>% 
+  group_by(name) %>% 
+  summarize(n_obs = n())
+
+no_substrate <- mpas_simple %>% 
+  filter(!(name %in% obs_per_mpa$name))
+
+
+# Calculate area of each polygon within MPAs
+mpa_intersect$mpa_area <- st_area(mpa_intersect)
+
+mpa_intersect_simple <- mpa_intersect %>% st_drop_geometry()
+
+mpa_totals <- mpa_intersect_simple %>% 
+  mutate(CMECS_SC_Broad = if_else(CMECS_SC_Category_Code < 1.5,
+                                  str_extract(CMECS_SC_Category_Code, "^.{3}"), CMECS_SC_Category_Code)) %>% 
+  group_by(CMECS_SC_Broad) %>% 
+  summarize(mpa_area = sum(mpa_area),
+            mpa_area_km = round(mpa_area/(1*10^6), 3))
+
+state_totals <- substrate_ca_simple %>% 
+  mutate(CMECS_SC_Broad = if_else(CMECS_SC_Category_Code < 1.5, 
+                                  str_extract(CMECS_SC_Category_Code, "^.{3}"), CMECS_SC_Category_Code)) %>% 
+  group_by(CMECS_SC_Broad) %>% 
+  summarize(state_area = sum(Shape_Area),
+            state_area_km = round(state_area/(1e6), 3))
+
+representation <- full_join(mpa_totals, state_totals) %>% 
+  mutate(proportion = mpa_area/state_area) 
+
+
+library(RColorBrewer)
+hab_colors <- c("red4", # anthro
+                "burlywood3", "burlywood2", #coarse, fine
+                "tan4", #rock
+                "white", #unclassified"
+                "burlywood1") #unconsolidated
+
+
+
 
 
