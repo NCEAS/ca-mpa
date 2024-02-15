@@ -13,6 +13,7 @@ library(terra)
 sync.dir <- "/home/shares/ca-mpa/data/sync-data"
 sub.dir  <- "/home/shares/ca-mpa/data/sync-data/habitat_pmep/processed/substrate/substrate_rasters"
 bio.dir  <- "/home/shares/ca-mpa/data/sync-data/habitat_pmep/processed/biotic/biotic_rasters"
+pro.dir  <- "/home/shares/ca-mpa/data/sync-data/habitat_pmep/processed"
 
 
 # Create raster for depth zones -------------------------------------------------------
@@ -32,166 +33,123 @@ zones_df <- zones_df %>%
   filter(!is.na(layer)) %>% 
   rename(zone = layer)
 
+saveRDS(zones_df, file.path("/home/shares/ca-mpa/data/sync-data/habitat_pmep/processed/combined", "PMEP_Zones_24mRes_Full.Rds"))
+
 # Combine and export dataframe for each section --------------------------------------
 
 # SUBSTRATE ---------------
 
+combine_substrate <- function(section_input, section_num){
+  rock <- rast(file.path(sub.dir, paste("PMEP_Substrate_1.1_24mRes_Section", section_input, ".tif", sep = "")))
+  names(rock) <- "rock_substrate"
+  
+  soft <- rast(file.path(sub.dir, paste("PMEP_Substrate_1.2_24mRes_Section", section_input, ".tif", sep = "")))
+  names(soft) <- "unconsolidated_substrate"
+  
+  coar <- rast(file.path(sub.dir, paste("PMEP_Substrate_1.2.1_24mRes_Section", section_input, ".tif", sep = "")))
+  names(coar) <- "coarse_unconsolidated_substrate"
+  
+  fine <- rast(file.path(sub.dir, paste("PMEP_Substrate_1.2.2_24mRes_Section", section_input, ".tif", sep = "")))
+  names(fine) <- "fine_unconsolidated_substrate"
+  
+  layers <- c(rock, soft, coar, fine)
+  
+  layers_df <- as.data.frame(layers, xy = T) 
+  
+  layers_df <- layers_df %>% 
+    mutate(section = section_num) %>% 
+    left_join(., zones_df)
+  
+  saveRDS(layers_df, file.path(sub.dir, paste("PMEP_Substrate_24mRes_Section", section_input, ".Rds", sep = "")))
+}
+
+combine_substrate(section_input = "30", section = 30)
+combine_substrate(section_input = "31", section = 31)
+combine_substrate(section_input = "33", section = 33)
+combine_substrate(section_input = "40", section = 40)
+combine_substrate(section_input = "41", section = 41)
+
 ## Section 23 ------
 rock <- rast(file.path(sub.dir, "PMEP_Substrate_1.1_24mRes_Section23.tif"))
-names(rock) <- "1.1 Rock Substrate"
+names(rock) <- "rock_substrate"
 
 soft <- rast(file.path(sub.dir, "PMEP_Substrate_1.2_24mRes_Section23.tif")) 
-names(soft) <- "1.2 Unconsolidated Mineral Substrate"
+names(soft) <- "unconsolidated_substrate"
 
 fine <- rast(file.path(sub.dir, "PMEP_Substrate_1.2.2_24mRes_Section23.tif")) 
-names(fine) <- "1.2.2 Fine Unconsolidated Substrate"
+names(fine) <- "fine_unconsolidated_substrate"
 
 layers <- c(rock, soft, fine)
 layers_df <- as.data.frame(layers, xy = T)
 
 layers_df <- layers_df %>% 
-  mutate(`1.2.1 Coarse Unconsolidated Substrate` = NA)
+  mutate(coarse_unconsolidated_substrate = NA)
 
 layers_df <- layers_df %>% 
-  select(x, y, 
-         `1.1 Rock Substrate`, 
-         `1.2 Unconsolidated Mineral Substrate`,
-         `1.2.1 Coarse Unconsolidated Substrate`,
-         `1.2.2 Fine Unconsolidated Substrate`) %>% 
+  select(x, y,
+         rock_substrate, 
+         unconsolidated_substrate,
+         coarse_unconsolidated_substrate,
+         fine_unconsolidated_substrate) %>% 
   mutate(section = 23) %>% 
   left_join(., zones_df)
 
 saveRDS(layers_df, file.path(sub.dir, "PMEP_Substrate_24mRes_Section23.Rds"))
 
 
-## Section 30 ------
-rock <- rast(file.path(sub.dir, "PMEP_Substrate_1.1_24mRes_Section30.tif"))
-names(rock) <- "1.1 Rock Substrate"
-
-soft <- rast(file.path(sub.dir, "PMEP_Substrate_1.2_24mRes_Section30.tif")) 
-names(soft) <- "1.2 Unconsolidated Mineral Substrate"
-
-coar <- rast(file.path(sub.dir, "PMEP_Substrate_1.2.1_24mRes_Section30.tif")) 
-names(coar) <- "1.2.1 Coarse Unconsolidated Substrate"
-
-fine <- rast(file.path(sub.dir, "PMEP_Substrate_1.2.2_24mRes_Section30.tif")) 
-names(fine) <- "1.2.2 Fine Unconsolidated Substrate"
-
-layers <- c(rock, soft, coar, fine)
-layers_df <- as.data.frame(layers, xy = T) %>% 
-  mutate(section = 30) %>% 
-  left_join(., zones_df)
-
-saveRDS(layers_df, file.path(sub.dir, "PMEP_Substrate_24mRes_Section30.Rds"))
-
-
-## Section 31 ------
-rock <- rast(file.path(sub.dir, "PMEP_Substrate_1.1_24mRes_Section31.tif"))
-names(rock) <- "1.1 Rock Substrate"
-
-soft <- rast(file.path(sub.dir, "PMEP_Substrate_1.2_24mRes_Section31.tif")) 
-names(soft) <- "1.2 Unconsolidated Mineral Substrate"
-
-coar <- rast(file.path(sub.dir, "PMEP_Substrate_1.2.1_24mRes_Section31.tif")) 
-names(coar) <- "1.2.1 Coarse Unconsolidated Substrate"
-
-fine <- rast(file.path(sub.dir, "PMEP_Substrate_1.2.2_24mRes_Section31.tif")) 
-names(fine) <- "1.2.2 Fine Unconsolidated Substrate"
-
-layers <- c(rock, soft, coar, fine)
-layers_df <- as.data.frame(layers, xy = T) %>% 
-  mutate(section = 31) %>% 
-  left_join(., zones_df)
-
-saveRDS(layers_df, file.path(sub.dir, "PMEP_Substrate_24mRes_Section31.Rds"))
 
 ## Section 32 ------
 rock <- rast(file.path(sub.dir, "PMEP_Substrate_1.1_24mRes_Section32.tif"))
-names(rock) <- "1.1 Rock Substrate"
+names(rock) <- "rock_substrate"
 
 soft <- rast(file.path(sub.dir, "PMEP_Substrate_1.2_24mRes_Section32.tif")) 
-names(soft) <- "1.2 Unconsolidated Mineral Substrate"
+names(soft) <- "unconsolidated_substrate"
 
 layers <- c(rock, soft)
 layers_df <- as.data.frame(layers, xy = T)
 
 layers_df <- layers_df %>% 
-  mutate(`1.2.1 Coarse Unconsolidated Substrate` = NA,
-         `1.2.2 Fine Unconsolidated Substrate` = NA) %>% 
+  mutate(coarse_unconsolidated_substrate = NA,
+         fine_unconsolidated_substrate = NA) %>% 
   mutate(section = 32) %>% 
   left_join(., zones_df)
 
 saveRDS(layers_df, file.path(sub.dir, "PMEP_Substrate_24mRes_Section32.Rds"))
 
-## Section 33 ------
-rock <- rast(file.path(sub.dir, "PMEP_Substrate_1.1_24mRes_Section33.tif"))
-names(rock) <- "1.1 Rock Substrate"
-
-soft <- rast(file.path(sub.dir, "PMEP_Substrate_1.2_24mRes_Section33.tif")) 
-names(soft) <- "1.2 Unconsolidated Mineral Substrate"
-
-coar <- rast(file.path(sub.dir, "PMEP_Substrate_1.2.1_24mRes_Section33.tif")) 
-names(coar) <- "1.2.1 Coarse Unconsolidated Substrate"
-
-fine <- rast(file.path(sub.dir, "PMEP_Substrate_1.2.2_24mRes_Section33.tif")) 
-names(fine) <- "1.2.2 Fine Unconsolidated Substrate"
-
-layers <- c(rock, soft, coar, fine)
-layers_df <- as.data.frame(layers, xy = T) %>% 
-  mutate(section = 33) %>% 
-  left_join(., zones_df)
-
-saveRDS(layers_df, file.path(sub.dir, "PMEP_Substrate_24mRes_Section33.Rds"))
-
-
-## Section 40 ------
-rock <- rast(file.path(sub.dir, "PMEP_Substrate_1.1_24mRes_Section40.tif"))
-names(rock) <- "1.1 Rock Substrate"
-
-soft <- rast(file.path(sub.dir, "PMEP_Substrate_1.2_24mRes_Section40.tif")) 
-names(soft) <- "1.2 Unconsolidated Mineral Substrate"
-
-coar <- rast(file.path(sub.dir, "PMEP_Substrate_1.2.1_24mRes_Section40.tif")) 
-names(coar) <- "1.2.1 Coarse Unconsolidated Substrate"
-
-fine <- rast(file.path(sub.dir, "PMEP_Substrate_1.2.2_24mRes_Section40.tif")) 
-names(fine) <- "1.2.2 Fine Unconsolidated Substrate"
-
-layers <- c(rock, soft, coar, fine)
-layers_df <- as.data.frame(layers, xy = T) %>% 
-  mutate(section = 40) %>% 
-  left_join(., zones_df)
-
-saveRDS(layers_df, file.path(sub.dir, "PMEP_Substrate_24mRes_Section40.Rds"))
-
-
-## Section 41 ------
-rock <- rast(file.path(sub.dir, "PMEP_Substrate_1.1_24mRes_Section41.tif"))
-names(rock) <- "1.1 Rock Substrate"
-
-soft <- rast(file.path(sub.dir, "PMEP_Substrate_1.2_24mRes_Section41.tif")) 
-names(soft) <- "1.2 Unconsolidated Mineral Substrate"
-
-coar <- rast(file.path(sub.dir, "PMEP_Substrate_1.2.1_24mRes_Section41.tif")) 
-names(coar) <- "1.2.1 Coarse Unconsolidated Substrate"
-
-fine <- rast(file.path(sub.dir, "PMEP_Substrate_1.2.2_24mRes_Section41.tif")) 
-names(fine) <- "1.2.2 Fine Unconsolidated Substrate"
-
-layers <- c(rock, soft, coar, fine)
-layers_df <- as.data.frame(layers, xy = T) %>% 
-  mutate(section = 41) %>% 
-  left_join(., zones_df)
-
-saveRDS(layers_df, file.path(sub.dir, "PMEP_Substrate_24mRes_Section41.Rds"))
 
 # BIOTIC ------------------------------------------------------------------
+
+combine_biotic <- function(section_input, section_num){
+  aqveg <- rast(file.path(bio.dir, paste("PMEP_Biotic_AquaticVegetationBed_24mRes_Section", section_input, ".tif", sep = "")))
+  names(aqveg) <- "aquatic_vegetation_bed"
+  
+  faun <- rast(file.path(bio.dir, paste("PMEP_Biotic_FaunalBed_24mRes_Section", section_input, ".tif", sep = "")))
+  names(faun) <- "faunal_bed"
+  
+  kelp <- rast(file.path(bio.dir, paste("PMEP_Biotic_Kelp_24mRes_Section", section_input, ".tif", sep = "")))
+  names(kelp) <- "kelp"
+  
+  layers <- c(aqveg, kelp, faun)
+  
+  layers_df <- as.data.frame(layers, xy = T) %>% 
+    mutate(section = section_num) %>% 
+    left_join(., zones_df)
+  
+  saveRDS(layers_df, file.path(bio.dir, paste("PMEP_Biotic_24mRes_Section", section_input, ".Rds", sep = "")))
+  
+}
+
+combine_biotic(section_input = "30", section_num = 30)
+combine_biotic(section_input = "31", section_num = 31)
+combine_biotic(section_input = "32", section_num = 32)
+combine_biotic(section_input = "33", section_num = 33)
+combine_biotic(section_input = "40", section_num = 40)
+combine_biotic(section_input = "41", section_num = 41)
+
 
 ## Section 23 ------
 aqveg <- rast(file.path(bio.dir, "PMEP_Biotic_AquaticVegetationBed_24mRes_Section23.tif"))
 names(aqveg) <- "aquatic_vegetation_bed"
-
-#faun <- rast(file.path(bio.dir, "PMEP_Biotic_FaunalBed_24mRes_Section23.tif"))
 
 kelp <- rast(file.path(bio.dir, "PMEP_Biotic_Kelp_24mRes_Section23.tif"))
 names(kelp) <- "kelp"
@@ -203,118 +161,8 @@ layers_df <- as.data.frame(layers, xy = T) %>%
   mutate(section = 23) %>% 
   left_join(., zones_df)
 
-saveRDS(layers_df, file.path(bio.dir, "PMEP_Biotic_24mRes_Section23.tif"))
+saveRDS(layers_df, file.path(bio.dir, "PMEP_Biotic_24mRes_Section23.Rds"))
 
-
-## Section 30 ------
-aqveg <- rast(file.path(bio.dir, "PMEP_Biotic_AquaticVegetationBed_24mRes_Section30.tif"))
-names(aqveg) <- "aquatic_vegetation_bed"
-
-faun <- rast(file.path(bio.dir, "PMEP_Biotic_FaunalBed_24mRes_Section30.tif"))
-names(faun) <- "faunal_bed"
-
-kelp <- rast(file.path(bio.dir, "PMEP_Biotic_Kelp_24mRes_Section30.tif"))
-names(kelp) <- "kelp"
-
-layers <- c(aqveg, kelp, faun)
-
-layers_df <- as.data.frame(layers, xy = T) %>% 
-  mutate(section = 30) %>% 
-  left_join(., zones_df)
-
-saveRDS(layers_df, file.path(bio.dir, "PMEP_Biotic_24mRes_Section30.Rds"))
-
-
-## Section 31 ------
-aqveg <- rast(file.path(bio.dir, "PMEP_Biotic_AquaticVegetationBed_24mRes_Section31.tif"))
-names(aqveg) <- "aquatic_vegetation_bed"
-
-faun <- rast(file.path(bio.dir, "PMEP_Biotic_FaunalBed_24mRes_Section31.tif"))
-names(faun) <- "faunal_bed"
-
-kelp <- rast(file.path(bio.dir, "PMEP_Biotic_Kelp_24mRes_Section31.tif"))
-names(kelp) <- "kelp"
-
-layers <- c(aqveg, kelp, faun)
-
-layers_df <- as.data.frame(layers, xy = T) %>% 
-  mutate(section = 31) %>% 
-  left_join(., zones_df)
-
-saveRDS(layers_df, file.path(bio.dir, "PMEP_Biotic_24mRes_Section31.Rds"))
-
-## Section 32 ------
-aqveg <- rast(file.path(bio.dir, "PMEP_Biotic_AquaticVegetationBed_24mRes_Section32.tif"))
-names(aqveg) <- "aquatic_vegetation_bed"
-
-faun <- rast(file.path(bio.dir, "PMEP_Biotic_FaunalBed_24mRes_Section32.tif"))
-names(faun) <- "faunal_bed"
-
-kelp <- rast(file.path(bio.dir, "PMEP_Biotic_Kelp_24mRes_Section32.tif"))
-names(kelp) <- "kelp"
-
-layers <- c(aqveg, kelp, faun)
-
-layers_df <- as.data.frame(layers, xy = T) %>% 
-  mutate(section = 32) %>% 
-  left_join(., zones_df)
-
-saveRDS(layers_df, file.path(bio.dir, "PMEP_Biotic_24mRes_Section32.Rds"))
-
-
-## Section 33 ------
-aqveg <- rast(file.path(bio.dir, "PMEP_Biotic_AquaticVegetationBed_24mRes_Section33.tif"))
-names(aqveg) <- "aquatic_vegetation_bed"
-
-faun <- rast(file.path(bio.dir, "PMEP_Biotic_FaunalBed_24mRes_Section33.tif"))
-names(faun) <- "faunal_bed"
-
-kelp <- rast(file.path(bio.dir, "PMEP_Biotic_Kelp_24mRes_Section33.tif"))
-names(kelp) <- "kelp"
-
-layers <- c(aqveg, kelp, faun)
-
-layers_df <- as.data.frame(layers, xy = T) %>% 
-  mutate(section = 33) %>% 
-  left_join(., zones_df)
-
-saveRDS(layers_df, file.path(bio.dir, "PMEP_Biotic_24mRes_Section33.Rds"))
-
-## Section 40 ------
-aqveg <- rast(file.path(bio.dir, "PMEP_Biotic_AquaticVegetationBed_24mRes_Section40.tif"))
-names(aqveg) <- "aquatic_vegetation_bed"
-
-faun <- rast(file.path(bio.dir, "PMEP_Biotic_FaunalBed_24mRes_Section40.tif"))
-names(faun) <- "faunal_bed"
-
-kelp <- rast(file.path(bio.dir, "PMEP_Biotic_Kelp_24mRes_Section40.tif"))
-names(kelp) <- "kelp"
-
-layers <- c(aqveg, kelp, faun)
-
-layers_df <- as.data.frame(layers, xy = T) %>% 
-  mutate(section = 40) %>% 
-  left_join(., zones_df)
-
-saveRDS(layers_df, file.path(bio.dir, "PMEP_Biotic_24mRes_Section40.Rds"))
-
-## Section 41 ------
-aqveg <- rast(file.path(bio.dir, "PMEP_Biotic_AquaticVegetationBed_24mRes_Section41.tif"))
-names(aqveg) <- "aquatic_vegetation_bed"
-
-faun <- rast(file.path(bio.dir, "PMEP_Biotic_FaunalBed_24mRes_Section41.tif"))
-names(faun) <- "faunal_bed"
-
-kelp <- rast(file.path(bio.dir, "PMEP_Biotic_Kelp_24mRes_Section41.tif"))
-names(kelp) <- "kelp"
-
-layers <- c(aqveg, kelp, faun)
-
-layers_df <- as.data.frame(layers, xy = T) %>% 
-  mutate(section = 41) %>% 
-  left_join(., zones_df)
-
-saveRDS(layers_df, file.path(bio.dir, "PMEP_Biotic_24mRes_Section41.Rds"))
 
 # Create raster for MPAs -------------------------------------------------------------
 raster <- raster::raster(zones_ca, resolution = 24, crs = st_crs(zones_ca))
@@ -338,3 +186,31 @@ mpa_df <- mpa_df %>%
 rm(mpa_match, mpas)
 
 saveRDS(mpa_df, file.path("/home/shares/ca-mpa/data/sync-data/habitat_pmep/processed/combined", "MPAs_24mRes_Full.Rds"))
+
+
+# Combine biotic + substrate + MPA by section ---------------------------------------
+
+combine_rasters <- function(section){
+  # Read sub and bio section dataframes
+  sub <- readRDS(file.path(sub.dir, paste("PMEP_Substrate_24mRes_Section", section, ".Rds", sep = "")))
+  bio <- readRDS(file.path(bio.dir, paste("PMEP_Biotic_24mRes_Section", section, ".Rds", sep = "")))
+  
+  # Combine
+  combined <- full_join(sub, bio) %>% 
+    left_join(., mpa) %>% 
+    mutate(mpa_binary = if_else(is.na(mpa_name), NA, 1)) %>%  # create binary MPA presence column
+    select(x, y, section, mpa_binary, mpa_name, everything())
+  
+  # Save RDS to combined folder
+  saveRDS(combined, file.path(pro.dir, "combined",
+                              paste("PMEP_Combined_24mRes_Section", section, ".Rds", sep = "")))
+}
+
+combine_rasters(section = "23")
+combine_rasters(section = "30")
+combine_rasters(section = "31")
+combine_rasters(section = "32")
+combine_rasters(section = "33")
+combine_rasters(section = "40")
+combine_rasters(section = "41")
+
