@@ -52,6 +52,7 @@ base_theme <-  theme(axis.text=element_text(size=7),
                      legend.text=element_text(size=7),
                      legend.title=element_text(size=8),
                      plot.tag=element_text(size=8),
+                     plot.title = element_text(size = 8),
                      # Gridlines
                      panel.grid.major = element_blank(), 
                      panel.grid.minor = element_blank(),
@@ -96,8 +97,8 @@ A <- ggplot(rd_build1, aes(x = shannon_unweighted_logRR)) +
   geom_ribbon(data = ci_values, aes(ymin = -Inf, ymax = Inf, x = ci_s), fill = "gray", alpha = 0.4) +
   facet_wrap(~habitat, scales = "free", ncol=1) +
   labs(title = "Shannon diversity (unweighted)",
-       x = "Response ratio",
-       y = "Frequency") +
+       x = "",
+       y = "") +
   theme_bw() + base_theme
 
 B <- ggplot(rd_build1, aes(x = richness_unweighted_logRR)) +
@@ -109,13 +110,24 @@ B <- ggplot(rd_build1, aes(x = richness_unweighted_logRR)) +
   geom_ribbon(data = ci_values, aes(ymin = -Inf, ymax = Inf, x = ci_r), fill = "gray", alpha = 0.4) +
   facet_wrap(~habitat, scales = "free", ncol=1) +
   labs(title = "Richness (no. species)",
-       x = "Response ratio",
-       y = "Frequency") +
+       x = "",
+       y = "") +
   theme_bw() + base_theme
 
 c <- ggpubr::ggarrange(A,B,nrow=1)
 
-c
+annotated_figure <- ggpubr::annotate_figure(c, 
+                                            bottom = text_grob("Response ratio", size = 8, face = "plain",
+                                                               hjust=0.3, vjust=-1),
+                                            left = text_grob("Frequency", size = 8, face = "plain",
+                                                             rot = 90,
+                                                             vjust=1)
+)
+
+(t_test_result <- t.test(biomass_dat$yi, mu = 0))
 
 
-t_test_result <- t.test(biomass_build1$yi, mu = 0)
+ggsave(annotated_figure, filename=file.path(plotdir, "FigS1_histogram.png"), bg = "white",
+       width=5, height=5, units="in", dpi=600) 
+
+
