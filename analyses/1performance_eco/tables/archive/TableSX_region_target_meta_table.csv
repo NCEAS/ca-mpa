@@ -1,0 +1,9 @@
+"Region","Target status","Effect size","Standard error","P-value","95% lower","95% upper","No. MPAs","Tau-2","Q"
+"North Coast","Targeted",0.257,0.146,0.078,-0.029,0.542,7,0.076,12.369
+"North Coast","Nontargeted",-0.164,0.331,0.62,-0.812,0.484,5,0.415,30.014
+"North Central Coast","Targeted",0.636,0.326,0.051,-0.003,1.274,7,0.633,72.424
+"North Central Coast","Nontargeted",0.24,0.267,0.37,-0.284,0.764,5,0.301,30.204
+"Central Coast","Targeted",0.402,0.153,0.009,0.102,0.701,25,0.443,157.873
+"Central Coast","Nontargeted",0.267,0.133,0.044,0.007,0.528,21,0.29,179.942
+"South Coast","Targeted",0.746,0.146,0,0.46,1.031,35,0.6,491.245
+"South Coast","Nontargeted",0.293,0.189,0.12,-0.076,0.663,30,0.88,303.1
