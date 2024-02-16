@@ -124,10 +124,10 @@ g <- ggplot(pooled_results, aes(x = estimate, y = mpa)) +
     color = "navyblue", hjust = 4.25, vjust = -1.5, size = 3, show.legend = FALSE) +
   geom_vline(xintercept = 0, linetype = "dashed", color = "grey20") +
   scale_color_gradientn(colors = c("navyblue", "grey80", "indianred"),
-                        values = scales::rescale(c(-1.4, -0.2, 0, 2.6)),
+                        values = scales::rescale(c(-1.4, -0.2, 0, 2.4)),
                         name = "Effect size") +
   scale_fill_gradientn(colors = c("navyblue", "grey80", "indianred"),
-                       values = scales::rescale(c(-1.4, -0.2, 0, 2.6)),
+                       values = scales::rescale(c(-1.4, -0.2, 0, 2.4)),
                        name = "Effect size") +
   scale_size_continuous(name = "No. ecosystems") +
   scale_x_continuous(limits = c(-5,6.8))+
@@ -136,7 +136,7 @@ g <- ggplot(pooled_results, aes(x = estimate, y = mpa)) +
   theme_bw() + my_theme 
 g
 
-ggsave(g, filename=file.path(fig_dir, "Fig2_mpa_effect_size9.png"), bg = "white",
+ggsave(g, filename=file.path(fig_dir, "Fig2_mpa_effect_size10.png"), bg = "white",
       width=8, height=10, units="in", dpi=600) 
 
 
