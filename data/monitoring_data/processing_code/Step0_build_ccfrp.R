@@ -79,8 +79,10 @@ taxon_tab <- read.csv("/home/shares/ca-mpa/data/sync-data/species_traits/process
 
 # Read regions from MPA attributes table
 regions <- readRDS("/home/shares/ca-mpa/data/sync-data/mpa_traits/processed/mpa_attributes_general.Rds") %>% 
-  dplyr::select(affiliated_mpa = name, bioregion, region4 = four_region_north_ci) %>%
-  mutate(affiliated_mpa = tolower(affiliated_mpa))
+  dplyr::select(affiliated_mpa = name, bioregion, region4 = four_region_north_ci,
+                mpa_state_class = mpa_class) %>%
+  mutate(affiliated_mpa = tolower(affiliated_mpa))%>%
+  mutate(mpa_state_class = ifelse(affiliated_mpa == "año nuevo smr","smr",mpa_state_class))
 
 # Read de-facto SMRs
 defacto_smr_ccfrp <- readxl::read_excel("/home/shares/ca-mpa/data/sync-data/mpa_traits/mpa-attributes.xlsx", sheet = 5, skip = 0, na = "NA") %>% 
@@ -110,7 +112,7 @@ data <- ccfrp_caught_fishes %>%
   mutate(affiliated_mpa = recode(affiliated_mpa, "swamis smca" = "swami's smca")) %>% 
   left_join(regions) %>% # Add regions
   select(year, month, day, # temporal
-         bioregion, region4, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation, #  spatial
+         bioregion, region4, affiliated_mpa, mpa_state_class, mpa_defacto_class, mpa_defacto_designation, #  spatial
          drift_id, id_cell_per_trip, grid_cell_id, # sample
          total_angler_hrs, species_code, sciname, 
          class, order, family, 
