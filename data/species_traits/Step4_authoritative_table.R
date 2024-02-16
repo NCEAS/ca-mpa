@@ -274,7 +274,7 @@ deep_params1 <- deep_params %>%
   left_join(spp_orig, by = c("scientific_name" = "habitat_specific_spp_name")) %>% 
   filter(!is.na(sciname)) %>% mutate(source = "deep")
 
-deep_params2 <- deep_params1
+deep_params2 <- deep_params1 %>% 
   select(sciname, family, genus, species, level,
          a = wl_a,
          b = wl_b,
@@ -285,37 +285,64 @@ deep_params2 <- deep_params1
          intercept_ll = lc_b_for_wl,
          conversion_type = lc_type_for_wl,
          ll_equation = ll_equation_for_wl, 
+         source) %>% 
+  # Convert a' to correct units (g, cm) when needed
+  mutate(a_prime = case_when(units_w == "g" & units_l == "cm" ~ a,
+                             units_w == "g" & units_l == "mm" ~ a*10^b,
+                             units_w == "kg" & units_l == "cm" ~ a*1000,
+                             units_w == "kg" & units_l == "mm" ~ a*10^b*1000,
+                             T~NA)) %>% 
+  # Fix the length-length conversion 
+  mutate(slope_ll_prime = if_else(conversion_type == "REVERSE", 1/slope_ll, slope_ll),
+         intercept_ll_prime = if_else(conversion_type == "REVERSE", -1*intercept_ll/slope_ll, intercept_ll)) %>% 
+  # Demonstrate that regardless of cm/mm input, conversion will produce appropriate output:
+  mutate(test_25_cm = 25*slope_ll_prime + intercept_ll_prime, # 25 cm TL > convert to SL
+         test_250_mm = 250*slope_ll_prime + intercept_ll_prime) # 250 cm TL > convert to SL
+
+# Clean up and save appropriate columns to join with fishbase parameters
+deep_params3 <- deep_params2 %>% 
+  # Drop cases where conversion is missing (there are none)
+  filter(!(type == "SL" & is.na(slope_ll_prime))) %>% 
+  mutate(lw_source = "species",
+         source = "deep") %>% 
+  select(family, genus, sciname, lw_source,
+         a = a_prime, # a_prime has been converted to cm and g as in fishbase
+         b, 
+         lw_type = type, 
+         slope_ll = slope_ll_prime,
+         intercept_ll = intercept_ll_prime, 
          source)
-
-
 
 
 # Combine parameter datasets -------------------------------------------------
 # Drop species from fishbase parameters that are already in CCFRP
 fishbase_params_subset <- fishbase_params %>% 
-  filter(!sciname %in% ccfrp_params2$sciname) %>% 
-  filter(!sciname %in% kelp_params2$sciname) %>% 
+  filter(!sciname %in% ccfrp_params3$sciname) %>% 
+  filter(!sciname %in% kelp_params3$sciname) %>% 
   filter(!lw_type == "Unknown")
 
 # Combine fishbase subset with CCFRP data
-params <- full_join(ccfrp_params2, fishbase_params_subset)
+params <- full_join(ccfrp_params3, fishbase_params_subset)
 
 # Drop the kelp forest species that are already in the above dataset
-kelp_subset <- kelp_params2 %>% 
+kelp_subset <- kelp_params3 %>% 
   filter(!sciname %in% params$sciname |
-           sciname == "Amphistichus rhodoterus")
+           sciname == "Amphistichus rhodoterus") # 91 remain
 
 # Add the kelp forest species to the params dataset
 params2 <- full_join(params, kelp_subset)
 
 # Drop the surf species that are already in the above dataset
-surf_subset <- surf_params2 %>% 
-  filter(!sciname %in% params2$sciname)
+surf_subset <- surf_params3 %>% 
+  filter(!sciname %in% params2$sciname) # 0 remain
 
+deep_subset <- deep_params3 %>% 
+  filter(!sciname %in% params2$sciname) # 0 remain
 
 # Write to csv
-#write.csv(params, file.path(datadir, "processed/lw_parameters_fish.csv"), row.names = F)
-# last write Oct 11 2023
+write.csv(params2, file.path(datadir, "processed/lw_parameters_fish.csv"), row.names = F)
+# last write Feb 15 2024
+# this last write updated to include kelp forest parameters
 
 # Still not overwriting original files
 #write.csv(params_tab, file.path(datadir, "processed/fish_lw_parameters_by_species.csv"),row.names = FALSE)

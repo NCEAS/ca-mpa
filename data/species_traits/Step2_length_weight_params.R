@@ -196,9 +196,29 @@ spp_na <- spp %>%
   filter(is.na(sciname))
 
 
+# Update species key to include standardized target status -----------------------------
+target_list <- spp_corrected %>% 
+  mutate(target_status = str_to_lower(target_status)) %>% 
+  distinct(sciname, target_status)
+  mutate(value = if_else(is.na(target_status), NA, 1)) %>% 
+  pivot_wider(names_from = target_status, values_from = value) %>% 
+  mutate(target_status_standardized = case_when(targeted == 1 & nontargeted == 1 ~ "targeted",
+                                                targeted == 1 & is.na(nontargeted) ~ "targeted",
+                                                is.na(targeted) & nontargeted == 1 ~ "nontargeted",
+                                                is.na(targeted) & is.na(nontargeted) ~ NA)) %>% 
+  select(sciname, target_status_standardized) %>% 
+  ungroup()
+  
+spp_corrected <- spp_corrected %>% 
+  left_join(., target_list) %>% 
+  mutate(target_status = str_to_sentence(target_status)) %>% 
+  mutate(target_status_standardized = str_to_sentence(target_status_standardized))
+
+
 # Export species key to csv -----------------------------------------------------------
 #write.csv(spp_corrected, file=file.path(datadir, "species_key.csv"), row.names = F)
-# last write Oct 19, 2023
+# last write Feb 15, 2024
+
 
 
 # Get length weight data -----------------------------------------------------------
