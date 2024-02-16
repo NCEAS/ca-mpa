@@ -241,7 +241,7 @@ g
 
 
 # Export
-ggsave(g, filename=file.path(plotdir, "Fig5_mpa_trait_impact2.png"), 
+ggsave(g, filename=file.path(plotdir, "Fig5_random_forest.png"), 
        width=7, height=6.5, units="in", dpi=600)
 
 
