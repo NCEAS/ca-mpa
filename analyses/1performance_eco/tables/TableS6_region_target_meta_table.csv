@@ -1,17 +1,17 @@
-"Region","Target status","mpa_defacto_class","Effect size","Standard error","P-value","95% lower","95% upper","No. MPA-Ecosystem pairs","Tau-2","Q"
-"North Coast","Targeted","smca",1.901,0.912,0.037,0.115,3.688,4,2.967,17.48
-"North Coast","Targeted","smr",0.215,0.194,0.268,-0.165,0.596,7,0.165,17.738
-"North Coast","Nontargeted","smca",1.22,0.721,0.09,-0.192,2.633,4,1.849,50.963
-"North Coast","Nontargeted","smr",-0.176,0.407,0.666,-0.973,0.621,5,0.681,27.055
-"North Central Coast","Targeted","smca",0.114,0.349,0.744,-0.57,0.798,4,0.223,6.086
-"North Central Coast","Targeted","smr",0.582,0.244,0.017,0.104,1.061,9,0.428,86.266
-"North Central Coast","Nontargeted","smca",0.017,0.378,0.965,-0.725,0.758,3,0.428,548.886
-"North Central Coast","Nontargeted","smr",0.243,0.142,0.087,-0.035,0.522,5,0.094,36.958
-"Central Coast","Targeted","smca",-0.271,0.331,0.414,-0.92,0.379,2,0.158,3.432
-"Central Coast","Targeted","smr",0.358,0.154,0.02,0.056,0.661,25,0.452,168.822
-"Central Coast","Nontargeted","smca",-0.088,0.447,0.844,-0.964,0.788,2,0.351,8.165
-"Central Coast","Nontargeted","smr",0.228,0.123,0.064,-0.013,0.468,21,0.254,227.005
-"South Coast","Targeted","smca",0.359,0.508,0.48,-0.637,1.355,5,1.132,41.364
-"South Coast","Targeted","smr",0.627,0.156,0,0.321,0.932,37,0.724,599.105
-"South Coast","Nontargeted","smca",-0.289,0.534,0.588,-1.337,0.758,5,1.289,27.991
-"South Coast","Nontargeted","smr",0.15,0.148,0.311,-0.14,0.439,31,0.554,308.952
+"Region","MPA type","Allowed take","Target status","Effect size","Standard error","P-value","95% lower","95% upper","No. MPA-Ecosystem pairs","Tau-2","Q"
+"North Coast","SMCA","Partial-take","Targeted",1.901,0.912,0.037,0.115,3.688,4,2.967,17.48
+"North Coast","SMR","No-take","Targeted",0.215,0.194,0.268,-0.165,0.596,7,0.165,17.738
+"North Coast","SMCA","Partial-take","Nontargeted",1.22,0.721,0.09,-0.192,2.633,4,1.849,50.963
+"North Coast","SMR","No-take","Nontargeted",-0.176,0.407,0.666,-0.973,0.621,5,0.681,27.055
+"North Central Coast","SMCA","Partial-take","Targeted",0.114,0.349,0.744,-0.57,0.798,4,0.223,6.086
+"North Central Coast","SMR","No-take","Targeted",0.582,0.244,0.017,0.104,1.061,9,0.428,86.266
+"North Central Coast","SMCA","Partial-take","Nontargeted",0.017,0.378,0.965,-0.725,0.758,3,0.428,548.886
+"North Central Coast","SMR","No-take","Nontargeted",0.243,0.142,0.087,-0.035,0.522,5,0.094,36.958
+"Central Coast","SMCA","Partial-take","Targeted",-0.271,0.331,0.414,-0.92,0.379,2,0.158,3.432
+"Central Coast","SMR","No-take","Targeted",0.358,0.154,0.02,0.056,0.661,25,0.452,168.822
+"Central Coast","SMCA","Partial-take","Nontargeted",-0.088,0.447,0.844,-0.964,0.788,2,0.351,8.165
+"Central Coast","SMR","No-take","Nontargeted",0.228,0.123,0.064,-0.013,0.468,21,0.254,227.005
+"South Coast","SMCA","Partial-take","Targeted",0.359,0.508,0.48,-0.637,1.355,5,1.132,41.364
+"South Coast","SMR","No-take","Targeted",0.627,0.156,0,0.321,0.932,37,0.724,599.105
+"South Coast","SMCA","Partial-take","Nontargeted",-0.289,0.534,0.588,-1.337,0.758,5,1.289,27.991
+"South Coast","SMR","No-take","Nontargeted",0.15,0.148,0.311,-0.14,0.439,31,0.554,308.952

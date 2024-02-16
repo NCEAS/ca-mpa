@@ -1,5 +1,5 @@
-"Target status","mpa_defacto_class","Effect size","Standard error","P-value","95% lower","95% upper","No. MPA-Ecosystem pairs","Tau-2","Q"
-"Targeted","smca",0.587,0.314,0.062,-0.029,1.203,15,1.237,119.856
-"Targeted","smr",0.491,0.096,0,0.304,0.679,78,0.561,984.041
-"Nontargeted","smca",0.224,0.319,0.482,-0.4,0.849,14,1.307,5843.407
-"Nontargeted","smr",0.159,0.087,0.069,-0.012,0.33,62,0.382,639.999
+"MPA type","Allowed take","Target status","Effect size","Standard error","P-value","95% lower","95% upper","No. MPA-Ecosystem pairs","Tau-2","Q"
+"SMCA","Partial-take","Targeted",0.587,0.314,0.062,-0.029,1.203,15,1.237,119.856
+"SMR","No-take","Targeted",0.491,0.096,0,0.304,0.679,78,0.561,984.041
+"SMCA","Partial-take","Nontargeted",0.224,0.319,0.482,-0.4,0.849,14,1.307,5843.407
+"SMR","No-take","Nontargeted",0.159,0.087,0.069,-0.012,0.33,62,0.382,639.999

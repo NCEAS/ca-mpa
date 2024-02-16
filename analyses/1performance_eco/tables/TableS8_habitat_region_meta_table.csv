@@ -1,43 +1,43 @@
-"Ecosystem","Region","Target status","mpa_defacto_class","Effect size","Standard error","P-value","95% lower","95% upper","No. MPAs","Tau-2","Q"
-"Deep reef","North ","Targeted","smca",1.359,0.392,0.001,0.592,2.127,1,0,0
-"Deep reef","North ","Targeted","smr",-0.153,0.334,0.646,-0.808,0.501,2,0,0.233
-"Deep reef","North ","Nontargeted","smca",1.355,0.003,0,1.349,1.362,1,0,0
-"Deep reef","North ","Nontargeted","smr",-1.109,0.487,0.023,-2.064,-0.155,2,0.208,1.557
-"Deep reef","North Central ","Targeted","smca",0.524,0.283,0.064,-0.031,1.079,1,0,0
-"Deep reef","North Central ","Targeted","smr",-0.133,0.186,0.477,-0.498,0.233,2,0,0.989
-"Deep reef","North Central ","Nontargeted","smca",0.537,0.049,0,0.442,0.632,1,0,0
-"Deep reef","North Central ","Nontargeted","smr",0.478,0.033,0,0.414,0.542,1,0,0
-"Deep reef","Central ","Targeted","smr",0.083,0.344,0.81,-0.592,0.757,7,0.632,26.222
-"Deep reef","Central ","Nontargeted","smr",0.302,0.136,0.027,0.035,0.569,7,0.097,110.697
-"Deep reef","South ","Targeted","smr",0.484,0.23,0.035,0.035,0.934,6,0.197,14.132
-"Deep reef","South ","Nontargeted","smr",0.506,0.179,0.005,0.154,0.857,6,0.108,17.21
-"Kelp forest","North ","Targeted","smca",1.199,0.22,0,0.768,1.631,1,0,0
-"Kelp forest","North ","Targeted","smr",-0.428,0.276,0.121,-0.968,0.113,2,0,0.062
-"Kelp forest","North ","Nontargeted","smca",-0.731,0.788,0.354,-2.275,0.813,1,0,0
-"Kelp forest","North ","Nontargeted","smr",0.218,0.259,0.4,-0.29,0.727,2,0.089,1.981
-"Kelp forest","North Central ","Targeted","smca",-0.321,0.286,0.262,-0.881,0.24,3,0,1.682
-"Kelp forest","North Central ","Targeted","smr",0.682,0.711,0.338,-0.712,2.077,3,1.341,15.21
-"Kelp forest","North Central ","Nontargeted","smca",-0.243,0.476,0.61,-1.176,0.69,2,0.452,444.855
-"Kelp forest","North Central ","Nontargeted","smr",0.343,0.025,0,0.294,0.391,3,0.001,8.748
-"Kelp forest","Central ","Targeted","smca",-0.271,0.331,0.414,-0.92,0.379,2,0.158,3.432
-"Kelp forest","Central ","Targeted","smr",0.438,0.219,0.045,0.009,0.866,10,0.358,55.822
-"Kelp forest","Central ","Nontargeted","smca",-0.088,0.447,0.844,-0.964,0.788,2,0.351,8.165
-"Kelp forest","Central ","Nontargeted","smr",0.212,0.117,0.069,-0.017,0.441,10,0.086,59.421
-"Kelp forest","South ","Targeted","smca",0.359,0.508,0.48,-0.637,1.355,5,1.132,41.364
-"Kelp forest","South ","Targeted","smr",0.539,0.246,0.028,0.057,1.02,20,0.969,450.915
-"Kelp forest","South ","Nontargeted","smca",-0.289,0.534,0.588,-1.337,0.758,5,1.289,27.991
-"Kelp forest","South ","Nontargeted","smr",0.078,0.223,0.725,-0.359,0.516,20,0.843,205.663
-"Shallow reef","North ","Targeted","smr",0.609,0.147,0,0.322,0.897,2,0,0.056
-"Shallow reef","North Central ","Targeted","smr",0.841,0.313,0.007,0.228,1.455,3,0.251,26.794
-"Shallow reef","Central ","Targeted","smr",0.892,0.287,0.002,0.329,1.454,4,0.3,38.549
-"Shallow reef","South ","Targeted","smr",0.887,0.284,0.002,0.33,1.444,6,0.437,48.364
-"Surf zone","North ","Targeted","smca",2.709,2.238,0.226,-1.677,7.095,2,9.352,14.995
-"Surf zone","North ","Targeted","smr",0.613,0.087,0,0.443,0.782,1,0,0
-"Surf zone","North ","Nontargeted","smca",1.951,1.022,0.056,-0.052,3.954,2,1.896,10.332
-"Surf zone","North ","Nontargeted","smr",0.785,0.171,0,0.449,1.121,1,0,0
-"Surf zone","North Central ","Targeted","smr",1.053,0.454,0.02,0.162,1.944,1,0,0
-"Surf zone","North Central ","Nontargeted","smr",-0.525,0.216,0.015,-0.949,-0.101,1,0,0
-"Surf zone","Central ","Targeted","smr",-0.143,0.377,0.704,-0.883,0.596,4,0.295,6.943
-"Surf zone","Central ","Nontargeted","smr",-0.057,0.703,0.935,-1.435,1.32,4,1.897,52.276
-"Surf zone","South ","Targeted","smr",0.789,0.486,0.104,-0.163,1.742,5,0.958,36.967
-"Surf zone","South ","Nontargeted","smr",0.173,0.167,0.3,-0.155,0.502,5,0.082,10.228
+"Ecosystem","Region","MPA type","Allowed take","Target status","Effect size","Standard error","P-value","95% lower","95% upper","No. MPAs","Tau-2","Q"
+"Deep reef","North ","SMCA","Partial-take","Targeted",1.359,0.392,0.001,0.592,2.127,1,0,0
+"Deep reef","North ","SMR","No-take","Targeted",-0.153,0.334,0.646,-0.808,0.501,2,0,0.233
+"Deep reef","North ","SMCA","Partial-take","Nontargeted",1.355,0.003,0,1.349,1.362,1,0,0
+"Deep reef","North ","SMR","No-take","Nontargeted",-1.109,0.487,0.023,-2.064,-0.155,2,0.208,1.557
+"Deep reef","North Central ","SMCA","Partial-take","Targeted",0.524,0.283,0.064,-0.031,1.079,1,0,0
+"Deep reef","North Central ","SMR","No-take","Targeted",-0.133,0.186,0.477,-0.498,0.233,2,0,0.989
+"Deep reef","North Central ","SMCA","Partial-take","Nontargeted",0.537,0.049,0,0.442,0.632,1,0,0
+"Deep reef","North Central ","SMR","No-take","Nontargeted",0.478,0.033,0,0.414,0.542,1,0,0
+"Deep reef","Central ","SMR","No-take","Targeted",0.083,0.344,0.81,-0.592,0.757,7,0.632,26.222
+"Deep reef","Central ","SMR","No-take","Nontargeted",0.302,0.136,0.027,0.035,0.569,7,0.097,110.697
+"Deep reef","South ","SMR","No-take","Targeted",0.484,0.23,0.035,0.035,0.934,6,0.197,14.132
+"Deep reef","South ","SMR","No-take","Nontargeted",0.506,0.179,0.005,0.154,0.857,6,0.108,17.21
+"Kelp forest","North ","SMCA","Partial-take","Targeted",1.199,0.22,0,0.768,1.631,1,0,0
+"Kelp forest","North ","SMR","No-take","Targeted",-0.428,0.276,0.121,-0.968,0.113,2,0,0.062
+"Kelp forest","North ","SMCA","Partial-take","Nontargeted",-0.731,0.788,0.354,-2.275,0.813,1,0,0
+"Kelp forest","North ","SMR","No-take","Nontargeted",0.218,0.259,0.4,-0.29,0.727,2,0.089,1.981
+"Kelp forest","North Central ","SMCA","Partial-take","Targeted",-0.321,0.286,0.262,-0.881,0.24,3,0,1.682
+"Kelp forest","North Central ","SMR","No-take","Targeted",0.682,0.711,0.338,-0.712,2.077,3,1.341,15.21
+"Kelp forest","North Central ","SMCA","Partial-take","Nontargeted",-0.243,0.476,0.61,-1.176,0.69,2,0.452,444.855
+"Kelp forest","North Central ","SMR","No-take","Nontargeted",0.343,0.025,0,0.294,0.391,3,0.001,8.748
+"Kelp forest","Central ","SMCA","Partial-take","Targeted",-0.271,0.331,0.414,-0.92,0.379,2,0.158,3.432
+"Kelp forest","Central ","SMR","No-take","Targeted",0.438,0.219,0.045,0.009,0.866,10,0.358,55.822
+"Kelp forest","Central ","SMCA","Partial-take","Nontargeted",-0.088,0.447,0.844,-0.964,0.788,2,0.351,8.165
+"Kelp forest","Central ","SMR","No-take","Nontargeted",0.212,0.117,0.069,-0.017,0.441,10,0.086,59.421
+"Kelp forest","South ","SMCA","Partial-take","Targeted",0.359,0.508,0.48,-0.637,1.355,5,1.132,41.364
+"Kelp forest","South ","SMR","No-take","Targeted",0.539,0.246,0.028,0.057,1.02,20,0.969,450.915
+"Kelp forest","South ","SMCA","Partial-take","Nontargeted",-0.289,0.534,0.588,-1.337,0.758,5,1.289,27.991
+"Kelp forest","South ","SMR","No-take","Nontargeted",0.078,0.223,0.725,-0.359,0.516,20,0.843,205.663
+"Shallow reef","North ","SMR","No-take","Targeted",0.609,0.147,0,0.322,0.897,2,0,0.056
+"Shallow reef","North Central ","SMR","No-take","Targeted",0.841,0.313,0.007,0.228,1.455,3,0.251,26.794
+"Shallow reef","Central ","SMR","No-take","Targeted",0.892,0.287,0.002,0.329,1.454,4,0.3,38.549
+"Shallow reef","South ","SMR","No-take","Targeted",0.887,0.284,0.002,0.33,1.444,6,0.437,48.364
+"Surf zone","North ","SMCA","Partial-take","Targeted",2.709,2.238,0.226,-1.677,7.095,2,9.352,14.995
+"Surf zone","North ","SMR","No-take","Targeted",0.613,0.087,0,0.443,0.782,1,0,0
+"Surf zone","North ","SMCA","Partial-take","Nontargeted",1.951,1.022,0.056,-0.052,3.954,2,1.896,10.332
+"Surf zone","North ","SMR","No-take","Nontargeted",0.785,0.171,0,0.449,1.121,1,0,0
+"Surf zone","North Central ","SMR","No-take","Targeted",1.053,0.454,0.02,0.162,1.944,1,0,0
+"Surf zone","North Central ","SMR","No-take","Nontargeted",-0.525,0.216,0.015,-0.949,-0.101,1,0,0
+"Surf zone","Central ","SMR","No-take","Targeted",-0.143,0.377,0.704,-0.883,0.596,4,0.295,6.943
+"Surf zone","Central ","SMR","No-take","Nontargeted",-0.057,0.703,0.935,-1.435,1.32,4,1.897,52.276
+"Surf zone","South ","SMR","No-take","Targeted",0.789,0.486,0.104,-0.163,1.742,5,0.958,36.967
+"Surf zone","South ","SMR","No-take","Nontargeted",0.173,0.167,0.3,-0.155,0.502,5,0.082,10.228

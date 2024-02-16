@@ -38,12 +38,12 @@ mpa_meta_out <- mpa_meta_results %>%
          #convert habitats to string
          years = map_chr(years, ~ str_c(.x, collapse = ", "))
          )%>%
-  arrange(state_region, affiliated_mpa, target_status)%>%
+  arrange(state_region, mpa, target_status)%>%
   #numerate each unique MPA
-  mutate(MPA_number = group_indices(., affiliated_mpa))%>%
+  mutate(MPA_number = group_indices(., mpa))%>%
   #drop columns
   dplyr::select(-meta_result, -n_habitat, -zval)%>%
-  dplyr::select(MPA_number,state_region,affiliated_mpa, target_status, everything())%>%
+  dplyr::select(MPA_number,state_region,mpa, target_status, everything())%>%
   mutate(estimate = round(estimate,3),
          se = round(se,3),
          pval = round(pval,3),
@@ -62,7 +62,7 @@ mpa_meta_out <- mpa_meta_results %>%
   dplyr::select(-habitats, -years)%>%
   rename("Row" = MPA_number,
          "Region" = state_region,
-         "MPA name" = affiliated_mpa,
+         "MPA name" = mpa,
          "Target status" = target_status,
          "Effect size" = estimate,
          "Standard error" = se,
@@ -76,7 +76,7 @@ mpa_meta_out <- mpa_meta_results %>%
          `Ecosystem (latest year)` = as.character(`Ecosystem (latest year)`)) 
 
 
-write.csv(mpa_meta_out, file = file.path(tab_dir,"TableSX_mpa_meta_table.csv"),row.names = FALSE)
+write.csv(mpa_meta_out, file = file.path(tab_dir,"TableS9_mpa_meta_table.csv"),row.names = FALSE)
 
 
 
@@ -91,7 +91,9 @@ hab_region_meta_out <- habitat_region_results %>%
   arrange(habitat, state_region, target_status)%>%
   #drop columns
   dplyr::select(-meta_result,  -zval)%>%
-  dplyr::select(habitat,state_region, target_status, everything())%>%
+  mutate(take = ifelse(mpa_defacto_class == "smr","No-take","Partial-take"),
+         mpa_defacto_class = toupper(mpa_defacto_class))%>%
+  dplyr::select(habitat,state_region, mpa_defacto_class, take, target_status, everything())%>%
   mutate(estimate = round(estimate,3),
          se = round(se,3),
          pval = round(pval,3),
@@ -108,13 +110,15 @@ hab_region_meta_out <- habitat_region_results %>%
          "95% lower" = ci.lb,
          "95% upper" = ci.ub,
          "Tau-2" = tau2,
-         "No. MPAs" = n_mpas
+         "No. MPAs" = n_mpas,
+         "Allowed take" = take,
+         "MPA type" = mpa_defacto_class
   ) %>%
   mutate(Region = str_remove(Region, "Coast"),
          Ecosystem = factor(Ecosystem, levels = c("Surf zone","Kelp forest","Shallow reef","Deep reef"))) 
 
 
-write.csv(hab_region_meta_out, file = file.path(tab_dir,"TableSX_habitat_region_meta_table.csv"),row.names = FALSE)
+write.csv(hab_region_meta_out, file = file.path(tab_dir,"TableS8_habitat_region_meta_table.csv"),row.names = FALSE)
 
 
 ################################################################################
@@ -129,8 +133,10 @@ hab_target_meta_out <- habitat_target_results %>%
   arrange(habitat, target_status)%>%
   #drop columns
   dplyr::select(-meta_result,  -zval, -state_region)%>%
-  dplyr::select(habitat, target_status, everything())%>%
-  mutate(estimate = round(estimate,3),
+  mutate(take = ifelse(mpa_defacto_class == "smr","No-take","Partial-take"))%>%
+  dplyr::select(habitat, mpa_defacto_class, take, target_status, everything())%>%
+  mutate(mpa_defacto_class = toupper(mpa_defacto_class),
+         estimate = round(estimate,3),
          se = round(se,3),
          pval = round(pval,3),
          ci.lb = round(ci.lb,3),
@@ -145,12 +151,14 @@ hab_target_meta_out <- habitat_target_results %>%
          "95% lower" = ci.lb,
          "95% upper" = ci.ub,
          "Tau-2" = tau2,
+         "Allowed take" = take,
+         "MPA type" = mpa_defacto_class,
          "No. MPAs" = n_mpas
   ) %>%
- mutate( Ecosystem = factor(Ecosystem, levels = c("Surf zone","Kelp forest","Shallow reef","Deep reef"))) 
+ mutate(Ecosystem = factor(Ecosystem, levels = c("Surf zone","Kelp forest","Shallow reef","Deep reef"))) 
 
 
-write.csv(hab_target_meta_out, file = file.path(tab_dir,"TableSX_hab_target_meta_table.csv"),row.names = FALSE)
+write.csv(hab_target_meta_out, file = file.path(tab_dir,"TableS7_hab_target_meta_table.csv"),row.names = FALSE)
 
 
 ################################################################################
@@ -165,7 +173,9 @@ region_meta_out <- region_results %>%
   arrange(state_region, target_status)%>%
   #drop columns
   dplyr::select(-meta_result,  -zval, -habitat)%>%
-  dplyr::select(state_region, target_status, everything())%>%
+  mutate(take = ifelse(mpa_defacto_class == "smr","No-take","Partial-take"),
+         mpa_defacto_class = toupper(mpa_defacto_class))%>%
+  dplyr::select(state_region, mpa_defacto_class, take, target_status, everything())%>%
   mutate(estimate = round(estimate,3),
          se = round(se,3),
          pval = round(pval,3),
@@ -180,12 +190,14 @@ region_meta_out <- region_results %>%
          "P-value" = pval,
          "95% lower" = ci.lb,
          "95% upper" = ci.ub,
+         "Allowed take" = take,
+         "MPA type" = mpa_defacto_class,
          "Tau-2" = tau2,
-         "No. MPAs" = n_mpas
+         "No. MPA-Ecosystem pairs" = n_mpas
   ) 
 
 
-write.csv(region_meta_out, file = file.path(tab_dir,"TableSX_region_target_meta_table.csv"),row.names = FALSE)
+write.csv(region_meta_out, file = file.path(tab_dir,"TableS6_region_target_meta_table.csv"),row.names = FALSE)
 
 
 ################################################################################
@@ -200,7 +212,9 @@ state_meta_out <- state_results %>%
   arrange(target_status)%>%
   #drop columns
   dplyr::select(-meta_result,  -zval, -habitat, -state_region)%>%
-  dplyr::select(target_status, everything())%>%
+  mutate(take = ifelse(mpa_defacto_class == "smr","No-take","Partial-take"),
+         mpa_defacto_class = toupper(mpa_defacto_class))%>%
+  dplyr::select(mpa_defacto_class, take, target_status, everything())%>%
   mutate(estimate = round(estimate,3),
          se = round(se,3),
          pval = round(pval,3),
@@ -215,12 +229,14 @@ state_meta_out <- state_results %>%
          "P-value" = pval,
          "95% lower" = ci.lb,
          "95% upper" = ci.ub,
+         "Allowed take" = take,
+         "MPA type" = mpa_defacto_class,
          "Tau-2" = tau2,
-         "No. MPAs" = n_mpas
+         "No. MPA-Ecosystem pairs" = n_mpas
   ) 
 
 
-write.csv(state_meta_out, file = file.path(tab_dir,"TableSX_state_target_meta_table.csv"),row.names = FALSE)
+write.csv(state_meta_out, file = file.path(tab_dir,"TableS5_network_results.csv"),row.names = FALSE)
 
 
 
