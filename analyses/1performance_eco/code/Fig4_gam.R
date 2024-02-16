@@ -182,7 +182,7 @@ p
 
 
 
-ggsave(p, filename=file.path(fig_dir, "Fig4_GAM5.png"), bg = "white",
+ggsave(p, filename=file.path(fig_dir, "Fig4_GAM.png"), bg = "white",
        width=5, height=5, units="in", dpi=600) 
 
 
