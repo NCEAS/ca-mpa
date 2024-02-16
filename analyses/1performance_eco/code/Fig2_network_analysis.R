@@ -188,10 +188,6 @@ g1 <- ggplot(habitat %>%
               mutate(ci.ub = ifelse(ci.ub > 3, 3, ci.ub)),
               aes(x = estimate, y = state_region, color = target_status)) +
   geom_vline(xintercept = 0, linetype = "dashed", color = "grey") +
-  # Fill the last facet. Call this first to place it behind the points. 
- # geom_rect(data = subset(meta_results, habitat == 'Pooled effect size'), 
-  #          fill = "grey80", xmin = -Inf, xmax = Inf,
-   #         ymin = -Inf, ymax = Inf, alpha = 0.05, show.legend = FALSE) +
   #add points for mpas
   geom_point(aes(size = n_mpas), 
              # shape = ifelse(combined_dat$habitat == "Pooled effect size", 18, 15), 
@@ -218,8 +214,6 @@ g1 <- ggplot(habitat %>%
                      name = "Target status") +  
   scale_size_continuous(name = "No. MPAs", range = c(1, 3)) +
   scale_x_continuous(limits= c(-3,3))+
-  #guides(color = guide_legend(override.aes = list(shape = c(15, 15))),  # Set the shape to 15 (square) for color legend
-  #      size = guide_legend(override.aes = list(shape = c(15, 15)))) +  # Set the shape to 15 (square) for size legend
   theme_minimal() +
   theme(strip.text = element_text(size = 10, face = "bold"),
         strip.background = element_blank(),
@@ -228,7 +222,8 @@ g1 <- ggplot(habitat %>%
   labs(x= "Effect size \n(log response ratio)",
     title = "Ecosystem performance",
        tag = "C")+
-  theme_bw() + my_theme + theme(plot.margin = margin(0,0,0,0,"cm"))
+  theme_bw() + my_theme + theme(plot.margin = ggplot2::margin(0, 0, 0, 0, "cm"))
+
 
 g1
 
@@ -272,7 +267,7 @@ g2 <- ggplot(region %>%
         panel.background = element_rect(fill = "white", color = NA)) +
   labs(title = "Regional performance",
        tag = "B")+
-  theme_bw() + my_theme + theme(plot.margin = margin(-0.2,0,0,0,"cm"))
+  theme_bw() + my_theme + theme(plot.margin = ggplot2::margin(-0.2,0,0,0,"cm"))
 
 g2
 
@@ -297,8 +292,6 @@ g3 <- ggplot(network %>%
   ) +
   geom_errorbarh(aes(xmin = ci.lb, xmax = ci.ub), 
                  position = position_dodge(width = 0.7), height = 0, alpha = 0.3) +
- # geom_hline(yintercept = which(levels(meta_results$state_region) == "South Coast") - 0.5, 
-  #           linetype = "solid", color = "black", size = 0.2) +  
   geom_text(aes(label = significance), vjust = -0.2, size = 4, show.legend = FALSE) + 
   facet_grid(habitat~mpa_defacto_class, scales = "fixed") +  
   xlab("") +
@@ -307,8 +300,6 @@ g3 <- ggplot(network %>%
                      name = "Target status") +  
   scale_size_continuous(name = "No. MPAs", range = c(1, 3)) +
   scale_x_continuous(limits= c(-3,3))+
-  #guides(color = guide_legend(override.aes = list(shape = c(15, 15))),  # Set the shape to 15 (square) for color legend
-  #      size = guide_legend(override.aes = list(shape = c(15, 15)))) +  # Set the shape to 15 (square) for size legend
   theme_minimal() +
   theme(strip.text = element_text(size = 10, face = "bold"),
         strip.background = element_blank(),
@@ -316,7 +307,7 @@ g3 <- ggplot(network %>%
         panel.background = element_rect(fill = "white", color = NA))+
   labs(title = "Network performance",
        tag = "A")+
-  theme_bw() + my_theme + theme(plot.margin = margin(0,0,0,0,"cm"))
+  theme_bw() + my_theme + theme(plot.margin = ggplot2::margin(0,0,0,0,"cm"))
 
 g3
 
@@ -328,7 +319,7 @@ g
 
 
 
-ggsave(g, filename=file.path(fig_dir, "Fig3_habitat_meta_forestplot10.png"), bg = "white",
+ggsave(g, filename=file.path(fig_dir, "Fig2_network_forestplot.png"), bg = "white",
        width=6.5, height=10, units="in", dpi=600) 
 
 
