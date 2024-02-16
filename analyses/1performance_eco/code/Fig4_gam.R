@@ -88,8 +88,8 @@ plot
 
 #print(plot)
 
-#ggsave(file.path(fig_dir, "TableSX_GAM_results.png"), plot, dpi = 600,
- #      bg = "white", width = 9, height = 10, units = "in")
+ggsave(file.path(tab_dir, "TableS10_GAM_results.png"), plot, dpi = 600,
+       bg = "white", width = 9, height = 10, units = "in")
 
 
 
