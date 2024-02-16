@@ -72,7 +72,9 @@ ccfrp_effort <- read.csv(file.path(datadir, "CCFRP_derived_data_tables_DataONE/C
 # Read taxonomy table 
 taxon_tab <- read.csv("/home/shares/ca-mpa/data/sync-data/species_traits/processed/species_key.csv") %>% 
   clean_names() %>% 
-  mutate(target_status = str_to_sentence(target_status))%>%
+  #reassign target_status_standardized for downstream code
+  select(-target_status)%>%
+  rename(target_status = target_status_standardized)%>%
   filter(habitat == "Rocky reef")
 
 # Read regions from MPA attributes table
@@ -170,7 +172,7 @@ taxa_match <- data2 %>%
 
 # Write to csv ---------------------------------------------------------------------------------------
 write.csv(data3, file.path(outdir, "ccfrp_processed.csv"), row.names = F)
-# last write 9 Feb 2023
+# last write 16 Feb 2023
 
 
 # Explore potential remaining concerns ---------------------------------------------------------------
