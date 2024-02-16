@@ -343,7 +343,7 @@ hist(target_status_RR$logRR)
 
 
 write.csv(target_status_RR, row.names = F, "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/biomass_processed/target_status_biomass_MPA_means_updated.csv")
-# Last write 13 Dec 2023
+# Last write 16 Feb 2024
 
 # Old Version:                    
 #write.csv(row.names = FALSE, target_status_RR, file.path(datadir, "targeted_nontargeted_biomass_MPA_means.csv"))
