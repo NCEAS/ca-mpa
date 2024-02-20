@@ -76,6 +76,28 @@ total_counts <- pooled_results %>%
             total_lt_0 = sum(estimate < 0, na.rm = TRUE))
 
 ################################################################################
+#examine results
+
+#targeted
+n_sig_t <- pooled_results %>% filter (target_status == "Targeted",
+                                    ci.lb > 0) 
+nrow(n_sig_t)
+  
+n_pos_t <- pooled_results %>% filter (target_status == "Targeted",
+                                 estimate > 0)
+nrow(n_pos_t)
+
+#non-targeted
+n_sig_n <- pooled_results %>% filter (target_status == "Non-targeted",
+                                      ci.lb > 0) 
+nrow(n_sig_n)
+
+n_pos_n <- pooled_results %>% filter (target_status == "Non-targeted",
+                                      estimate > 0)
+nrow(n_pos_n)
+
+
+################################################################################
 #plot
 
 # Theme
