@@ -130,7 +130,9 @@ meta_results <- rbind(habitat_region, habitat, region, state) %>%
     significance = ifelse(ci.lb > 0 | ci.ub < 0,"*",NA),
     n_mpas = ifelse(habitat == "Region" | habitat == "Network",NA,n_mpas),
     target_status = factor(str_replace(target_status, "Nontargeted", "Non-targeted"),
-                           levels = c("Targeted", "Non-targeted")))
+                           levels = c("Targeted", "Non-targeted"))) %>%
+  #remove 'Coast'
+  mutate(state_region = str_trim(str_replace_all(state_region, "Coast", "")))
   
 
 ####note that n_MPAS is NOT the number of distinct mpas. It is the number of 
@@ -140,13 +142,14 @@ meta_results <- rbind(habitat_region, habitat, region, state) %>%
 ################################################################################
 #plot
 
-
 meta_results$mpa_defacto_class <- factor(meta_results$mpa_defacto_class,
                                          levels = c("smr", "smca"),
                                          labels = c("No-Take", "Partial-Take"))
 meta_results$habitat <- factor(meta_results$habitat, levels = c("Surf zone", "Kelp forest", "Shallow reef", "Deep reef", "Region", "Network"))
-meta_results$state_region <- factor(meta_results$state_region, levels = c("Network level","Pooled","South Coast", "Central Coast", "North Central Coast","North Coast"))
+meta_results$state_region <- factor(meta_results$state_region, levels = c("Network level","Pooled","South", "Central", "North Central","North"))
 meta_results$target_status <- factor(meta_results$target_status, levels = c("Targeted","Non-targeted"))  # Reversed order
+
+
 
 # labels
 #state_labels <- c(expression(italic("Pooled")), "South Coast", "Central Coast", "North Central Coast", "North Coast")
@@ -160,11 +163,11 @@ network <- meta_results %>% filter(habitat %in% c('Region','Network')) %>% filte
 
 
 # Theme
-my_theme <-  theme(axis.text=element_text(size=6, color = "black"),
-                   axis.text.y = element_text(color = "black"),
-                   axis.title=element_text(size=8, color = "black"),
-                   plot.tag=element_text(size= 8, color = "black"), #element_text(size=8),
-                   plot.title =element_text(size=7, face="bold", color = "black"),
+my_theme <-  theme(axis.text=element_text(size=9, color = "black"),
+                   axis.text.y = element_text(size = 9, color = "black"),
+                   axis.title=element_text(size=11, color = "black"),
+                   plot.tag=element_text(size= 10, color = "black"), #element_text(size=8),
+                   plot.title =element_text(size=9, face="bold", color = "black"),
                    # Gridlines 
                    panel.grid.major = element_blank(), 
                    panel.grid.minor = element_blank(),
@@ -174,12 +177,12 @@ my_theme <-  theme(axis.text=element_text(size=6, color = "black"),
                    legend.key = element_blank(),
                    legend.background = element_rect(fill=alpha('blue', 0)),
                    legend.key.height = unit(1, "lines"), 
-                   legend.text = element_text(size = 6, color = "black"),
-                   legend.title = element_text(size = 7, color = "black"),
+                   legend.text = element_text(size = 8, color = "black"),
+                   legend.title = element_text(size = 9, color = "black"),
                    #legend.spacing.y = unit(0.75, "cm"),
                    #facets
                    strip.background = element_blank(),
-                   strip.text = element_text(size = 6 , face="bold", color = "black")
+                   strip.text = element_text(size = 7 , face="bold", color = "black")
 )
 
 
