@@ -247,7 +247,8 @@ g2 <- ggplot(region %>%
              # shape = ifelse(combined_dat$habitat == "Pooled effect size", 18, 15), 
              shape = 18, 
              size = 2,
-             position = position_dodge(width = 0.7)
+             position = position_dodge(width = 0.7),
+             show.legend=FALSE
   ) +
   geom_errorbarh(aes(xmin = ci.lb, xmax = ci.ub), 
                  position = position_dodge(width = 0.7), height = 0, alpha = 0.3) +
@@ -291,7 +292,8 @@ g3 <- ggplot(network %>%
              # shape = ifelse(combined_dat$habitat == "Pooled effect size", 18, 15), 
              shape = 18, 
              size = 2,
-             position = position_dodge(width = 0.7)
+             position = position_dodge(width = 0.7),
+             show.legend=FALSE
   ) +
   geom_errorbarh(aes(xmin = ci.lb, xmax = ci.ub), 
                  position = position_dodge(width = 0.7), height = 0, alpha = 0.3) +
@@ -315,14 +317,17 @@ g3 <- ggplot(network %>%
 g3
 
 
-g <- ggpubr::ggarrange(g3, g2, g1, heights=c(0.15, 0.2,0.75), ncol=1, common.legend=TRUE,
-                  legend = "right", align = "v")
+#plot
+g <- ggpubr::ggarrange(g3, g2, g1, heights=c(0.15, 0.2,0.75), ncol=1, 
+                  legend = "none", align = "v") 
 
-g
+#legend
+legend_only <- cowplot::get_legend(g1) 
+
+g_final <- ggpubr::ggarrange(g, legend_only, widths = c(0.8,0.2), ncol=2)
 
 
-
-ggsave(g, filename=file.path(fig_dir, "Fig2_network_forestplot.png"), bg = "white",
+ggsave(g_final, filename=file.path(fig_dir, "Fig2_network_forestplot.png"), bg = "white",
        width=6.5, height=10, units="in", dpi=600) 
 
 
