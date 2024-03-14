@@ -15,7 +15,7 @@ tab_dir <- here::here("analyses","1performance_eco","tables")
 dat_path <- here::here("analyses","1performance_eco","output")
 
 #read data
-biomass_mod <- readRDS(file.path(dat_path, "biomass_with_moderators.Rds")) 
+biomass_mod <- readRDS(file.path(dat_path, "biomass_with_moderators_new.Rds")) 
 
 
 ################################################################################
@@ -46,6 +46,9 @@ habitat_region <- filtered_data %>%
          tau2 = meta_result[["tau2"]]) %>%
   data.frame() 
 
+#save results to .rdata to generate summary table
+saveRDS(habitat_region, file = file.path(dat_path, "habitat_region_meta_results.Rds"))
+
 ################################################################################
 # Verify that the group_by and do() call worked using a test
 rma_test_dat <- filtered_data %>% dplyr::filter(habitat == "Kelp forest" &
@@ -74,6 +77,9 @@ habitat <- filtered_data %>%
          state_region = "Pooled" 
          )
 
+#save results to .rdata to generate summary table
+saveRDS(habitat, file = file.path(dat_path, "habitat_target_meta_results.Rds"))
+
 ################################################################################
 # Calculate the pooled effects for each region across habitat
 region <- filtered_data %>%
@@ -89,6 +95,9 @@ region <- filtered_data %>%
          #create dummy habitat
          habitat = "Pooled effect size"
   )
+
+#save results to .rdata to generate summary table
+saveRDS(region, file = file.path(dat_path, "region_meta_results.Rds"))
 
 ################################################################################
 # Calculate the pooled effect for entire state
@@ -108,13 +117,19 @@ state <- filtered_data %>%
          habitat = "Pooled effect size"
   )
 
+#save results to .rdata to generate summary table
+saveRDS(state, file = file.path(dat_path, "state_meta_results.Rds"))
+
 ################################################################################
 #join everything
 
 meta_results <- rbind(habitat_region, habitat, region, state) %>%
   mutate(
     significance = ifelse(ci.lb > 0 | ci.ub < 0,"*",NA),
-    n_mpas = ifelse(habitat == "Pooled effect size",NA,n_mpas)) 
+    n_mpas = ifelse(habitat == "Pooled effect size",NA,n_mpas),
+    target_status = factor(str_replace(target_status, "Nontargeted", "Non-targeted"),
+                           levels = c("Targeted", "Non-targeted")))
+  
 
 ####note that n_MPAS is NOT the number of distinct mpas. It is the number of 
 #unique habitat-mpa combinations ('study' rows) included 
@@ -125,7 +140,7 @@ meta_results <- rbind(habitat_region, habitat, region, state) %>%
 
 meta_results$habitat <- factor(meta_results$habitat, levels = c("Surf zone", "Kelp forest", "Shallow reef", "Deep reef", "Pooled effect size"))
 meta_results$state_region <- factor(meta_results$state_region, levels = c("Pooled","South Coast", "Central Coast", "North Central Coast","North Coast"))
-meta_results$target_status <- factor(meta_results$target_status, levels = c("Nontargeted", "Targeted"))  # Reversed order
+meta_results$target_status <- factor(meta_results$target_status, levels = c("Targeted","Non-targeted"))  # Reversed order
 
 # labels
 #state_labels <- c(expression(italic("Pooled")), "South Coast", "Central Coast", "North Central Coast", "North Coast")
@@ -181,11 +196,12 @@ g <- ggplot(meta_results, aes(x = estimate, y = state_region, color = target_sta
              linetype = "solid", color = "black", size = 0.2) +  
   geom_text(aes(label = significance), vjust = -0.2, size = 4, show.legend = FALSE) + 
   facet_grid(habitat ~ ., scales = "fixed") +  
-  xlab("Effect size (log response ratio)") +
+  xlab("Effect size \n(log response ratio)") +
   ylab("") +
-  scale_color_manual(values = c("navyblue", "indianred"),
+  scale_color_manual(values = c("indianred","navyblue"),
                      name = "Target status") +  
   scale_size_continuous(name = "No. MPAs", range = c(1, 3)) +
+  scale_x_continuous(limits= c(-2,2.3))+
   #guides(color = guide_legend(override.aes = list(shape = c(15, 15))),  # Set the shape to 15 (square) for color legend
   #      size = guide_legend(override.aes = list(shape = c(15, 15)))) +  # Set the shape to 15 (square) for size legend
   theme_minimal() +
@@ -197,7 +213,7 @@ g <- ggplot(meta_results, aes(x = estimate, y = state_region, color = target_sta
 
 g
 
-ggsave(g, filename=file.path(fig_dir, "Fig3_habitat_meta_forestplot5.png"), bg = "white",
+ggsave(g, filename=file.path(fig_dir, "Fig3_habitat_meta_forestplot7.png"), bg = "white",
        width=6, height=7, units="in", dpi=600) 
 
 

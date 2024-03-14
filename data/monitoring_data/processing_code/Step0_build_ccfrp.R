@@ -72,12 +72,17 @@ ccfrp_effort <- read.csv(file.path(datadir, "CCFRP_derived_data_tables_DataONE/C
 # Read taxonomy table 
 taxon_tab <- read.csv("/home/shares/ca-mpa/data/sync-data/species_traits/processed/species_key.csv") %>% 
   clean_names() %>% 
+  #reassign target_status_standardized for downstream code
+  select(-target_status)%>%
+  rename(target_status = target_status_standardized)%>%
   filter(habitat == "Rocky reef")
 
 # Read regions from MPA attributes table
 regions <- readRDS("/home/shares/ca-mpa/data/sync-data/mpa_traits/processed/mpa_attributes_general.Rds") %>% 
-  dplyr::select(affiliated_mpa = name, bioregion, region4 = four_region_north_ci) %>%
-  mutate(affiliated_mpa = tolower(affiliated_mpa))
+  dplyr::select(affiliated_mpa = name, bioregion, region4 = four_region_north_ci,
+                mpa_state_class = mpa_class) %>%
+  mutate(affiliated_mpa = tolower(affiliated_mpa))%>%
+  mutate(mpa_state_class = ifelse(affiliated_mpa == "año nuevo smr","smr",mpa_state_class))
 
 # Read de-facto SMRs
 defacto_smr_ccfrp <- readxl::read_excel("/home/shares/ca-mpa/data/sync-data/mpa_traits/mpa-attributes.xlsx", sheet = 5, skip = 0, na = "NA") %>% 
@@ -107,7 +112,7 @@ data <- ccfrp_caught_fishes %>%
   mutate(affiliated_mpa = recode(affiliated_mpa, "swamis smca" = "swami's smca")) %>% 
   left_join(regions) %>% # Add regions
   select(year, month, day, # temporal
-         bioregion, region4, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation, #  spatial
+         bioregion, region4, affiliated_mpa, mpa_state_class, mpa_defacto_class, mpa_defacto_designation, #  spatial
          drift_id, id_cell_per_trip, grid_cell_id, # sample
          total_angler_hrs, species_code, sciname, 
          class, order, family, 
@@ -169,7 +174,7 @@ taxa_match <- data2 %>%
 
 # Write to csv ---------------------------------------------------------------------------------------
 write.csv(data3, file.path(outdir, "ccfrp_processed.csv"), row.names = F)
-# last write 11 Sept 2023
+# last write 16 Feb 2023
 
 
 # Explore potential remaining concerns ---------------------------------------------------------------

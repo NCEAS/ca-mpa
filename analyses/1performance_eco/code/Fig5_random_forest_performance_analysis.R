@@ -14,11 +14,15 @@ datadir <- "analyses/1performance_eco/output"
 plotdir <- "analyses/1performance_eco/figures"
 
 # Read data
-data_orig <- readRDS(file.path(datadir, "biomass_with_moderators.Rds")) %>% 
-  mutate(target_status=ifelse(is.na(target_status), "Targeted", target_status)) %>%
+data_orig <- readRDS(file.path(datadir, "biomass_with_moderators_new2.Rds")) %>% 
+  #restrict to targeted species and no-take MPAs
+  filter(target_status == "Targeted" & mpa_defacto_class == "smr")%>%
   #drop missing values
-  na.omit()
-
+  na.omit()%>%
+  #filter to include most recent year only
+  group_by(habitat, mpa) %>%
+  filter(year == max(year)) %>%
+  ungroup()
 
 # Loop through habitats
 ################################################################################
@@ -27,7 +31,7 @@ data_orig <- readRDS(file.path(datadir, "biomass_with_moderators.Rds")) %>%
 habitats <- sort(unique(data_orig$habitat))
 
 # Loop through habitats
-i <- 3
+i <- 4
 for(i in 1:length(habitats)){
   
   set.seed(1985)
@@ -37,7 +41,8 @@ for(i in 1:length(habitats)){
   
   # Subset data
   sdata <- data_orig %>% 
-    filter(habitat==habitat_do  & target_status=="Targeted" & age_at_survey>0 & !is.na(habitat_richness))
+    filter(habitat==habitat_do)%>%
+    data.frame()
   
   # Fit model
   rf_fit <- randomForest::randomForest(yi ~ size + age_at_survey + habitat_richness + habitat_diversity + fishing_pressure + prop_rock +
@@ -45,7 +50,7 @@ for(i in 1:length(habitats)){
   
   # Inspect fit
   preds <- predict(rf_fit, sdata)
-  obs <- sdata$logRR
+  obs <- sdata$yi
   r2 <- 1 - sum((obs-preds)^2)/sum((obs-mean(obs))^2)
   r2_df <- tibble(habitat=habitat_do,
                   r2=r2)
@@ -63,12 +68,12 @@ for(i in 1:length(habitats)){
   variables <- c("size", "age_at_survey", "habitat_richness", "habitat_diversity", 
                  "fishing_pressure", "prop_rock", "settlement_habitat","settlement_mpa_total")
   for(j in seq_along(variables)){
-   parts <- randomForest::partialPlot(x=rf_fit, pred.data=sdata, x.var=variables[j], main=variables[j], plot = F)
-   df <- tibble(habitat=habitat_do,
-                variable=variables[j],
-                value=parts$x,
-                effect=parts$y)
-   if(j==1){marg_effects <- df}else{marg_effects <- bind_rows(marg_effects, df)}
+    parts <- randomForest::partialPlot(x=rf_fit, pred.data=sdata, x.var=variables[j], main=variables[j], plot = F)
+    df <- tibble(habitat=habitat_do,
+                 variable=variables[j],
+                 value=parts$x,
+                 effect=parts$y)
+    if(j==1){marg_effects <- df}else{marg_effects <- bind_rows(marg_effects, df)}
   }
   
   # Merge
@@ -91,9 +96,9 @@ for(i in 1:length(habitats)){
 # Format r2
 data_r2_use <- data_r2 %>% 
   # Format habitat
-  mutate(habitat=factor(habitat, levels=c("Surf zone", "Kelp forest", "Rocky reef", "Deep reef"))) 
+  mutate(habitat=factor(habitat, levels=c("Surf zone", "Kelp forest", "Shallow reef", "Deep reef"))) 
 
-# Format variable importance
+# Format variable importance by habitat
 data_imp1 <- data_imp %>% 
   # Rename
   rename(importance=IncNodePurity) %>% 
@@ -107,7 +112,7 @@ data_imp1 <- data_imp %>%
                                 "habitat_diversity"="Habitat diversity", 
                                 "habitat_richness"="Habitat richness",
                                 "prop_rock"="Proportion rock",
-                                "settlement_habitat" = "Settlement to habitat",
+                                "settlement_habitat" = "Settlement to ecosystem",
                                 "settlement_mpa_total" = "Settlement to MPA")) %>% 
   # Scale
   arrange(habitat, desc(importance)) %>%  
@@ -130,9 +135,29 @@ data_marg1 <- data_marg %>%
                                 "habitat_diversity"="Habitat diversity", 
                                 "habitat_richness"="Habitat richness",
                                 "prop_rock"="Proportion rock",
-                                "settlement_habitat" = "Settlement to habitat",
+                                "settlement_habitat" = "Settlement to ecosystem",
                                 "settlement_mpa_total" = "Settlement to MPA"))
 
+
+# Calculate average importance for each variable across habitats
+variable_importance_rank <- data_imp %>%
+  mutate(variable=recode_factor(variable,
+                                "age_at_survey"="MPA age (year)",
+                                "size"="MPA area (km²)",
+                                "fishing_pressure"="Local pre-MPA landings (lbs)",
+                                "habitat_diversity"="Habitat diversity", 
+                                "habitat_richness"="Habitat richness",
+                                "prop_rock"="Proportion rock",
+                                "settlement_habitat" = "Settlement to ecosystem",
+                                "settlement_mpa_total" = "Settlement to MPA"))%>%
+  group_by(variable) %>%
+  dplyr::summarize(average_importance = mean(importance, na.rm = TRUE)) %>%
+  arrange(desc(average_importance)) %>%
+  mutate(rank = row_number()) %>%
+  dplyr::select(variable, rank) 
+
+#join overall rank order 
+data_marg2 <- left_join(data_marg1, variable_importance_rank, by = "variable")
 
 
 
@@ -157,7 +182,12 @@ my_theme <-  theme(axis.text=element_text(size=6),
                    # Facets
                    strip.background = element_blank(),
                    strip.text=element_text(size=6, face = "bold")
-                   )
+)
+
+habitat_colors <- c('Surf zone' = '#7f6d95', 
+                    'Kelp forest' = '#568736', 
+                    'Shallow reef' = '#458eae', 
+                    'Deep reef' = '#d98644')
 
 # Variable importance
 g1 <- ggplot(data_imp1, aes(y=importance_scaled, 
@@ -166,47 +196,52 @@ g1 <- ggplot(data_imp1, aes(y=importance_scaled,
   facet_wrap(~habitat, nrow=1, scales="free_x") +
   geom_bar(stat="identity") + 
   # Add r2
-  geom_text(data_r2_use, mapping=aes(x=6.2, y=0.95, label=round(r2,2), color=habitat), hjust=1, size=2.2) +
+  geom_text(data_r2_use, mapping=aes(x=8.5, y=0.95, label=round(r2,2), color=habitat), hjust=1, size=2.8) +
   # Labels
   labs(x="", y="Trait importance\n(scaled to max value)", tag="A") +
   # Scales
   tidytext::scale_x_reordered() +
   # Legend
-  scale_fill_discrete(name="", guide="none") +
-  scale_color_discrete(name="", guide="none") +
+  scale_fill_manual(values = habitat_colors) +
+  scale_color_manual(values = habitat_colors) +
   # Theme
   theme_bw() + my_theme +
   theme(axis.title.x=element_blank(),
-        axis.text.x = element_text(angle = 60, hjust = 1))
+        axis.text.x = element_text(angle = 60, hjust = 1),
+        legend.position = "none")
 g1
 
 
 # Marginal effects
-g2 <- ggplot(data_marg1, aes(x=value, y=effect, color=habitat)) +
+g2 <- ggplot(data_marg2, aes(x=value, y=effect, color=habitat)) +
   # Facet
   facet_wrap(~variable, ncol=4, scales="free") +
   # Reference line
-  geom_hline(yintercept = 0, linetype="dashed", color="grey60") +
+  #geom_hline(yintercept = 0, linetype="dashed", color="grey60") +
   # Data
-  geom_line() +
+  geom_line(size=1) +
   # Labels
-  labs(x="Trait value", y="Marginal effect\n(on the log-response ratio)", tag="B") +
+  labs(x="Trait value", y="Marginal effect\n(on the log-response ratio)", tag="B",
+       color = "Ecosystem") +
   lims(x=c(0, NA)) +
   # Legend
-  scale_color_discrete(name="Habitat") +
+  scale_color_manual(values = habitat_colors) +
   # Theme
   theme_bw() + my_theme +
   theme(legend.position = "bottom",
         legend.margin = ggplot2::margin(-7,0,-2,0)
-        )
+  )
 g2
 
 # Merge
 g <- gridExtra::grid.arrange(g1, g2, heights=c(0.42, 0.58))
 g
 
+
+
+
 # Export
-ggsave(g, filename=file.path(plotdir, "Fig5_mpa_trait_impact.png"), 
+ggsave(g, filename=file.path(plotdir, "Fig5_random_forest.png"), 
        width=7, height=6.5, units="in", dpi=600)
 
 

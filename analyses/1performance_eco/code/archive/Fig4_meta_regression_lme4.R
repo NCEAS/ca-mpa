@@ -15,7 +15,7 @@ tab_dir <- here::here("analyses","1performance_eco","tables")
 dat_path <- here::here("analyses","1performance_eco","output")
 
 #read data
-biomass_mod <- readRDS(file.path(dat_path, "biomass_with_moderators.Rds")) 
+biomass_mod <- readRDS(file.path(dat_path, "biomass_with_moderators_new.Rds")) 
 
 
 ################################################################################
@@ -95,6 +95,10 @@ display_names <- c("size" = "MPA Size (km²)",
                    "age_at_survey" = "MPA age (years)",
                    "settlement_habitat" = "Settlement to habitat",
                    "settlement_mpa_total" = "Settlement to MPA")
+
+predictor_names <- c("size", "habitat_richness", "habitat_diversity", "prop_rock", 
+                     "fishing_pressure", "age_at_survey", "settlement_habitat", "settlement_mpa_total")
+
 
 # Calculate slopes for each predictor
 slopes <- sapply(predictor_names, function(predictor_name) {

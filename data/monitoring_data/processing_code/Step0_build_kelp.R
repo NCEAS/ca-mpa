@@ -48,8 +48,12 @@ kelp_sites_raw <- read.csv(file.path(datadir, "monitoring_kelp/MLPA_kelpforest_s
   
 # Read taxonomy lookup table & filter for kelp forest only
 kelp_code <- read.csv("/home/shares/ca-mpa/data/sync-data/species_traits/processed/species_key.csv") %>% 
+  clean_names()%>%
+  #reassign target_status_standardized for downstream code
+  select(-target_status)%>%
+  rename(target_status = target_status_standardized)%>%
   filter(habitat == "Kelp forest") %>% 
-  rename(taxon_group = level) %>% clean_names()
+  rename(taxon_group = level) 
 
 # Read regions from MPA attributes table
 regions <- readRDS("/home/shares/ca-mpa/data/sync-data/mpa_traits/processed/mpa_attributes_general.Rds") %>% 
@@ -125,6 +129,6 @@ taxa_match <- data %>%
 
 # Write processed data
 write.csv(data, file.path(outdir, "kelp_processed.csv"), row.names = F)
-# Last write 16 October 2023
+# Last write 16 February 2024
 
   
