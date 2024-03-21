@@ -119,7 +119,7 @@ state <- filtered_data %>%
          habitat = "Network"
   )
 
-#save results to .rdata to generate summary table
+ #save results to .rdata to generate summary table
 #saveRDS(state, file = file.path(dat_path, "state_meta_results.Rds"))
 
 ################################################################################
@@ -186,6 +186,7 @@ my_theme <-  theme(axis.text=element_text(size=9, color = "black"),
 )
 
 
+
 g1 <- ggplot(habitat %>% 
               #truncate error bar to ease visualization
               mutate(ci.ub = ifelse(ci.ub > 3, 3, ci.ub)),
@@ -209,7 +210,12 @@ g1 <- ggplot(habitat %>%
                  position = position_dodge(width = 0.7), height = 0, alpha = 0.3) +
   geom_hline(yintercept = which(levels(meta_results$state_region) == "Pooled") - 0.5, 
              linetype = "solid", color = "black", size = 0.2) +  
-  geom_text(aes(label = significance), vjust = -0.2, size = 4, show.legend = FALSE) + 
+ # geom_text(aes(label = significance), vjust = -0.2, size = 4, show.legend = FALSE) + 
+  geom_text(aes(label = significance, 
+                x = ifelse(estimate > 0, ci.ub + 0.2, ci.lb - 0.2)), 
+            position = position_dodge(width = 0.7),
+            vjust=0.7,
+            size = 4, show.legend = FALSE)+
   facet_grid(habitat~mpa_defacto_class, scales = "fixed") +  
   xlab("") +
   ylab("") +
@@ -254,7 +260,12 @@ g2 <- ggplot(region %>%
                  position = position_dodge(width = 0.7), height = 0, alpha = 0.3) +
   #geom_hline(yintercept = which(levels(meta_results$state_region) == "South Coast") - 0.5, 
    #          linetype = "solid", color = "black", size = 0.2) +  
-  geom_text(aes(label = significance), vjust = -0.2, size = 4, show.legend = FALSE) + 
+  # geom_text(aes(label = significance), vjust = -0.2, size = 4, show.legend = FALSE) + 
+  geom_text(aes(label = significance, 
+                x = ifelse(estimate > 0, ci.ub + 0.2, ci.lb - 0.2)), 
+            position = position_dodge(width = 0.7),
+            vjust=0.7,
+            size = 4, show.legend = FALSE)+
   facet_grid(habitat~mpa_defacto_class, scales = "fixed") +  
   xlab("") +
   ylab("") +
@@ -297,7 +308,12 @@ g3 <- ggplot(network %>%
   ) +
   geom_errorbarh(aes(xmin = ci.lb, xmax = ci.ub), 
                  position = position_dodge(width = 0.7), height = 0, alpha = 0.3) +
-  geom_text(aes(label = significance), vjust = -0.2, size = 4, show.legend = FALSE) + 
+  # geom_text(aes(label = significance), vjust = -0.2, size = 4, show.legend = FALSE) + 
+  geom_text(aes(label = significance, 
+                x = ifelse(estimate > 0, ci.ub + 0.2, ci.lb - 0.2)), 
+            position = position_dodge(width = 0.7),
+            vjust=0.7,
+            size = 4, show.legend = FALSE)+
   facet_grid(habitat~mpa_defacto_class, scales = "fixed") +  
   xlab("") +
   ylab("") +
