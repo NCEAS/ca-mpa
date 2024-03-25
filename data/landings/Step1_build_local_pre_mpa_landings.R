@@ -68,7 +68,7 @@ data <- purrr::map_df(1:nrow(mpas), function(x){
 ################################################################################
 
 # Export data
-saveRDS(out, file.path(outdir, "pre_mpa_fishing_pressure_by_mpa.Rds"))
+saveRDS(data, file.path(outdir, "pre_mpa_fishing_pressure_by_mpa.Rds"))
 
 
 
