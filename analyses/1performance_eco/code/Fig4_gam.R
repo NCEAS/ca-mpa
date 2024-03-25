@@ -38,29 +38,74 @@ habitat_year <- filtered_data %>%
   dplyr::select(year, tau2)
 
 # Step 2: Join tau
-mod_dat <- left_join(filtered_data, habitat_year, by = "year") %>%
-  filter(settlement_habitat < 400) %>%
-  mutate(mpa_defacto_class = factor(mpa_defacto_class))
-          
+mod_dat <- left_join(filtered_data, habitat_year, by = "year")
+
+#check for variable outliers
+plot(mod_dat$size) #ok
+plot(mod_dat$habitat_richness) #ok 
+plot(mod_dat$habitat_diversity) #ok
+plot(mod_dat$prop_rock) #ok
+plot(mod_dat$fishing_pressure) #drop values > 2.0e6
+plot(mod_dat$age_at_survey) # ok
+plot(mod_dat$settlement_habitat) #drop values > 400
+plot(mod_dat$settlement_mpa_total) #ok
+
+mod_dat <- mod_dat %>%
+              filter(fishing_pressure < 2.0e+06, #these are a few extreme outliers
+                     settlement_habitat < 400
+                     )
+
 
 # Step 3: Build the meta-GAM
+set.seed(1985)
 meta_gam_model <- gam(yi ~ 
                         #add take (no-take vs. partial) as  factor
                         #mpa_defacto_class+
                         #add all other contonuous vars as smoothers
                         s(size) +
-                        s(habitat_richness, k =3) +
+                        s(habitat_richness, k =3) + # k =3
                         s(habitat_diversity) +
                         s(prop_rock) +
                         s(fishing_pressure) +
-                        s(age_at_survey, k =3)+
+                        s(age_at_survey)+ # k =3
                         s(settlement_habitat) +
                         s(settlement_mpa_total) +
                         s(year, bs = "cc"),
                       #weight each replicate by the inverse of the within and between 
                       #study variance
                       weights = 1 / (vi + tau2),
+                      #use double-penatly approach
+                      select = TRUE,
                       data = mod_dat) 
+
+summary.gam(meta_gam_model)
+
+
+#remove terms that shrunk to zero
+set.seed(1985)
+meta_gam_model <- gam(yi ~ 
+                        #add take (no-take vs. partial) as  factor
+                        #mpa_defacto_class+
+                        #add all other contonuous vars as smoothers
+                        s(size, k =15) + # k =7
+                        s(habitat_richness, k =9) + # k =3
+                        s(habitat_diversity) +
+                        s(prop_rock) +
+                        s(fishing_pressure) +
+                        s(age_at_survey)+ # k =3
+                        #s(settlement_habitat) +
+                        #s(settlement_mpa_total) +
+                        s(year, bs = "cc"),
+                      #weight each replicate by the inverse of the within and between 
+                      #study variance
+                      weights = 1 / (vi + tau2),
+                      data = mod_dat) 
+
+gam.check(meta_gam_model)
+
+summary.gam(meta_gam_model)
+
+plot.gam(meta_gam_model)
 
 
 # Get the summary of the GAM model
@@ -88,8 +133,8 @@ plot
 
 #print(plot)
 
-ggsave(file.path(tab_dir, "TableS10_GAM_results.png"), plot, dpi = 600,
-       bg = "white", width = 9, height = 10, units = "in")
+#ggsave(file.path(tab_dir, "TableS10_GAM_results.png"), plot, dpi = 600,
+ #      bg = "white", width = 9, height = 10, units = "in")
 
 
 
@@ -98,7 +143,7 @@ ggsave(file.path(tab_dir, "TableS10_GAM_results.png"), plot, dpi = 600,
 
 sm_dat <- gratia::smooth_estimates(meta_gam_model) %>%
   add_confint()%>%
-  pivot_longer(cols = 6:14, names_to = "var", values_to = "var_val") %>%
+  pivot_longer(cols = 6:12, names_to = "var", values_to = "var_val") %>%
   left_join(gam_terms, by = "smooth") %>%
   mutate(smooth = str_replace(smooth, "s\\((.+)\\)", "\\1"),
          smooth = str_replace_all(smooth, "_", " "),
@@ -182,8 +227,8 @@ p
 
 
 
-ggsave(p, filename=file.path(fig_dir, "Fig4_GAM.png"), bg = "white",
-       width=5, height=5, units="in", dpi=600) 
+#ggsave(p, filename=file.path(fig_dir, "Fig4_GAM.png"), bg = "white",
+ #      width=5, height=5, units="in", dpi=600) 
 
 
 
