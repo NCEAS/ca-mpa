@@ -22,6 +22,9 @@ data_orig <- readRDS(file.path(datadir, "biomass_with_moderators_new2.Rds")) %>%
   #filter to include most recent year only
   group_by(habitat, mpa) %>%
   filter(year == max(year)) %>%
+  #remove extreme outliers
+  filter(fishing_pressure < 2.0e+06, #these are a few extreme outliers
+         settlement_habitat < 400)%>%
   ungroup()
 
 # Loop through habitats
@@ -101,7 +104,7 @@ data_r2_use <- data_r2 %>%
 # Format variable importance by habitat
 data_imp1 <- data_imp %>% 
   # Rename
-  rename(importance=IncNodePurity) %>% 
+  dplyr::rename(importance=IncNodePurity) %>% 
   # Format habitat
   mutate(habitat=factor(habitat, levels=c("Surf zone", "Kelp forest", "Shallow reef", "Deep reef"))) %>% 
   # Format variable
@@ -140,7 +143,7 @@ data_marg1 <- data_marg %>%
 
 
 # Calculate average importance for each variable across habitats
-variable_importance_rank <- data_imp %>%
+variable_importance_rank <- data_imp1 %>%
   mutate(variable=recode_factor(variable,
                                 "age_at_survey"="MPA age (year)",
                                 "size"="MPA area (km²)",
@@ -241,8 +244,8 @@ g
 
 
 # Export
-ggsave(g, filename=file.path(plotdir, "Fig5_random_forest.png"), 
-       width=7, height=6.5, units="in", dpi=600)
+#ggsave(g, filename=file.path(plotdir, "Fig5_random_forest.png"), 
+ #      width=7, height=6.5, units="in", dpi=600)
 
 
 
