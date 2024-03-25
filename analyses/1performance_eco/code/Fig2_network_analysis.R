@@ -119,7 +119,7 @@ state <- filtered_data %>%
          habitat = "Network"
   )
 
-#save results to .rdata to generate summary table
+ #save results to .rdata to generate summary table
 #saveRDS(state, file = file.path(dat_path, "state_meta_results.Rds"))
 
 ################################################################################
@@ -186,20 +186,22 @@ my_theme <-  theme(axis.text=element_text(size=9, color = "black"),
 )
 
 
+# Define breaks and labels for the scale
+breaks <- c(10, 20, 30)
+labels <- c("1-10", "11-20", "21-35")
+
 g1 <- ggplot(habitat %>% 
-              #truncate error bar to ease visualization
-              mutate(ci.ub = ifelse(ci.ub > 3, 3, ci.ub)),
-              aes(x = estimate, y = state_region, color = target_status)) +
+               #truncate error bar to ease visualization
+               mutate(ci.ub = ifelse(ci.ub > 3, 3, ci.ub)),
+             aes(x = estimate, y = state_region, color = target_status)) +
   geom_vline(xintercept = 0, linetype = "dashed", color = "grey") +
   #add points for mpas
   geom_point(aes(size = n_mpas), 
-             # shape = ifelse(combined_dat$habitat == "Pooled effect size", 18, 15), 
              shape = 15, 
              position = position_dodge(width = 0.7)
   ) +
   #add points for pooled effects
   geom_point(data = subset(habitat, habitat == 'Pooled effect size'), 
-             # shape = ifelse(combined_dat$habitat == "Pooled effect size", 18, 15), 
              shape = 18, 
              size = 2,
              position = position_dodge(width = 0.7),
@@ -209,13 +211,18 @@ g1 <- ggplot(habitat %>%
                  position = position_dodge(width = 0.7), height = 0, alpha = 0.3) +
   geom_hline(yintercept = which(levels(meta_results$state_region) == "Pooled") - 0.5, 
              linetype = "solid", color = "black", size = 0.2) +  
-  geom_text(aes(label = significance), vjust = -0.2, size = 4, show.legend = FALSE) + 
+  geom_text(aes(label = significance, 
+                x = ifelse(estimate > 0, ci.ub + 0.2, ci.lb - 0.2)), 
+            position = position_dodge(width = 0.7),
+            vjust=0.7,
+            size = 4, show.legend = FALSE)+
   facet_grid(habitat~mpa_defacto_class, scales = "fixed") +  
   xlab("") +
   ylab("") +
   scale_color_manual(values = c("#007F00","#663399"),
                      name = "Target status") +  
-  scale_size_continuous(name = "No. MPAs", range = c(1, 3)) +
+  scale_size_continuous(name = "No. MPAs", breaks = breaks, labels = labels,
+                        range = c(1, 3)) +
   scale_x_continuous(limits= c(-3,3))+
   theme_minimal() +
   theme(strip.text = element_text(size = 10, face = "bold"),
@@ -223,12 +230,12 @@ g1 <- ggplot(habitat %>%
         panel.spacing = unit(1, "lines"),
         panel.background = element_rect(fill = "white", color = NA)) +
   labs(x= "Effect size \n(log response ratio)",
-    title = "Ecosystem performance",
+       title = "Ecosystem performance",
        tag = "C")+
   theme_bw() + my_theme + theme(plot.margin = ggplot2::margin(0, 0, 0, 0, "cm"))
 
-
 g1
+
 
 
 g2 <- ggplot(region %>% 
@@ -254,7 +261,12 @@ g2 <- ggplot(region %>%
                  position = position_dodge(width = 0.7), height = 0, alpha = 0.3) +
   #geom_hline(yintercept = which(levels(meta_results$state_region) == "South Coast") - 0.5, 
    #          linetype = "solid", color = "black", size = 0.2) +  
-  geom_text(aes(label = significance), vjust = -0.2, size = 4, show.legend = FALSE) + 
+  # geom_text(aes(label = significance), vjust = -0.2, size = 4, show.legend = FALSE) + 
+  geom_text(aes(label = significance, 
+                x = ifelse(estimate > 0, ci.ub + 0.2, ci.lb - 0.2)), 
+            position = position_dodge(width = 0.7),
+            vjust=0.7,
+            size = 4, show.legend = FALSE)+
   facet_grid(habitat~mpa_defacto_class, scales = "fixed") +  
   xlab("") +
   ylab("") +
@@ -297,7 +309,12 @@ g3 <- ggplot(network %>%
   ) +
   geom_errorbarh(aes(xmin = ci.lb, xmax = ci.ub), 
                  position = position_dodge(width = 0.7), height = 0, alpha = 0.3) +
-  geom_text(aes(label = significance), vjust = -0.2, size = 4, show.legend = FALSE) + 
+  # geom_text(aes(label = significance), vjust = -0.2, size = 4, show.legend = FALSE) + 
+  geom_text(aes(label = significance, 
+                x = ifelse(estimate > 0, ci.ub + 0.2, ci.lb - 0.2)), 
+            position = position_dodge(width = 0.7),
+            vjust=0.7,
+            size = 4, show.legend = FALSE)+
   facet_grid(habitat~mpa_defacto_class, scales = "fixed") +  
   xlab("") +
   ylab("") +

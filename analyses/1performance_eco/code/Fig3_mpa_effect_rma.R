@@ -154,11 +154,15 @@ g <- ggplot(pooled_results, aes(x = estimate, y = mpa)) +
   scale_size_continuous(name = "No. ecosystems") +
   scale_x_continuous(limits = c(-5,6.8))+
   xlab("Effect size \n(log response ratio)") +
+  guides(color = guide_colourbar(ticks.colour = "black",
+                                        ticks.linewidth = 0.2,
+                                        frame.colour = "black",
+                                        frame.linewidth = 0.2))+
   ylab("") +
   theme_bw() + my_theme 
 g
 
-ggsave(g, filename=file.path(fig_dir, "Fig3_mpa_effect_size.png"), bg = "white",
+ggsave(g, filename=file.path(fig_dir, "Fig3_mpa_effect_size2.png"), bg = "white",
       width=8, height=10, units="in", dpi=600) 
 
 
