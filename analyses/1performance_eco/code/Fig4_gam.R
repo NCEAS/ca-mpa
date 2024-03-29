@@ -63,8 +63,8 @@ meta_gam_model <- gam(yi ~
                         #mpa_defacto_class+
                         #add all other contonuous vars as smoothers
                         s(size) +
-                        s(habitat_richness, k =9) + # k =3
-                        s(habitat_diversity) +
+                        s(habitat_richness, k =3) + # k =3
+                        s(habitat_diversity, k =3) +
                         s(prop_rock) +
                         s(fishing_pressure) +
                         s(age_at_survey)+ # k =3
@@ -80,33 +80,7 @@ meta_gam_model <- gam(yi ~
 
 summary.gam(meta_gam_model)
 gam.check(meta_gam_model)
-
-#remove terms that shrunk to zero
-set.seed(1985)
-meta_gam_model <- gam(yi ~ 
-                        #add take (no-take vs. partial) as  factor
-                        #mpa_defacto_class+
-                        #add all other contonuous vars as smoothers
-                        s(size, k =15) + # k =7
-                        s(habitat_richness, k =9) + # k =3
-                        s(habitat_diversity) +
-                        s(prop_rock) +
-                        s(fishing_pressure) +
-                        s(age_at_survey)+ # k =3
-                        #s(settlement_habitat) +
-                        #s(settlement_mpa_total) +
-                        s(year, bs = "cc"),
-                      #weight each replicate by the inverse of the within and between 
-                      #study variance
-                      weights = 1 / (vi + tau2),
-                      data = mod_dat) 
-
-gam.check(meta_gam_model)
-
-summary.gam(meta_gam_model)
-
-plot.gam(meta_gam_model)
-
+plot(meta_gam_model)
 
 # Get the summary of the GAM model
 summary_info <- summary(meta_gam_model)
@@ -115,6 +89,48 @@ summary_info <- summary(meta_gam_model)
 gam_terms <- data.frame(summary_info$s.table) %>%
           tibble::rownames_to_column(var = "smooth") %>%
           rename("EDF" = "edf")
+
+
+
+################################################################################
+#remove terms that shrunk to zero for extra diagnostic
+##NOTE: if terms are removed it assumes the effect the NULL. It is better to 
+#leave the terms in the model (above) and allow the pseudo LASSO-penalty to 
+#penalize shrinkage terms. 
+
+#set.seed(1985)
+#meta_gam_model <- gam(yi ~ 
+#                        #add take (no-take vs. partial) as  factor
+#                        #mpa_defacto_class+
+#                        #add all other contonuous vars as smoothers
+#                        s(size, k =15) + # k =7
+#                        s(habitat_richness, k =9) + # k =3
+#                        s(habitat_diversity) +
+#                        s(prop_rock) +
+#                        s(fishing_pressure) +
+#                        s(age_at_survey)+ # k =3
+#                        #s(settlement_habitat) +
+#                        #s(settlement_mpa_total) +
+#                        s(year, bs = "cc"),
+#                      #weight each replicate by the inverse of the within and between 
+#                      #study variance
+#                      weights = 1 / (vi + tau2),
+#                      data = mod_dat) 
+
+#gam.check(meta_gam_model)
+
+#summary.gam(meta_gam_model)
+
+#plot.gam(meta_gam_model)
+
+
+# Get the summary of the GAM model
+#summary_info <- summary(meta_gam_model)
+
+# Extract terms and p-values
+#gam_terms <- data.frame(summary_info$s.table) %>%
+#          tibble::rownames_to_column(var = "smooth") %>%
+#          rename("EDF" = "edf")
 
 ################################################################################
 #export model table
@@ -227,8 +243,8 @@ p
 
 
 
-#ggsave(p, filename=file.path(fig_dir, "Fig4_GAM.png"), bg = "white",
- #      width=5, height=5, units="in", dpi=600) 
+ggsave(p, filename=file.path(fig_dir, "Fig4_GAM.png"), bg = "white",
+       width=5, height=5, units="in", dpi=600) 
 
 
 
