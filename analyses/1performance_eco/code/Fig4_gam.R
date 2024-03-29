@@ -63,7 +63,7 @@ meta_gam_model <- gam(yi ~
                         #mpa_defacto_class+
                         #add all other contonuous vars as smoothers
                         s(size) +
-                        s(habitat_richness, k =3) + # k =3
+                        s(habitat_richness, k =9) + # k =3
                         s(habitat_diversity) +
                         s(prop_rock) +
                         s(fishing_pressure) +
@@ -79,7 +79,7 @@ meta_gam_model <- gam(yi ~
                       data = mod_dat) 
 
 summary.gam(meta_gam_model)
-
+gam.check(meta_gam_model)
 
 #remove terms that shrunk to zero
 set.seed(1985)
@@ -143,7 +143,7 @@ plot
 
 sm_dat <- gratia::smooth_estimates(meta_gam_model) %>%
   add_confint()%>%
-  pivot_longer(cols = 6:12, names_to = "var", values_to = "var_val") %>%
+  pivot_longer(cols = 6:14, names_to = "var", values_to = "var_val") %>%
   left_join(gam_terms, by = "smooth") %>%
   mutate(smooth = str_replace(smooth, "s\\((.+)\\)", "\\1"),
          smooth = str_replace_all(smooth, "_", " "),
