@@ -349,3 +349,199 @@ ggsave(g_final, filename=file.path(fig_dir, "Fig2_network_forestplot.png"), bg =
 
 
 
+
+
+
+
+
+###############################################################################
+#Ecosystem pooled results only
+
+# Theme
+my_theme <-  theme(axis.text=element_text(size=10, color = "black"),
+                   axis.text.y = element_text(size = 10, color = "black"),
+                   axis.title=element_text(size=12, color = "black"),
+                   plot.tag=element_text(size= 10, color = "black"), #element_text(size=8),
+                   plot.title =element_text(size=10, face="bold", color = "black"),
+                   # Gridlines 
+                   panel.grid.major = element_blank(), 
+                   panel.grid.minor = element_blank(),
+                   panel.background = element_blank(), 
+                   axis.line = element_line(colour = "black"),
+                   # Legend
+                   legend.key = element_blank(),
+                   legend.background = element_rect(fill=alpha('blue', 0)),
+                   legend.key.height = unit(1, "lines"), 
+                   legend.text = element_text(size = 10, color = "black"),
+                   legend.title = element_text(size = 10, color = "black"),
+                   #legend.spacing.y = unit(0.75, "cm"),
+                   #facets
+                   strip.background = element_blank(),
+                   strip.text = element_text(size = 9 , face="bold", color = "black")
+)
+
+
+# Define breaks and labels for the scale
+breaks <- c(10, 20, 30)
+labels <- c("1-10", "11-20", "21-35")
+
+g1 <- ggplot(habitat %>% 
+               filter(mpa_defacto_class == "No-Take",
+                      state_region == "Pooled")%>%
+               mutate(habitat = factor(habitat, levels = c("Deep reef","Shallow reef",
+                                                           "Kelp forest","Surf zone")))%>%
+               #truncate error bar to ease visualization
+               mutate(ci.ub = ifelse(ci.ub > 3, 3, ci.ub)),
+             aes(x = estimate, y = habitat, color = target_status)) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "grey") +
+  #add points for mpas
+  geom_point(aes(size = n_mpas), 
+             shape = 15, 
+             position = position_dodge(width = 0.7)
+  ) +
+  #add points for pooled effects
+  geom_point(data = subset(habitat, habitat == 'Pooled effect size'), 
+             shape = 18, 
+             size = 2,
+             position = position_dodge(width = 0.7),
+             show.legend = FALSE
+  ) +
+  geom_errorbarh(aes(xmin = ci.lb, xmax = ci.ub), 
+                 position = position_dodge(width = 0.7), height = 0, alpha = 0.3) +
+  geom_text(aes(label = significance, 
+                x = ifelse(estimate > 0, ci.ub + 0.2, ci.lb - 0.2)), 
+            position = position_dodge(width = 0.7),
+            vjust=0.7,
+            size = 4, show.legend = FALSE)+
+  #facet_grid(habitat~mpa_defacto_class, scales = "fixed") +  
+  xlab("") +
+  ylab("") +
+  scale_color_manual(values = c("#007F00","#663399"),
+                     name = "Target status") +  
+  scale_size_continuous(name = "No. MPAs", breaks = breaks, labels = labels,
+                        range = c(1, 3)) +
+  scale_x_continuous(limits= c(-1,1.5))+
+  theme_minimal() +
+  theme(strip.text = element_text(size = 10, face = "bold"),
+        strip.background = element_blank(),
+        panel.spacing = unit(1, "lines"),
+        panel.background = element_rect(fill = "white", color = NA)) +
+  labs(x= "",
+       title = "Ecosystem performance",
+       tag = "C")+
+  theme_bw() + my_theme + theme(plot.margin = ggplot2::margin(0, 0, 0, 0, "cm"))
+
+g1
+
+
+
+g2 <- ggplot(region %>% 
+               filter(mpa_defacto_class == "No-Take")%>%
+               #truncate error bar to ease visualization
+               mutate(ci.ub = ifelse(ci.ub > 3, 3, ci.ub)),
+             aes(x = estimate, y = state_region, color = target_status)) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "grey") +
+  #add points for mpas
+  geom_point(aes(size = n_mpas), 
+             # shape = ifelse(combined_dat$habitat == "Pooled effect size", 18, 15), 
+             shape = 15, 
+             position = position_dodge(width = 0.7)
+  ) +
+  #add points for pooled effects
+  geom_point(
+             # shape = ifelse(combined_dat$habitat == "Pooled effect size", 18, 15), 
+             shape = 18, 
+             size = 4,
+             position = position_dodge(width = 0.7),
+             show.legend=FALSE
+  ) +
+  geom_errorbarh(aes(xmin = ci.lb, xmax = ci.ub), 
+                 position = position_dodge(width = 0.7), height = 0, alpha = 0.3) +
+  #geom_hline(yintercept = which(levels(meta_results$state_region) == "South Coast") - 0.5, 
+  #          linetype = "solid", color = "black", size = 0.2) +  
+  # geom_text(aes(label = significance), vjust = -0.2, size = 4, show.legend = FALSE) + 
+  geom_text(aes(label = significance, 
+                x = ifelse(estimate > 0, ci.ub + 0.2, ci.lb - 0.2)), 
+            position = position_dodge(width = 0.7),
+            vjust=0.7,
+            size = 4, show.legend = FALSE)+
+  xlab("") +
+  ylab("") +
+  scale_color_manual(values = c("#007F00","#663399"),
+                     name = "Target status") +  
+  scale_size_continuous(name = "No. MPAs", range = c(1, 3)) +
+  scale_x_continuous(limits= c(-1,1.5))+
+  #guides(color = guide_legend(override.aes = list(shape = c(15, 15))),  # Set the shape to 15 (square) for color legend
+  #      size = guide_legend(override.aes = list(shape = c(15, 15)))) +  # Set the shape to 15 (square) for size legend
+  theme_minimal() +
+  theme(strip.text = element_text(size = 10, face = "bold"),
+        strip.background = element_blank(),
+        panel.spacing = unit(1, "lines"),
+        panel.background = element_rect(fill = "white", color = NA)) +
+  labs(title = "Regional performance",
+       tag = "B")+
+  theme_bw() + my_theme + theme(plot.margin = ggplot2::margin(-0.2,0,0,0,"cm"))
+
+g2
+
+
+g3 <- ggplot(network %>% 
+               filter(mpa_defacto_class == "No-Take")%>%
+               #truncate error bar to ease visualization
+               mutate(ci.ub = ifelse(ci.ub > 3, 3, ci.ub)),
+             aes(x = estimate, y = state_region, color = target_status)) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "grey") +
+  #add points for mpas
+  geom_point(aes(size = n_mpas), 
+             # shape = ifelse(combined_dat$habitat == "Pooled effect size", 18, 15), 
+             shape = 15, 
+             position = position_dodge(width = 0.7)
+  ) +
+  #add points for pooled effects
+  geom_point(
+             # shape = ifelse(combined_dat$habitat == "Pooled effect size", 18, 15), 
+             shape = 18, 
+             size = 4,
+             position = position_dodge(width = 0.7),
+             show.legend=FALSE
+  ) +
+  geom_errorbarh(aes(xmin = ci.lb, xmax = ci.ub), 
+                 position = position_dodge(width = 0.7), height = 0, alpha = 0.3) +
+  # geom_text(aes(label = significance), vjust = -0.2, size = 4, show.legend = FALSE) + 
+  geom_text(aes(label = significance, 
+                x = ifelse(estimate > 0, ci.ub + 0.2, ci.lb - 0.2)), 
+            position = position_dodge(width = 0.7),
+            vjust=0.7,
+            size = 4, show.legend = FALSE)+
+  xlab("Effect size \n(log response ratio)") +
+  ylab("") +
+  scale_color_manual(values = c("#007F00","#663399"),
+                     name = "Target status") +  
+  scale_size_continuous(name = "No. MPAs", range = c(1, 3)) +
+  scale_x_continuous(limits= c(-1,1.5))+
+  theme_minimal() +
+  theme(strip.text = element_text(size = 10, face = "bold"),
+        strip.background = element_blank(),
+        panel.spacing = unit(1, "lines"),
+        panel.background = element_rect(fill = "white", color = NA))+
+  labs(title = "Network performance",
+       tag = "A")+
+  theme_bw() + my_theme + theme(plot.margin = ggplot2::margin(0,0,0,0,"cm"))
+
+g3
+
+
+#plot
+g <- ggpubr::ggarrange(g1, g2, g3, heights=c(0.4, 0.35,0.25), ncol=1, 
+                       legend = "none", align = "v") 
+
+#legend
+legend_only <- cowplot::get_legend(g1) 
+
+g_final <- ggpubr::ggarrange(g, legend_only, widths = c(0.8,0.2), ncol=2)
+
+
+ggsave(g_final, filename=file.path(fig_dir, "archive/Fig2_network_forestplot_no_take.png"), bg = "white",
+      width=6.5, height=8, units="in", dpi=800) 
+
+

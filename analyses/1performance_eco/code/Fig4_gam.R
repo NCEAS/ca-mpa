@@ -38,30 +38,49 @@ habitat_year <- filtered_data %>%
   dplyr::select(year, tau2)
 
 # Step 2: Join tau
-mod_dat <- left_join(filtered_data, habitat_year, by = "year") %>%
-  filter(settlement_habitat < 400) %>%
-  mutate(mpa_defacto_class = factor(mpa_defacto_class))
-          
+mod_dat <- left_join(filtered_data, habitat_year, by = "year")
+
+#check for variable outliers
+plot(mod_dat$size) #ok
+plot(mod_dat$habitat_richness) #ok 
+plot(mod_dat$habitat_diversity) #ok
+plot(mod_dat$prop_rock) #ok
+plot(mod_dat$fishing_pressure) #drop values > 2.0e6
+plot(mod_dat$age_at_survey) # ok
+plot(mod_dat$settlement_habitat) #drop values > 400
+plot(mod_dat$settlement_mpa_total) #ok
+
+mod_dat <- mod_dat %>%
+              filter(fishing_pressure < 2.0e+06, #these are a few extreme outliers
+                     settlement_habitat < 400
+                     )
+
 
 # Step 3: Build the meta-GAM
+set.seed(1985)
 meta_gam_model <- gam(yi ~ 
                         #add take (no-take vs. partial) as  factor
                         #mpa_defacto_class+
                         #add all other contonuous vars as smoothers
                         s(size) +
-                        s(habitat_richness, k =3) +
-                        s(habitat_diversity) +
+                        s(habitat_richness, k =3) + # k =3
+                        s(habitat_diversity, k =3) +
                         s(prop_rock) +
                         s(fishing_pressure) +
-                        s(age_at_survey, k =3)+
+                        s(age_at_survey)+ # k =3
                         s(settlement_habitat) +
                         s(settlement_mpa_total) +
                         s(year, bs = "cc"),
                       #weight each replicate by the inverse of the within and between 
                       #study variance
                       weights = 1 / (vi + tau2),
+                      #use double-penatly approach
+                      select = TRUE,
                       data = mod_dat) 
 
+summary.gam(meta_gam_model)
+gam.check(meta_gam_model)
+plot(meta_gam_model)
 
 # Get the summary of the GAM model
 summary_info <- summary(meta_gam_model)
@@ -70,6 +89,48 @@ summary_info <- summary(meta_gam_model)
 gam_terms <- data.frame(summary_info$s.table) %>%
           tibble::rownames_to_column(var = "smooth") %>%
           rename("EDF" = "edf")
+
+
+
+################################################################################
+#remove terms that shrunk to zero for extra diagnostic
+##NOTE: if terms are removed it assumes the effect the NULL. It is better to 
+#leave the terms in the model (above) and allow the pseudo LASSO-penalty to 
+#penalize shrinkage terms. 
+
+#set.seed(1985)
+#meta_gam_model <- gam(yi ~ 
+#                        #add take (no-take vs. partial) as  factor
+#                        #mpa_defacto_class+
+#                        #add all other contonuous vars as smoothers
+#                        s(size, k =15) + # k =7
+#                        s(habitat_richness, k =9) + # k =3
+#                        s(habitat_diversity) +
+#                        s(prop_rock) +
+#                        s(fishing_pressure) +
+#                        s(age_at_survey)+ # k =3
+#                        #s(settlement_habitat) +
+#                        #s(settlement_mpa_total) +
+#                        s(year, bs = "cc"),
+#                      #weight each replicate by the inverse of the within and between 
+#                      #study variance
+#                      weights = 1 / (vi + tau2),
+#                      data = mod_dat) 
+
+#gam.check(meta_gam_model)
+
+#summary.gam(meta_gam_model)
+
+#plot.gam(meta_gam_model)
+
+
+# Get the summary of the GAM model
+#summary_info <- summary(meta_gam_model)
+
+# Extract terms and p-values
+#gam_terms <- data.frame(summary_info$s.table) %>%
+#          tibble::rownames_to_column(var = "smooth") %>%
+#          rename("EDF" = "edf")
 
 ################################################################################
 #export model table
@@ -88,8 +149,8 @@ plot
 
 #print(plot)
 
-ggsave(file.path(tab_dir, "TableS10_GAM_results.png"), plot, dpi = 600,
-       bg = "white", width = 9, height = 10, units = "in")
+#ggsave(file.path(tab_dir, "TableS10_GAM_results.png"), plot, dpi = 600,
+ #      bg = "white", width = 9, height = 10, units = "in")
 
 
 

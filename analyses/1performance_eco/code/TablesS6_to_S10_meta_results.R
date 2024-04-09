@@ -76,7 +76,7 @@ mpa_meta_out <- mpa_meta_results %>%
          `Ecosystem (latest year)` = as.character(`Ecosystem (latest year)`)) 
 
 
-write.csv(mpa_meta_out, file = file.path(tab_dir,"TableS9_mpa_meta_table.csv"),row.names = FALSE)
+write.csv(mpa_meta_out, file = file.path(tab_dir,"TableS10_mpa_meta_table.csv"),row.names = FALSE)
 
 
 
@@ -118,7 +118,7 @@ hab_region_meta_out <- habitat_region_results %>%
          Ecosystem = factor(Ecosystem, levels = c("Surf zone","Kelp forest","Shallow reef","Deep reef"))) 
 
 
-write.csv(hab_region_meta_out, file = file.path(tab_dir,"TableS8_habitat_region_meta_table.csv"),row.names = FALSE)
+write.csv(hab_region_meta_out, file = file.path(tab_dir,"TableS9_habitat_region_meta_table.csv"),row.names = FALSE)
 
 
 ################################################################################
@@ -158,7 +158,7 @@ hab_target_meta_out <- habitat_target_results %>%
  mutate(Ecosystem = factor(Ecosystem, levels = c("Surf zone","Kelp forest","Shallow reef","Deep reef"))) 
 
 
-write.csv(hab_target_meta_out, file = file.path(tab_dir,"TableS7_hab_target_meta_table.csv"),row.names = FALSE)
+write.csv(hab_target_meta_out, file = file.path(tab_dir,"TableS8_hab_target_meta_table.csv"),row.names = FALSE)
 
 
 ################################################################################
@@ -197,7 +197,7 @@ region_meta_out <- region_results %>%
   ) 
 
 
-write.csv(region_meta_out, file = file.path(tab_dir,"TableS6_region_target_meta_table.csv"),row.names = FALSE)
+write.csv(region_meta_out, file = file.path(tab_dir,"TableS7_region_target_meta_table.csv"),row.names = FALSE)
 
 
 ################################################################################
@@ -236,7 +236,7 @@ state_meta_out <- state_results %>%
   ) 
 
 
-write.csv(state_meta_out, file = file.path(tab_dir,"TableS5_network_results.csv"),row.names = FALSE)
+write.csv(state_meta_out, file = file.path(tab_dir,"TableS6_network_results.csv"),row.names = FALSE)
 
 
 
