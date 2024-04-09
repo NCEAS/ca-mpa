@@ -130,6 +130,7 @@ mpas_use <- data %>%
 # Export data
 saveRDS(data, file.path(outdir, "CA_MPA_polygons.Rds"))
 saveRDS(mpas_use, file.path(outdir, "CA_MPA_polygons_smrs_smcas.Rds"))
+sf::write_sf(data, file.path(outdir, "CA_MPA_polygons.shp"))
 
 
 # Plot data
