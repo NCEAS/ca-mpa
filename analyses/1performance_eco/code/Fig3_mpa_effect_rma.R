@@ -17,7 +17,7 @@ dat_path <- here::here("analyses","1performance_eco","output")
 #read data
 biomass_mod <- readRDS(file.path(dat_path, "biomass_with_moderators_new2.Rds")) 
 
-unique(biomass_mod$mpa)
+unique(biomass_mod$mpa) 
 
 ################################################################################
 
