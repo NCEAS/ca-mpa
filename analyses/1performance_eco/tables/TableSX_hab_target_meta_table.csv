@@ -1,8 +1,0 @@
-"Ecosystem","Target status","Effect size","Standard error","P-value","95% lower","95% upper","No. MPAs","Tau-2","Q"
-"Deep reef","Targeted",0.423,0.196,0.031,0.038,0.807,16,0.472,83.618
-"Deep reef","Nontargeted",0.336,0.162,0.037,0.02,0.653,16,0.294,75.455
-"Kelp forest","Targeted",0.572,0.161,0,0.256,0.888,34,0.716,542.872
-"Kelp forest","Nontargeted",0.225,0.164,0.17,-0.097,0.546,34,0.745,292.82
-"Shallow reef","Targeted",0.823,0.13,0,0.568,1.077,13,0.178,85.029
-"Surf zone","Targeted",0.403,0.236,0.088,-0.06,0.866,11,0.459,54.98
-"Surf zone","Nontargeted",0.203,0.199,0.308,-0.187,0.593,11,0.394,147.268

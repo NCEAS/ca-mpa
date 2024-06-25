@@ -35,6 +35,10 @@ surf_zone_raw <- read.csv(file.path(datadir, "monitoring_sandy-beach/surf_zone_f
 
 # Read taxonomy lookup table
 taxon_tab <- read.csv("/home/shares/ca-mpa/data/sync-data/species_traits/processed/species_key.csv") %>% 
+  clean_names()%>%
+  #reassign target_status_standardized for downstream code
+  select(-target_status)%>%
+  rename(target_status = target_status_standardized)%>%
   filter(habitat == "Surf Zone")
 
 # Read regions from MPA attributes table
@@ -189,6 +193,6 @@ taxa_match <- #data %>% #old
 
 
 write.csv(inferred_size, row.names = FALSE, file.path(outdir, "surf_zone_processed.csv"))
-#last export 26 Oct 2023
+#last export 16 Feb 2024
 
 
