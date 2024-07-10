@@ -42,7 +42,13 @@ totals_simple <- totals %>%
 
 saveRDS(totals_simple, file.path(pro.dir, "substrate", "mpa_substrate_intersection_totals.Rds"))
 
+anacapa <- sub_shp %>% 
+  filter(name == "Anacapa Island SMR" |
+           name == "Anacapa Island SMCA") %>% 
+  filter(!(CMECS_SC_Category == "Rock Substrate"))
 
+ggplot(data = anacapa) +
+  geom_sf(aes(fill = CMECS_SC_Category_Code))
 
 rock_only <- totals_simple %>% ungroup() %>% 
   filter(CMECS_SC_Category == "Rock Substrate") %>% 
