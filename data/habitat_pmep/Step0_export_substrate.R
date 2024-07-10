@@ -11,10 +11,13 @@ rm(list=ls())
 # Load required packages
 library(tidyverse)
 library(gdalUtils)
+library(gdalUtilities)
+library(sf)
 
 # Directories
+sync.dir <- "/home/shares/ca-mpa/data/sync-data"
 out.dir <- "/home/shares/ca-mpa/data/sync-data/habitat_pmep/processed/substrate"
-gdb.dir <- "/home/shares/ca-mpa/data/sync-data/habitat_pmep/PMEP_Nearshore_Zones_and_Habitat.gdb" # Aurora
+gdb.dir <- "/home/shares/ca-mpa/data/sync-data/habitat_pmep/raw/PMEP_Nearshore_Zones_and_Habitat.gdb" # Aurora
 
 
 # Export Attribute Table -------------------------------------------------------------
@@ -40,14 +43,38 @@ ogr2ogr(src_datasource_name = gdb.dir,
         nlt = 'PROMOTE_TO_MULTI')
 
 
+# Export Sections ------
+
+# Read exported attribute table
+att <- readRds(file.path(out.dir, "West_Coast_USA_Nearshore_CMECS_Substrate_Habitat_Attributes.Rds"))
+
+# Get list of unique sections
+pmep_sections <- unique(att$PMEP_Section)
+
+for (section in pmep_sections) {
+  output_file <- file.path(out.dir, paste0("substrate_section_", section, ".gpkg"))
+  
+  ogr2ogr(
+    ssrc_datasource_name = gdb.dir,
+    dst_datasource_name = file.path(out.dir, 'substrate_ca', 'sections'),
+    layer = 'West_Coast_USA_Nearshore_CMECS_Substrate_Habitat',
+    where = paste0("State='CA' AND PMEP_Section='", section, "'"),
+    f = "GPKG"
+  )
+}
+
+
 # Subset to only the data within MPAs ------------------------------------------
 
 ## Create raster object of the substrate layer
-substrate_raster <- raster::raster(substrate_ca)
+#substrate_raster <- raster::raster(substrate_ca) # clearly this wouldn't work
+
+# I bet this (below) was using the loaded substrate data (which took 8+ hours) rather
+# than the exported shapefiles? Unsure where the errors have come up
 
 # Use st_intersection to create a subset of only those data within MPAs
 mpa_intersect <- st_intersection(substrate_ca, mpas)
-saveRDS(mpa_intersect, file.path(sync.dir, "habitat_pmep", "mpa_substrate_intersection.Rds"))
+saveRDS(mpa_intersect, file.path(sync.dir, "habitat_pmep/processed", "mpa_substrate_intersection.Rds"))
 
 # This approach ends up splits polygons based on MPA borders (e.g. greater number 
 # of observations because adjacent MPAs will split one poly into two)
