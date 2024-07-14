@@ -2,7 +2,6 @@
 # Cori Lopazanski
 # June 2024
 
-
 # Setup   ----------------------------------------------------------------------
 library(tidyverse)
 library(sf)
@@ -13,12 +12,14 @@ gdb.dir <- "/home/shares/ca-mpa/data/sync-data/habitat_pmep/raw/PMEP_Nearshore_Z
 com.dir <- "/home/shares/ca-mpa/data/sync-data/habitat_pmep/processed/combined"
 
 
-# Load PMEP zones --------------------------------------------------------------------------------------
-zones_ca <- read_sf(dsn = gdb.dir, layer = "West_Coast_USA_Nearshore_Zones") %>% 
-  st_zm() %>% # convert to xy
+# Read substrate attributes and CRS --------------------------------------------
+att <- readRDS(file.path(sub.dir, "West_Coast_USA_Nearshore_CMECS_Substrate_Habitat_Attributes.Rds")) %>% 
   filter(State == "CA")
 
-# Load monitoring sites --------------------------------------------------------------------------------
+crs_info <- st_crs(st_read(file.path(sub.dir, "substrate_ca/sections/substrate_section_23.gpkg"), quiet = TRUE))
+bio_crs <- st_crs(st_read(file.path(bio.dir, "biotic_ca/sections/biotic_section_23.gpkg"), quiet = TRUE))
+
+# Build 1000m site buffers  ----------------------------------------------------
 # Created here: data/monitoring_data/processing_code/archive/clean_monitoring_sites.R
 sites <- readRDS("/home/shares/ca-mpa/data/sync-data/monitoring/monitoring_sites_clean.Rds")
 
@@ -31,44 +32,53 @@ sites <- st_transform(sites, crs = 32610)
 # Create buffer polygons around each point, e.g., 1000 meters radius
 sites <- st_buffer(sites, dist = 1000)
 
-# Add buffer polygons as a new column to the original sf object
-#sites_sf$buffer_1000m <- sites_buffer$geometry
+# Transform sites
+sites <- st_transform(sites, crs = crs_info)
+
+# Merge sites
+sites_merged <- st_union(sites)
 
 
-# Load biotic layer ---------------------------------------------------------------------------------
-# WARNING: TAKES A BIT. COMMENTED OUT TO AVOID ACCIDENT RUN.
-# biotic <- read_sf(dsn = file.path(bio.dir, "biotic_ca"), 
-#                   layer = 'West_Coast_USA_Nearshore_CMECS_Biotic_Habitat') 
+# Intersect merged site footprint and biotic --------------------------------
 
-att_bio <- readRDS(file.path(bio.dir, "West_Coast_USA_Nearshore_CMECS_Biotic_Habitat_Attributes.Rds")) %>% 
-  filter(State == "CA") %>% 
-  filter(!(CMECS_BC_Code == '9.9.9.9.9')) %>% # drop unclassified
-  filter(!(CMECS_BC_Code == '1.2')) # drop floating plants
+sites_merged <- st_transform(sites_merged, bio_crs)
 
-# Drop the z dimension and transform to match UTM 10
-biotic <- st_zm(biotic) %>% 
-  st_transform(biotic, crs = 32610)  
+# For biotic:
+intersect_biotic <- function(section){
+  print(paste0("Section: ", section))
+  sect <- st_read(file.path(bio.dir, "biotic_ca/sections", paste0("biotic_section_", section, ".gpkg")))
+  print("Read complete")
+  section_intersect <- st_intersection(sect, sites_merged)
+  print("Intersection complete")
+  saveRDS(section_intersect, file.path(bio.dir, paste0("biotic_intersect_", section, ".Rds")))
+  print("Save complete")
+}
 
-# Extract intersection
-biotic_subset <- st_intersection(biotic, sites)
+sections <- unique(att$PMEP_Section)
 
-# Calculate the area of each polygon
-biotic_subset$area <- st_area(biotic_subset)
+lapply(sections, intersect_biotic)
 
-# Save the shapefiles and associated metadata
-#saveRDS(biotic_subset, file.path(bio.dir, "biotic_mlpa_sites_1000m.Rds"))
+# Find intersections by site + export ------------------------------------------
 
-# Create a summary table for each site
-biotic_area <- biotic_subset %>% 
-  st_drop_geometry() %>% 
-  mutate(area = as.numeric(area)) %>% 
-  left_join(., att_bio, by = "NS_PolyID") %>% 
-  group_by(habitat, mpa, site, site_type, PMEP_Section, PMEP_Zone, 
-           CMECS_BC_Category_Code, CMECS_BC_Category, CMECS_BC_Name) %>% 
-  summarize(total_area_m2 = sum(area, na.rm = TRUE)) %>% 
-  filter(!is.na(CMECS_BC_Category))
+sites <- st_transform(sites, crs = bio_crs)
 
-# Save biotic table
-#saveRDS(biotic_area, file.path(bio.dir, "biotic_mlpa_sites_1000m_totals.Rds"))
+intersect_by_site <- function(section){
+  print(paste0("Section: ", section))
+  bio <- readRDS(file.path(bio.dir, paste0("biotic_intersect_", section, ".Rds")))
+  print("Read section complete.")
+  bio_sites <- st_intersection(bio, sites)
+  print("Intersection complete.")
+  bio_sites$area <- st_area(bio_sites)
+  print("Area calculation complete.")
+  saveRDS(bio_sites, file.path(bio.dir, paste0("biotic_sites_1000m/biotic_sites_section_", section, ".Rds")))
+}
+
+
+sections <- c("23", "30", "31", "32", "33", "53", "40", "41")
+lapply(sections, intersect_by_site)
+
+
+
+
 
 
