@@ -16,7 +16,9 @@ gisdir <- "/home/shares/ca-mpa/data/sync-data/gis_data/processed"
 plotdir <- here::here("analyses","1performance_eco","figures")
 
 # Read data
-mpa_dat <- readRDS(file.path(basedir, "biomass_richness_diversity.Rds"))
+mpa_dat <- readRDS(file.path(basedir, "biomass_richness_diversity2.Rds"))
+
+unique(mpa_dat$state_name)
 
 # Read data
 state_waters_poly <- readRDS(file.path(gisdir, "CA_state_waters_polygons.Rds"))
@@ -36,24 +38,24 @@ sites <- mpa_dat %>%
   #match case with mpas_orig
   mutate(habitat = factor(habitat, levels = c("Surf zone","Kelp forest","Shallow reef","Deep reef")),
          state_region = factor(state_region, levels = c("North Coast","North Central Coast","Central Coast","South Coast")),
-         affiliated_mpa = factor(affiliated_mpa),
-         affiliated_mpa = str_to_title(affiliated_mpa),
-         affiliated_mpa = sub("([A-Za-z]+)$", "\\U\\1", affiliated_mpa, perl = TRUE),
+         state_name = factor(state_name),
+         state_name = str_to_title(state_name),
+         state_name = sub("([A-Za-z]+)$", "\\U\\1", state_name, perl = TRUE),
          #rename MPAs to match mpa_orig for join
-         affiliated_mpa = ifelse(affiliated_mpa == "Campus Point SMCA","Campus Point SMCA (No-Take)",
-                                 ifelse(affiliated_mpa == "Blue Cavern Onshore SMCA","Blue Cavern Onshore SMCA (No-Take)",
-                                        ifelse(affiliated_mpa == "Point Vicente SMCA","Point Vicente SMCA (No-Take)",affiliated_mpa)))
+         state_name = ifelse(state_name == "Campus Point SMCA","Campus Point SMCA (No-Take)",
+                                 ifelse(state_name == "Blue Cavern Onshore SMCA","Blue Cavern Onshore SMCA (No-Take)",
+                                        ifelse(state_name == "Point Vicente SMCA","Point Vicente SMCA (No-Take)",state_name)))
          
          )%>%
   #join spatial data with each mpa
-  left_join(mpas_orig, by = c("affiliated_mpa" = "mpa")) %>%
-  dplyr::select(habitat, year, state_region,  affiliated_mpa, 
+  left_join(mpas_orig, by = c("state_name" = "mpa")) %>%
+  dplyr::select(habitat, year, state_region,state_name, 
                 mpa_full, mpa_short, mlpa, authority, type, ccr, ccr_int, region_code, 
-                region, block_id, area_sqkm, long_dd, lat_dd, everything())
+                block_id, area_sqkm, long_dd, lat_dd, everything())
 
 # Check names
-sites_in_data <- sort(unique(sites$affiliated_mpa))
-sites_in_data[!sites_in_data %in% mpas_orig$affiliated_mpa]
+sites_in_data <- sort(unique(sites$state_name))
+sites_in_data[!sites_in_data %in% mpas_orig$state_name]
 
 
 # Summarize
@@ -61,7 +63,7 @@ sites_in_data[!sites_in_data %in% mpas_orig$affiliated_mpa]
 
 # Build data
 habitats_per_mpa <- sites %>%
-  group_by(state_region, affiliated_mpa) %>%
+  group_by(state_region, state_name) %>%
   summarise(unique_habitats = n_distinct(habitat))
 
 
@@ -69,7 +71,7 @@ habitats_per_mpa <- sites %>%
 mpas <- mpas_orig %>% 
   # Reduce to MPAs of interest
   filter(mlpa=="MLPA") %>% 
-  rename(affiliated_mpa = mpa)%>%
+  rename(state_name = mpa)%>%
   # Add stats
   left_join(habitats_per_mpa)
 
@@ -141,7 +143,7 @@ g1 <- ggplot() +
 g1
 
 
-# Plot biomass response ratio
+# Plot response ratios
 g2 <-  ggplot(sites %>%
                 #use age > 0 
                 filter(age_at_survey > 0)%>%
@@ -183,11 +185,12 @@ g2
 
 
 # Merge figures
-g <- gridExtra::grid.arrange(g1, g2, ncol=2, widths=c(0.55, 0.45))
+#g <- gridExtra::grid.arrange(g1, g2, ncol=2, widths=c(0.55, 0.45))
+g <- gridExtra::grid.arrange(g1, g2, ncol=2, widths=c(0.5, 0.5))
 g
 
 # Export figure
-ggsave(g, filename=file.path(plotdir, "Fig1_map_figure4.png"), 
+ggsave(g, filename=file.path(plotdir, "Fig1_map_figure5.png"), 
        width=7.5, height=6, units="in", dpi=600)
 
 

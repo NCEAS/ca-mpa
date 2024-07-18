@@ -46,7 +46,10 @@ deep_reef_raw <- read_csv(file.path(datadir, "/ROVLengths2005-2019Merged-2021-02
 # Read additional data ----------------------------------------------------------------
 # Read taxonomy table 
 taxon_deep <- read_csv("/home/shares/ca-mpa/data/sync-data/species_traits/processed/species_key.csv") %>% 
-  clean_names() %>% 
+  clean_names()%>%
+  #reassign target_status_standardized for downstream code
+  select(-target_status)%>%
+  rename(target_status = target_status_standardized)%>%
   filter(habitat == "Deep reef")
 
 # Read regions from MPA attributes table
@@ -59,7 +62,9 @@ defacto_smr_deep_reef <- readxl::read_excel("/home/shares/ca-mpa/data/sync-data/
   filter(group=="deep_reef") %>%
   dplyr::select(affiliated_mpa, mpa_defacto_class = mpa_class) %>% 
   mutate(affiliated_mpa = recode(affiliated_mpa, "ano nuevo smr" = "año nuevo smr"),
-         mpa_defacto_class = tolower(mpa_defacto_class)) 
+         mpa_defacto_class = tolower(mpa_defacto_class)) %>%
+  #add missing mpa_defacto_class
+  bind_rows(tibble(affiliated_mpa = "point buchon smr", mpa_defacto_class = "smr"))
 
 # Build Data ------------------------------------------------------------------------
 # Note: keeping this description for clarity but have confirmed will only use primary (Sept 2023)
@@ -88,7 +93,9 @@ data <- deep_reef_raw %>%
   mutate(across(location:designation, str_replace, 'Bodega Bay','Bodega Head')) %>%
   mutate(across(location:designation, str_replace, 'Point St. George','Point St. George Reef Offshore')) %>%
   # Correct Farallon Island to Southeast Farallon Island SMCA (Confirmed with RS Sept 2023)
-  mutate(mpa_name = if_else(mpa_group == "Farallon Island", "Southeast Farallon Island SMCA", mpa_name)) %>% 
+  mutate(mpa_name = if_else(mpa_group == "Farallon Island", "Southeast Farallon Island SMCA", mpa_name),
+         mpa_group = if_else(mpa_group == "Farallon Island", "Southeast Farallon Island", mpa_group),
+         ) %>% 
   # Correct Ano Nuevo to SMR (incorrectly listed as SMCA) 
   mutate(type = if_else(mpa_group == 'Año Nuevo', "SMR", type)) %>% 
   # Create affiliated_mpa variable - confirmed in Sept 2023 that will only use primary!
@@ -96,7 +103,7 @@ data <- deep_reef_raw %>%
            case_when(type %in% c("SMCA", "SMR") ~ paste(mpa_group, type, sep = " "),
                      # Provide the full affiliated MPA name for sites called "Reference"
                      type == "Reference" &
-                       mpa_group %in% c("Campus Point", "Farallon Islands", "Pillar Point", 
+                       mpa_group %in% c("Campus Point", "Southeast Farallon Islands", "Pillar Point", 
                                         "Point St. George Reef Offshore", "Portuguese Ledge") ~ paste(mpa_group, "SMCA", sep = " "),
                      type == "Reference" & 
                        mpa_group %in% c("Año Nuevo", "Carrington Point", "Gull Island", "Harris Point", 
@@ -130,8 +137,6 @@ data <- deep_reef_raw %>%
          mpa_state_designation = if_else(designation == "Reference", "REF", mpa_state_class)) %>% 
   # Fix
   mutate(mpa_defacto_designation = if_else(is.na(mpa_defacto_designation) & mpa_state_class == "SMR", "SMR", mpa_defacto_designation)) %>% 
-  # Add regions
-  left_join(regions, by = "affiliated_mpa") %>% 
   # Add taxa
   left_join(taxon_deep, by = c("scientific_name" = "habitat_specific_spp_name")) %>% 
   # Assign NO_ORG for empty transects
@@ -147,11 +152,37 @@ data <- deep_reef_raw %>%
   mutate(dive = if_else(scientific_name == "Young of year (<10 cm Sebastes sp.)" & line_id == "141_780", "141", dive)) %>% 
   select(year, month,
          mpa_group, type, designation, # keep these for now until confirm site treatment
-         bioregion, region4, affiliated_mpa, secondary_mpa, tertiary_mpa,
+         affiliated_mpa, secondary_mpa, tertiary_mpa,
          mpa_state_class, mpa_state_designation, mpa_defacto_class, mpa_defacto_designation,
          line_id, dive, line, scientific_name, count, tl_cm = estimated_length_cm, sl_cm,
          class, order, family, genus, species, 
-         sciname, species_code, target_status, level)
+         sciname, species_code, target_status, level) %>%
+  #assign reference/reference sites that do not have an affiliated_mpa 
+  mutate(affiliated_mpa = case_when(
+    mpa_group == "Southeast Farallon Island" & type == "Reference" & designation == "Reference" ~ "southeast farallon island smr",
+    TRUE ~ affiliated_mpa
+  ),
+  secondary_mpa = case_when(
+    mpa_group == "Southeast Farallon Island" & type == "Reference" & designation == "Reference" ~ "southeast farallon island smca",
+    TRUE ~ secondary_mpa
+  ))%>%
+  #fix missing mpa_state_class
+  mutate(mpa_state_class = ifelse(is.na(mpa_state_class), toupper(word(affiliated_mpa, -1)),mpa_state_class)) %>%
+  #rejoin defacto class to fill NAs
+  select(-mpa_defacto_class)%>%
+  left_join(defacto_smr_deep_reef, by = "affiliated_mpa") %>%
+  # Add regions
+  left_join(regions, by = "affiliated_mpa")%>%
+  #arrange
+  select(year, month,
+                mpa_group, type, designation, # keep these for now until confirm site treatment
+                bioregion, region4, affiliated_mpa, secondary_mpa, tertiary_mpa,
+                mpa_state_class, mpa_state_designation, mpa_defacto_class, mpa_defacto_designation,
+                line_id, dive, line, scientific_name, count, tl_cm, sl_cm,
+                class, order, family, genus, species, 
+                sciname, species_code, target_status, level) 
+  
+
 # Note: Warning "Expected 3 Pieces" is OK (not every entry has secondary & tertiary mpa)
 
 # Check for entries with missing sciname (6 ok)
@@ -302,7 +333,7 @@ nrow(data) - nrow(data2)
 
 write.csv(data3, row.names = F, file.path(outdir,"/deep_reef_processed.csv"))  
 
-# last write 26 Oct 2023
+# last write 16 Feb 2024
 
 
 

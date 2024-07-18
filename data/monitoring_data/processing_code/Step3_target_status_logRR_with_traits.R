@@ -25,14 +25,15 @@ dat_path <- here::here("analyses","1performance_eco","output")
 
 # Load biomass data 
 # biomass_raw <- read.csv(file.path(biomass_dat,"targeted_nontargeted_biomass_MPA_means.csv"))
-biomass_raw <- read_csv(file.path(biomass_dat, "target_status_biomass_MPA_means.csv"))
+biomass_raw <- read_csv(file.path(biomass_dat, "target_status_biomass_MPA_means_updated.csv"))
 
 # Load MPA traits
 # load habitat data
 mpa_attributes_gen <- readRDS("/home/shares/ca-mpa/data/sync-data/mpa_traits/processed/mpa_attributes_general.Rds")
 mpa_attributes_hab <- readRDS("/home/shares/ca-mpa/data/sync-data/mpa_traits/processed/mpa_attributes_habitat.Rds")
 mpa_attributes_hab_div <- readRDS("/home/shares/ca-mpa/data/sync-data/mpa_traits/processed/mpa_attributes_habitat_diversity.Rds")
-fishing_effort <- readRDS(here::here("analyses","2performance_fisheries","analyses","blocks","data","pre_mpa_fishing_pressure_by_mpa.Rds"))
+#fishing_effort <- readRDS(here::here("analyses","2performance_fisheries","analyses","blocks","data","pre_mpa_fishing_pressure_by_mpa.Rds")) #old
+fishing_effort <- readRDS(here::here("analyses","1performance_eco","output","pre_mpa_fishing_pressure_by_mpa2.Rds"))
 prop_rock <- readRDS("/home/shares/ca-mpa/data/sync-data/mpa_traits/processed/mpa_attributes_habitat_rock.Rds")
 mpas_orig <- readRDS(file.path(data_path, "mpa_traits/processed", "CA_mpa_metadata.Rds")) %>% 
   dplyr::select(name = mpa, region) %>% 
@@ -51,7 +52,7 @@ mpa_traits <- left_join(mpa_attributes_gen, mpa_attributes_hab, by="name") %>%
   left_join(., mpas_orig) %>% 
   select(state_region = region, affiliated_mpa, implementation_date, size=size_km2.x,
          habitat_richness, habitat_diversity=habitat_diversity_sw, 
-         prop_rock, fishing_pressure = annual_avg_lb_sqkm_20002006)
+         prop_rock, fishing_pressure = landings_lbs_sqkm)
   
 
 # Create habitat specific settlement for join
@@ -83,12 +84,16 @@ biomass_with_mods <- left_join(biomass_raw, mpa_traits, by="affiliated_mpa") %>%
   left_join(settlement_join, by = c("habitat","affiliated_mpa"))  %>%
   #set up yi and vi for meta analytic language
   mutate(yi = logRR,
-         vi = ((sd_smr^2) / (n_rep_smr*((biomass_smr + scalar_smr)^2))) + #the scalar comes from 10% of the mean we calculated back in Step2
+         vi = ((sd_mpa^2) / (n_rep_mpa*((biomass_mpa + scalar_mpa)^2))) + #the scalar comes from 10% of the mean we calculated back in Step2
            ((sd_ref^2) / (n_rep_ref*((biomass_ref + scalar_ref)^2)))) %>% #this is the within-study variance. See Eq. 2 in paper
   dplyr::select(-logRR) %>%
   #drop sites that do not have associate variance
-  filter(!(is.na(vi) | vi == 0))
+  filter(!(is.na(vi) | vi == 0)) %>%
+  #fix missing mpa name -- currently only Southeast Farallon Island SMR is missing
+  mutate(mpa = ifelse(is.na(mpa), affiliated_mpa,mpa))
 
+saveRDS(biomass_with_mods, file.path(dat_path, "biomass_with_moderators_new2.Rds"))
+# last write 25 Mar 2024
 
 #saveRDS(biomass_with_mods, file.path(dat_path, "biomass_with_moderators_new.Rds"))
 # last write 26 oct 2023
