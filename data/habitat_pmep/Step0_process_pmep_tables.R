@@ -102,7 +102,16 @@ pmep_assemblage <- bind_assemblages(directory_path) %>%
   clean_names() %>% 
   mutate(value = 1) %>% 
   pivot_wider(names_from = region, values_from = value) %>% 
-  rename(species = scientific_name)
+  rename(species = scientific_name) %>%   
+  mutate(across(where(is.character), ~ na_if(.,""))) %>% 
+  mutate(common_name = recode(common_name, # fix names that parsed incorrectly
+                              "Pacific Cod Gadus" = "Pacific Cod",
+                              "Lingcod Ophiodon" = "Lingcod"),
+         species = recode(species,
+                          "macrocephalus" = "Gadus macrocephalus",
+                           "elongatus" = "Ophiodon elongatus"),
+         common_name = str_to_sentence(common_name),
+         species = str_to_sentence(species))
 
 
 ## Appendix 4. Source datasets ----
@@ -125,7 +134,9 @@ a7 <- read_xlsx(file.path(dat.dir, "Appendix_7.xlsx"), skip = 7, trim_ws = F) %>
   fill(order, family) %>% 
   filter(indent == 4) %>% select(!indent) %>% 
   select(order, family, species = taxon, common_name, everything()) %>% 
-  mutate(pnw = 1)
+  select(order:seaward, cbcm) %>% 
+  filter(!is.na(cbcm)) %>% # remove species never documented in CBCM
+  mutate(region = "pnw")
 
 ## Appendix 8. PNW Habitat ----
 a8 <- read_xlsx(file.path(dat.dir, "Appendix_8.xlsx"), skip = 5, trim_ws = F) %>% 
@@ -159,7 +170,7 @@ a9 <- read_xlsx(file.path(dat.dir, "Appendix_9.xlsx"), skip = 7, trim_ws = F) %>
   fill(order, family) %>% 
   filter(indent >= 4) %>% select(!indent) %>% 
   select(order, family, species = taxon, common_name, everything()) %>% 
-  mutate(cce = 1)
+  mutate(region = "cce")
 
 ## Appendix 10. Central habitat ----
 a10 <- read_xlsx(file.path(dat.dir, "Appendix_10.xlsx"), skip = 5, trim_ws = F) %>% 
@@ -187,7 +198,7 @@ a11 <- read_xlsx(file.path(dat.dir, "Appendix_11.xlsx"), skip = 7, trim_ws = F) 
   fill(order, family) %>% 
   filter(indent == 4) %>% select(!indent) %>% 
   select(order, family, species = taxon, common_name, everything()) %>% 
-  mutate(scb = 1)
+  mutate(region = "scb")
 
 
 ## Appendix 12. South habitat ----
@@ -205,53 +216,53 @@ a12 <- read_xlsx(file.path(dat.dir, "Appendix_12.xlsx"), skip = 5, trim_ws = F) 
   mutate(scb = 1)
 
 # Compare habitats across regions ---------------------------------------------------------------
-# A8, A10, A12
+# A8, A10, A12 contain habitat information
 
 # Combine habitat tables
 pmep_habitat <- full_join(a8, a10) %>% 
-  full_join(a12)
+  full_join(a12) %>% 
+  mutate(common_name = str_to_sentence(common_name),
+         species = str_to_sentence(species)) %>% 
+  pivot_longer(cols = c(pnw, cce, scb), names_to = "region", values_to = "value") %>% 
+  filter(!is.na(value)) %>% 
+  select(-value)
+
+#rm(a8, a10, a12)
 
 # Extract any duplicates to explore - mostly depth differences but some habitat discrepancies
-habitat_mismatch <- pmep_habitat %>% 
-  group_by(species) %>% 
-  filter(n() > 1)
+# habitat_mismatch <- pmep_habitat %>% 
+#   group_by(species) %>% 
+#   filter(n() > 1)
 
-# Join the assemblage information
-pmep_habitat2 <- pmep_habitat %>% 
-  left_join(pmep_assemblage, by = c("species"))
+# Check to make sure there are no mismatches between habitat and assemblages
+assemblage_only <- pmep_assemblage %>% 
+  filter(!species %in% pmep_habitat$species)
 
+# Maybe lengthen both?
+pmep_assemblage2 <- pmep_assemblage %>% 
+  pivot_longer(cols = c(pnw, cce, scb), names_to = "region", values_to = "value") %>% 
+  filter(!is.na(value)) %>% 
+  select(-value)
 
+# Join the assemblage and habitat information
+pmep_full <- pmep_habitat %>% 
+  full_join(pmep_assemblage2)
 
+# Join the regional abundance information
+pmep_full2 <- pmep_full %>% 
+  select(-core, -seaward) %>% 
+  full_join(a7, by = c("order", "family", "species", "common_name", "region")) %>% 
+  full_join(a9, by = c("order", "family", "species", "common_name", "region")) %>% 
+  mutate(overall = if_else(is.na(overall.x), overall.y, overall.x),
+         core = if_else(is.na(core.x), core.y, core.x),
+         seaward = if_else(is.na(seaward.x), seaward.y, seaward.x)) %>% 
+  select(!contains(".")) %>% 
+  full_join(a11, by = c("order", "family", "species", "common_name", "region")) %>% 
+  mutate(overall = if_else(is.na(overall.x), overall.y, overall.x),
+         core = if_else(is.na(core.x), core.y, core.x),
+         seaward = if_else(is.na(seaward.x), seaward.y, seaward.x)) %>% 
+  select(!contains("."))
 
-
-
-
-# Combine the abundance and habitat tables
-pnw <- a7 %>% 
-  select(order:seaward, cbcm, region) %>% 
-  full_join(., a8) %>% 
-  filter(!is.na(cbcm)) # remove species never documented in CBCM
-
-cce <- full_join(a9, a10)
-
-scb <- full_join(a11, a12)
-
-# Explore overlapping species
-pnw_sp <- pnw %>% select(order, family, species, common_name)
-cce_sp <- cce %>% select(order, family, species, common_name)
-scb_sp <- scb %>% select(order, family, species, common_name)
-
-pmep_sp <- full_join(pnw_sp, cce_sp) %>% 
-  full_join(scb_sp) %>% 
-  distinct() 
-
-
-pnw_only <- anti_join(pnw_sp, cce_sp) %>% 
-  anti_join(scb_sp)
-cce_only <- anti_join(cce_sp, pnw_sp) %>% 
-  anti_join(scb_sp)
-scb_only <- anti_join(scb_sp, cce_sp) %>% 
-  anti_join(pnw_sp)
 
 # Verify taxonomy ----------------------------------------------------------------------
 
@@ -272,20 +283,20 @@ rm(sp_fb, sp_slb)
 # Format species_key ---------------------------------------------------------------
 
 # Identify the species that are not in the full fishbase/sealifebase list
-species_fix <- pmep_sp %>%
+species_fix <- pmep_full2 %>%
   filter(!(species %in% fb_all$Species)) 
 
 # Correct species names
-pmep_sp <- pmep_sp %>% 
+pmep_full2<- pmep_full2 %>% 
   mutate(species = recode(species,
-    "Hypocritichthys analis" = "Hyperprosopon anale", # https://www.fishbase.se/summary/3630
-    "Seriola dorsalis" = "Seriola lalandi", # https://www.fishbase.se/summary/Seriola-lalandi.html
-    "Urobatis helleri" = "Urobatis halleri", # https://www.fishbase.se/summary/Urobatis-halleri.html
-    "Embiotoca caryi" = "Hypsurus caryi", # https://www.fishbase.se/summary/Hypsurus-caryi.html        
-    "Bodianus pulcher" = "Semicossyphus pulcher", # https://www.fishbase.se/summary/Semicossyphus-pulcher.html
-    "Halichoeres californicus" = "Oxyjulis californica", # https://www.fishbase.se/summary/Oxyjulis-californica.html
-    "Carangoides vinctus" = "Caranx vinctus", # https://www.fishbase.se/summary/Caranx-vinctus.html
-    "Lobotes pacificus" = "Lobotes pacifica", # https://www.fishbase.se/summary/Lobotes-pacifica.html
+                          "Bodianus pulcher" = "Semicossyphus pulcher", # https://www.fishbase.se/summary/Semicossyphus-pulcher.html
+                          "Carangoides vinctus" = "Caranx vinctus", # https://www.fishbase.se/summary/Caranx-vinctus.html
+                          "Embiotoca caryi" = "Hypsurus caryi", # https://www.fishbase.se/summary/Hypsurus-caryi.html        
+                          "Halichoeres californicus" = "Oxyjulis californica", # https://www.fishbase.se/summary/Oxyjulis-californica.html
+                          "Hypocritichthys analis" = "Hyperprosopon anale", # https://www.fishbase.se/summary/3630
+                          "Lobotes pacificus" = "Lobotes pacifica", # https://www.fishbase.se/summary/Lobotes-pacifica.html
+                          "Seriola dorsalis" = "Seriola lalandi", # https://www.fishbase.se/summary/Seriola-lalandi.html
+                          "Urobatis helleri" = "Urobatis halleri", # https://www.fishbase.se/summary/Urobatis-halleri.html
   ))
 
 # Two species remain that are verified as correct or entry doesn't exist
@@ -293,14 +304,15 @@ pmep_sp <- pmep_sp %>%
 # "Cephalopholis colonus" # https://www.fishbase.se/summary/Cephalopholis-colonus.html
 
 # Identify family incorrect
-family_fix <- pmep_sp %>% 
+family_fix <- pmep_full2 %>% 
   filter(!(family %in% fb_all$Family))
 
-pmep_sp <- pmep_sp %>% 
+pmep_full2 <- pmep_full2 %>% 
   mutate(family = recode(family,
                          "Scorpaenichthyidae" = "Jordaniidae", 
                          "Platyrhynidae" = "Platyrhinidae")) %>% 
   mutate(genus = sub("([A-Za-z]+).*", "\\1", species))
 
-
-
+# Export
+saveRDS(pmep_full2, file.path(out.dir, "pmep_species_processed.Rds"))
+# Last export: July 18 2024
