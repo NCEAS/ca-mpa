@@ -57,6 +57,7 @@ intersect_biotic <- function(section){
 sections <- unique(att$PMEP_Section)
 
 lapply(sections, intersect_biotic)
+intersect_biotic(section = '23') # redo this after exporting non-CA portions (some sites span just over the border)
 
 # Find intersections by site + export ------------------------------------------
 
@@ -76,7 +77,7 @@ intersect_by_site <- function(section){
 
 sections <- c("23", "30", "31", "32", "33", "53", "40", "41")
 lapply(sections, intersect_by_site)
-
+intersect_by_site(section = '23')
 
 
 

@@ -58,6 +58,7 @@ sections <- c("23", "30", "31", "32", "33", "53", "40", "41")
 
 lapply(sections, intersect_sections)
 
+intersect_sections(section = '23')
 
 # Find intersections by site + export ------------------------------------------
 
@@ -75,6 +76,6 @@ intersect_by_site <- function(section){
 
 sections <- c("23", "30", "31", "32", "33", "53", "40", "41")
 lapply(sections, intersect_by_site)
-
+intersect_by_site(section = '23')
 
 
