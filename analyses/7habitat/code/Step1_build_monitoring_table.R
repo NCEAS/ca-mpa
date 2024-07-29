@@ -59,7 +59,7 @@ kelp_effort <- kelp_orig %>%
   distinct(year, month, day, site, zone, transect, 
            bioregion, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation) %>% 
   # Calculate effort as total n transects per site, per year
-  group_by(year, site, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation) %>% 
+  group_by(year, site, bioregion, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation) %>% 
   summarize(n_rep = n()) # 3101 site-year combos
 
 # Find true zeroes (no fish across an entire site in an entire year)
