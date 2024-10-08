@@ -35,6 +35,29 @@ zones_df <- zones_df %>%
 
 saveRDS(zones_df, file.path("/home/shares/ca-mpa/data/sync-data/habitat_pmep/processed/combined", "PMEP_Zones_24mRes_Full.Rds"))
 
+# Create raster for MPAs -------------------------------------------------------------
+raster <- raster::raster(zones_ca, resolution = 24, crs = st_crs(zones_ca))
+
+mpas <- readRDS(file.path(sync.dir, "/gis_data/processed/CA_MPA_polygons.Rds")) %>% 
+  st_transform(., st_crs(zones_ca)) %>%   # transform to match CRS of substrate data
+  mutate(name = as.factor(name)) 
+
+mpa_raster <- fasterize::fasterize(mpas, raster, field = "name")
+
+mpa_df <- as.data.frame(mpa_raster, xy = T)
+
+mpa_match <- mpas %>% 
+  select(name) %>% 
+  mutate(layer = as.integer(name))
+
+mpa_df <- mpa_df %>% 
+  left_join(mpa_match) %>%
+  select(x, y, mpa_name = name)
+
+rm(mpa_match, mpas)
+
+saveRDS(mpa_df, file.path("/home/shares/ca-mpa/data/sync-data/habitat_pmep/processed/combined", "MPAs_24mRes_Full.Rds"))
+
 # Combine and export dataframe for each section --------------------------------------
 
 # SUBSTRATE ---------------
@@ -167,11 +190,12 @@ saveRDS(layers_df, file.path(bio.dir, "PMEP_Biotic_24mRes_Section23.Rds"))
 # Create raster for MPAs -------------------------------------------------------------
 raster <- raster::raster(zones_ca, resolution = 24, crs = st_crs(zones_ca))
 
+
 mpas <- readRDS(file.path(sync.dir, "/gis_data/processed/CA_MPA_polygons.Rds")) %>% 
   st_transform(., st_crs(zones_ca)) %>%   # transform to match CRS of substrate data
   mutate(name = as.factor(name)) 
 
-mpa_raster <- fasterize::fasterize(mpas, raster, field = "name")
+mpa_raster <- fasterize::fasterize(mpas, raster)
 
 mpa_df <- as.data.frame(mpa_raster, xy = T)
 
@@ -186,6 +210,16 @@ mpa_df <- mpa_df %>%
 rm(mpa_match, mpas)
 
 saveRDS(mpa_df, file.path("/home/shares/ca-mpa/data/sync-data/habitat_pmep/processed/combined", "MPAs_24mRes_Full.Rds"))
+
+crs(mpas)
+crs(mpa_raster)
+
+library(tmap)
+tmap_mode("view")
+tm_shape(mpa_raster) +
+  tm_raster() +
+tm_shape(mpas) +
+  tm_borders(col = "black") 
 
 
 # Combine biotic + substrate + MPA by section ---------------------------------------

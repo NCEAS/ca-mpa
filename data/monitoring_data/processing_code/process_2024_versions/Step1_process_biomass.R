@@ -31,6 +31,8 @@
 
 # - Size units in raw data should all be cm. Conversion parameters are all in cm and g.
 
+# Updated by Cori Lopazanski July 2024
+# Added the updated Kelp Forest Monitoring Data (from 2020-2024)
 
 # Setup --------------------------------------------------------------------------------
 rm(list=ls())
@@ -48,18 +50,18 @@ datadir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data"
 surf  <- read_csv(file.path(datadir, "surf_zone_processed.csv")) %>% clean_names()
 deep  <- read_csv(file.path(datadir, "deep_reef_processed.csv")) 
 ccfrp <- read_csv(file.path(datadir, "ccfrp_processed.csv")) 
-kelp  <- read_csv(file.path(datadir, "kelp_processed.csv")) 
+kelp  <- read_csv(file.path(datadir, "update_2024/kelp_processed.6.csv"))  # updated CL july 2024
 
 # Read length-weight parameters
 params <- read_csv(file.path(traitsdir, "lw_parameters_fish.csv"))
 
 # Read species key
 species_key <- read.csv(file.path(traitsdir, "species_key.csv")) %>%
-                  clean_names() %>% 
-                  #reassign target_status_standardized for downstream code
-                  dplyr::select(-target_status)%>%
-                  rename(target_status = target_status_standardized)
-  
+  clean_names() %>% 
+  #reassign target_status_standardized for downstream code
+  dplyr::select(-target_status)%>%
+  rename(target_status = target_status_standardized)
+
 # Biomass conversion function ----------------------------------------------------------------
 
 bio_fun <- function(params, data) {
@@ -94,7 +96,7 @@ bio_fun <- function(params, data) {
                                 T ~ weight_g),
            
            weight_kg = weight_g/1000
-           )
+    )
 }
 
 
@@ -110,7 +112,7 @@ surf_biomass <- bio_fun(params, surf)
 
 # Write to csv ----------------------------------------------------------------
 write.csv(surf_biomass, row.names = F, file.path(datadir,"/biomass_processed/surf_zone_fish_biomass_updated.csv"))  #last write 26 July 2024
-write.csv(kelp_biomass, row.names = F, file.path(datadir,"/biomass_processed/kelpforest_fish_biomass_updated.csv")) #last write 26 July 2024
+write.csv(kelp_biomass, row.names = F, file.path(datadir,"/biomass_processed/kelpforest_fish_biomass_updated.6.csv")) #last write 26 July 2024
 write.csv(ccfrp_biomass, row.names = F, file.path(datadir,"/biomass_processed/ccfrp_fish_biomass_updated.csv")) #last write 26 July 2024
 write.csv(deep_biomass, row.names = F, file.path(datadir,"/biomass_processed/deep_reef_fish_biomass_updated.csv")) #last write 26 July 2024
 
@@ -150,7 +152,7 @@ deep_duplicate_list <- deep %>%
 
 deep_duplicate_obs <- deep %>% 
   filter(line_id %in% deep_duplicate_list$line_id) %>% 
-  select(year, affiliated_mpa, mpa_state_designation, line_id,
+  dplyr::select(year, affiliated_mpa, mpa_state_designation, line_id,
          sciname, count, tl_cm) %>% 
   arrange(year, line_id, sciname, count, tl_cm, affiliated_mpa)
 
@@ -159,7 +161,7 @@ deep_duplicate_obs <- deep %>%
 test_deep <- deep_biomass %>% 
   filter(is.na(weight_g) & ! is.na(tl_cm)) %>% 
   distinct(sciname, species_code, target_status)
-           
+
 # SURF ZONE
 # Appears that some schooling species only have length measurements for 
 # the first ~ 20-30 fish, and the rest are just counted. 
@@ -171,14 +173,14 @@ surf_missing <- surf %>%
 # Added these species to the list
 test_surf <- surf_biomass %>% 
   filter(is.na(weight_g) & !(is.na(tl_cm) & is.na(sl_cm))) 
-  
+
 
 
 # Exploring some things for step 2 -----------------------------------------------------------------------------
 
 # Calculated biomass per unit effort (trip-cell)
 ccfrp_bpue <- ccfrp_biomass %>% 
-  select(year, affiliated_mpa, 
+  dplyr::select(year, affiliated_mpa, 
          mpa_defacto_class, mpa_defacto_designation,
          id_cell_per_trip, species_code, sciname, target_status,
          total_angler_hrs_cell, weight_g) %>% 

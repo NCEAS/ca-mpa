@@ -11,10 +11,13 @@ rm(list=ls())
 # Load required packages
 library(tidyverse)
 library(gdalUtils)
+library(gdalUtilities)
+library(sf)
 
 # Directories
+sync.dir <- "/home/shares/ca-mpa/data/sync-data"
 out.dir <- "/home/shares/ca-mpa/data/sync-data/habitat_pmep/processed/substrate"
-gdb.dir <- "/home/shares/ca-mpa/data/sync-data/habitat_pmep/PMEP_Nearshore_Zones_and_Habitat.gdb" # Aurora
+gdb.dir <- "/home/shares/ca-mpa/data/sync-data/habitat_pmep/raw/PMEP_Nearshore_Zones_and_Habitat.gdb" # Aurora
 
 
 # Export Attribute Table -------------------------------------------------------------
@@ -40,14 +43,38 @@ ogr2ogr(src_datasource_name = gdb.dir,
         nlt = 'PROMOTE_TO_MULTI')
 
 
+# Export Sections ------
+
+# Read exported attribute table
+att <- readRDS(file.path(out.dir, "West_Coast_USA_Nearshore_CMECS_Substrate_Habitat_Attributes.Rds"))
+
+# Get list of unique sections
+pmep_sections <- unique(att$PMEP_Section[att$State=='CA'])
+
+# Run the following in the command line:
+# ogr2ogr -f "GPKG" /home/shares/ca-mpa/data/sync-data/habitat_pmep/processed/substrate/substrate_ca/sections/substrate_section_52.gpkg /home/shares/ca-mpa/data/sync-data/habitat_pmep/raw/PMEP_Nearshore_Zones_and_Habitat.gdb West_Coast_USA_Nearshore_CMECS_Substrate_Habitat -where "State='CA' AND PMEP_Section='52'" --config OGR_ORGANIZE_POLYGONS CCW_INNER_JUST_AFTER_CW_OUTER
+# ogr2ogr -f "GPKG" /home/shares/ca-mpa/data/sync-data/habitat_pmep/processed/substrate/substrate_ca/sections/substrate_section_30.gpkg /home/shares/ca-mpa/data/sync-data/habitat_pmep/raw/PMEP_Nearshore_Zones_and_Habitat.gdb West_Coast_USA_Nearshore_CMECS_Substrate_Habitat -where "State='CA' AND PMEP_Section='30'" --config OGR_ORGANIZE_POLYGONS CCW_INNER_JUST_AFTER_CW_OUTER
+# ogr2ogr -f "GPKG" /home/shares/ca-mpa/data/sync-data/habitat_pmep/processed/substrate/substrate_ca/sections/substrate_section_31.gpkg /home/shares/ca-mpa/data/sync-data/habitat_pmep/raw/PMEP_Nearshore_Zones_and_Habitat.gdb West_Coast_USA_Nearshore_CMECS_Substrate_Habitat -where "State='CA' AND PMEP_Section='31'" --config OGR_ORGANIZE_POLYGONS CCW_INNER_JUST_AFTER_CW_OUTER
+# ogr2ogr -f "GPKG" /home/shares/ca-mpa/data/sync-data/habitat_pmep/processed/substrate/substrate_ca/sections/substrate_section_32.gpkg /home/shares/ca-mpa/data/sync-data/habitat_pmep/raw/PMEP_Nearshore_Zones_and_Habitat.gdb West_Coast_USA_Nearshore_CMECS_Substrate_Habitat -where "State='CA' AND PMEP_Section='32'" --config OGR_ORGANIZE_POLYGONS CCW_INNER_JUST_AFTER_CW_OUTER
+# ogr2ogr -f "GPKG" /home/shares/ca-mpa/data/sync-data/habitat_pmep/processed/substrate/substrate_ca/sections/substrate_section_33.gpkg /home/shares/ca-mpa/data/sync-data/habitat_pmep/raw/PMEP_Nearshore_Zones_and_Habitat.gdb West_Coast_USA_Nearshore_CMECS_Substrate_Habitat -where "State='CA' AND PMEP_Section='33'" --config OGR_ORGANIZE_POLYGONS CCW_INNER_JUST_AFTER_CW_OUTER
+# ogr2ogr -f "GPKG" /home/shares/ca-mpa/data/sync-data/habitat_pmep/processed/substrate/substrate_ca/sections/substrate_section_53.gpkg /home/shares/ca-mpa/data/sync-data/habitat_pmep/raw/PMEP_Nearshore_Zones_and_Habitat.gdb West_Coast_USA_Nearshore_CMECS_Substrate_Habitat -where "State='CA' AND PMEP_Section='53'" --config OGR_ORGANIZE_POLYGONS CCW_INNER_JUST_AFTER_CW_OUTER
+# ogr2ogr -f "GPKG" /home/shares/ca-mpa/data/sync-data/habitat_pmep/processed/substrate/substrate_ca/sections/substrate_section_40.gpkg /home/shares/ca-mpa/data/sync-data/habitat_pmep/raw/PMEP_Nearshore_Zones_and_Habitat.gdb West_Coast_USA_Nearshore_CMECS_Substrate_Habitat -where "State='CA' AND PMEP_Section='40'" --config OGR_ORGANIZE_POLYGONS CCW_INNER_JUST_AFTER_CW_OUTER
+# ogr2ogr -f "GPKG" /home/shares/ca-mpa/data/sync-data/habitat_pmep/processed/substrate/substrate_ca/sections/substrate_section_41.gpkg /home/shares/ca-mpa/data/sync-data/habitat_pmep/raw/PMEP_Nearshore_Zones_and_Habitat.gdb West_Coast_USA_Nearshore_CMECS_Substrate_Habitat -where "State='CA' AND PMEP_Section='41'" --config OGR_ORGANIZE_POLYGONS CCW_INNER_JUST_AFTER_CW_OUTER
+# ogr2ogr -f "GPKG" /home/shares/ca-mpa/data/sync-data/habitat_pmep/processed/substrate/substrate_ca/sections/substrate_section_50.gpkg /home/shares/ca-mpa/data/sync-data/habitat_pmep/raw/PMEP_Nearshore_Zones_and_Habitat.gdb West_Coast_USA_Nearshore_CMECS_Substrate_Habitat -where "State='CA' AND PMEP_Section='50'" --config OGR_ORGANIZE_POLYGONS CCW_INNER_JUST_AFTER_CW_OUTER
+# ogr2ogr -f "GPKG" /home/shares/ca-mpa/data/sync-data/habitat_pmep/processed/substrate/substrate_ca/sections/substrate_section_23.gpkg /home/shares/ca-mpa/data/sync-data/habitat_pmep/raw/PMEP_Nearshore_Zones_and_Habitat.gdb West_Coast_USA_Nearshore_CMECS_Substrate_Habitat -where "PMEP_Section='23'" --config OGR_ORGANIZE_POLYGONS CCW_INNER_JUST_AFTER_CW_OUTER
+
+
 # Subset to only the data within MPAs ------------------------------------------
 
 ## Create raster object of the substrate layer
-substrate_raster <- raster::raster(substrate_ca)
+#substrate_raster <- raster::raster(substrate_ca) # clearly this wouldn't work
+
+# I bet this (below) was using the loaded substrate data (which took 8+ hours) rather
+# than the exported shapefiles? Unsure where the errors have come up
 
 # Use st_intersection to create a subset of only those data within MPAs
 mpa_intersect <- st_intersection(substrate_ca, mpas)
-saveRDS(mpa_intersect, file.path(sync.dir, "habitat_pmep", "mpa_substrate_intersection.Rds"))
+saveRDS(mpa_intersect, file.path(sync.dir, "habitat_pmep/processed", "mpa_substrate_intersection.Rds"))
 
 # This approach ends up splits polygons based on MPA borders (e.g. greater number 
 # of observations because adjacent MPAs will split one poly into two)
