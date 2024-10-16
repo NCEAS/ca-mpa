@@ -8,8 +8,6 @@ rm(list=ls())
 librarian::shelf(ggplot2, tidyverse, purrr)
 
 #set directories
-data_path <- "/home/shares/ca-mpa/data/sync-data/"
-biomass_dat <-  paste0(data_path,"monitoring/processed_data/biomass_processed")
 fig_dir <- here::here("analyses","1performance_eco","figures")
 tab_dir <- here::here("analyses","1performance_eco","tables")
 dat_path <- here::here("analyses","1performance_eco","output")

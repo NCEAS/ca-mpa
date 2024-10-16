@@ -11,8 +11,6 @@ library(tidyverse)
 
 # Directories
 basedir <- here::here("analyses","1performance_eco","output")
-aurora <- "/home/shares/ca-mpa/data/sync-data/"
-gisdir <- "/home/shares/ca-mpa/data/sync-data/gis_data/processed"
 plotdir <- here::here("analyses","1performance_eco","figures")
 
 # Read data
