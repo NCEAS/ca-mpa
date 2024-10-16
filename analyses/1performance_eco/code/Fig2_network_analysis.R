@@ -52,18 +52,6 @@ habitat_region <- filtered_data %>%
 #saveRDS(habitat_region, file = file.path(dat_path, "habitat_region_meta_results.Rds"))
 
 ################################################################################
-# Verify that the group_by and do() call worked using a test
-rma_test_dat <- filtered_data %>% dplyr::filter(habitat == "Kelp forest" &
-                                                  state_region == "North Coast" &
-                                                  target_status == "Targeted")
-
-rma_test_results <- coef(summary(rma(yi, vi, data = rma_test_dat)))
-                   
-pooled_results_filtered <- pooled_results %>% dplyr::filter(habitat == "Kelp forest" &
-                                                              state_region == "North Coast" &
-                                                              target_status == "Targeted")      
-
-################################################################################
 # Calculate the pooled effects for each habitat and target status
 habitat <- filtered_data %>%
   group_by(habitat, mpa_defacto_class, target_status) %>%
