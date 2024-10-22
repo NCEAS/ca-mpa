@@ -147,7 +147,7 @@ plot
 
 #print(plot)
 
-#ggsave(file.path(tab_dir, "TableS10_GAM_results.png"), plot, dpi = 600,
+#ggsave(file.path(tab_dir, "TableS10_GAM_results2.png"), plot, dpi = 600,
  #      bg = "white", width = 9, height = 10, units = "in")
 
 
