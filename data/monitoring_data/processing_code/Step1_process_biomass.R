@@ -98,7 +98,7 @@ bio_fun <- function(params, data) {
 }
 
 
-# Calculate biomass  ----------------------------------------------------------------
+# Calculate biomass  -----------------------------------------------------------
 
 ccfrp_biomass <- bio_fun(params, ccfrp)
 
@@ -108,11 +108,54 @@ kelp_biomass <- bio_fun(params, kelp)
 
 surf_biomass <- bio_fun(params, surf)
 
+# Drop pelagics species and large 'biomass buster' sharks ----------------------
+
+#see selection criteria here: https://docs.google.com/spreadsheets/d/1SUalEkWFKEgB46bqCcSNLqCzBHGj6FHNfs1iFOiMLww/edit?gid=1028839899#gid=1028839899
+
+ccfrp_biomass1 <- ccfrp_biomass %>%
+  filter(!(sciname %in% c("Alopias vulpinus", 
+                          "Aulorhynchus flavidus", 
+                          "Carcharhinus obscurus", 
+                          "Engraulis mordax", 
+                          "Galeorhinus galeus", 
+                          "Oncorhynchus tshawytscha", 
+                          "Sardinops sagax")))
+
+
+deep_biomass1 <- deep_biomass %>%
+  filter(!(sciname %in% c("Entosphenus tridentatus", 
+                          "Hexanchus griseus", 
+                          "Mola mola",
+                          "Apristurus brunneus")))
+
+
+kelp_biomass1 <- kelp_biomass %>%
+  filter(!(sciname %in% c("Alopias vulpinus", 
+                          "Carcharhinus obscurus", 
+                          "Decapterus macarellus", 
+                          "Engraulis mordax", 
+                          "Galeorhinus galeus", 
+                          "Hexanchus griseus", 
+                          "Mola mola", 
+                          "Notorynchus cepedianus", 
+                          "Prionace glauca", 
+                          "Sarda chiliensis", 
+                          "Sardinops sagax", 
+                          "Scomber japonicus", 
+                          "Thaleichthys pacificus")))
+
+surf_biomass1 <- surf_biomass 
+
+#surf_biomass1 <- surf_biomass %>%
+ #                 filter(!(sciname %in% c("Engraulis mordax", "Sardinops sagax")))
+                  #sardines and anchovies are characteristic of the Central Coast,
+                  #so we will retain them here. see: https://caseagrant.ucsd.edu/sites/default/files/importedFiles/FinalMPAReportBeachesSurfZonesJan2022.pdf
+
 # Write to csv ----------------------------------------------------------------
-write.csv(surf_biomass, row.names = F, file.path(datadir,"/biomass_processed/surf_zone_fish_biomass_updated.csv"))  #last write 26 July 2024
-write.csv(kelp_biomass, row.names = F, file.path(datadir,"/biomass_processed/kelpforest_fish_biomass_updated.csv")) #last write 26 July 2024
-write.csv(ccfrp_biomass, row.names = F, file.path(datadir,"/biomass_processed/ccfrp_fish_biomass_updated.csv")) #last write 26 July 2024
-write.csv(deep_biomass, row.names = F, file.path(datadir,"/biomass_processed/deep_reef_fish_biomass_updated.csv")) #last write 26 July 2024
+write.csv(surf_biomass1, row.names = F, file.path(datadir,"/biomass_processed/surf_zone_fish_biomass_updated.csv"))  #last write 22 Oct 2024 
+write.csv(kelp_biomass1, row.names = F, file.path(datadir,"/biomass_processed/kelpforest_fish_biomass_updated.csv")) #last write 22 Oct 2024 
+write.csv(ccfrp_biomass1, row.names = F, file.path(datadir,"/biomass_processed/ccfrp_fish_biomass_updated.csv")) #last write 22 Oct 2024 
+write.csv(deep_biomass1, row.names = F, file.path(datadir,"/biomass_processed/deep_reef_fish_biomass_updated.csv")) #last write 22 Oct 2024 
 
 # IN PROGRESS: Explore everything that's going wrong -----------------------------------
 
