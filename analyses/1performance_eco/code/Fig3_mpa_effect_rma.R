@@ -160,7 +160,7 @@ g <- ggplot(pooled_results, aes(x = estimate, y = mpa)) +
   theme_bw() + my_theme 
 g
 
-ggsave(g, filename=file.path(fig_dir, "Fig3_mpa_effect_size2.png"), bg = "white",
+ggsave(g, filename=file.path(fig_dir, "Fig3_mpa_effect_size3.png"), bg = "white",
       width=8, height=10, units="in", dpi=600) 
 
 

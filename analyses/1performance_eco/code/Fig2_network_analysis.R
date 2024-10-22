@@ -330,7 +330,7 @@ legend_only <- cowplot::get_legend(g1)
 g_final <- ggpubr::ggarrange(g, legend_only, widths = c(0.8,0.2), ncol=2)
 g_final
 
-ggsave(g_final, filename=file.path(fig_dir, "Fig2_network_forestplot2.png"), bg = "white",
+ggsave(g_final, filename=file.path(fig_dir, "Fig2_network_forestplot3.png"), bg = "white",
        width=6.5, height=10, units="in", dpi=600) 
 
 
