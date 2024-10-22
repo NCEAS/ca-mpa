@@ -47,7 +47,7 @@ habitat_region <- filtered_data %>%
 
 
 #save results to .rdata to generate summary table
-#saveRDS(habitat_region, file = file.path(dat_path, "habitat_region_meta_results.Rds"))
+#saveRDS(habitat_region, file = file.path(dat_path, "habitat_region_meta_results2.Rds"))
 
 ################################################################################
 # Calculate the pooled effects for each habitat and target status
@@ -66,7 +66,7 @@ habitat <- filtered_data %>%
          )
 
 #save results to .rdata to generate summary table
-#saveRDS(habitat, file = file.path(dat_path, "habitat_target_meta_results.Rds"))
+#saveRDS(habitat, file = file.path(dat_path, "habitat_target_meta_results2.Rds"))
 
 ################################################################################
 # Calculate the pooled effects for each region across habitat
@@ -85,7 +85,7 @@ region <- filtered_data %>%
   )
 
 #save results to .rdata to generate summary table
-#saveRDS(region, file = file.path(dat_path, "region_meta_results.Rds"))
+#saveRDS(region, file = file.path(dat_path, "region_meta_results2.Rds"))
 
 ################################################################################
 # Calculate the pooled effect for entire state
@@ -106,7 +106,7 @@ state <- filtered_data %>%
   )
 
  #save results to .rdata to generate summary table
-#saveRDS(state, file = file.path(dat_path, "state_meta_results.Rds"))
+#saveRDS(state, file = file.path(dat_path, "state_meta_results2.Rds"))
 
 ################################################################################
 #join everything
@@ -219,7 +219,7 @@ g1 <- ggplot(habitat %>%
        title = "Ecosystem performance",
        tag = "C") +
   theme_bw() + my_theme + theme(plot.margin = ggplot2::margin(0, 0, 0, 0, "cm"))
-g1
+#g1
 
 
 
@@ -271,7 +271,7 @@ g2 <- ggplot(region %>%
        tag = "B")+
   theme_bw() + my_theme + theme(plot.margin = ggplot2::margin(-0.2,0,0,0,"cm"))
 
-g2
+#g2
 
 
 g3 <- ggplot(network %>% 
@@ -317,7 +317,7 @@ g3 <- ggplot(network %>%
        tag = "A")+
   theme_bw() + my_theme + theme(plot.margin = ggplot2::margin(0,0,0,0,"cm"))
 
-g3
+#g3
 
 
 #plot
