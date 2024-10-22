@@ -1,0 +1,17 @@
+"Region","MPA type","Allowed take","Target status","Effect size","Standard error","P-value","95% lower","95% upper","No. MPA-Ecosystem pairs","Tau-2","Q"
+"North Coast","SMCA","Partial-take","Targeted",1.901,0.912,"0.037",0.115,3.688,4,2.967,17.48
+"North Coast","SMR","No-take","Targeted",0.213,0.193,"0.27",-0.165,0.592,7,0.162,17.592
+"North Coast","SMCA","Partial-take","Non-targeted",1.22,0.721,"0.09",-0.192,2.633,4,1.849,50.963
+"North Coast","SMR","No-take","Non-targeted",0.112,0.245,"0.647",-0.368,0.593,5,0.276,621.643
+"North Central Coast","SMCA","Partial-take","Targeted",0.114,0.349,"0.743",-0.57,0.798,4,0.222,6.077
+"North Central Coast","SMR","No-take","Targeted",0.582,0.244,"0.017",0.104,1.061,9,0.428,86.178
+"North Central Coast","SMCA","Partial-take","Non-targeted",0.022,0.38,"0.953",-0.722,0.767,3,0.432,560.025
+"North Central Coast","SMR","No-take","Non-targeted",0.252,0.145,"0.082",-0.032,0.536,5,0.098,37.954
+"Central Coast","SMCA","Partial-take","Targeted",-0.271,0.331,"0.414",-0.92,0.379,2,0.158,3.432
+"Central Coast","SMR","No-take","Targeted",0.356,0.154,"0.021",0.054,0.659,25,0.451,168.506
+"Central Coast","SMCA","Partial-take","Non-targeted",-0.087,0.447,"0.845",-0.964,0.79,2,0.352,8.177
+"Central Coast","SMR","No-take","Non-targeted",0.224,0.124,"0.07",-0.019,0.466,21,0.257,228.277
+"South Coast","SMCA","Partial-take","Targeted",0.376,0.511,"0.462",-0.625,1.378,5,1.149,41.689
+"South Coast","SMR","No-take","Targeted",0.641,0.156,"<0.001",0.335,0.946,37,0.735,620.309
+"South Coast","SMCA","Partial-take","Non-targeted",-0.291,0.534,"0.586",-1.338,0.757,5,1.289,28.022
+"South Coast","SMR","No-take","Non-targeted",0.139,0.149,"0.352",-0.154,0.431,31,0.565,313.5
