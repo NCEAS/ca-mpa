@@ -30,11 +30,7 @@ mlpa_lw <- read_csv(file.path(sync.dir, "species_traits/processed/lw_parameters_
                            TRUE ~ level))
 
 # Read the pmep cleaned table
-pmep_sp <- readRDS(file.path(sync.dir, "habitat_pmep/processed/pmep_species_processed.Rds")) %>% 
-  mutate(across(mud:sfmi, as.numeric)) %>% 
-  mutate(intertidal = as.numeric(if_else(is.na(intertidal), NA, 1)),
-         subtidal = as.numeric(if_else(is.na(subtidal), NA, 1))) %>% 
-  select(-order)
+pmep_sp <- readRDS(file.path(sync.dir, "habitat_pmep/processed/pmep_species_processed.Rds")) 
 
 
 # Build --------------------------------------------------------------------------------
@@ -50,11 +46,21 @@ sp <- mlpa_sp %>%
   full_join(mlpa_lw) %>% 
   rename(species = sciname) %>% 
   left_join(pmep_sp, by = c("genus", "species")) %>% 
-  mutate(assemblage_source = if_else(!is.na(assemblage), "species", NA)) %>% 
+  mutate(assemblage_source = if_else(!is.na(assemblage), "pmep", NA)) %>% 
   rename(family_ltm = family.x,
          family_pmep = family.y) %>% 
-  select(family_ltm, family_pmep, genus, species, common_name, everything()) 
-
+  select(family_ltm, family_pmep, genus, species, common_name, everything()) %>% 
+  mutate(across(c(min_max_m, common_m), ~ str_replace_all(., "[-–]", "_"))) %>% 
+  mutate(depth_min_m = str_split_i(min_max_m, "_", 1),
+         depth_max_m = str_split_i(min_max_m, "_", 2),
+         depth_common_min_m = case_when(str_detect(common_m, "<") ~ "0",
+                                        str_detect(common_m, ">") ~ str_split_i(common_m, "> ", 2),
+                                        str_detect(common_m, "_") ~ str_split_i(common_m, "_", 1)),
+         depth_common_max_m = case_when(str_detect(common_m, "<") ~ str_split_i(common_m, "<", 2),
+                                        str_detect(common_m, ">") ~ NA,
+                                        str_detect(common_m, "_") ~ str_split_i(common_m, "_", 2)))
+           
+# To do: change Kelp Bass to Hard Bottom Biotic re chat with JC (no info in table)
 
 saveRDS(sp, file.path(out.dir, "species_lw_habitat.Rds"))
 

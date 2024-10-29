@@ -27,40 +27,47 @@ library(stringr)
 
 # Directories
 ltm.dir <-"/home/shares/ca-mpa/data/sync-data/monitoring/processed_data"
-spe.dir <- "/home/shares/ca-mpa/data/sync-data/species_traits/processed"
+sp.dir <- "/home/shares/ca-mpa/data/sync-data/species_traits/processed"
 
-surf_orig <- read_csv(file.path(ltm.dir,"biomass_processed/surf_zone_fish_biomass_updated.csv")) %>% 
-  filter(!is.na(weight_g)) %>%  # drop for now - these are all fishes that are unknown or species with no lengths (WARNING: currently drops one full haul!)
-  mutate(target_status = if_else(species_code == "NO_ORG", "NO_ORG", target_status)) %>%  # helpful for inspecting 
-  filter(!is.na(target_status))  # this drops: RFYOY, FFUN, HALI, Zoarcidae spp (after previous step to avoid dropping NO_ORG)
+
+# surf_orig <- read_csv(file.path(ltm.dir,"biomass_processed/surf_zone_fish_biomass_updated.csv")) %>% 
+#   filter(!is.na(weight_g)) %>%  # drop for now - these are all fishes that are unknown or species with no lengths (WARNING: currently drops one full haul!)
+#   mutate(target_status = if_else(species_code == "NO_ORG", "NO_ORG", target_status)) %>%  # helpful for inspecting 
+#   filter(!is.na(target_status))  # this drops: RFYOY, FFUN, HALI, Zoarcidae spp (after previous step to avoid dropping NO_ORG)
 
 kelp_orig <- read_csv(file.path(ltm.dir,"biomass_processed/kelpforest_fish_biomass_updated.6.csv")) %>%  # WARNING: THE NA REMOVALS HERE DROPS LOTS OF TRANSECTS (~871)
   filter(!is.na(affiliated_mpa)) %>% # drops sites with no mpa (yellowbanks, trinidad, etc - see kf processing for details)
   filter(!is.na(weight_kg)) %>%  # drops fishes unknown or without lengths/conversion params
   mutate(target_status = if_else(species_code == "NO_ORG", "NO_ORG", target_status))
 
-rock_orig <- read_csv(file.path(ltm.dir,"biomass_processed/ccfrp_fish_biomass_updated.csv")) %>% # WARNING: NA REMOVALS DROPS 2 CELL TRIPS
-  filter(!is.na(weight_kg)) %>%   #  drops fishes unknown or without lengths/conversion params
-  mutate(target_status = if_else(species_code == "NO_ORG", "NO_ORG", target_status)) %>%  # helpful for inspecting 
-  filter(!is.na(target_status)) # drop for now - spp without target status identified (see notes for details)
+# rock_orig <- read_csv(file.path(ltm.dir,"biomass_processed/ccfrp_fish_biomass_updated.csv")) %>% # WARNING: NA REMOVALS DROPS 2 CELL TRIPS
+#   filter(!is.na(weight_kg)) %>%   #  drops fishes unknown or without lengths/conversion params
+#   mutate(target_status = if_else(species_code == "NO_ORG", "NO_ORG", target_status)) %>%  # helpful for inspecting 
+#   filter(!is.na(target_status)) # drop for now - spp without target status identified (see notes for details)
 
-deep_orig <- read_csv(file.path(ltm.dir,"biomass_processed/deep_reef_fish_biomass_updated.csv")) %>% #WARNING: NA REMOVALS DROPS 12 TRANSECTS
-  filter(!is.na(weight_kg)) %>% # drop fishes unknown or without lengths/conversion params
-  mutate(target_status = if_else(species_code == "NO_ORG" & is.na(target_status), "NO_ORG", target_status)) %>%  # helpful for inspecting 
-  filter(!is.na(target_status))
+# deep_orig <- read_csv(file.path(ltm.dir,"biomass_processed/deep_reef_fish_biomass_updated.csv")) %>% #WARNING: NA REMOVALS DROPS 12 TRANSECTS
+#   filter(!is.na(weight_kg)) %>% # drop fishes unknown or without lengths/conversion params
+#   mutate(target_status = if_else(species_code == "NO_ORG" & is.na(target_status), "NO_ORG", target_status)) %>%  # helpful for inspecting 
+#   filter(!is.na(target_status))
 
+# Read the species table
+sp_raw <- readRDS(file.path(sp.dir, "species_lw_habitat.Rds")) 
+
+sp <- sp_raw %>% 
+  dplyr::select(genus, sciname = species, common_name, level, target_status, vertical_zonation, 
+         region, assemblage, assemblage_new, depth_min_m:depth_common_max_m)
 
 # Build species dataframes -----------------------------------------------------
 
 ## Kelp ----
 
 kelp_effort <- kelp_orig %>% 
-  # Identify distinct transects - 28300 (after the NA dropped above)
+  # Identify distinct transects - 35251 (after the NA dropped above)
   distinct(year, month, day, site, zone, transect, 
            bioregion, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation) %>% 
   # Calculate effort as total n transects per site, per year
   group_by(year, site, bioregion, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation) %>% 
-  summarize(n_rep = n()) # 3101 site-year combos
+  summarize(n_rep = n()) # 3131 site-year combos
 
 # Find true zeroes (no fish across an entire site in an entire year)
 kelp_zeroes <- kelp_orig %>% 
@@ -70,13 +77,29 @@ kelp_zeroes <- kelp_orig %>%
   
 kelp <- kelp_orig %>% 
   group_by(year, site, bioregion, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation,
-           sciname, family, genus, species, target_status, level) %>%
+           species_code, sciname, family, genus, species, target_status, level) %>%
   # Total biomass of each species per site per year
   summarise(total_biomass_kg = sum(weight_kg),
             total_count = sum(count)) %>%
   full_join(kelp_effort) %>% 
-  filter(!target_status == "NO_ORG") # drop these bc aren't true zeroes
+  filter(!target_status == "NO_ORG") %>%  # drop these bc aren't true zeroes
+  mutate(site_type = if_else(mpa_defacto_designation == "ref", "Reference", "MPA")) %>% 
+  mutate(affiliated_mpa = recode(affiliated_mpa, "swami's smca" = "swamis smca")) %>% 
+  mutate(kg_per_m2 = total_biomass_kg/(n_rep*60), # 30x2x2m but JC says typicall density is per m2 (60)
+         count_per_m2 = total_count/(n_rep*60)) %>% 
+  mutate(region = case_when(bioregion == "South" ~ "scb",
+                            bioregion == "Central" ~ "cce",
+                            bioregion == "North" ~ "pnw")) %>% 
+  ungroup() %>% 
+  left_join(sp)
 
+test <- kelp %>%  # 7 sites with no info about inside/outside
+  filter(is.na(site_type)) %>% 
+  distinct(site, affiliated_mpa, mpa_defacto_designation, bioregion, site_type)
+
+test <- kelp %>% 
+  filter(is.na(sciname)) %>% 
+  distinct(bioregion, species_code, sciname, family, genus, species, target_status, level, common_name)
 
 ## Surf ----
 
@@ -139,7 +162,7 @@ deep <- deep_orig %>%
 
 
 # Export -------------------------------------------------------------------------------------
-saveRDS(kelp, file.path(ltm.dir, "biomass_site_year/kelp_biomass_site_year.Rds"))
+saveRDS(kelp, file.path(ltm.dir, "biomass_site_year/kelp_biomass_site_year.Rds")) # last write Aug 16 2024
 saveRDS(surf, file.path(ltm.dir, "biomass_site_year/surf_biomass_site_year.Rds"))
 saveRDS(rock, file.path(ltm.dir, "biomass_site_year/ccfrp_biomass_site_year.Rds"))
 saveRDS(deep, file.path(ltm.dir, "biomass_site_year/deep_biomass_site_year.Rds"))
