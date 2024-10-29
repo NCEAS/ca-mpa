@@ -6,8 +6,8 @@
 rm(list = ls())
 
 # Packages
-library(tidyverse)
-library(randomForest)
+library(tidyverse, randomForest)
+
 
 # Directories
 datadir <- "analyses/1performance_eco/output"

@@ -93,7 +93,7 @@ biomass_with_mods <- left_join(biomass_raw, mpa_traits, by="affiliated_mpa") %>%
   mutate(mpa = ifelse(is.na(mpa), affiliated_mpa,mpa))
 
 saveRDS(biomass_with_mods, file.path(dat_path, "biomass_with_moderators_new2.Rds"))
-# last write 25 Mar 2024
+# last write 22 Oct 2024
 
 #saveRDS(biomass_with_mods, file.path(dat_path, "biomass_with_moderators_new.Rds"))
 # last write 26 oct 2023

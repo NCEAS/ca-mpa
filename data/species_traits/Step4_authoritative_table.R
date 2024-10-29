@@ -6,7 +6,8 @@
 # parameters most appropriate for each species in their database. However, their 
 # species list does not capture all observed species in the entire monitoring datasets
 # across all habitats. Therefore, we will use the CCFRP-identified length-weight 
-# parameters when they exist, and will otherwise use parameters pulled from fishbase.
+# parameters when they exist, then will draw from Kelp forest, surf zone, 
+# deep reef, and then FishBase. 
 
 # This script combines the CCFRP parameter table with the length-weight 
 # parameters that were pulled from fishbase in Step 3.

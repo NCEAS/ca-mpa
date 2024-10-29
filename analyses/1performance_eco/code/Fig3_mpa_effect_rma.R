@@ -8,8 +8,6 @@ rm(list=ls())
 librarian::shelf(ggplot2, tidyverse, here, metafor)
 
 #set directories
-data_path <- "/home/shares/ca-mpa/data/sync-data/"
-biomass_dat <-  paste0(data_path,"monitoring/processed_data/biomass_processed")
 fig_dir <- here::here("analyses","1performance_eco","figures")
 tab_dir <- here::here("analyses","1performance_eco","tables")
 dat_path <- here::here("analyses","1performance_eco","output")
@@ -17,7 +15,7 @@ dat_path <- here::here("analyses","1performance_eco","output")
 #read data
 biomass_mod <- readRDS(file.path(dat_path, "biomass_with_moderators_new2.Rds")) 
 
-unique(biomass_mod$mpa)
+unique(biomass_mod$mpa) 
 
 ################################################################################
 
@@ -65,7 +63,7 @@ pooled_results <- filtered_data %>%
 
 
 #save results to .rdata to generate summary table
-#saveRDS(pooled_results, file = file.path(dat_path, "mpa_level_meta_results.Rds"))
+#saveRDS(pooled_results, file = file.path(dat_path, "mpa_level_meta_results2.Rds"))
 
 ##warning is OK -- tau^2 can't be estimated for MPAs with only one habitat. 
 
@@ -162,7 +160,7 @@ g <- ggplot(pooled_results, aes(x = estimate, y = mpa)) +
   theme_bw() + my_theme 
 g
 
-ggsave(g, filename=file.path(fig_dir, "Fig3_mpa_effect_size2.png"), bg = "white",
+ggsave(g, filename=file.path(fig_dir, "Fig3_mpa_effect_size3.png"), bg = "white",
       width=8, height=10, units="in", dpi=600) 
 
 

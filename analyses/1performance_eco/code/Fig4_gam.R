@@ -9,8 +9,6 @@ librarian::shelf(ggplot2, tidyverse, here, mgcv, gratia, ggeffects, mgcViz,
                  tidymv, flextable)
 
 #set directories
-data_path <- "/home/shares/ca-mpa/data/sync-data/"
-biomass_dat <-  paste0(data_path,"monitoring/processed_data/biomass_processed")
 fig_dir <- here::here("analyses","1performance_eco","figures")
 tab_dir <- here::here("analyses","1performance_eco","tables")
 dat_path <- here::here("analyses","1performance_eco","output")
@@ -149,7 +147,7 @@ plot
 
 #print(plot)
 
-#ggsave(file.path(tab_dir, "TableS10_GAM_results.png"), plot, dpi = 600,
+#ggsave(file.path(tab_dir, "TableS10_GAM_results2.png"), plot, dpi = 600,
  #      bg = "white", width = 9, height = 10, units = "in")
 
 
@@ -243,7 +241,7 @@ p
 
 
 
-ggsave(p, filename=file.path(fig_dir, "Fig4_GAM.png"), bg = "white",
+ggsave(p, filename=file.path(fig_dir, "Fig4_GAM2.png"), bg = "white",
        width=5, height=5, units="in", dpi=600) 
 
 

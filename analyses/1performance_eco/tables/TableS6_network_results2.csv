@@ -1,0 +1,5 @@
+"MPA type","Allowed take","Target status","Effect size","Standard error","P-value","95% lower","95% upper","No. MPA-Ecosystem pairs","Tau-2","Q"
+"SMCA","Partial-take","Targeted",0.593,0.315,"0.059",-0.024,1.21,15,1.241,120.23
+"SMR","No-take","Targeted",0.497,0.096,"<0.001",0.31,0.685,78,0.569,1000.213
+"SMCA","Partial-take","Non-targeted",0.225,0.319,"0.48",-0.4,0.85,14,1.307,5745.747
+"SMR","No-take","Non-targeted",0.167,0.085,"0.049",0.001,0.333,62,0.365,1774.773
