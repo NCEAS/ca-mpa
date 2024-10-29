@@ -112,7 +112,7 @@ surf_biomass <- bio_fun(params, surf)
 
 # Write to csv ----------------------------------------------------------------
 write.csv(surf_biomass, row.names = F, file.path(datadir,"/biomass_processed/surf_zone_fish_biomass_updated.csv"))  #last write 26 July 2024
-write.csv(kelp_biomass, row.names = F, file.path(datadir,"/biomass_processed/kelpforest_fish_biomass_updated.6.csv")) #last write 26 July 2024
+write.csv(kelp_biomass, row.names = F, file.path(datadir,"/biomass_processed/kelpforest_fish_biomass_updated.6.csv")) #last write 16 Aug 2024
 write.csv(ccfrp_biomass, row.names = F, file.path(datadir,"/biomass_processed/ccfrp_fish_biomass_updated.csv")) #last write 26 July 2024
 write.csv(deep_biomass, row.names = F, file.path(datadir,"/biomass_processed/deep_reef_fish_biomass_updated.csv")) #last write 26 July 2024
 

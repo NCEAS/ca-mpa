@@ -28,11 +28,14 @@ datadir <- "/home/shares/ca-mpa/data/sync-data/monitoring/monitoring_kelp/update
 outdir <-  "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_2024"
 
 # Read kelp forest monitoring data (fishes)
-kelp_forest_raw <- read.csv(file.path(datadir, "MLPA_kelpforest_fish.6.csv"))
+kelp_forest_raw <- read.csv(file.path(datadir, "MLPA_kelpforest_fish.6.csv"),
+                            na.strings = c("N/A", "NA", "na", "'n/a'"))
 
 # Read kelp forest site table
 kelp_sites_raw <- read.csv(file.path(datadir, "MLPA_kelpforest_site_table.6.csv"), 
-                           na.strings = c("N/A", "NA", "na")) %>% clean_names()
+                           na.strings = c("N/A", "NA", "na", "'n/a'")) %>% clean_names() %>% 
+  mutate(across(where(is.character), ~ trimws(.))) %>% 
+  filter(!(site == "POINT_LOMA_CEN" & is.na(site_designation)))
 
 # Read taxonomy lookup table & filter for kelp forest only
 kelp_code <- read.csv("/home/shares/ca-mpa/data/sync-data/species_traits/processed/species_key.csv") %>% 
@@ -57,7 +60,8 @@ defacto_smr_kelp <- readxl::read_excel("/home/shares/ca-mpa/data/sync-data/mpa_t
           mpa_defacto_class = "smca")
 
 sites <- readRDS("/home/shares/ca-mpa/data/sync-data/monitoring/monitoring_sites_clean.Rds") %>% 
-  filter(habitat == "Kelp")
+  mutate(mpa_orig = if_else(mpa_orig == "n/a", NA, mpa_orig)) %>% 
+  filter(habitat == "Kelp") 
 
 # Build ----
 # Note: the unit of replication for kelp forest is transect, which now corresponds to 
@@ -66,24 +70,36 @@ sites <- readRDS("/home/shares/ca-mpa/data/sync-data/monitoring/monitoring_sites
 
 # Process kelp forest sites 
 kelp_sites <- kelp_sites_raw %>%
-  distinct(site, ca_mpa_name_short, site_designation, site_status) %>% 
-  mutate(
-    affiliated_mpa = tolower(if_else(ca_mpa_name_short == "Swamis SMCA", "swami's smca", ca_mpa_name_short)),
-    mpa_state_class = tolower(site_designation),
-    mpa_state_designation = if_else(site_status == "reference", "ref", mpa_state_class)) %>%
+  distinct(site, ca_mpa_name_short, site_designation, site_status, latitude, longitude) %>% 
+  group_by(site, ca_mpa_name_short, site_designation, site_status) %>% 
+  summarize(latitude = mean(latitude),
+            longitude = mean(longitude)) %>% ungroup() %>% 
+  full_join(sites, by = "site") %>% 
+  mutate(affiliated_mpa = coalesce(mpa_orig, tolower(ca_mpa_name_short)),
+         lat_dd = coalesce(lat_dd, latitude),
+         long_dd = coalesce(long_dd, longitude),
+         site_status = coalesce(site_status, tolower(site_type)),
+         site_designation = case_when(is.na(site_designation) & str_detect(affiliated_mpa, "smca") ~ "SMCA",
+                                      is.na(site_designation) & str_detect(affiliated_mpa, "smr") ~ "SMR",
+                                      T~site_designation)) %>% 
+  dplyr::select(habitat, site, lat_dd, long_dd, affiliated_mpa, site_designation, site_status) %>% 
+  mutate(mpa_state_class = tolower(site_designation),
+         mpa_state_designation = if_else(site_status == "reference", "ref", mpa_state_class)) %>% 
+  mutate(affiliated_mpa = recode(affiliated_mpa, 
+                                 "blue cavern smca" = "blue cavern onshore smca",
+                                 "swamis smca" = "swami's smca")) %>% 
   left_join(regions) %>% # Add regions
   left_join(defacto_smr_kelp) %>% # Add defacto designation
-  mutate(mpa_defacto_designation = if_else(mpa_state_designation == "ref", "ref", mpa_defacto_class)) %>% 
-  filter(!(site == "POINT_LOMA_CEN" & is.na(site_designation)))
+  mutate(mpa_defacto_designation = if_else(mpa_state_designation == "ref", "ref", mpa_defacto_class)) 
+
+test <- kelp_forest_raw %>% # there are three sites that won't match - are in the data but not the site table?
+  distinct(site, year) %>% 
+  filter(!(site %in% kelp_sites$site))
 
 # Process monitoring data 
 data <- kelp_forest_raw %>% 
-  mutate(site = ifelse(site == "Swami's","SWAMIS",site)) %>% # Fix site name for join
-  # Join sites 
   left_join(kelp_sites, by="site") %>% 
-  # Join taxonomy 
   left_join(kelp_code, by = c("classcode"="habitat_specific_code")) %>% 
-  # Modify columns to match other habitats
   mutate(sl_cm = NA,
          species_code = if_else(classcode == "UNID", "UNKNOWN", classcode)) %>% 
   dplyr::select(year, month, day, # temporal
@@ -154,7 +170,7 @@ recent <- data %>%
 
 # Write processed data
 write.csv(data2, file.path(outdir, "kelp_processed.6.csv"), row.names = F)
-# Last write July 2024
+# Last write Aug 16 2024
 
 
 
