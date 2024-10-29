@@ -57,10 +57,10 @@ generate_predictors_list <- function(habitat_buffer_list) {
     habitat_combinations <- combn(habitat_buffer_list, r, simplify = FALSE)
     
     for (combo in habitat_combinations) {
-      predictors <- append(predictors, list(c("site_type", "age_at_survey")))
-      predictors <- append(predictors, list(combo))
-      predictors <- append(predictors, list(c(combo, "site_type")))
-      predictors <- append(predictors, list(c(combo, "age_at_survey")))
+     # predictors <- append(predictors, list(c("site_type", "age_at_survey")))
+      #predictors <- append(predictors, list(combo))
+      #predictors <- append(predictors, list(c(combo, "site_type")))
+     # predictors <- append(predictors, list(c(combo, "age_at_survey")))
       predictors <- append(predictors, list(c(combo, base_predictors)))
     }
   }
@@ -78,19 +78,16 @@ predictors_list <- c(
 predictors_list <- unique(predictors_list)
 
 
-# Specify mixed-effects model -------------------------------------------------------
+# 1. Specify mixed-effects model to refine habitat type ----------------------------
 
-# Fit a mixed-effects model using the lmer engine
 fit_model <- function(response, predictors, data) {
-  
   full_formula <- as.formula(paste(response, "~", 
                                    paste(predictors, collapse = " + "), "+", 
                                    paste(random_effects, collapse = " + ")))
   
   recipe <- recipe(full_formula, data = data_subset) %>%
-    step_log(all_outcomes(), base = 10, offset = 1)# %>%
-  # step_center(all_numeric_predictors()) %>%  
-  # step_scale(all_numeric_predictors())
+    step_log(all_outcomes(), base = 10, offset = 1) %>%
+    step_scale(all_numeric_predictors())
   
   mixed_model_spec <- linear_reg() %>%
     set_engine("lmer")
@@ -107,23 +104,24 @@ fit_model <- function(response, predictors, data) {
   list(
     fitted_model = fitted_model,
     formula_str = as.character(full_formula),
-    model_name = paste(response, paste(predictors, collapse = "_"), sep = "_")
+    model_name = paste(response, paste(predictors, collapse = "_"), paste0("(1 | ", random_effects, ")", collapse = " + "), sep = "_")
   )
 }
 
 # Extract results  ----------------------------------------------------------------------
 extract_results <- function(fit_result) {
   model <- extract_fit_parsnip(fit_result$fitted_model) %>% pluck("fit")
+  fixed_effects <- tidy(model, effects = "fixed") %>%  
+    mutate(effect_type = "fixed",
+           p_value = p.value)
   
-  fixed_effects <- tidy(model, effects = "fixed") %>%
-    mutate(effect_type = "fixed")
-  random_effects <- tidy(model, effects = "ran_pars") %>%
+  random_effects <- tidy(model, effects = "ran_pars") %>% 
     mutate(effect_type = "random")
   
-  effects <- bind_rows(fixed_effects, random_effects) %>% 
-    mutate(model_name = fit_result$model_name)
+  effects <- bind_rows(fixed_effects, random_effects) %>%  
+    mutate(model_name = fit_result$model_name,
+           p_value = p.value)
   
-  r_squared <- r.squaredGLMM(model)
   
   details <- tibble(
     model_name = fit_result$model_name,
@@ -133,26 +131,22 @@ extract_results <- function(fit_result) {
     delta_AICc = AICc - min_AICc,
     delta_AIC = AIC - min_AIC,
     r_squared_marginal = if (!inherits(r_squared, "try-error")) r_squared[1, "R2m"] else NA,
-    r_squared_conditional = if (!inherits(r_squared, "try-error")) r_squared[1, "R2c"] else NA
-  )
+    r_squared_conditional = if (!inherits(r_squared, "try-error")) r_squared[1, "R2c"] else NA)
   
-  list(
-    effects_table = effects,
-    details_table = details
-    
-  )
-}
+  list(effects_table = effects,
+       details_table = details)}
 
-# Specify reduced models ----------------------------------------------
+# Specify CI Models ----------------------------------------------
 
-habitat_model <- function(response, predictors, data) {
+ci_model <- function(response, predictors, data) {
   full_formula <- as.formula(str_replace_all(
     paste(response, "~", 
           paste(predictors, collapse = " + "), "+", 
           paste(random_effects, collapse = " + ")), "\\*", "+"))
   
   recipe <- recipe(full_formula, data = data) %>%
-    step_log(all_outcomes(), base = 10, offset = 1)
+    step_log(all_outcomes(), base = 10, offset = 1) %>% 
+    step_scale(all_numeric_predictors())
   
   mixed_model_spec <- linear_reg() %>%
     set_engine("lmer")
@@ -162,7 +156,7 @@ habitat_model <- function(response, predictors, data) {
     add_model(mixed_model_spec, 
               formula = as.formula(paste(response, "~", 
                                          paste(predictors, collapse = " + "), "+",
-                                         paste0("(1 | ", random_effects, ")", collapse = " + "))))
+                                         "(1| affiliated_mpa)")))
   
   fitted_model <- fit(workflow, data = data)
   
@@ -171,7 +165,7 @@ habitat_model <- function(response, predictors, data) {
     formula_str = as.character(full_formula),
     model_name = paste(response, 
                        paste(predictors, collapse = "_"), 
-                       paste0("(1 | ", random_effects, ")", collapse = "_"), sep = "_")
+                       "(1| affiliated_mpa)", sep = "_")
   )
 }
 
@@ -183,7 +177,8 @@ pref_habitat_model <- function(response, predictors, data){
           paste(random_effects, collapse = " + ")), "\\*", "+"))
   
   recipe <- recipe(full_formula, data = data) %>%
-    step_log(all_outcomes(), base = 10, offset = 1)
+    step_log(all_outcomes(), base = 10, offset = 1) %>% 
+    step_scale(all_numeric_predictors())
   
   mixed_model_spec <- linear_reg() %>%
     set_engine("lmer")
@@ -217,9 +212,9 @@ random_effects <- c("year", "region")
 # Subset data to species of interest
 data_subset <- data %>% 
   filter(mpa_defacto_class == "smr") %>% 
-  filter(species_code == "OYT") 
+  filter(species_code == "OYT") %>% 
+  filter(age_at_survey >= 0)
 
-# Fit the models
 fitted_models <- purrr::map(predictors_list, ~fit_model(responses[[1]], .x, data_subset))
 
 
@@ -242,64 +237,48 @@ effects <- purrr::map_dfr(results, "effects_table") %>%
 
 ## Examine and refine habitat ---------------------------------------------------
 # Specify Preferred habitat 
-pref_habitat <- c("hard_bottom_biotic_0_30m_100", "soft_bottom_biotic_0_30m_100")
+pref_habitat <- c("hard_bottom_biotic_0_30m_250", "soft_bottom_biotic_0_30m_250")
 #pref_habitat <- c("hard_bottom_0_30m_500")
 
 # Define random effects
-random_effects <- c("year", 
-                    "region")
+random_effects <- c("affiliated_mpa")
 
 # Create combined habitat predictors
-data_subset2 <- data_subset
 data_subset <- data_subset %>% 
-  mutate(pref_habitat_m2 = rowSums(across(all_of(pref_habitat)))) %>% 
-  filter(age_at_survey >= 0)
+  mutate(pref_habitat_m2 = rowSums(across(all_of(pref_habitat)))) 
 
 # Create list of new predictors
-new_predictors <- list(
-  c("site_type"), # protection alone
-  c(pref_habitat), # habitat alone
-  c(paste(pref_habitat, " * site_type")), # protection * habitat
-  c("site_type", "age_at_survey"), # protection + continuous age
-  c(pref_habitat, "age_at_survey"), # habitat + continuous age
-  c(paste(pref_habitat, " * site_type"), "age_at_survey"), # protection * habitat + continuous age
-  c(paste(pref_habitat, " * site_type * age_at_survey")), # protection * habitat * continuous age
-  c("site_type", "status"), # protection + binary B/A
-  c("site_type * status"), # protection * binary B/A
-  c(pref_habitat, "status"), # habitat + binary B/A
-  c(paste(pref_habitat, " * status")), # habitat * binary B/A
-  c(paste(pref_habitat, " * site_type"), "status"), # habitat * protection + binary B/A
-  c(paste(pref_habitat, " * site_type * status")) # habitat * protection * binary B/A
+ci_predictors <- list(
+  c("site_type * age_at_survey"), # without habitat control
+  c("site_type * age_at_survey", "pref_habitat_m2"), # with habitat control
+  c("site_type * age_at_survey", "site_type * pref_habitat_m2")
 )
 
 # Fit habitat models
-fitted_habitat_models <- purrr::map(new_predictors, ~habitat_model(responses[[1]], .x, data = data_subset))
+fitted_ci_models <- purrr::map(ci_predictors, ~ci_model(responses[[1]], .x, data = data_subset))
 
-min_AICc <- map_dbl(fitted_habitat_models, 
+min_AICc <- map_dbl(fitted_ci_models, 
                     ~ AICc(extract_fit_parsnip(.x$fitted_model) %>% pluck("fit"))) %>% min()
-min_AIC <- map_dbl(fitted_habitat_models, 
+min_AIC <- map_dbl(fitted_ci_models, 
                     ~ AIC(extract_fit_parsnip(.x$fitted_model) %>% pluck("fit"))) %>% min()
 
-results_habitat <- purrr::map(fitted_habitat_models, extract_results)
+results_ci <- purrr::map(fitted_ci_models, extract_results)
 
-effects_habitat <- purrr::map_dfr(results_habitat, "effects_table")
-details_habitat <- purrr::map_dfr(results_habitat, "details_table")
+effects_ci <- purrr::map_dfr(results_ci, "effects_table")
 
-names(fitted_habitat_models) <- details_habitat$model_name
+details_ci <- purrr::map_dfr(results_ci, "details_table")
+
+names(fitted_ci_models) <- details_ci$model_name
 
 
 # Combined predictors
-comb_predictors <- list(
-  c("site_type", "age_at_survey"), # protection alone
+pref_predictors <- list(
   c("pref_habitat_m2", "age_at_survey"), # habitat alone
-  c("site_type * age_at_survey", "pref_habitat_m2"),
   c("site_type * age_at_survey"),
-  c("pref_habitat_m2", "site_type", "age_at_survey"), # habitat alone
-  c("pref_habitat_m2 * site_type", "age_at_survey"),
-  c("pref_habitat_m2 * site_type *age_at_survey")
+  c("pref_habitat_m2 * site_type", "site_type * age_at_survey")
   ) # protection * habitat
 
-fitted_pref_models <- purrr::map(comb_predictors, ~pref_habitat_model(responses[[1]], .x, data = data_subset))
+fitted_pref_models <- purrr::map(pref_predictors, ~pref_habitat_model(responses[[1]], .x, data = data_subset))
 
 min_AICc <- map_dbl(fitted_pref_models, 
                     ~ AICc(extract_fit_parsnip(.x$fitted_model) %>% pluck("fit"))) %>% min()
@@ -333,22 +312,6 @@ generate_predictions <- function(fitted_model, site_type, data, new_data_cols) {
 }
 
 # Apply the function across all fitted models and site types
-all_predictions <- purrr::map_dfr(fitted_habitat_models, function(model) {
-  model_fit <- extract_fit_parsnip(model$fitted_model) %>% pluck("fit")
-  model_predictors <- str_replace_all(model$formula_str, paste(responses[[1]], "~"), "") %>%
-    str_split(" \\+ ") %>%
-    unlist() %>%
-    str_trim()
-  
-  bind_rows(generate_predictions(model_fit, "MPA", data_subset, model_predictors), 
-            generate_predictions(model_fit, "Reference", data_subset, model_predictors)) %>%
-    mutate(model_name = model$model_name)
-}) %>%
-  select(any_of(pref_habitat), year, age_at_survey,  affiliated_mpa, site, site_type, model_name, kg_per_m2_predict) %>% 
-  mutate(model_label = factor(case_when(str_detect(model_name, "\\*") ~ "Habitat * MPA/Ref",
-                                 (!str_detect(model_name, "\\*") & str_detect(model_name, "bottom")) ~ "Habitat Only",
-                                 T~"MPA/Ref Only"), levels = c("MPA/Ref Only", "Habitat Only", "Habitat * MPA/Ref")))
-
 pref_predictions <- purrr::map_dfr(fitted_pref_models, function(model) {
   model_fit <- extract_fit_parsnip(model$fitted_model) %>% pluck("fit")
   model_predictors <- str_replace_all(model$formula_str, paste(responses[[1]], "~"), "") %>%
@@ -371,46 +334,10 @@ pref_predictions <- purrr::map_dfr(fitted_pref_models, function(model) {
                         
                               levels = c("MPA/Ref Only", "Habitat Only", "MPA/Ref + Habitat", "MPA/Ref * Age", "MPA/Ref * Age + Habitat", "Habitat * MPA/Ref", "Habitat * MPA/Ref * MPA Age")))
 
-ggplot(data = all_predictions) +
-  geom_smooth(aes(x = !!sym(pref_habitat), y = kg_per_m2_predict,
-                  color = site_type), method = "gam") +
- # geom_point(aes(x = !!sym(pref_habitat), y = kg_per_m2_predict,
- #                 color = site_type)) +
-  theme_minimal() + 
-  labs(x = "Area of preferred habitat (m2)",
-       y = "Predicted biomass (kg per m2)",
-       color = "Site Type") +
-  theme(strip.text = element_text(size = 10)) +
-  facet_wrap(~model_name)
-
-ggplot(data = all_predictions) +
-  geom_smooth(aes(x = hard_bottom_0_30m_500, y = kg_per_m2_predict,
-                  color = site_type), method = "glm") +
-  # geom_point(aes(x = hard_bottom_biotic_0_30m_250, y = kg_per_m2_predict,
-  #                  color = site_type)) +
-  theme_minimal() + 
-  labs(x = "Area of preferred habitat (m2)",
-       y = "Predicted biomass (kg per m2)",
-       color = "Site Type") +
-  theme(strip.text = element_text(size = 10)) +
-  facet_wrap(~model_name)
-
-ggplot(data = all_predictions) +
-  geom_smooth(aes(x = soft_bottom_biotic_0_30m_250, y = kg_per_m2_predict,
-                  color = site_type), method = "glm") +
-  # geom_point(aes(x = !!sym(pref_habitat), y = kg_per_m2_predict,
-  #                 color = site_type)) +
-  theme_minimal() + 
-  labs(x = "Area of preferred habitat (m2)",
-       y = "Predicted biomass (kg per m2)",
-       color = "Site Type") +
-  theme(strip.text = element_text(size = 10)) +
-  facet_wrap(~model_name)
 
 
-ggplot(data = pref_predictions %>% 
-         filter(!is.na(model_label))) +
-  geom_smooth(aes(x = pref_habitat_m2/1e6, y = kg_per_m2_predict*1e6,
+ggplot(data = pref_predictions) +
+  geom_smooth(aes(x = pref_habitat_m2, y = kg_per_m2_predict,
                   color = site_type), method = "glm") +
   scale_color_manual(values = c("#ff7eb6", "#d4bbff")) +
   # geom_point(aes(x = !!sym(pref_habitat), y = kg_per_m2_predict,
@@ -420,7 +347,7 @@ ggplot(data = pref_predictions %>%
        y = "Predicted biomass (kg per km^2)",
        color = "Site Type") +
   theme(strip.text = element_text(size = 10)) +
-  facet_wrap(~model_label)
+  facet_wrap(~model_name)
 
 ggplot(data = pref_predictions %>% 
          filter(!is.na(model_label))) +

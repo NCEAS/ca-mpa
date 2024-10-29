@@ -123,7 +123,7 @@ top_species <- kelp_complete %>%
 
 # Prepare Final Dataset for Modeling ----------------------------------
 subset_sites <- kelp_sites %>%
-  filter(n_after > 3)
+  filter(n_total >5)
 
 subset_mpas <- subset_sites %>%
   group_by(region, affiliated_mpa, implementation_year, site_type) %>%
