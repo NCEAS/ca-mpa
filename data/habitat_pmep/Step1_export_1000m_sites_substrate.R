@@ -48,7 +48,7 @@ intersect_sections <- function(section){
   print("Read complete")
   section_intersect <- st_intersection(sect, sites_merged)
   print("Intersection complete")
-  saveRDS(section_intersect, file.path(sub.dir, paste0("substrate_intersect_", section, ".Rds")))
+  saveRDS(section_intersect, file.path(sub.dir, "substrate_intersect", paste0("substrate_intersect_", section, ".Rds")))
   print("Save complete")
 }
 
@@ -64,18 +64,37 @@ intersect_sections(section = '23')
 
 intersect_by_site <- function(section){
   print(paste0("Section: ", section))
-  sub <- readRDS(file.path(sub.dir, paste0("substrate_intersect_", section, ".Rds")))
+  sub <- readRDS(file.path(sub.dir,"substrate_intersect", paste0("substrate_intersect_", section, ".Rds")))
   print("Read section complete.")
   sub_sites <- st_intersection(sub, sites)
   print("Intersection complete.")
   sub_sites$area <- st_area(sub_sites)
   print("Area calculation complete.")
-  saveRDS(sub_sites, file.path(sub.dir, paste0("substrate_sites_1000m/substrate_sites_section_", section, ".Rds")))
+  saveRDS(sub_sites, file.path(sub.dir, paste0("substrate_sites_1000m/intersect_by_site/substrate_sites_section_", section, ".Rds")))
 }
 
 
 sections <- c("23", "30", "31", "32", "33", "53", "40", "41")
 lapply(sections, intersect_by_site)
-intersect_by_site(section = '23')
+intersect_by_site(section = '41')
 
+
+# Clean details by site + export ------------------------------------------
+site_columns <- c("habitat", "mpa", "mpa_orig", "site", "site_type", "PMEP_Section", "PMEP_Zone")
+bio_columns <- c("FaunalBed", "AquaticVegetationBed", "BenthicMacroalgae", "Kelp", "OtherMacroalgae", "EmergentWetland", "ScrubShrubWetland", "ForestedWetland", "Seagrass", "AquaticVascularVegetation", "FloatingSuspendedBiota")
+
+section <- "31"
+
+clean_substrate <- function(section){
+  substrate <- readRDS(file.path(sub.dir, paste0("substrate_sites_1000m/intersect_by_site/substrate_sites_section_", section, ".Rds"))) %>% 
+    rename(geometry = Shape) %>% 
+    filter(!CMECS_SC_Category_Code == "9.9.9.9.9") %>% 
+    group_by(across(all_of(site_columns)), CMECS_SC_Category_Code, CMECS_SC_Category, CMECS_SC_Code, CMECS_SC_Name) %>% 
+    summarize(geometry = st_union(geometry), .groups = 'drop') 
+  
+  saveRDS(substrate,  file.path(sub.dir, paste0("substrate_sites_1000m/substrate_sites_section_", section, ".Rds")))
+}
+
+sections <- c("23", "30", "31", "32", "33", "53", "40", "41")
+lapply(sections, clean_substrate)
 

@@ -71,7 +71,7 @@ intersect_by_site <- function(section){
   print("Intersection complete.")
   bio_sites$area <- st_area(bio_sites)
   print("Area calculation complete.")
-  saveRDS(bio_sites, file.path(bio.dir, paste0("biotic_sites_1000m/biotic_sites_section_", section, ".Rds")))
+  saveRDS(bio_sites, file.path(bio.dir, paste0("biotic_sites_1000m/intersect_by_site/biotic_sites_section_", section, ".Rds")))
 }
 
 
@@ -80,6 +80,30 @@ lapply(sections, intersect_by_site)
 intersect_by_site(section = '23')
 
 
+# Clean details by site + export ------------------------------------------
+site_columns <- c("habitat", "mpa", "mpa_orig", "site", "site_type", "PMEP_Section", "PMEP_Zone")
+bio_columns <- c("FaunalBed", "AquaticVegetationBed", "BenthicMacroalgae", "Kelp", "OtherMacroalgae", "EmergentWetland", "ScrubShrubWetland", "ForestedWetland", "Seagrass", "AquaticVascularVegetation", "FloatingSuspendedBiota")
 
+section <- "31"
+
+biotic <- readRDS(file.path(bio.dir, paste0("biotic_sites_1000m/biotic_sites_section_", section, ".Rds")))
+crs_info <- st_crs(st_read(file.path(sub.dir, "substrate_ca/sections/substrate_section_23.gpkg"), quiet = TRUE))
+
+clean_biotic <- function(section){
+  biotic <- readRDS(file.path(bio.dir, paste0("biotic_sites_1000m/intersect_by_site/biotic_sites_section_", section, ".Rds"))) %>% 
+    rename(geometry = Shape) %>% 
+    filter(!CMECS_BC_Category_Code == "9.9.9.9.9") %>% 
+    group_by(across(all_of(site_columns)), CMECS_BC_Category_Code, CMECS_BC_Category, CMECS_BC_Code, CMECS_BC_Name,
+             across(all_of(bio_columns))) %>% 
+    summarize(geometry = st_union(geometry), .groups = 'drop') %>% 
+    st_transform(., crs = crs_info)
+  
+  saveRDS(biotic, file.path(bio.dir, paste0("biotic_sites_1000m/biotic_sites_section_", section, ".Rds")))
+}
+
+clean_biotic(section = "23")
+
+sections <- c("23", "30", "31", "32", "33", "53", "40", "41")
+lapply(sections, clean_biotic)
 
 
