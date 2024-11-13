@@ -20,13 +20,13 @@ habitat_raw <- readRDS(file.path(int.dir, "habitat_buffers_by_site.Rds")) %>%
   rename(affiliated_mpa = mpa_orig)
 
 sp_raw <- readRDS(file.path(sp.dir, "species_lw_habitat.Rds")) %>% 
-  select(genus, sciname = species, common_name, target_status, vertical_zonation, 
+  dplyr::select(genus, sciname = species, common_name, target_status, vertical_zonation, 
          depth_min_m, depth_max_m, depth_common_min_m, depth_common_max_m,
          region, assemblage, assemblage_new)
 
 mlpa_sp <- read_csv("/home/shares/ca-mpa/data/sync-data/species_traits/processed/species_key.csv") %>% 
   filter(habitat == "Kelp forest") %>% 
-  select(species_code = habitat_specific_code, habitat_specific_spp_name) %>% 
+  dplyr::select(species_code = habitat_specific_code, habitat_specific_spp_name) %>% 
   distinct()
 
 kelp_raw <- readRDS(file.path(ltm.dir, "biomass_site_year/kelp_biomass_site_year.Rds")) 
@@ -123,7 +123,7 @@ top_species <- kelp_complete %>%
 
 # Prepare Final Dataset for Modeling ----------------------------------
 subset_sites <- kelp_sites %>%
-  filter(n_total >5)
+  filter(n_after > 5)
 
 subset_mpas <- subset_sites %>%
   group_by(region, affiliated_mpa, implementation_year, site_type) %>%
