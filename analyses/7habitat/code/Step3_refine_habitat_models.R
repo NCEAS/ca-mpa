@@ -64,11 +64,12 @@ predictors_list <- c(
 )
 
 predictors_list <- unique(predictors_list)
+rm(habitat_50, habitat_100, habitat_250, habitat_500, base_predictors)
 
 
-# Compare all habitat combinations ----------------------------------------------
+# 1. Compare habitat combinations ----------------------------------------------
 refine_habitat <- function(species) {
-  data_sp <- data_subset %>%  filter(species_code == species)
+  data_sp <- data_subset %>% filter(species_code == species)
   print(paste("Species: ", species))
   
   models <- list()
@@ -77,98 +78,47 @@ refine_habitat <- function(species) {
     model <- lmer(model_formula, data = data_sp)
     models[[paste(predictors, collapse = ", ")]] <<- model
     
-    data.frame(
-      predictors = paste(predictors, collapse = ", "),
-      AICc = AICc(model),
-      logLik = logLik(model),
-      n = nobs(model),
-      n_sites = n_distinct(data_sp$site),
-      n_mpas = n_distinct(data_sp$affiliated_mpa)
-    )
-  }) %>%
+    data.frame(predictors = paste(predictors, collapse = ", "),
+               AICc = AICc(model),
+               logLik = logLik(model),
+               n = nobs(model),
+               n_sites = n_distinct(data_sp$site),
+               n_mpas = n_distinct(data_sp$affiliated_mpa))}) %>%
     mutate(delta_AICc = AICc - min(AICc)) %>% 
     arrange(delta_AICc)
 
-  
   saveRDS(list(models_df = models_df, models = models), file = file.path(save_path, paste0(species, "_models.rds")))
-  
   models_df
 }
 
+# 2. Define parameters and run -------------------------------------------------
 
-
-
-# Run for a handful of species
-
-# Define response variable
 response <- c("log_kg_per_m2")
-
-# Define random effects
 random_effects <- c("year", "bioregion")
-
-# Get numeric predictors
 num_predictors <- unique(unlist(predictors_list)) %>% setdiff(c("site_type", "bioregion"))
 
-# Filter and preprocess data
 data_subset <- data %>%
   filter(mpa_defacto_class == "smr") %>%
-  filter(age_at_survey >= 0) ##%>% 
-# mutate(across(all_of(num_predictors), scale))
+  filter(age_at_survey >= 0) ##%>% mutate(across(all_of(num_predictors), scale)) # doesn't change effects really
 
-# Create plots from the species lists
-plot_species <- function(species){
-  data_sp <- data_subset %>% 
-    filter(species_code == species)
-  
-  b <- ggplot(data = data_sp) +
-    geom_point(aes(x = affiliated_mpa, y = kg_per_m2, color = site_type), show.legend = F) +
-    theme_minimal() +
-    scale_color_manual(values = c("#ff7eb6", "#d4bbff")) +
-    labs(x = "MPA",  y = "Biomass (kg per m2)", color = NULL) +
-    coord_flip()+
-    theme(axis.title = element_text(size = 12)) +
-    facet_wrap(~bioregion)
-  
-  
-  a <- ggplot(data = data_sp) +
-    geom_histogram(aes(x = log_kg_per_m2)) +
-    labs(title = species) +
-    facet_wrap(~bioregion) 
-  
-  layout <- (a + ggtitle(species)) / ((b))
-  layout
-  
-}
 
-# plot_species("EJAC") # s/c
-# plot_species("OCAL") # s/c
-# plot_species("SATR") # s/c
-# plot_species("PCLA") # s
-# plot_species("CPRI") # s
-# plot_species("SPUL") # s
-# plot_species("CPUN") # s
-# plot_species("SCAR") # all
-# plot_species("SMIN") # all
-plot_species("SCAU") # all
-plot_species("OYT") # all
-plot_species("SMYS") # all
-
-test <- data %>% 
+sp <- data_subset %>% 
   filter(kg_per_m2 > 0) %>% 
   group_by(species_code, sciname, target_status, bioregion) %>% 
   summarize(total_biomass = sum(kg_per_m2),
             total_count = sum(count_per_m2),
             n_obs = n()) %>% 
-  filter(n_obs > 50) %>% dplyr::select(species_code, sciname, target_status, bioregion, total_biomass) %>% 
+  filter(n_obs > 70) %>% dplyr::select(species_code, sciname, target_status, bioregion, total_biomass) %>% 
   pivot_wider(names_from = "bioregion", values_from = "total_biomass") %>% 
   filter(North > 0 & Central > 0 & South > 0)
+  # scar has boundary singular
+  
 
 
 save_path <- "analyses/7habitat/output/refine_pref_habitat" 
 
 species_list <- c("OYT", "SMYS", "SCAU")
-species_list <- test$species_code
-
+species_list <- sp$species_code
 results <- refine_habitat(species = "OYT")
 
 walk(species_list, function(species) {
@@ -177,15 +127,62 @@ walk(species_list, function(species) {
   print(head(results_df, 5))
 })
 
+# 3. Load models and filter for positive habitat relationships ------------------------------------------------
 
-
-# 2. Function to load models, select top ones, and analyze with model averaging
-analyze_top_models <- function(species, file_path, delta_aicc_threshold = 4) {
+filter_positive_models <- function(species, habitat_predictors) {
   data <- readRDS(file.path(save_path, paste0(species, "_models.rds")))
+  models <- data$models
+  
+  positive_models_df <- map_dfr(names(models), function(model_name) {
+    model <- models[[model_name]]
+    coefs <- fixef(model)[names(fixef(model)) %in% habitat_predictors]
+    
+    # Check if all specified habitat predictors have positive coefficients
+    if (length(coefs) > 0 && all(coefs > 0)) {
+      data.frame(
+        predictors = model_name,
+        AICc = AICc(model),
+        logLik = logLik(model),
+        n = nobs(model),
+        n_sites = data$models_df$n_sites[1],
+        n_mpas = data$models_df$n_mpas[1]
+      )
+    } else {
+      NULL  # Skip models that don’t meet the positive criterion
+    }
+  }) %>%
+    mutate(delta_AICc = AICc - min(AICc, na.rm = TRUE)) %>%
+    arrange(delta_AICc)
+  
+  # Save filtered positive models
+  saveRDS(list(models_df = positive_models_df, 
+               models = models[names(models) %in% positive_models_df$predictors]), 
+          file = file.path(save_path, paste0(species, "_positive_models.rds")))
+  
+  positive_models_df
+}
+
+
+
+# Identify habitat predictors in data
+habitat_predictors <- grep("^(hard|soft)", names(data), value = TRUE)
+
+walk(species_list, function(species) {
+  results_pos <- filter_positive_models(species = species, habitat_predictors = habitat_predictors)
+  cat("\nTop 5 models for species:", species, "\n")
+  print(head(results_pos, 5))
+})
+
+
+
+
+# 4. Load remaining models and compare ------------------------------------------------------------------------
+analyze_top_models <- function(species, file_path, delta_aicc_threshold = 4) {
+  data <- readRDS(file.path(save_path, paste0(species, "_positive_models.rds")))
   models_df <- data$models_df
   models <- data$models
   
-  top_model_names <- models_df %>% filter(AICc <= min(AICc) + delta_aicc_threshold) %>% pull(predictors)
+  top_model_names <- models_df %>% filter(delta_AICc <= delta_aicc_threshold) %>% pull(predictors)
   top_models <- models[top_model_names]
   
   # Model averaging or single model extraction
@@ -200,7 +197,9 @@ analyze_top_models <- function(species, file_path, delta_aicc_threshold = 4) {
   
   # Extract signs and filter habitat predictors
   predictor_signs <- sign(if (is.matrix(coef_table)) coef_table[, "Estimate"] else coef_table)
-  habitat_predictors <- setdiff(names(predictor_signs), c("site_type", "age_at_survey", "site_typeReference", "(Intercept)", "age_at_survey:site_typeReference", "site_typeReference:age_at_survey"))
+  habitat_predictors <- setdiff(names(predictor_signs), 
+                                c("site_type", "age_at_survey", "site_typeReference", "(Intercept)", 
+                                  "age_at_survey:site_typeReference", "site_typeReference:age_at_survey"))
   
   # Create summary data frame
   summary_df <- data.frame(
@@ -216,20 +215,15 @@ analyze_top_models <- function(species, file_path, delta_aicc_threshold = 4) {
 }
 
 
+consolidated_results <- map_dfr(species_list, function(species) {
+  file_path <- file.path(save_path, paste0(species, "_positive_models.rds"))
+  analyze_top_models(species, file_path, delta_aicc_threshold = 4)
+})
 
-analyze_top_models(species = "OYT")
-
-
-analyze_multiple_species <- function(species_list, save_path, delta_aicc_threshold = 4) {
-  map_dfr(species_list, function(species) {
-    file_path <- file.path(save_path, paste0(species, "_models.rds"))
-    analyze_top_models(species, file_path, delta_aicc_threshold)
-  })
-}
-
-
-consolidated_results <- analyze_multiple_species(species_list, save_path)
 consolidated_results
+
+
+
 
 
 # Let's explore the top models performance:
@@ -289,5 +283,50 @@ map(species_list, ~ generate_diagnostic_plots(.x, data_subset, important_predict
 
 
 
+# Create plots from the species lists
+plot_species <- function(species){
+  data_sp <- data_subset %>% 
+    filter(species_code == species)
+  
+  b <- ggplot(data = data_sp) +
+    geom_point(aes(x = affiliated_mpa, y = kg_per_m2, color = site_type), show.legend = F) +
+    theme_minimal() +
+    scale_color_manual(values = c("#ff7eb6", "#d4bbff")) +
+    labs(x = "MPA",  y = "Biomass (kg per m2)", color = NULL) +
+    coord_flip()+
+    theme(axis.title = element_text(size = 12)) +
+    facet_wrap(~bioregion)
+  
+  
+  a <- ggplot(data = data_sp) +
+    geom_histogram(aes(x = log_kg_per_m2)) +
+    labs(title = species) +
+    facet_wrap(~bioregion) 
+  
+  layout <- (a + ggtitle(species)) / ((b))
+  layout
+  
+}
+
+# plot_species("EJAC") # s/c
+# plot_species("OCAL") # s/c
+# plot_species("SATR") # s/c
+# plot_species("PCLA") # s
+# plot_species("CPRI") # s
+# plot_species("SPUL") # s
+# plot_species("CPUN") # s
+# plot_species("SCAR") # all
+# plot_species("SMIN") # all
+plot_species("SCAU") # all
+plot_species("OYT") # all
+plot_species("SMYS") # all
 
 
+ggplot(data_subset %>% filter(species_code == "OYT")) + 
+  geom_histogram(aes(x = log_kg_per_m2)) +
+  facet_wrap(~bioregion+affiliated_mpa)
+
+
+
+
+https://aurora.nceas.ucsb.edu/rstudio/graphics/plot_zoom_png?width=1583&height=540
