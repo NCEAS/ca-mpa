@@ -24,7 +24,7 @@ buffers <- c(25, 50, 100, 250, 500)
 buffer_dirs <- file.path(hab.dir, "buffers", paste0(buffers, "m"))
 
 rds_files <- unlist(lapply(buffer_dirs, function(dir) {
-  list.files(dir, pattern = "combined_hsb", full.names = TRUE)
+  list.files(dir, pattern = "combined_hsb_revised", full.names = TRUE) # rm _revised for old version
 }))
 
 # Read each RDS file into a dataframe, drop geometry, and add the buffer column
@@ -39,7 +39,7 @@ combined_df <- rds_files %>%
 
 
 # Save the combined dataframe
-saveRDS(combined_df, file.path(hab.dir, "buffers/combined_hsb_buffers.Rds"))
+saveRDS(combined_df, file.path(hab.dir, "buffers/combined_hsb_revised_buffers.Rds")) # rm _revised for old version
 
 # Build  ----------------------------------------------------------------------
 
@@ -100,7 +100,7 @@ habitat2 <- habitat %>%
   mutate_at(vars(area_depth_m2), ~ replace(., is.na(.), 0)) %>% 
   dplyr::select(habitat, mpa, mpa_orig, site, site_type, buffer, habitat_class, habitat_depth, depth_zone = depth_zone_simple, area_m2, area_depth_m2, area_site_m2)
 
-saveRDS(habitat2, file.path(int.dir, "habitat_buffers_by_site.Rds"))
+saveRDS(habitat2, file.path(int.dir, "habitat_buffers_by_site_revised.Rds"))  # rm _revised for old version
 
 habitat_mpa <- habitat %>% 
   # Find the total and average for each habitat class, across all the sites affiliated with each MPA

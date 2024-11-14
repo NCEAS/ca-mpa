@@ -16,7 +16,7 @@ sp.dir <- "/home/shares/ca-mpa/data/sync-data/species_traits/processed"
 int.dir <- "~/ca-mpa/analyses/7habitat/intermediate_data"
 
 # Read Data -----------------------------------------------------------
-habitat_raw <- readRDS(file.path(int.dir, "habitat_buffers_by_site.Rds")) %>% 
+habitat_raw <- readRDS(file.path(int.dir, "habitat_buffers_by_site_revised.Rds")) %>% # rm _revised for old version
   rename(affiliated_mpa = mpa_orig)
 
 sp_raw <- readRDS(file.path(sp.dir, "species_lw_habitat.Rds")) %>% 
@@ -131,12 +131,6 @@ subset_mpas <- subset_sites %>%
   pivot_wider(names_from = site_type, values_from = n_total) %>%
   filter(!is.na(Reference)) %>% 
   filter(!is.na(MPA))
-
-data <- kelp_complete %>%
-  filter(site %in% subset_sites$site) %>% 
-  filter(affiliated_mpa %in% subset_mpas$affiliated_mpa)
-
-
 
 # # Plot site subset
 # ggplot(data = habitat %>% 
