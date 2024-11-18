@@ -44,7 +44,8 @@ kelp_orig <- read_csv(file.path(ltm.dir,"update_2024/kelpforest_fish_biomass_upd
 rock_orig <- read_csv(file.path(ltm.dir,"update_2024/ccfrp_fish_biomass_updated.2024.csv")) %>% # WARNING: NA REMOVALS DROPS 2 CELL TRIPS
   filter(!is.na(weight_kg)) %>%   #  drops fishes unknown or without lengths/conversion params
   mutate(target_status = if_else(species_code == "NO_ORG", "NO_ORG", target_status)) %>%  # helpful for inspecting
-  filter(!is.na(target_status)) # drop for now - spp without target status identified (see notes for details)
+  filter(!is.na(target_status)) %>% # drop for now - spp without target status identified (see notes for details)
+  filter(!affiliated_mpa == "trinidad NA")
 
 # deep_orig <- read_csv(file.path(ltm.dir,"biomass_processed/deep_reef_fish_biomass_updated.csv")) %>% #WARNING: NA REMOVALS DROPS 12 TRANSECTS
 #   filter(!is.na(weight_kg)) %>% # drop fishes unknown or without lengths/conversion params
@@ -63,7 +64,7 @@ mpas_orig <- readRDS(file.path("/home/shares/ca-mpa/data/sync-data/mpa_traits/pr
 
 mpas <- readRDS("/home/shares/ca-mpa/data/sync-data/mpa_traits/processed/mpa_attributes_general.Rds") %>% 
   mutate(implementation_year = as.numeric(format(implementation_date, '%Y'))) %>% 
-  left_join(mpas_orig)
+  left_join(mpas_orig) 
 
 # Build species dataframes -----------------------------------------------------
 
@@ -147,35 +148,53 @@ surf <- surf_orig %>%
 ## Rock (CCFRP) ----
 
 rock_effort <- rock_orig %>% 
-  # Identify distinct cell-trips (2 dropped above bc missing data) - 3017 as of 2024 version
-  distinct(year, bioregion, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation, grid_cell_id,
-           id_cell_per_trip) %>% 
-  group_by(year, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation, grid_cell_id) %>% 
+  # Identify distinct cell-trips (2 dropped above bc missing data; trinidad dropped)
+  distinct(year, grid_cell_id, id_cell_per_trip, 
+           bioregion, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation) %>% 
+  group_by(year, bioregion, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation, grid_cell_id) %>% 
   # Caculate number of cell-trips per site per year
   summarize(n_rep = n()) %>% ungroup() %>% 
-  mutate(site_type = if_else(mpa_defacto_designation == "ref", "Reference", "MPA")) %>% 
-  rename(site = grid_cel_id)
+  left_join(mpas %>% dplyr::select(affiliated_mpa, implementation_year))
 
 # Calculated biomass per unit effort (trip-cell)
 rock <- rock_orig %>% 
-  dplyr::select(year, bioregion, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation, site = grid_cell_id,
+  dplyr::select(year, bioregion, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation, grid_cell_id,
          id_cell_per_trip, species_code, sciname, family, genus, species, target_status,
          total_angler_hrs_cell, weight_kg, count) %>% 
   # Calculate biomass per unit effort (trip-cell) for each fish
   mutate(bpue_kg = weight_kg/total_angler_hrs_cell) %>% 
-  group_by(year, bioregion, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation, site,
-           species_code, sciname, family, genus, species, target_status) %>% 
-  summarize(total_bpue_kg = sum(bpue_kg),
-            total_count = sum(count)) %>% ungroup() %>% 
-  full_join(rock_effort) %>% 
-  filter(!(affiliated_mpa == "trinidad NA")) %>%  # drop trinidad
+  # Total BPUE for each species in each site (grid cell) and year
+  group_by(year, bioregion, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation, grid_cell_id,
+           species_code, sciname, genus, target_status) %>% 
+  summarize(bpue_kg = sum(bpue_kg),
+            count = sum(count)) %>% ungroup() %>% 
+  # Drop NO_ORG because already captured effort above
+  filter(!species_code == "NO_ORG")
+
+rock_complete <- rock_effort %>% 
+  # Create complete grid of all species at all sites and years
+  expand_grid(species_code = unique(rock$species_code)) %>% 
+  # Add counts and bpue (those that were not seen in a site-year will be NA)
+  left_join(rock %>% dplyr::select(!c(sciname, genus, target_status))) %>% 
+  # Add sciname to match with species dataframe later
+  left_join(rock %>% distinct(species_code, sciname, genus, target_status)) %>% 
+  # Change NAs to zeroes (those species were not observed in that site-year)
+  mutate_at(vars(bpue_kg), ~ replace(., is.na(.), 0)) %>% 
+  mutate_at(vars(count), ~ replace(., is.na(.), 0)) %>% 
+  mutate(site_type = if_else(mpa_defacto_designation == "ref", "Reference", "MPA")) %>% 
+  mutate(age_at_survey = year - implementation_year) %>% 
   mutate(region = case_when(bioregion == "South" ~ "scb",
                             bioregion == "Central" ~ "cce",
                             bioregion == "North" ~ "pnw")) %>% 
-  left_join(sp) %>% 
-  dplyr::select(year, site, bioregion:mpa_defacto_designation, species_code:target_status,
-                level, total_bpue_kg, total_count, region:depth_common_max_m)
-
+  left_join(sp %>% dplyr::select(sciname, region, assemblage, assemblage_new)) %>% 
+  mutate(assemblage_new = case_when(sciname == "Paralabrax clathratus" ~ "Hard Bottom Biotic", 
+                                    sciname == "Sebastes rastrelliger" ~ "Hard Bottom Biotic", 
+                                    sciname == "Sebastes miniatus" ~ "Hard Bottom", 
+                                    T~assemblage_new)) %>% 
+  dplyr::select(year, site = grid_cell_id, site_type, 
+                bioregion, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation, implementation_year, 
+                age_at_survey, n_rep, species_code, sciname, genus, target_status, assemblage, assemblage_new,
+                weight_kg = bpue_kg, count)
 
 
 ## Deep ----
@@ -207,7 +226,7 @@ saveRDS(kelp_effort, file.path(ltm.dir, "update_2024/kelp_site_year_effort.Rds")
 saveRDS(rock_effort, file.path(ltm.dir, "update_2024/ccfrp_site_year_effort.Rds"))
 
 saveRDS(kelp_complete, file.path(ltm.dir, "update_2024/kelp_biomass_complete.Rds")) # last write Nov 15 2024
-
+saveRDS(rock_complete, file.path(ltm.dir, "update_2024/rock_biomass_complete.Rds")) # last write Nov 18 2024
 
 
 
