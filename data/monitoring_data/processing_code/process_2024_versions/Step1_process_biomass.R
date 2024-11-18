@@ -47,9 +47,9 @@ traitsdir <- "/home/shares/ca-mpa/data/sync-data/species_traits/processed"
 datadir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data"
 
 # Read monitoring data
-surf  <- read_csv(file.path(datadir, "surf_zone_processed.csv")) %>% clean_names()
-deep  <- read_csv(file.path(datadir, "deep_reef_processed.csv")) 
-ccfrp <- read_csv(file.path(datadir, "ccfrp_processed.csv")) 
+surf  <- read_csv(file.path(datadir, "update_2024/surf_zone_processed.csv")) %>% clean_names()
+#deep  <- read_csv(file.path(datadir, "deep_reef_processed.csv")) 
+ccfrp <- read_csv(file.path(datadir, "update_2024/ccfrp_processed.2024.csv")) # updated CL nov 2024
 kelp  <- read_csv(file.path(datadir, "update_2024/kelp_processed.6.csv"))  # updated CL july 2024
 
 # Read length-weight parameters
@@ -104,17 +104,17 @@ bio_fun <- function(params, data) {
 
 ccfrp_biomass <- bio_fun(params, ccfrp)
 
-deep_biomass <- bio_fun(params, deep)
+#deep_biomass <- bio_fun(params, deep)
 
 kelp_biomass <- bio_fun(params, kelp)
 
 surf_biomass <- bio_fun(params, surf)
 
 # Write to csv ----------------------------------------------------------------
-write.csv(surf_biomass, row.names = F, file.path(datadir,"/biomass_processed/surf_zone_fish_biomass_updated.csv"))  #last write 26 July 2024
-write.csv(kelp_biomass, row.names = F, file.path(datadir,"/biomass_processed/kelpforest_fish_biomass_updated.6.csv")) #last write 16 Aug 2024
-write.csv(ccfrp_biomass, row.names = F, file.path(datadir,"/biomass_processed/ccfrp_fish_biomass_updated.csv")) #last write 26 July 2024
-write.csv(deep_biomass, row.names = F, file.path(datadir,"/biomass_processed/deep_reef_fish_biomass_updated.csv")) #last write 26 July 2024
+write.csv(surf_biomass, row.names = F, file.path(datadir,"/update_2024/surf_zone_fish_biomass_updated.csv"))  #last write 18 Nov 2024
+write.csv(kelp_biomass, row.names = F, file.path(datadir,"/update_2024/kelpforest_fish_biomass_updated.6.csv")) #last write 14 Nov 2024
+write.csv(ccfrp_biomass, row.names = F, file.path(datadir,"/update_2024/ccfrp_fish_biomass_updated.2024.csv")) #last write 14 Nov 2024
+#write.csv(deep_biomass, row.names = F, file.path(datadir,"/biomass_processed/deep_reef_fish_biomass_updated.csv")) #last write 26 July 2024
 
 # IN PROGRESS: Explore everything that's going wrong -----------------------------------
 
@@ -122,7 +122,8 @@ write.csv(deep_biomass, row.names = F, file.path(datadir,"/biomass_processed/dee
 # Check cases where there is length and species info but no biomass calculation
 # No problems so far!
 test_ccfrp <- ccfrp_biomass %>% 
-  filter(is.na(weight_g) & !is.na(tl_cm)) # 22 with no species info
+  filter(is.na(weight_g) & !is.na(tl_cm)) %>% 
+  distinct(sciname, species_code, target_status) # now there are 9 in 2024 version
 
 
 # KELP KELP
@@ -161,19 +162,6 @@ deep_duplicate_obs <- deep %>%
 test_deep <- deep_biomass %>% 
   filter(is.na(weight_g) & ! is.na(tl_cm)) %>% 
   distinct(sciname, species_code, target_status)
-
-# SURF ZONE
-# Appears that some schooling species only have length measurements for 
-# the first ~ 20-30 fish, and the rest are just counted. 
-surf_missing <- surf %>% 
-  group_by(sciname) %>% 
-  summarize(missing_both = sum(is.na(tl_cm) & is.na(sl_cm)))
-
-# Check cases where there is length and species info but no biomass calculation
-# Added these species to the list
-test_surf <- surf_biomass %>% 
-  filter(is.na(weight_g) & !(is.na(tl_cm) & is.na(sl_cm))) 
-
 
 
 # Exploring some things for step 2 -----------------------------------------------------------------------------

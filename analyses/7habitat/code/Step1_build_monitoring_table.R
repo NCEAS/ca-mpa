@@ -30,11 +30,10 @@ library(stringr)
 ltm.dir <-"/home/shares/ca-mpa/data/sync-data/monitoring/processed_data"
 sp.dir <- "/home/shares/ca-mpa/data/sync-data/species_traits/processed"
 
-
-# surf_orig <- read_csv(file.path(ltm.dir,"biomass_processed/surf_zone_fish_biomass_updated.csv")) %>% 
-#   filter(!is.na(weight_g)) %>%  # drop for now - these are all fishes that are unknown or species with no lengths (WARNING: currently drops one full haul!)
-#   mutate(target_status = if_else(species_code == "NO_ORG", "NO_ORG", target_status)) %>%  # helpful for inspecting 
-#   filter(!is.na(target_status))  # this drops: RFYOY, FFUN, HALI, Zoarcidae spp (after previous step to avoid dropping NO_ORG)
+surf_orig <- read_csv(file.path(ltm.dir,"update_2024/surf_zone_fish_biomass_updated.csv")) %>%
+  filter(!is.na(weight_g)) %>%  # drop for now - these are all fishes that are unknown or species with no lengths (WARNING: currently drops one full haul!)
+  mutate(target_status = if_else(species_code == "NO_ORG", "NO_ORG", target_status)) %>%  # helpful for inspecting
+  filter(!is.na(target_status))  # this drops: RFYOY, FFUN, HALI, Zoarcidae spp (after previous step to avoid dropping NO_ORG)
 
 kelp_orig <- read_csv(file.path(ltm.dir,"update_2024/kelpforest_fish_biomass_updated.6.csv")) %>%  # WARNING: THE NA REMOVALS HERE DROPS LOTS OF TRANSECTS (~871)
   filter(!is.na(affiliated_mpa)) %>% # drops sites with no mpa (yellowbanks, trinidad, etc - see kf processing for details)
@@ -65,6 +64,8 @@ mpas_orig <- readRDS(file.path("/home/shares/ca-mpa/data/sync-data/mpa_traits/pr
 mpas <- readRDS("/home/shares/ca-mpa/data/sync-data/mpa_traits/processed/mpa_attributes_general.Rds") %>% 
   mutate(implementation_year = as.numeric(format(implementation_date, '%Y'))) %>% 
   left_join(mpas_orig) 
+
+rm(mpas_orig)
 
 # Build species dataframes -----------------------------------------------------
 
@@ -128,22 +129,52 @@ kelp_complete <- kelp_effort %>%
                 weight_kg, count, kg_per_m2, count_per_m2)
 
 ## Surf ----
+# Read the site names for matching with the habitat site names (boo Chris bad processing making extra work!)
+surf_sites <- readRDS("/home/shares/ca-mpa/data/sync-data/monitoring/site_tables/processed/surf_site_names.Rds") 
 
 surf_effort <- surf_orig %>% 
   # Identify distinct hauls - 857 (after NA droped above)
-  distinct(year, month, day, 
-           affiliated_mpa,  mpa_defacto_class, mpa_defacto_designation, haul_number) %>% 
+  distinct(year, month, day, bioregion, affiliated_mpa,  mpa_defacto_class, mpa_defacto_designation, ref_is_mpa, site_name, haul_number) %>% 
   # Caclulate effort as total n hauls per site (mpa/ref) per year
-  group_by(year, affiliated_mpa,  mpa_defacto_class, 
-           mpa_defacto_designation) %>% 
-  summarize(n_rep = n())
+  group_by(year, bioregion, site_name, affiliated_mpa,  mpa_defacto_class,  mpa_defacto_designation, ref_is_mpa) %>% 
+  summarize(n_rep = n()) %>% 
+  # Join MPA metadata (region, implementation year)
+  left_join(mpas %>% dplyr::select(affiliated_mpa, implementation_year)) %>% 
+  left_join(surf_sites) 
 
 surf <- surf_orig %>%
-  group_by(year, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation,
-           sciname, family, genus, species, target_status, level) %>%
-  dplyr::summarize(total_biomass_kg = sum(weight_kg)) %>% 
-  full_join(surf_effort)
+  group_by(year, site_name, bioregion, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation,
+           species_code, sciname, genus, target_status) %>%
+  summarize(weight_kg = sum(weight_kg),
+            count = sum(count), .groups = 'drop') %>% 
+  filter(!species_code == "NO_ORG") # drop b/c not true zeroes (will capture in complete expansion)
 
+surf_complete <- surf_effort %>% 
+  # Create complete grid of all species at all sites and years
+  expand_grid(species_code = unique(surf$species_code)) %>% 
+  # Add counts and weights (those that were not seen will be NA)
+  left_join(surf %>% dplyr::select(!c(sciname, genus, target_status))) %>% 
+  # Add the scinames to match with species dataframe later
+  left_join(surf %>% distinct(species_code, sciname, genus, target_status)) %>% 
+  # Change NAs to zeroes (those species were not observed in that site-year)
+  mutate_at(vars(weight_kg), ~ replace(., is.na(.), 0)) %>% 
+  mutate_at(vars(count), ~ replace(., is.na(.), 0)) %>% 
+  mutate(site_type = if_else(mpa_defacto_designation == "ref", "Reference", "MPA")) %>% 
+  mutate(kg_per_haul = weight_kg/(n_rep), # 30x2x2m but JC says typical density is per m2 (60)
+         count_per_haul = count/(n_rep),
+         age_at_survey = year - implementation_year) %>% 
+  mutate(region = case_when(bioregion == "South" ~ "scb",
+                            bioregion == "Central" ~ "cce",
+                            bioregion == "North" ~ "pnw")) %>% 
+  left_join(sp %>% dplyr::select(sciname, region, assemblage, assemblage_new)) %>% 
+  mutate(assemblage_new = case_when(sciname == "Paralabrax clathratus" ~ "Hard Bottom Biotic", 
+                                    sciname == "Sebastes rastrelliger" ~ "Hard Bottom Biotic", 
+                                    sciname == "Sebastes miniatus" ~ "Hard Bottom", 
+                                    T~assemblage_new)) %>% 
+  dplyr::select(year, site, site_name, site_type, 
+                bioregion, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation, implementation_year, 
+                age_at_survey, n_rep, species_code, sciname, genus, target_status, assemblage, assemblage_new,
+                weight_kg, count, kg_per_haul, count_per_haul)
 
 ## Rock (CCFRP) ----
 
@@ -227,6 +258,7 @@ saveRDS(rock_effort, file.path(ltm.dir, "update_2024/ccfrp_site_year_effort.Rds"
 
 saveRDS(kelp_complete, file.path(ltm.dir, "update_2024/kelp_biomass_complete.Rds")) # last write Nov 15 2024
 saveRDS(rock_complete, file.path(ltm.dir, "update_2024/rock_biomass_complete.Rds")) # last write Nov 18 2024
+saveRDS(surf_complete, file.path(ltm.dir, "update_2024/surf_biomass_complete.Rds")) # last write Nov 18 2024
 
 
 

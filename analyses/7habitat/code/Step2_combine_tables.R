@@ -152,10 +152,25 @@ rock <- rock_raw %>%
   # Log-transformed biomass
   mutate(log_bpue_kg = log(weight_kg + 1))
 
+# Surf zone (seines) ----------------------------------------------------------------------------------------------
 
+surf_raw <- readRDS(file.path(ltm.dir, "surf_biomass_complete.Rds")) 
 
+surf_sites <- surf_raw %>% 
+  # Identify distinct site-year combinations
+  distinct(year, site, site_type, bioregion, affiliated_mpa, mpa_defacto_class, implementation_year) %>% 
+  # Count number of years each site was visited before and after the MPA was implemented
+  group_by(site, bioregion, affiliated_mpa, mpa_defacto_class, implementation_year, site_type) %>% 
+  summarize(n_total = n(), .groups = 'drop') %>% # Started in 2019 so no need to do breakdown
+  left_join(habitat)
 
+# Even sampling across years and MPAs, no neeed to filter
 
+surf <- surf_raw %>% 
+  # Join habitat and site visitation information
+  left_join(surf_sites) %>% 
+  # Log-transformed biomass
+  mutate(log_kg_per_haul = log(kg_per_haul + 1))
 
 
 

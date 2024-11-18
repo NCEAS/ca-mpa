@@ -35,12 +35,12 @@ outdir <-  "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_
 # All caught fishes and associated drift_id
 ccfrp_caught_fishes <- read_csv(file.path(datadir, "4-Caught Fishes.csv"), na = c("")) %>% 
   clean_names() %>% 
-  select(drift_id, species_code, length_cm)
+  dplyr::select(drift_id, species_code, length_cm)
 
 # Site and effort for each drift (effort = angler hours)
 ccfrp_drift <- read_csv(file.path(datadir, "3-Drift Information.csv")) %>% 
   clean_names() %>% 
-  select(drift_id, trip_id, id_cell_per_trip, grid_cell_id, site_mpa_ref,
+  dplyr::select(drift_id, trip_id, id_cell_per_trip, grid_cell_id, site_mpa_ref,
          total_angler_hrs, total_fishes_caught, excluded_drift_comment, drift_time_hrs) %>% 
   # Update single entry where SP14 is listed as MPA (all other times listed as REF)
   mutate(site_mpa_ref = if_else(grid_cell_id == "SP14", "REF", site_mpa_ref))
@@ -48,13 +48,13 @@ ccfrp_drift <- read_csv(file.path(datadir, "3-Drift Information.csv")) %>%
 # Location and date of each trip
 ccfrp_trip_info <- read_csv(file.path(datadir, "1-Trip Information.csv")) %>% 
   clean_names() %>% 
-  select(trip_id, area, year = year_automatic, month, day) 
+  dplyr::select(trip_id, area, year = year_automatic, month, day) 
 
 # Full names and associated MPA for each trip
 ccfrp_areas <- read_csv(file.path("/home/shares/ca-mpa/data/sync-data/monitoring/monitoring_ccfrp/CCFRP_database/CCFRP_database_2007-2020_csv/Monitoring_Areas.csv"), 
                         na = c("N/A")) %>% 
   clean_names() %>% 
-  select(area = area_code, name, mpa_designation) %>%
+  dplyr::select(area = area_code, name, mpa_designation) %>%
   mutate(mpa_designation = gsub("SMR/SMCA", "SMR", mpa_designation)) %>% 
   mutate(affiliated_mpa = paste(tolower(name), tolower(mpa_designation), sep = " "), 
          affiliated_mpa = recode(affiliated_mpa, "se farallon islands smr" = "southeast farallon island smr"))
@@ -71,7 +71,7 @@ ccfrp_effort <- read.csv(file.path(datadir, "2007_2023_CCFRP_derived_effort_tabl
 taxon_tab <- read.csv("/home/shares/ca-mpa/data/sync-data/species_traits/processed/species_key.csv") %>% 
   clean_names() %>% 
   #reassign target_status_standardized for downstream code
-  select(-target_status)%>%
+  dplyr::select(-target_status)%>%
   rename(target_status = target_status_standardized)%>%
   filter(habitat == "Rocky reef")
 
@@ -109,7 +109,7 @@ data <- ccfrp_caught_fishes %>%
   # Correct swamis spelling
   mutate(affiliated_mpa = recode(affiliated_mpa, "swamis smca" = "swami's smca")) %>% 
   left_join(regions) %>% # Add regions
-  select(year, month, day, # temporal
+  dplyr::select(year, month, day, # temporal
          bioregion, region4, affiliated_mpa, mpa_state_class, mpa_defacto_class, mpa_defacto_designation, #  spatial
          drift_id, id_cell_per_trip, grid_cell_id, # sample
          total_angler_hrs, species_code, sciname, 
@@ -131,7 +131,8 @@ excluded_cells = c("TDRR", "CMMM", "CMRR", "TMMM", "TMRR",
                    "LBMM", "LBRR", "SWMM", "SMRR", "LJMM", "LJRR")
 
 data2 <- data %>% 
-  filter(is.na(excluded_drift_comment)) %>% select(-excluded_drift_comment) %>% 
+  filter(is.na(excluded_drift_comment)) %>% 
+  dplyr::select(-excluded_drift_comment) %>% 
   filter(!(grid_cell_id %in% excluded_cells)) %>% #%>% 
   filter(drift_time_hrs > (2/60)) %>%  # Drop drifts less than 2 min
   # Fix drift where there are 2 fishes recorded but total_fishes_caught is zero?
@@ -150,7 +151,7 @@ data2 <- data %>%
 
 # Calculate the total angler hours per cell per day
 effort <- data2 %>% 
-  select(year, drift_id, id_cell_per_trip, grid_cell_id, total_angler_hrs) %>% distinct() %>% 
+  dplyr::select(year, drift_id, id_cell_per_trip, grid_cell_id, total_angler_hrs) %>% distinct() %>% 
   group_by(id_cell_per_trip, grid_cell_id) %>% 
   summarize(total_angler_hrs_cell = sum(total_angler_hrs)) %>% ungroup() 
  
@@ -166,13 +167,13 @@ data3 <- data2 %>%
 # Test to confirm all taxa in the data are already in the CCFRP taxon table
 # - Only 2 in this dataframe should be UNKNOWN and NO_ORG
 taxa_match <- data2 %>% 
-  select(species_code) %>% 
+  dplyr::select(species_code) %>% 
   distinct() %>% 
   filter(!(species_code %in% taxon_tab$habitat_specific_code)) 
 
 # Write to csv ---------------------------------------------------------------------------------------
-#write.csv(data3, file.path(outdir, "ccfrp_processed.csv"), row.names = F)
-# last write 16 Feb 2023
+#write.csv(data3, file.path(outdir, "ccfrp_processed.2024.csv"), row.names = F)
+# last write 14 Nov 2024
 
 
 # Explore potential remaining concerns ---------------------------------------------------------------
