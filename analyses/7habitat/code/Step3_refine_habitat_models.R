@@ -15,12 +15,12 @@ library(tidymodels)
 
 # Read Data --------------------------------------------------------------------
 # Proceed here directly from Step2_combine_tables.R
-rm(list = setdiff(ls(), "data"))
+data <- kelp
+rm(list = setdiff(ls(), c("data")))
 gc()
 
-
 # Generate predictors -----------------------------------------------------------
-base_predictors <- c("site_type * age_at_survey")
+base_predictors <- c("site_type * age_at_survey", "size_km2")
 
 habitat_50  <- c("hard_bottom_biotic_0_30m_50",  
                  "soft_bottom_biotic_0_30m_50", 
@@ -64,7 +64,15 @@ predictors_list <- c(
 )
 
 predictors_list <- unique(predictors_list)
-rm(habitat_50, habitat_100, habitat_250, habitat_500, base_predictors)
+
+data_subset <- data %>%
+  dplyr::select(year, year:mpa_defacto_designation, size_km2,
+                age_at_survey:count_per_m2, log_kg_per_m2,
+                all_of(habitat_50), all_of(habitat_100), 
+                all_of(habitat_250), all_of(habitat_500)) %>% 
+  filter(bioregion == "South")
+
+rm(get_predictors, habitat_50, habitat_100, habitat_250, habitat_500, base_predictors)
 
 
 # 1. Compare habitat combinations ----------------------------------------------
@@ -93,33 +101,21 @@ refine_habitat <- function(species) {
 
 # 2. Define parameters and run -------------------------------------------------
 
-response <- c("log_kg_per_m2")
-random_effects <- c("year", "bioregion")
-num_predictors <- unique(unlist(predictors_list)) %>% setdiff(c("site_type", "bioregion"))
+response <- c("log_kg_per_m2") 
+random_effects <- c("year")
+num_predictors <- unique(unlist(predictors_list)) %>% setdiff(c("site_type", "site_type * age_at_survey", "size_km2"))
+save_path <- "analyses/7habitat/output/refine_pref_habitat" # kelp
 
-data_subset <- data %>%
-  filter(mpa_defacto_class == "smr") %>%
-  filter(age_at_survey >= 0) ##%>% mutate(across(all_of(num_predictors), scale)) # doesn't change effects really
-
-
-sp <- data_subset %>% 
-  filter(kg_per_m2 > 0) %>% 
-  group_by(species_code, sciname, target_status, bioregion) %>% 
+sp <- data_subset %>%
+  filter(kg_per_m2 > 0) %>%
+  group_by(species_code, sciname, target_status, bioregion) %>%
   summarize(total_biomass = sum(kg_per_m2),
             total_count = sum(count_per_m2),
-            n_obs = n()) %>% 
-  filter(n_obs > 70) %>% dplyr::select(species_code, sciname, target_status, bioregion, total_biomass) %>% 
-  pivot_wider(names_from = "bioregion", values_from = "total_biomass") %>% 
-  filter(North > 0 & Central > 0 & South > 0)
-  # scar has boundary singular
-  
+            n_obs = n()) %>%
+  filter(n_obs > 200) 
 
-
-save_path <- "analyses/7habitat/output/refine_pref_habitat" 
-
-species_list <- c("OYT", "SMYS", "SCAU")
+#species_list <- c("OYT", "SMYS", "SPUL", "SMIN")
 species_list <- sp$species_code
-results <- refine_habitat(species = "OYT")
 
 walk(species_list, function(species) {
   results_df <- refine_habitat(species = species)
@@ -138,7 +134,7 @@ filter_positive_models <- function(species, habitat_predictors) {
     coefs <- fixef(model)[names(fixef(model)) %in% habitat_predictors]
     
     # Check if all specified habitat predictors have positive coefficients
-    if (length(coefs) > 0 && all(coefs > 0)) {
+    if (length(coefs) > 0 && any(coefs > 0)) {
       data.frame(
         predictors = model_name,
         AICc = AICc(model),
@@ -198,12 +194,12 @@ analyze_top_models <- function(species, file_path, delta_aicc_threshold = 4) {
   # Extract signs and filter habitat predictors
   predictor_signs <- sign(if (is.matrix(coef_table)) coef_table[, "Estimate"] else coef_table)
   habitat_predictors <- setdiff(names(predictor_signs), 
-                                c("site_type", "age_at_survey", "site_typeReference", "(Intercept)", 
+                                c("site_type", "age_at_survey", "site_typeReference", "(Intercept)", "size_km2",
                                   "age_at_survey:site_typeReference", "site_typeReference:age_at_survey"))
   
   # Create summary data frame
   summary_df <- data.frame(
-    species = species,
+    species_code = species,
     predictor = habitat_predictors,
     importance_score = unname(predictor_importance[habitat_predictors]),
     sign = unname(predictor_signs[habitat_predictors]),
@@ -223,13 +219,13 @@ consolidated_results <- map_dfr(species_list, function(species) {
 consolidated_results
 
 
-
+# OLD --------------------------------------------------------------------------------------
 
 
 # Let's explore the top models performance:
 important_predictors <- consolidated_results %>%
   filter(importance_score >= 0.5) %>% 
-  group_by(species) %>%
+  group_by(species_code) %>%
   summarize(top_predictors = list(predictor)) %>%
   deframe()  # Convert to named list by species
 
@@ -237,12 +233,13 @@ important_predictors <- consolidated_results %>%
 library(lme4)
 library(ggplot2)
 
-
 generate_diagnostic_plots <- function(species, data_subset, important_predictors, random_effects, save_path) {
-  data_sp <- data_subset %>% filter(species_code == species)
-  predictors <- c(important_predictors[[species]], "age_at_survey", "site_type")
+  data_sp <- data_subset %>% 
+    filter(species_code == species)
   
-  model_formula <- as.formula(paste("log_kg_per_m2", "~", paste(predictors, collapse = " + "), 
+  predictors <- c(important_predictors[[species]], "age_at_survey", "site_type")
+
+  model_formula <- as.formula(paste("kg_per_m2_adj", "~", paste(predictors, collapse = " + "), 
                                     "+", paste0("(1 | ", random_effects, ")", collapse = " + ")))
   
   model <- lmer(model_formula, data = data_sp)
@@ -277,6 +274,9 @@ generate_diagnostic_plots <- function(species, data_subset, important_predictors
   
   return(summary(model))  # Optionally return the model for further analysis if needed
 }
+
+generate_diagnostic_plots(species = "OYT", data_subset, important_predictors, random_effects = c("year", "bioregion"), save_path = save_path)
+
 
 # Run the diagnostics for each species
 map(species_list, ~ generate_diagnostic_plots(.x, data_subset, important_predictors, random_effects = c("year", "bioregion"), save_path = save_path))
@@ -322,11 +322,13 @@ plot_species("OYT") # all
 plot_species("SMYS") # all
 
 
-ggplot(data_subset %>% filter(species_code == "OYT")) + 
-  geom_histogram(aes(x = log_kg_per_m2)) +
-  facet_wrap(~bioregion+affiliated_mpa)
+
+
+# Try a gam
+library(mgcv)
+
+gam_model <- gam(kg_per_m2 ~ s(pref_habitat) + s(site_type, age_at_survey) +  s(year, bs = "re") + s(bioregion, bs = "re"),
+                 family = Gamma(link = "log"), data = data_subset)
 
 
 
-
-https://aurora.nceas.ucsb.edu/rstudio/graphics/plot_zoom_png?width=1583&height=540

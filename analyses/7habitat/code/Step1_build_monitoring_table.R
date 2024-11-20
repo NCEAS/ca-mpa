@@ -79,7 +79,7 @@ kelp_effort <- kelp_orig %>%
   group_by(year, site, bioregion, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation) %>% 
   summarize(n_rep = n()) %>%  # 3131 site-year combos
   # Join MPA metadata (region, implementation year)
-  left_join(mpas %>% dplyr::select(affiliated_mpa, implementation_year)) 
+  left_join(mpas %>% dplyr::select(affiliated_mpa, implementation_year, size_km2)) 
 
 # Find true zeroes (no fish across an entire site in an entire year)
 # kelp_zeroes <- kelp_orig %>% 
@@ -124,7 +124,7 @@ kelp_complete <- kelp_effort %>%
                                     sciname == "Sebastes miniatus" ~ "Hard Bottom", 
                                     T~assemblage_new)) %>% 
   dplyr::select(year, site, site_type, 
-                bioregion, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation, implementation_year, 
+                bioregion, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation, implementation_year, size_km2,
                 age_at_survey, n_rep, species_code, sciname, genus, target_status, assemblage, assemblage_new,
                 weight_kg, count, kg_per_m2, count_per_m2)
 
@@ -139,7 +139,7 @@ surf_effort <- surf_orig %>%
   group_by(year, bioregion, site_name, affiliated_mpa,  mpa_defacto_class,  mpa_defacto_designation, ref_is_mpa) %>% 
   summarize(n_rep = n()) %>% 
   # Join MPA metadata (region, implementation year)
-  left_join(mpas %>% dplyr::select(affiliated_mpa, implementation_year)) %>% 
+  left_join(mpas %>% dplyr::select(affiliated_mpa, implementation_year, size_km2)) %>% 
   left_join(surf_sites) 
 
 surf <- surf_orig %>%
@@ -172,7 +172,7 @@ surf_complete <- surf_effort %>%
                                     sciname == "Sebastes miniatus" ~ "Hard Bottom", 
                                     T~assemblage_new)) %>% 
   dplyr::select(year, site, site_name, site_type, 
-                bioregion, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation, implementation_year, 
+                bioregion, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation, implementation_year, size_km2,
                 age_at_survey, n_rep, species_code, sciname, genus, target_status, assemblage, assemblage_new,
                 weight_kg, count, kg_per_haul, count_per_haul)
 
@@ -185,7 +185,7 @@ rock_effort <- rock_orig %>%
   group_by(year, bioregion, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation, grid_cell_id) %>% 
   # Caculate number of cell-trips per site per year
   summarize(n_rep = n()) %>% ungroup() %>% 
-  left_join(mpas %>% dplyr::select(affiliated_mpa, implementation_year))
+  left_join(mpas %>% dplyr::select(affiliated_mpa, implementation_year, size_km2))
 
 # Calculated biomass per unit effort (trip-cell)
 rock <- rock_orig %>% 
@@ -223,7 +223,7 @@ rock_complete <- rock_effort %>%
                                     sciname == "Sebastes miniatus" ~ "Hard Bottom", 
                                     T~assemblage_new)) %>% 
   dplyr::select(year, site = grid_cell_id, site_type, 
-                bioregion, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation, implementation_year, 
+                bioregion, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation, implementation_year, size_km2,
                 age_at_survey, n_rep, species_code, sciname, genus, target_status, assemblage, assemblage_new,
                 weight_kg = bpue_kg, count)
 

@@ -32,11 +32,11 @@ kelp_raw <- readRDS(file.path(ltm.dir, "kelp_biomass_complete.Rds"))
 
 kelp_sites <- kelp_raw %>% 
   # Identify distinct site-year combinations
-  distinct(year, site, site_type, bioregion, affiliated_mpa, implementation_year) %>% 
+  distinct(year, site, site_type, bioregion, affiliated_mpa, implementation_year, size_km2) %>% 
   mutate(before = if_else(year <= implementation_year, 1, 0),
          after = if_else(year > implementation_year, 1, 0)) %>% 
   # Count number of years each site was visited before and after the MPA was implemented
-  group_by(site, bioregion, affiliated_mpa, implementation_year, site_type) %>% 
+  group_by(site, bioregion, affiliated_mpa, implementation_year, size_km2, site_type) %>% 
   summarize(n_before = sum(before),
             n_after = sum(after),
             n_total = n_before + n_after, .groups = 'drop') %>% 
@@ -47,7 +47,7 @@ kelp_sites <- kelp_raw %>%
   left_join(habitat)
 
 kelp_mpas <- kelp_sites %>%
-  group_by(bioregion, affiliated_mpa, implementation_year, site_type) %>%
+  group_by(bioregion, affiliated_mpa, implementation_year, size_km2, site_type) %>%
   summarize(n_total = sum(n_total), .groups = 'drop') %>%
   pivot_wider(names_from = site_type, values_from = n_total) %>% 
   filter(!is.na(Reference)) %>% 
