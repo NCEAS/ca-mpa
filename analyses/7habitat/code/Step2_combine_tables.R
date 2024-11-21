@@ -172,5 +172,9 @@ surf <- surf_raw %>%
   # Log-transformed biomass
   mutate(log_kg_per_haul = log(kg_per_haul + 1))
 
+# Export 
 
+# saveRDS(kelp, file.path(ltm.dir, "combine_tables/kelp_combine_table.Rds")) # Last write 21 Nov 2024
+# saveRDS(surf, file.path(ltm.dir, "combine_tables/surf_combine_table.Rds")) # Last write 21 Nov 2024
+# saveRDS(rock, file.path(ltm.dir, "combine_tables/ccfrp_combine_table.Rds")) # Last write 21 Nov 2024
 

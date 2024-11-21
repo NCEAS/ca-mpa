@@ -65,6 +65,7 @@ run_comparison <- function(species){
   
   saveRDS(
     list(
+      data_sp = data_sp,
       species = species,
       preferred_habitat = preferred_habitat,
       preferred_scale = preferred_scale,

@@ -12,12 +12,14 @@ library(dplyr)
 library(purrr)
 library(tidymodels)
 
+rm(list = ls())
+gc()
+
 
 # Read Data --------------------------------------------------------------------
-# Proceed here directly from Step2_combine_tables.R
-data <- kelp
-rm(list = setdiff(ls(), c("data")))
-gc()
+ltm.dir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_2024"
+
+data <- readRDS(file.path(ltm.dir, "combine_tables/kelp_combine_table.Rds"))
 
 # Generate predictors -----------------------------------------------------------
 base_predictors <- c("site_type * age_at_survey", "size_km2")
