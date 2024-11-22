@@ -19,10 +19,12 @@ gc()
 # Read Data --------------------------------------------------------------------
 ltm.dir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_2024"
 
-data <- readRDS(file.path(ltm.dir, "combine_tables/kelp_combine_table.Rds"))
+data_kelp <- readRDS(file.path(ltm.dir, "combine_tables/kelp_combine_table.Rds"))
+data_surf <- readRDS(file.path(ltm.dir, "combine_tables/surf_combine_table.Rds"))
+data_rock <- readRDS(file.path(ltm.dir, "combine_tables/ccfrp_combine_table.Rds"))
 
 # Generate predictors -----------------------------------------------------------
-base_predictors <- c("site_type * age_at_survey", "size_km2")
+base_predictors <- c("site_type * age_at_survey", "size_km2") # 
 
 habitat_50  <- c("hard_bottom_biotic_0_30m_50",  
                  "soft_bottom_biotic_0_30m_50", 
@@ -67,22 +69,17 @@ predictors_list <- c(
 
 predictors_list <- unique(predictors_list)
 
-data_subset <- data %>%
-  dplyr::select(year, year:mpa_defacto_designation, size_km2,
-                age_at_survey:count_per_m2, log_kg_per_m2,
-                all_of(habitat_50), all_of(habitat_100), 
-                all_of(habitat_250), all_of(habitat_500)) %>% 
-  filter(bioregion == "South")
+num_predictors <- unique(unlist(predictors_list)) %>% setdiff(c("site_type", "site_type * age_at_survey", "size_km2")) # 
 
 rm(get_predictors, habitat_50, habitat_100, habitat_250, habitat_500, base_predictors)
 
 
 # 1. Compare habitat combinations ----------------------------------------------
-refine_habitat <- function(species) {
+refine_habitat <- function(species, response, random_effects, data_subset, save_path) {
   data_sp <- data_subset %>% filter(species_code == species)
-  print(paste("Species: ", species))
   
   models <- list()
+  
   models_df <- map_dfr(predictors_list, function(predictors) {
     model_formula <- as.formula(paste(response, "~", paste(predictors, collapse = " + "), "+", paste0("(1 | ", random_effects, ")", collapse = " + ")))
     model <- lmer(model_formula, data = data_sp)
@@ -97,37 +94,70 @@ refine_habitat <- function(species) {
     mutate(delta_AICc = AICc - min(AICc)) %>% 
     arrange(delta_AICc)
 
-  saveRDS(list(models_df = models_df, models = models), file = file.path(save_path, paste0(species, "_models.rds")))
+  saveRDS(list(models_df = models_df, models = models), 
+          file = file.path(save_path, paste0(species, "_models.rds")))
   models_df
 }
 
 # 2. Define parameters and run -------------------------------------------------
 
-response <- c("log_kg_per_m2") 
-random_effects <- c("year")
-num_predictors <- unique(unlist(predictors_list)) %>% setdiff(c("site_type", "site_type * age_at_survey", "size_km2"))
-save_path <- "analyses/7habitat/output/refine_pref_habitat" # kelp
-
-sp <- data_subset %>%
+# Kelp forest - all regions, including size as a covariate, these species: 
+sp_kelp <- data_kelp %>%
   filter(kg_per_m2 > 0) %>%
   group_by(species_code, sciname, target_status, bioregion) %>%
   summarize(total_biomass = sum(kg_per_m2),
             total_count = sum(count_per_m2),
             n_obs = n()) %>%
-  filter(n_obs > 200) 
+  filter(n_obs > 40) %>% 
+  pivot_wider(names_from = bioregion, values_from = c(total_biomass, total_count, n_obs)) %>% 
+  filter(!is.na(n_obs_North)) %>% 
+  filter(!is.na(n_obs_South))
 
-#species_list <- c("OYT", "SMYS", "SPUL", "SMIN")
-species_list <- sp$species_code
+data_kelp_subset <- data_kelp %>% 
+  dplyr::select(year:affiliated_mpa, size_km2, age_at_survey,
+                species_code:target_status, assemblage_new, weight_kg:count_per_m2, log_kg_per_m2,
+                all_of(num_predictors))
 
-walk(species_list, function(species) {
-  results_df <- refine_habitat(species = species)
+walk(sp_kelp$species_code, function(species) {
+  results_df <- refine_habitat(species = species,
+                               response = "log_kg_per_m2",
+                               random_effects = c("year", "bioregion"),
+                               data_subset = data_kelp_subset,
+                               save_path = "analyses/7habitat/output/refine_pref_habitat/all_regions")
+  cat("\nTop 5 models for species:", species, "\n")
+  print(head(results_df, 5))
+})
+
+# Surf zone - all regions, including size as a covariate
+sp_surf <- data_surf %>% 
+  filter(kg_per_haul > 0) %>% 
+  group_by(species_code, sciname, target_status, bioregion) %>%
+  summarize(total_biomass = sum(kg_per_haul),
+            total_count = sum(count),
+            n_obs = n()) %>% 
+  filter(total_count > 80) %>% 
+  pivot_wider(names_from = bioregion, values_from = c(total_biomass, total_count, n_obs)) %>% 
+  filter(!is.na(n_obs_North)) %>% 
+  filter(!is.na(n_obs_South))
+
+data_surf_subset <- data_surf %>% 
+  dplyr::select(year:affiliated_mpa, size_km2, age_at_survey,
+                species_code:target_status, assemblage_new, weight_kg:count_per_haul, log_kg_per_haul,
+                all_of(num_predictors))
+
+walk(sp_surf$species_code, function(species) {
+  results_df <- refine_habitat(species = species,
+                               response = "log_kg_per_haul",
+                               random_effects = c("year", "bioregion"),
+                               data_subset = data_surf_subset,
+                               save_path = "analyses/7habitat/output/refine_pref_habitat/surf/all_regions")
   cat("\nTop 5 models for species:", species, "\n")
   print(head(results_df, 5))
 })
 
 # 3. Load models and filter for positive habitat relationships ------------------------------------------------
 
-filter_positive_models <- function(species, habitat_predictors) {
+filter_positive_models <- function(species, habitat_predictors, save_path) {
   data <- readRDS(file.path(save_path, paste0(species, "_models.rds")))
   models <- data$models
   
@@ -135,7 +165,6 @@ filter_positive_models <- function(species, habitat_predictors) {
     model <- models[[model_name]]
     coefs <- fixef(model)[names(fixef(model)) %in% habitat_predictors]
     
-    # Check if all specified habitat predictors have positive coefficients
     if (length(coefs) > 0 && any(coefs > 0)) {
       data.frame(
         predictors = model_name,
@@ -155,33 +184,38 @@ filter_positive_models <- function(species, habitat_predictors) {
   # Save filtered positive models
   saveRDS(list(models_df = positive_models_df, 
                models = models[names(models) %in% positive_models_df$predictors]), 
-          file = file.path(save_path, paste0(species, "_positive_models.rds")))
-  
+         file = file.path(save_path, paste0(species, "_positive_models.rds")))
+
   positive_models_df
 }
 
 
 
 # Identify habitat predictors in data
-habitat_predictors <- grep("^(hard|soft)", names(data), value = TRUE)
+habitat_predictors <- grep("^(hard|soft)", names(data_kelp_subset), value = TRUE)
 
-walk(species_list, function(species) {
-  results_pos <- filter_positive_models(species = species, habitat_predictors = habitat_predictors)
+walk(sp_kelp$species_code, function(species) {
+  results_pos <- filter_positive_models(species = species, 
+                                        habitat_predictors = habitat_predictors,
+                                        save_path = "analyses/7habitat/output/refine_pref_habitat/all_regions")
   cat("\nTop 5 models for species:", species, "\n")
   print(head(results_pos, 5))
 })
 
-
-
+walk(sp_surf$species_code, function(species) {
+  results_pos <- filter_positive_models(species = species, 
+                                        habitat_predictors = habitat_predictors,
+                                        save_path = "analyses/7habitat/output/refine_pref_habitat/surf/all_regions")
+  cat("\nTop 5 models for species:", species, "\n")
+  print(head(results_pos, 5))
+})
 
 # 4. Load remaining models and compare ------------------------------------------------------------------------
-analyze_top_models <- function(species, file_path, delta_aicc_threshold = 4) {
+analyze_top_models <- function(species) {
   data <- readRDS(file.path(save_path, paste0(species, "_positive_models.rds")))
-  models_df <- data$models_df
-  models <- data$models
   
-  top_model_names <- models_df %>% filter(delta_AICc <= delta_aicc_threshold) %>% pull(predictors)
-  top_models <- models[top_model_names]
+  top_model_names <- data$models_df %>% filter(delta_AICc <= 4) %>% pull(predictors)
+  top_models <- data$models[top_model_names]
   
   # Model averaging or single model extraction
   if (length(top_models) > 1) {
@@ -212,13 +246,61 @@ analyze_top_models <- function(species, file_path, delta_aicc_threshold = 4) {
   return(summary_df)
 }
 
+# Kelp - all regions incuding size:
+save_path <- "analyses/7habitat/output/refine_pref_habitat/all_regions"
+consolidated_results <- map(sp_kelp$species_code, analyze_top_models) %>% 
+  list_rbind()
 
-consolidated_results <- map_dfr(species_list, function(species) {
-  file_path <- file.path(save_path, paste0(species, "_positive_models.rds"))
-  analyze_top_models(species, file_path, delta_aicc_threshold = 4)
-})
+saveRDS(consolidated_results, file.path(save_path, "consolidated_results.Rds"))
 
-consolidated_results
+# Surf - all regions incuding size:
+save_path <- "analyses/7habitat/output/refine_pref_habitat/surf/all_regions"
+consolidated_results <- map(sp_surf$species_code, analyze_top_models) %>% 
+  list_rbind()
+
+saveRDS(consolidated_results, file.path(save_path, "consolidated_results.Rds"))
+
+### --------------------------------------------------------------------------------------------------------------------
+
+
+
+
+# Test to make sure the above works:
+
+species <- "SMAR"
+
+data <- readRDS(file.path(save_path, paste0(species, "_positive_models.rds")))
+
+top_model_names <- data$models_df %>% filter(delta_AICc <= 4) %>% pull(predictors)
+top_models <- data$models[top_model_names]
+
+# Model averaging or single model extraction
+if (length(top_models) > 1) {
+  model_avg <- model.avg(top_models, fit = TRUE)
+  coef_table <- coefTable(model_avg)
+  predictor_importance <- sw(model_avg)
+} else {
+  coef_table <- fixef(top_models[[1]])
+  predictor_importance <- setNames(rep(1, length(coef_table)), names(coef_table))
+}
+
+# Extract signs and filter habitat predictors
+predictor_signs <- sign(if (is.matrix(coef_table)) coef_table[, "Estimate"] else coef_table)
+habitat_predictors <- setdiff(names(predictor_signs), 
+                              c("site_type", "age_at_survey", "site_typeReference", "(Intercept)", "size_km2",
+                                "age_at_survey:site_typeReference", "site_typeReference:age_at_survey"))
+
+# Create summary data frame
+summary_df <- data.frame(
+  species_code = species,
+  predictor = habitat_predictors,
+  importance_score = unname(predictor_importance[habitat_predictors]),
+  sign = unname(predictor_signs[habitat_predictors]),
+  num_models = length(top_models),
+  row.names = NULL
+)
+
+
 
 
 # OLD --------------------------------------------------------------------------------------
