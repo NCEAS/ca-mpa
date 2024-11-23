@@ -18,7 +18,7 @@ library(tidyverse)
 library(lmerTest)
 library(performance)
 library(see)
-library(gt)
+library(kableExtra)
 
 
 # Read Data --------------------------------------------------------------------
@@ -26,20 +26,53 @@ library(gt)
 #gc()
 
 # Examine habitat preference and scores ----------------------------------------
+sp_info <- data %>% 
+  distinct(species_code, sciname, target_status, bioregion, assemblage_new)
+
+#consolidated_results <- readRDS("analyses/7habitat/output/refine_pref_habitat/consolidated_results.Rds")
+
 examine_habitat <- consolidated_results %>% 
   filter(importance_score >= 0.5) %>% 
-  filter(sign == 1)
+  filter(sign == 1) %>% 
+  left_join(sp_info %>% filter(bioregion == "South")) %>% 
+  dplyr::select(species_code, sciname:assemblage_new, predictor, importance_score, num_models)
 
+# examine_habitat %>%
+#   mutate(assemblage_new = case_when(species_code == "OYT" ~ "Hard Bottom Biotic",
+#                                     species_code == "ATHE" ~ "Generalist (?)", TRUE ~ assemblage_new)) %>%
+#   dplyr::select(`Code` = species_code, `Scientific Name` = sciname, `Target Status` = target_status,
+#                 `Assemblage` = assemblage_new, `Predictor` = predictor, `Importance Score` = importance_score, `# models` = num_models) %>%
+#   # group_by(`Code`, `Scientific Name`, `Target Status`, `Assemblage`) %>%
+#   # mutate(`Code` = if_else(row_number() == 1, `Code`, ""),
+#   #        `Scientific Name` = if_else(row_number() == 1, `Scientific Name`, ""),
+#   #        `Target Status` = if_else(row_number() == 1, `Target Status`, ""),
+#   #        `Assemblage` = if_else(row_number() == 1, `Assemblage`, "")) %>%  # Blank out repeated entries
+#   mutate(`Importance Score` = round(`Importance Score`, 2)) %>% # Format numbers
+#   kable(format = "html", title = "Step 1. Refine Preferred Habitat - Species Results") %>%
+#   kable_styling(full_width = FALSE, bootstrap_options = c("striped", "hover")) %>%
+#   collapse_rows(columns = c(1:4), target = 1, valign = "top", row_group_label_position = "identity") %>%
+#   row_spec(0, bold = TRUE)
+
+examine_habitat %>% 
+  mutate(assemblage_new = case_when(species_code == "OYT" ~ "Hard Bottom Biotic", TRUE ~ assemblage_new)) %>% 
+  dplyr::select(`Code` = species_code, `Scientific Name` = sciname, `Target Status` = target_status,
+                `Assemblage` = assemblage_new, `Predictor` = predictor, `Importance Score` = importance_score, `Models` = num_models) %>% 
+  mutate(`Importance Score` = round(`Importance Score`, 2)) %>% # Format numbers
+  kable(format = "html", title = "Step 1. Refine Preferred Habitat - Species Results") %>%
+  kable_styling(full_width = FALSE, bootstrap_options = c("striped", "hover")) %>%
+  collapse_rows(columns = c(1:4), target = 1, valign = "top", row_group_label_position = "identity") %>%
+  row_spec(0, bold = TRUE)
+           
 
 # Build models -----------------------------------------------------------------
 
 run_comparison <- function(species){
   print(paste("Species: ", species))
   
-  preferred_habitat <- consolidated_results %>% 
-    filter(species_code == species) %>% 
-    filter(importance_score >= 0.5) %>% 
-    filter(sign == 1) %>% 
+  preferred_habitat <- consolidated_results %>%
+    filter(species_code == species) %>% #
+    filter(importance_score >= 0.5) %>%
+    filter(sign == 1) %>%
     pull(predictor)
   print(paste("Pref Habitat: ", preferred_habitat))
   
@@ -51,10 +84,10 @@ run_comparison <- function(species){
     filter(species_code == species) %>% 
     mutate(pref_habitat = rowSums(across(all_of(preferred_habitat)), na.rm = TRUE)) 
   
-  f1 <- as.formula(paste(response, " ~ site_type * age_at_survey + size_km2 + (1 | year)"))
-  f2 <- as.formula(paste(response, " ~ site_type * age_at_survey + pref_habitat + size_km2 +(1 | year)"))
-  f3 <- as.formula(paste(response, " ~ site_type * age_at_survey + site_type * pref_habitat + size_km2 +(1 | year)"))
-  f4 <- as.formula(paste(response, " ~ site_type * age_at_survey + size_km2 +", paste(all_habitat, collapse = " + "), "+ (1 | year)"))
+  f1 <- as.formula(paste(response, " ~ site_type * age_at_survey + size_km2 + (1 | year) + (1 | bioregion)")) # 
+  f2 <- as.formula(paste(response, " ~ site_type * age_at_survey + pref_habitat + size_km2  + (1 | year) + (1 | bioregion)")) # 
+  f3 <- as.formula(paste(response, " ~ site_type * age_at_survey + site_type * pref_habitat + size_km2 + (1 | year) + (1 | bioregion)")) # 
+  f4 <- as.formula(paste(response, " ~ site_type * age_at_survey +", paste(all_habitat, collapse = " + "), "+ size_km2 + (1 | year) + (1 | bioregion)"))# 
   
   m1 <- lmer(f1, data = data_sp, REML = FALSE)
   m2 <- lmer(f2, data = data_sp, REML = FALSE)
@@ -81,7 +114,8 @@ run_comparison <- function(species){
 
 # Run and save the comparisons
 response = "log_kg_per_m2"
-save_path = "analyses/7habitat/output/refine_pref_habitat"
+save_path = "analyses/7habitat/output/refine_pref_habitat/all_regions"
+
 walk(unique(examine_habitat$species_code), run_comparison)
 
 
@@ -93,7 +127,7 @@ model_diagnostics <- function(species){
 }
 
 
-species <- "SPUL"
+species <- "OYT"
 data <- readRDS(file.path(save_path, paste0(species, "_model_comparison.rds")))
 
 mod_comp <- as.data.frame(data$model_comparison) %>% 
@@ -116,9 +150,19 @@ mod_comp <- as.data.frame(data$model_comparison) %>%
 mod_comp
 
 
-summary(data$models$m1)
+summary(data$models$m2) 
 
-check_model(model_comparison$models$m3, residual_type = "simulated", check = c("ncv", "qq", "vif", "normality"))
+broom.mixed::tidy(data$models$m4, effects = "fixed") %>% 
+  dplyr::select(!effect) %>% 
+  mutate(p.value = case_when(p.value < 0.001 ~ "< 0.001", T~as.character(round(p.value, 4)))) %>% 
+  gt() %>% 
+  fmt_number(columns = c(statistic, df), decimals = 1) %>% 
+  fmt_scientific(columns = c(estimate, std.error), decimals = 2, exp_style = "e")
+
+# View the table
+print(summary_table)
+
+check_model(data$models$m3, residual_type = "simulated", check = c("ncv", "qq", "vif", "normality"))
 check_model(model_comparison$models$m3, check = c("vif"))
 check_outliers(model_comparison$models$m3)
 check_residuals(model_comparison$models$m3)
