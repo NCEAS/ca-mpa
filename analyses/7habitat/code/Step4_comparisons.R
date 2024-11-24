@@ -29,6 +29,8 @@ library(kableExtra)
 sp_info <- data %>% 
   distinct(species_code, sciname, target_status, bioregion, assemblage_new)
 
+surf_info <- data_surf %>% 
+  distinct(species_code, sciname, target_status, bioregion, assemblage_new)
 #consolidated_results <- readRDS("analyses/7habitat/output/refine_pref_habitat/consolidated_results.Rds")
 
 examine_habitat <- consolidated_results %>% 
@@ -66,11 +68,13 @@ examine_habitat %>%
 
 # Build models -----------------------------------------------------------------
 
-run_comparison <- function(species){
+run_comparison <- function(species, data_subset, response, random_effects, path){
   print(paste("Species: ", species))
   
+  consolidated_results <- readRDS(file.path(path, "consolidated_results.Rds"))
+  
   preferred_habitat <- consolidated_results %>%
-    filter(species_code == species) %>% #
+    filter(species_code == species) %>% 
     filter(importance_score >= 0.5) %>%
     filter(sign == 1) %>%
     pull(predictor)
@@ -84,10 +88,10 @@ run_comparison <- function(species){
     filter(species_code == species) %>% 
     mutate(pref_habitat = rowSums(across(all_of(preferred_habitat)), na.rm = TRUE)) 
   
-  f1 <- as.formula(paste(response, " ~ site_type * age_at_survey + size_km2 + (1 | year) + (1 | bioregion)")) # 
-  f2 <- as.formula(paste(response, " ~ site_type * age_at_survey + pref_habitat + size_km2  + (1 | year) + (1 | bioregion)")) # 
-  f3 <- as.formula(paste(response, " ~ site_type * age_at_survey + site_type * pref_habitat + size_km2 + (1 | year) + (1 | bioregion)")) # 
-  f4 <- as.formula(paste(response, " ~ site_type * age_at_survey +", paste(all_habitat, collapse = " + "), "+ size_km2 + (1 | year) + (1 | bioregion)"))# 
+  f1 <- as.formula(paste(response, " ~ site_type * age_at_survey + size_km2 + ", paste0("(1 | ", random_effects, ")", collapse = " + "))) 
+  f2 <- as.formula(paste(response, " ~ site_type * age_at_survey + pref_habitat + size_km2 + ", paste0("(1 | ", random_effects, ")", collapse = " + ")))  
+  f3 <- as.formula(paste(response, " ~ site_type * age_at_survey + site_type * pref_habitat + size_km2 + ", paste0("(1 | ", random_effects, ")", collapse = " + "))) 
+  f4 <- as.formula(paste(response, " ~ site_type * age_at_survey +", paste(all_habitat, collapse = " + "), "+ size_km2 + ", paste0("(1 | ", random_effects, ")", collapse = " + "))) 
   
   m1 <- lmer(f1, data = data_sp, REML = FALSE)
   m2 <- lmer(f2, data = data_sp, REML = FALSE)
@@ -105,7 +109,7 @@ run_comparison <- function(species){
       models = list(m1 = m1, m2 = m2, m3 = m3, m4 = m4),
       model_comparison = model_comparison
     ),
-    file = file.path(save_path, paste0(species, "_model_comparison.rds"))
+    file = file.path(path, paste0(species, "_model_comparison.rds"))
   )
   
   print(model_comparison)
@@ -113,22 +117,38 @@ run_comparison <- function(species){
 }
 
 # Run and save the comparisons
-response = "log_kg_per_m2"
-save_path = "analyses/7habitat/output/refine_pref_habitat/all_regions"
+run_comparison("AARG", 
+               data_subset = data_surf_subset,
+               response = "log_kg_per_haul",
+               random_effects = c("year", "bioregion"),
+               path = "analyses/7habitat/output/refine_pref_habitat/surf/all_regions")
 
-walk(unique(examine_habitat$species_code), run_comparison)
+run_comparison("AAFF", 
+               data_subset = data_surf_subset,
+               response = "log_kg_per_haul",
+               random_effects = c("year", "bioregion"),
+               path = "analyses/7habitat/output/refine_pref_habitat/surf/all_regions")
+
 
 
 # Table and diagnostics for each species ----------------------------------------
 
 model_diagnostics <- function(species){
   data <- readRDS(file.path(save_path, paste0(species, "_model_comparison.rds")))
-  
 }
 
 
-species <- "OYT"
-data <- readRDS(file.path(save_path, paste0(species, "_model_comparison.rds")))
+species <- "AAFF"
+path <- "analyses/7habitat/output/refine_pref_habitat/surf/all_regions"
+data <- readRDS(file.path(path, paste0(species, "_model_comparison.rds")))
+
+length(unique(data$data_sp$affiliated_mpa))
+length(unique(data$data_sp$site))
+unique(data$data_sp$year)
+length(unique(data$data_sp$year))
+mean(data$data_sp$age_at_survey)
+unique(data$data_sp$age_at_survey)
+
 
 mod_comp <- as.data.frame(data$model_comparison) %>% 
   mutate(delta_AICc = AICc - min(AICc)) %>% 
@@ -149,8 +169,10 @@ mod_comp <- as.data.frame(data$model_comparison) %>%
   opt_table_lines(extent = "none")
 mod_comp
 
-
+summary(data$models$m1) 
 summary(data$models$m2) 
+summary(data$models$m3) 
+summary(data$models$m4) 
 
 broom.mixed::tidy(data$models$m4, effects = "fixed") %>% 
   dplyr::select(!effect) %>% 
@@ -162,12 +184,13 @@ broom.mixed::tidy(data$models$m4, effects = "fixed") %>%
 # View the table
 print(summary_table)
 
-check_model(data$models$m3, residual_type = "simulated", check = c("ncv", "qq", "vif", "normality"))
+check_model(data$models$m4, residual_type = "simulated", check = c("ncv", "qq", "vif", "normality"))
 check_model(model_comparison$models$m3, check = c("vif"))
-check_outliers(model_comparison$models$m3)
-check_residuals(model_comparison$models$m3)
+check_outliers(data$models$m2)
+outlier <- data$data_sp[21, ] # View the flagged case
+check_residuals(data$models$m2)
 
-result <- check_heteroskedasticity(model_comparison$models$m3)
+result <- check_heteroskedasticity(data$models$m2)
 plot(result)
 
 library(performance)
