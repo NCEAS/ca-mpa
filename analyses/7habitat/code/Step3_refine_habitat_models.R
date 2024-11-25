@@ -24,12 +24,12 @@ data_surf <- readRDS(file.path(ltm.dir, "combine_tables/surf_combine_table.Rds")
 data_rock <- readRDS(file.path(ltm.dir, "combine_tables/ccfrp_combine_table.Rds"))
 
 # Generate predictors -----------------------------------------------------------
-base_predictors <- c("site_type * age_at_survey", "size_km2") # 
+base_predictors <- c("site_type * age_at_survey", "size_km2") # Including interaction 
 
-habitat_50  <- c("hard_bottom_biotic_0_30m_50",  
-                 "soft_bottom_biotic_0_30m_50", 
-                 "hard_bottom_0_30m_50",       
-                 "soft_bottom_0_30m_50")      
+habitat_50  <- c("hard_bottom_biotic_0_30m_50",  # problem with 3 NAs for surf
+                 "soft_bottom_biotic_0_30m_50",  # problem with 3 NAs for surf
+                 "hard_bottom_0_30m_50",         # problem with 3 NAs for surf
+                 "soft_bottom_0_30m_50")         # problem with 3 NAs for surf
 habitat_100 <- c("hard_bottom_biotic_0_30m_100", 
                  "soft_bottom_biotic_0_30m_100", 
                  "hard_bottom_0_30m_100",   
@@ -37,15 +37,17 @@ habitat_100 <- c("hard_bottom_biotic_0_30m_100",
 habitat_250 <- c("hard_bottom_biotic_0_30m_250", 
                  "soft_bottom_biotic_0_30m_250",
                  "hard_bottom_0_30m_250",    
-                 "soft_bottom_0_30m_250",
-                 "hard_bottom_30_100m_250",    
-                 "soft_bottom_30_100m_250")   
+                 "soft_bottom_0_30m_250"#,
+                 #"hard_bottom_30_100m_250",    # rm for surf zone
+                # "soft_bottom_30_100m_250"     # rm for surf zone
+                 )   
 habitat_500 <- c("hard_bottom_biotic_0_30m_500",
                  "soft_bottom_biotic_0_30m_500",
                  "hard_bottom_0_30m_500", 
-                 "soft_bottom_0_30m_500",
-                 "hard_bottom_30_100m_500", 
-                 "soft_bottom_30_100m_500")
+                 "soft_bottom_0_30m_500"#,      
+              #   "hard_bottom_30_100m_500",    # rm for surf zone
+               #  "soft_bottom_30_100m_500"     # rm for surf zone
+                 )
 
 predictors_list <- NULL
 get_predictors <- function(habitat_buffer_list) {
@@ -61,7 +63,7 @@ get_predictors <- function(habitat_buffer_list) {
 }
 
 predictors_list <- c(
-  get_predictors(habitat_50),
+ # get_predictors(habitat_50),
   get_predictors(habitat_100),
   get_predictors(habitat_250),
   get_predictors(habitat_500)
@@ -143,7 +145,8 @@ sp_surf <- data_surf %>%
 data_surf_subset <- data_surf %>% 
   dplyr::select(year:affiliated_mpa, size_km2, age_at_survey,
                 species_code:target_status, assemblage_new, weight_kg:count_per_haul, log_kg_per_haul,
-                all_of(num_predictors))
+                all_of(num_predictors)) %>% 
+  filter(!(species_code == "AARG" & kg_per_haul > 2.1))
 
 walk(sp_surf$species_code, function(species) {
   results_df <- refine_habitat(species = species,
@@ -253,17 +256,31 @@ consolidated_results <- map(sp_kelp$species_code, analyze_top_models) %>%
 
 saveRDS(consolidated_results, file.path(save_path, "consolidated_results.Rds"))
 
-# Surf - all regions incuding size:
+# Surf - all regions including size:
 save_path <- "analyses/7habitat/output/refine_pref_habitat/surf/all_regions"
-consolidated_results <- map(sp_surf$species_code, analyze_top_models) %>% 
+consolidated_results <- map(sp_surf$species_code, analyze_top_models) %>%
   list_rbind()
 
 saveRDS(consolidated_results, file.path(save_path, "consolidated_results.Rds"))
 
+
+
 ### --------------------------------------------------------------------------------------------------------------------
 
+species <- "AARG"
+data <- readRDS(file.path(save_path, paste0(species, "_positive_models.rds")))
 
+test <- data_surf_subset %>% 
+  dplyr::select(site, site_type, affiliated_mpa, bioregion, all_of(habitat_predictors)) %>% 
+  distinct() %>% 
+  pivot_longer(cols = hard_bottom_biotic_0_30m_50:soft_bottom_30_100m_500,
+               names_to = "habitat", values_to = "value")
 
+test_na <- test %>% 
+  filter(is.na(hard_bottom_biotic_0_30m_50))
+summary(testestsummary(test)
+ggplot(data = test) +
+  geom_point(aes(x = site, y = value, color = habitat))
 
 # Test to make sure the above works:
 

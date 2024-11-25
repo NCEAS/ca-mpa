@@ -129,7 +129,11 @@ run_comparison("AAFF",
                random_effects = c("year", "bioregion"),
                path = "analyses/7habitat/output/refine_pref_habitat/surf/all_regions")
 
-
+run_comparison("OYT", 
+               data_subset = data_kelp_subset,
+               response = "log_kg_per_m2",
+               random_effects = c("year", "bioregion"),
+               path = "analyses/7habitat/output/refine_pref_habitat/all_regions")
 
 # Table and diagnostics for each species ----------------------------------------
 
@@ -138,7 +142,7 @@ model_diagnostics <- function(species){
 }
 
 
-species <- "AAFF"
+species <- "AARG"
 path <- "analyses/7habitat/output/refine_pref_habitat/surf/all_regions"
 data <- readRDS(file.path(path, paste0(species, "_model_comparison.rds")))
 
@@ -176,7 +180,7 @@ summary(data$models$m4)
 
 broom.mixed::tidy(data$models$m4, effects = "fixed") %>% 
   dplyr::select(!effect) %>% 
-  mutate(p.value = case_when(p.value < 0.001 ~ "< 0.001", T~as.character(round(p.value, 4)))) %>% 
+  mutate(p.value = case_when(p.value < 0.001 ~ "< 0.001", T~as.character(round(p.value, 3)))) %>% 
   gt() %>% 
   fmt_number(columns = c(statistic, df), decimals = 1) %>% 
   fmt_scientific(columns = c(estimate, std.error), decimals = 2, exp_style = "e")

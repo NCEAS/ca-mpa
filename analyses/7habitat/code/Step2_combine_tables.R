@@ -16,15 +16,12 @@ sp.dir <- "/home/shares/ca-mpa/data/sync-data/species_traits/processed"
 int.dir <- "~/ca-mpa/analyses/7habitat/intermediate_data"
 
 # Read Data --------------------------------------------------------------------------------------------------------------------
-habitat_raw <- readRDS(file.path(int.dir, "habitat_buffers_by_site_revised.Rds")) %>% # rm _revised for old version
-  rename(affiliated_mpa = mpa_orig)
+habitat_raw <- readRDS(file.path(int.dir, "habitat_buffers_by_site_revised.Rds")) # rm _revised for old version
 
 habitat <- habitat_raw %>% 
-  # Create identifier based on habitat and buffer
-  mutate(habitat_depth_buffer = paste(habitat_depth, buffer, sep = "_")) %>% 
   dplyr::select(mpa, affiliated_mpa, site, site_type, area_m2, habitat_depth_buffer) %>% 
   pivot_wider(names_from = "habitat_depth_buffer", values_from = "area_m2") %>% 
-  dplyr::select(-affiliated_mpa, -site_type)
+  dplyr::select(-affiliated_mpa, -site_type) 
 
 # Kelp -------------------------------------------------------------------------------------------------------------------
 
@@ -174,7 +171,7 @@ surf <- surf_raw %>%
 
 # Export 
 
-# saveRDS(kelp, file.path(ltm.dir, "combine_tables/kelp_combine_table.Rds")) # Last write 21 Nov 2024
-# saveRDS(surf, file.path(ltm.dir, "combine_tables/surf_combine_table.Rds")) # Last write 21 Nov 2024
-# saveRDS(rock, file.path(ltm.dir, "combine_tables/ccfrp_combine_table.Rds")) # Last write 21 Nov 2024
+saveRDS(kelp, file.path(ltm.dir, "combine_tables/kelp_combine_table.Rds")) # Last write 21 Nov 2024
+saveRDS(surf, file.path(ltm.dir, "combine_tables/surf_combine_table.Rds")) # Last write 21 Nov 2024
+saveRDS(rock, file.path(ltm.dir, "combine_tables/ccfrp_combine_table.Rds")) # Last write 21 Nov 2024
 
