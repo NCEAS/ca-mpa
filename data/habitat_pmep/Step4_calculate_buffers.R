@@ -22,14 +22,14 @@ sites_raw <- readRDS("/home/shares/ca-mpa/data/sync-data/monitoring/monitoring_s
 sites_raw <- st_as_sf(sites_raw, coords = c("long_dd", "lat_dd"), crs = 4326) 
 sites_raw <- st_transform(sites_raw, crs = 32610) 
 
-habitat.files <- list.files(file.path(com.dir), pattern = "combined_hsb", full.names = T) # remove "_revised" to use previous version
+habitat.files <- list.files(file.path(com.dir), pattern = "combined_hsb_revised", full.names = T) # remove "_revised" to use previous version
 
 # Function to calculate buffers
 calculate_buffers <- function(section, buffer) {
   print(paste("Section:", section))
   print(paste("Buffer:", buffer))
   
-  habitat <- readRDS(file.path(com.dir, paste0("combined_hsb_", section, ".Rds"))) 
+  habitat <- readRDS(file.path(com.dir, paste0("combined_hsb_revised", section, ".Rds"))) 
   sites <- st_transform(sites_raw, crs = st_crs(habitat))
   sites <- st_buffer(sites, dist = buffer)
   

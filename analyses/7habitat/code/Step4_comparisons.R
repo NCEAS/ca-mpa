@@ -86,12 +86,13 @@ run_comparison <- function(species, data_subset, response, random_effects, path)
   
   data_sp <- data_subset %>% 
     filter(species_code == species) %>% 
-    mutate(pref_habitat = rowSums(across(all_of(preferred_habitat)), na.rm = TRUE)) 
+    mutate(pref_habitat = rowSums(across(all_of(preferred_habitat)), na.rm = TRUE))# %>% 
+  #  mutate(across(where(is.numeric(.)), scale)) probably not right
   
-  f1 <- as.formula(paste(response, " ~ site_type * age_at_survey + size_km2 + ", paste0("(1 | ", random_effects, ")", collapse = " + "))) 
-  f2 <- as.formula(paste(response, " ~ site_type * age_at_survey + pref_habitat + size_km2 + ", paste0("(1 | ", random_effects, ")", collapse = " + ")))  
-  f3 <- as.formula(paste(response, " ~ site_type * age_at_survey + site_type * pref_habitat + size_km2 + ", paste0("(1 | ", random_effects, ")", collapse = " + "))) 
-  f4 <- as.formula(paste(response, " ~ site_type * age_at_survey +", paste(all_habitat, collapse = " + "), "+ size_km2 + ", paste0("(1 | ", random_effects, ")", collapse = " + "))) 
+  f1 <- as.formula(paste(response, " ~ site_type * age_at_survey  + ", paste0("(1 | ", random_effects, ")", collapse = " + "))) 
+  f2 <- as.formula(paste(response, " ~ site_type * age_at_survey + pref_habitat + ", paste0("(1 | ", random_effects, ")", collapse = " + ")))  
+  f3 <- as.formula(paste(response, " ~ site_type * age_at_survey + site_type * pref_habitat + ", paste0("(1 | ", random_effects, ")", collapse = " + "))) 
+  f4 <- as.formula(paste(response, " ~ site_type * age_at_survey +", paste(all_habitat, collapse = " + "), " + ", paste0("(1 | ", random_effects, ")", collapse = " + "))) 
   
   m1 <- lmer(f1, data = data_sp, REML = FALSE)
   m2 <- lmer(f2, data = data_sp, REML = FALSE)
@@ -135,6 +136,14 @@ run_comparison("OYT",
                random_effects = c("year", "bioregion"),
                path = "analyses/7habitat/output/refine_pref_habitat/all_regions")
 
+run_comparison("OELO", 
+               data_subset = data_kelp_subset,
+               response = "log_kg_per_m2",
+               random_effects = c("year", "bioregion"),
+               path = "analyses/7habitat/output/refine_pref_habitat/all_regions")
+
+consolidated_results <- readRDS("analyses/7habitat/output/refine_pref_habitat/all_regions/consolidated_results.Rds")
+
 # Table and diagnostics for each species ----------------------------------------
 
 model_diagnostics <- function(species){
@@ -142,8 +151,11 @@ model_diagnostics <- function(species){
 }
 
 
-species <- "AARG"
-path <- "analyses/7habitat/output/refine_pref_habitat/surf/all_regions"
+# species <- "AARG"
+# path <- "analyses/7habitat/output/refine_pref_habitat/surf/all_regions"
+# data <- readRDS(file.path(path, paste0(species, "_model_comparison.rds")))
+species <- "OYT"
+path <- "analyses/7habitat/output/refine_pref_habitat/all_regions"
 data <- readRDS(file.path(path, paste0(species, "_model_comparison.rds")))
 
 length(unique(data$data_sp$affiliated_mpa))

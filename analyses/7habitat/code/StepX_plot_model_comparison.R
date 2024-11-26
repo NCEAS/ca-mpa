@@ -95,7 +95,7 @@ p
 
 
 ##  Individually 
-species <- "OYT"
+species <- "OELO"
 path <- "analyses/7habitat/output/refine_pref_habitat/all_regions"
 data <- readRDS(file.path(path, paste0(species, "_model_comparison.rds")))
 
