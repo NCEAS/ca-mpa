@@ -111,6 +111,7 @@ habitat2 <- habitat %>%
   mutate(habitat_depth_buffer = paste(habitat_depth, buffer, sep = "_")) 
 
 saveRDS(habitat2, file.path(int.dir, "habitat_buffers_by_site_revised.Rds"))  # rm _revised for old version
+# Last write: 25 Nov 2024
 
 habitat3 <- habitat2 %>% 
   dplyr::select(mpa, affiliated_mpa, site, site_type, area_m2, habitat_depth_buffer) %>% 

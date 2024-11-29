@@ -22,22 +22,25 @@ library(kableExtra)
 
 
 # Read Data --------------------------------------------------------------------
-#rm(list = setdiff(ls(), "data_subset"))
-#gc()
+ltm.dir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_2024"
+
+data_kelp <- readRDS(file.path(ltm.dir, "combine_tables/kelp_combine_table.Rds")) 
+data_surf <- readRDS(file.path(ltm.dir, "combine_tables/surf_combine_table.Rds"))
+data_rock <- readRDS(file.path(ltm.dir, "combine_tables/ccfrp_combine_table.Rds"))
 
 # Examine habitat preference and scores ----------------------------------------
-sp_info <- data %>% 
-  distinct(species_code, sciname, target_status, bioregion, assemblage_new)
-
-surf_info <- data_surf %>% 
-  distinct(species_code, sciname, target_status, bioregion, assemblage_new)
-#consolidated_results <- readRDS("analyses/7habitat/output/refine_pref_habitat/consolidated_results.Rds")
-
-examine_habitat <- consolidated_results %>% 
-  filter(importance_score >= 0.5) %>% 
-  filter(sign == 1) %>% 
-  left_join(sp_info %>% filter(bioregion == "South")) %>% 
-  dplyr::select(species_code, sciname:assemblage_new, predictor, importance_score, num_models)
+# sp_info <- data %>% 
+#   distinct(species_code, sciname, target_status, bioregion, assemblage_new)
+# 
+# surf_info <- data_surf %>% 
+#   distinct(species_code, sciname, target_status, bioregion, assemblage_new)
+# #consolidated_results <- readRDS("analyses/7habitat/output/refine_pref_habitat/consolidated_results.Rds")
+# 
+# examine_habitat <- consolidated_results %>% 
+#   filter(importance_score >= 0.5) %>% 
+#   filter(sign == 1) %>% 
+#   left_join(sp_info %>% filter(bioregion == "South")) %>% 
+#   dplyr::select(species_code, sciname:assemblage_new, predictor, importance_score, num_models)
 
 # examine_habitat %>%
 #   mutate(assemblage_new = case_when(species_code == "OYT" ~ "Hard Bottom Biotic",
@@ -55,15 +58,15 @@ examine_habitat <- consolidated_results %>%
 #   collapse_rows(columns = c(1:4), target = 1, valign = "top", row_group_label_position = "identity") %>%
 #   row_spec(0, bold = TRUE)
 
-examine_habitat %>% 
-  mutate(assemblage_new = case_when(species_code == "OYT" ~ "Hard Bottom Biotic", TRUE ~ assemblage_new)) %>% 
-  dplyr::select(`Code` = species_code, `Scientific Name` = sciname, `Target Status` = target_status,
-                `Assemblage` = assemblage_new, `Predictor` = predictor, `Importance Score` = importance_score, `Models` = num_models) %>% 
-  mutate(`Importance Score` = round(`Importance Score`, 2)) %>% # Format numbers
-  kable(format = "html", title = "Step 1. Refine Preferred Habitat - Species Results") %>%
-  kable_styling(full_width = FALSE, bootstrap_options = c("striped", "hover")) %>%
-  collapse_rows(columns = c(1:4), target = 1, valign = "top", row_group_label_position = "identity") %>%
-  row_spec(0, bold = TRUE)
+# examine_habitat %>% 
+#   mutate(assemblage_new = case_when(species_code == "OYT" ~ "Hard Bottom Biotic", TRUE ~ assemblage_new)) %>% 
+#   dplyr::select(`Code` = species_code, `Scientific Name` = sciname, `Target Status` = target_status,
+#                 `Assemblage` = assemblage_new, `Predictor` = predictor, `Importance Score` = importance_score, `Models` = num_models) %>% 
+#   mutate(`Importance Score` = round(`Importance Score`, 2)) %>% # Format numbers
+#   kable(format = "html", title = "Step 1. Refine Preferred Habitat - Species Results") %>%
+#   kable_styling(full_width = FALSE, bootstrap_options = c("striped", "hover")) %>%
+#   collapse_rows(columns = c(1:4), target = 1, valign = "top", row_group_label_position = "identity") %>%
+#   row_spec(0, bold = TRUE)
            
 
 # Build models -----------------------------------------------------------------
@@ -87,7 +90,7 @@ run_comparison <- function(species, data_subset, response, random_effects, path)
   data_sp <- data_subset %>% 
     filter(species_code == species) %>% 
     mutate(pref_habitat = rowSums(across(all_of(preferred_habitat)), na.rm = TRUE))# %>% 
-  #  mutate(across(where(is.numeric(.)), scale)) probably not right
+  #  mutate(across(where(is.numeric), scale))
   
   f1 <- as.formula(paste(response, " ~ site_type * age_at_survey  + ", paste0("(1 | ", random_effects, ")", collapse = " + "))) 
   f2 <- as.formula(paste(response, " ~ site_type * age_at_survey + pref_habitat + ", paste0("(1 | ", random_effects, ")", collapse = " + ")))  
@@ -118,11 +121,19 @@ run_comparison <- function(species, data_subset, response, random_effects, path)
 }
 
 # Run and save the comparisons
+run_comparison("OYT", 
+               data_subset = data_kelp,
+               response = "log_kg_per_m2",
+               random_effects = c("year", "bioregion"),
+               path = "analyses/7habitat/output/refine_pref_habitat/kelp/all_regions")
+
+
 run_comparison("AARG", 
                data_subset = data_surf_subset,
                response = "log_kg_per_haul",
                random_effects = c("year", "bioregion"),
                path = "analyses/7habitat/output/refine_pref_habitat/surf/all_regions")
+
 
 run_comparison("AAFF", 
                data_subset = data_surf_subset,
@@ -130,11 +141,6 @@ run_comparison("AAFF",
                random_effects = c("year", "bioregion"),
                path = "analyses/7habitat/output/refine_pref_habitat/surf/all_regions")
 
-run_comparison("OYT", 
-               data_subset = data_kelp_subset,
-               response = "log_kg_per_m2",
-               random_effects = c("year", "bioregion"),
-               path = "analyses/7habitat/output/refine_pref_habitat/all_regions")
 
 run_comparison("OELO", 
                data_subset = data_kelp_subset,
@@ -146,14 +152,10 @@ consolidated_results <- readRDS("analyses/7habitat/output/refine_pref_habitat/al
 
 # Table and diagnostics for each species ----------------------------------------
 
-model_diagnostics <- function(species){
-  data <- readRDS(file.path(save_path, paste0(species, "_model_comparison.rds")))
-}
+species <- "AARG"
+path <- "analyses/7habitat/output/refine_pref_habitat/surf/all_regions"
+data <- readRDS(file.path(path, paste0(species, "_model_comparison.rds")))
 
-
-# species <- "AARG"
-# path <- "analyses/7habitat/output/refine_pref_habitat/surf/all_regions"
-# data <- readRDS(file.path(path, paste0(species, "_model_comparison.rds")))
 species <- "OYT"
 path <- "analyses/7habitat/output/refine_pref_habitat/all_regions"
 data <- readRDS(file.path(path, paste0(species, "_model_comparison.rds")))
