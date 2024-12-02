@@ -18,34 +18,43 @@ gc()
 ltm.dir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_2024"
 
 data_kelp <- readRDS(file.path(ltm.dir, "combine_tables/kelp_combine_table.Rds")) %>% # 148 sites
-  dplyr::select(site, all_of(grep("^(hard|soft)", names(.), value = TRUE))) %>% 
+  dplyr::select(site, bioregion, all_of(grep("^(hard|soft)", names(.), value = TRUE))) %>% 
   distinct()
   
 data_surf <- readRDS(file.path(ltm.dir, "combine_tables/surf_combine_table.Rds")) %>% # 335 sites
-  dplyr::select(site, all_of(grep("^(hard|soft)", names(.), value = TRUE))) %>% 
+  dplyr::select(site, bioregion, all_of(grep("^(hard|soft)", names(.), value = TRUE))) %>% 
   distinct()
 
 data_rock <- readRDS(file.path(ltm.dir, "combine_tables/ccfrp_combine_table.Rds")) %>% # 26 sites
-  dplyr::select(site, all_of(grep("^(hard|soft)", names(.), value = TRUE))) %>% 
+  dplyr::select(site, bioregion, all_of(grep("^(hard|soft)", names(.), value = TRUE))) %>% 
   distinct()
 
 
 # Identify the predictors that are not all zero across all sites
 kelp_predictors <- data_kelp %>%
-  dplyr::select(where(~ max(.) > 0), -site) %>% 
+  dplyr::select(site, bioregion, where(~ max(.) > 0)) %>% 
+  pivot_longer(cols = -c(site, bioregion), names_to = "predictor", values_to = "value") %>%
+  group_by(bioregion, predictor) %>%
+  summarize(sd = sd(value)) %>% ungroup() %>% 
+  filter(sd > 0) %>% 
+  pivot_wider(names_from = predictor, values_from = sd) %>% 
+  dplyr::select(where(~ all(!is.na(.))), -bioregion) %>% 
   names() %>% tibble(predictor = .) %>% 
   mutate(scale = sub("_", "", str_sub(predictor, -3, -1))) %>% 
-  filter(!str_detect(predictor, "landward"),
-         !str_detect(predictor, "100_200m")) %>%
   group_by(scale) %>%
   summarise(predictors = list(predictor), .groups = "drop") %>% 
   deframe()
 
 rock_predictors <- data_rock %>% 
-  dplyr::select(where(~ max(.) > 0), -site) %>%
-  names() %>% tibble(predictor = .) %>%
+  dplyr::select(site, bioregion, where(~ max(.) > 0)) %>% 
+  pivot_longer(cols = -c(site, bioregion), names_to = "predictor", values_to = "value") %>%
+  group_by(bioregion, predictor) %>%
+  summarize(sd = sd(value)) %>% ungroup() %>% 
+  filter(sd > 0) %>% 
+  pivot_wider(names_from = predictor, values_from = sd) %>% 
+  dplyr::select(where(~ all(!is.na(.))), -bioregion) %>% 
+  names() %>% tibble(predictor = .) %>% 
   mutate(scale = sub("_", "", str_sub(predictor, -3, -1))) %>% 
-  filter(!str_detect(predictor, "landward")) %>% 
   group_by(scale) %>%
   summarise(predictors = list(predictor), .groups = "drop") %>% 
   deframe()
@@ -70,10 +79,15 @@ base_predictors <- c("site_type * age_at_survey") # without size for now
 
 get_predictors <- function(habitat_buffer_list) {
   predictors <- list()
+  predictors <- append(predictors, list(base_predictors))
+  
   for (r in 1:length(habitat_buffer_list)) {
     habitat_combinations <- combn(habitat_buffer_list, r, simplify = FALSE)
     for (combo in habitat_combinations) {
-      predictors <- append(predictors, list(c(combo, base_predictors)))}}
+      predictors <- append(predictors, list(c(combo, base_predictors)))
+    }
+  }
+  
   return(predictors)
 }
 
@@ -93,12 +107,22 @@ rock_list <- rock_predictors %>%
   unlist(recursive = FALSE) %>% # Flatten all combinations
   unique() # Remove duplicates
 
-saveRDS(kelp_list, file.path("analyses/7habitat/intermediate_data", "kelp_predictors.Rds")) # no size last write 29 Nov 2024
-saveRDS(surf_list, file.path("analyses/7habitat/intermediate_data", "surf_predictors.Rds")) # no size last write 29 Nov 2024
-saveRDS(rock_list, file.path("analyses/7habitat/intermediate_data", "rock_predictors.Rds")) # no size last write 29 Nov 2024
+saveRDS(kelp_list, file.path("analyses/7habitat/intermediate_data", "kelp_predictors.Rds")) # no size last write 3 Dec 2024
+saveRDS(surf_list, file.path("analyses/7habitat/intermediate_data", "surf_predictors.Rds")) # no size last write 3 Dec 2024
+saveRDS(rock_list, file.path("analyses/7habitat/intermediate_data", "rock_predictors.Rds")) # no size last write 3 Dec 2024
 
 
 # Generate predictors manually ? -----------------------------------------------------------
+# Old format before dropping the areas where variability was zero in a region:
+# rock_predictors <- data_rock %>% 
+#   dplyr::select(where(~ max(.) > 0), -site) %>%
+#   names() %>% tibble(predictor = .) %>%
+#   mutate(scale = sub("_", "", str_sub(predictor, -3, -1))) %>% 
+#   filter(!str_detect(predictor, "landward")) %>% 
+#   group_by(scale) %>%
+#   summarise(predictors = list(predictor), .groups = "drop") %>% 
+#   deframe()
+# 
 # 
 # habitat_25 <- c("hard_bottom_biotic_0_30m_25", 
 #                 "soft_bottom_biotic_0_30m_25",  
