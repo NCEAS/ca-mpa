@@ -95,8 +95,8 @@ p
 
 
 ##  Individually 
-species <- "OELO"
-path <- "analyses/7habitat/output/refine_pref_habitat/all_regions"
+species <- "GPR"
+path <- "analyses/7habitat/output/refine_pref_habitat/rock/all_regions"
 data <- readRDS(file.path(path, paste0(species, "_model_comparison.rds")))
 
 pred1 <- predict(data$models$m1, data$data_sp, re.form = NA)
@@ -117,7 +117,7 @@ new_data <- data$data_sp %>%
 
 p <- ggplot(new_data) +
   geom_point(data = data$data_sp,
-             aes(x = pref_habitat, y = kg_per_m2, color = site_type), alpha = 0.2) +
+             aes(x = pref_habitat, y = weight_kg, color = site_type), alpha = 0.2) +
   geom_smooth(aes(x = pref_habitat, y = value, color = site_type), method = "glm") +
   scale_color_manual(values = c("#e5188b", "#7e67f8")) +
   labs(title = paste0("Species: ", species, 
@@ -132,7 +132,7 @@ p <- ggplot(new_data) +
   facet_wrap(~model_name)
 p
 
-p <- ggplot(new_data) +
+target <- ggplot(new_data) +
  # geom_point(data = data$data_sp,
  #            aes(x = pref_habitat, y = kg_per_m2, color = site_type), alpha = 0.2) +
   geom_smooth(aes(x = pref_habitat, y = value, color = site_type), method = "glm") +
@@ -147,4 +147,4 @@ p <- ggplot(new_data) +
        fill = "Site Type") +
   theme_minimal() +
   facet_wrap(~model_name)
-p
+target

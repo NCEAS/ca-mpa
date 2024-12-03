@@ -85,7 +85,8 @@ site_depth_area <- habitat %>% # calculate total area for each depth zone
 
 site_area <- habitat %>% # calculate total area of each site
   group_by(habitat, mpa, mpa_orig, site, site_type, buffer) %>% 
-  summarize(area_site_m2 = sum(area_m2)) %>% ungroup()
+  summarize(area_site_m2 = sum(area_m2),
+            types = list(unique(habitat_class))) %>% ungroup()
 
 habitat_depth <- habitat %>% # create identifier matching depth to the habitat_depth combined class
   distinct(habitat_class, habitat_depth, depth_zone_simple)
