@@ -38,6 +38,8 @@ sites <- st_transform(sites, crs = crs_info)
 # Merge sites
 sites_merged <- st_union(sites)
 
+# Export for processing
+st_write(sites_merged, file.path("/home/shares/ca-mpa/data/sync-data/monitoring/ltm_sites_1000m_merged/ltm_sites_1000m_merged.shp"), append=F)
 
 # Intersect merged site footprint and biotic --------------------------------
 
