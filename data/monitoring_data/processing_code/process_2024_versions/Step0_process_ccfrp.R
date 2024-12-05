@@ -42,8 +42,9 @@ ccfrp_drift <- read_csv(file.path(datadir, "3-Drift Information.csv")) %>%
   clean_names() %>% 
   dplyr::select(drift_id, trip_id, id_cell_per_trip, grid_cell_id, site_mpa_ref,
          total_angler_hrs, total_fishes_caught, excluded_drift_comment, drift_time_hrs) %>% 
-  # Update single entry where SP14 is listed as MPA (all other times listed as REF)
-  mutate(site_mpa_ref = if_else(grid_cell_id == "SP14", "REF", site_mpa_ref))
+  # Update single entry where SP14 is listed as MPA (all other times listed as REF) and in 2020 BH07 was coded as a reference
+  mutate(site_mpa_ref = if_else(grid_cell_id == "SP14", "REF", site_mpa_ref)) %>% 
+  mutate(site_mpa_ref = if_else(grid_cell_id == "BH07", "REF", site_mpa_ref))
   
 # Location and date of each trip
 ccfrp_trip_info <- read_csv(file.path(datadir, "1-Trip Information.csv")) %>% 
@@ -171,9 +172,17 @@ taxa_match <- data2 %>%
   distinct() %>% 
   filter(!(species_code %in% taxon_tab$habitat_specific_code)) 
 
+desig_match <- data3 %>% # this should be zero after correcting SP14 and BH07 earlier on
+  distinct(year, grid_cell_id, mpa_defacto_designation) %>% 
+  group_by(grid_cell_id, mpa_defacto_designation) %>% 
+  summarize(years = list(year)) %>% 
+  pivot_wider(names_from = mpa_defacto_designation, values_from = years)%>%
+  filter(map_lgl(smr, ~ !is.null(.)) & map_lgl(ref, ~ !is.null(.)))
+
+
 # Write to csv ---------------------------------------------------------------------------------------
-#write.csv(data3, file.path(outdir, "ccfrp_processed.2024.csv"), row.names = F)
-# last write 14 Nov 2024
+write.csv(data3, file.path(outdir, "ccfrp_processed.2024.csv"), row.names = F)
+# last write 5 Dec 2024
 
 
 # Explore potential remaining concerns ---------------------------------------------------------------

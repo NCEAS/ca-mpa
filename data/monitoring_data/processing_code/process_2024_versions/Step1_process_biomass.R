@@ -111,9 +111,9 @@ kelp_biomass <- bio_fun(params, kelp)
 surf_biomass <- bio_fun(params, surf)
 
 # Write to csv ----------------------------------------------------------------
-write.csv(surf_biomass, row.names = F, file.path(datadir,"/update_2024/surf_zone_fish_biomass_updated.csv"))  #last write 18 Nov 2024
-write.csv(kelp_biomass, row.names = F, file.path(datadir,"/update_2024/kelpforest_fish_biomass_updated.6.csv")) #last write 14 Nov 2024
-write.csv(ccfrp_biomass, row.names = F, file.path(datadir,"/update_2024/ccfrp_fish_biomass_updated.2024.csv")) #last write 14 Nov 2024
+write.csv(surf_biomass, row.names = F, file.path(datadir,"/update_2024/surf_zone_fish_biomass_updated.csv"))  #last write 5 Dec 2024
+write.csv(kelp_biomass, row.names = F, file.path(datadir,"/update_2024/kelpforest_fish_biomass_updated.6.csv")) #last write 5 Dec 2024
+write.csv(ccfrp_biomass, row.names = F, file.path(datadir,"/update_2024/ccfrp_fish_biomass_updated.2024.csv")) #last write 5 Dec 2024
 #write.csv(deep_biomass, row.names = F, file.path(datadir,"/biomass_processed/deep_reef_fish_biomass_updated.csv")) #last write 26 July 2024
 
 # IN PROGRESS: Explore everything that's going wrong -----------------------------------
