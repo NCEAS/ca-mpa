@@ -18,15 +18,15 @@ gc()
 ltm.dir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_2024"
 
 data_kelp <- readRDS(file.path(ltm.dir, "combine_tables/kelp_combine_table.Rds")) %>% # 148 sites
-  dplyr::select(site, bioregion, all_of(grep("^(hard|soft)", names(.), value = TRUE))) %>% 
+  dplyr::select(site, bioregion, all_of(grep("^(hard|soft|kelp)", names(.), value = TRUE))) %>% 
   distinct()
   
-data_surf <- readRDS(file.path(ltm.dir, "combine_tables/surf_combine_table.Rds")) %>% # 335 sites
-  dplyr::select(site, bioregion, all_of(grep("^(hard|soft)", names(.), value = TRUE))) %>% 
+data_surf <- readRDS(file.path(ltm.dir, "combine_tables/surf_combine_table.Rds")) %>% # 26 sites
+  dplyr::select(site, bioregion, all_of(grep("^(hard|soft|kelp)", names(.), value = TRUE))) %>% 
   distinct()
 
-data_rock <- readRDS(file.path(ltm.dir, "combine_tables/ccfrp_combine_table.Rds")) %>% # 26 sites
-  dplyr::select(site, bioregion, all_of(grep("^(hard|soft)", names(.), value = TRUE))) %>% 
+data_rock <- readRDS(file.path(ltm.dir, "combine_tables/ccfrp_combine_table.Rds")) %>% # 335 sites
+  dplyr::select(site, bioregion, all_of(grep("^(hard|soft|kelp)", names(.), value = TRUE))) %>% 
   distinct()
 
 
@@ -37,6 +37,7 @@ kelp_predictors <- data_kelp %>%
   group_by(bioregion, predictor) %>%
   summarize(sd = sd(value)) %>% ungroup() %>% 
   filter(sd > 0) %>% 
+  filter(!str_detect(predictor, "biotic")) %>% # drop the biotic classes to test the variable kelp data
   pivot_wider(names_from = predictor, values_from = sd) %>% 
   dplyr::select(where(~ all(!is.na(.))), -bioregion) %>% 
   names() %>% tibble(predictor = .) %>% 
@@ -46,11 +47,14 @@ kelp_predictors <- data_kelp %>%
   deframe()
 
 rock_predictors <- data_rock %>% 
-  dplyr::select(site, bioregion, where(~ max(.) > 0)) %>% 
+  dplyr::select(site, bioregion, where(~ max(., na.rm = T) > 0)) %>% 
   pivot_longer(cols = -c(site, bioregion), names_to = "predictor", values_to = "value") %>%
   group_by(bioregion, predictor) %>%
   summarize(sd = sd(value)) %>% ungroup() %>% 
-  filter(sd > 0) %>% 
+  filter(!str_detect(predictor, "landward")) %>% 
+  filter(!str_detect(predictor, "100_200m")) %>% 
+  #filter(sd > 0) %>% # if you use this drops kelp below 250 buffer b/c not in north?
+  filter(!str_detect(predictor, "biotic")) %>% 
   pivot_wider(names_from = predictor, values_from = sd) %>% 
   dplyr::select(where(~ all(!is.na(.))), -bioregion) %>% 
   names() %>% tibble(predictor = .) %>% 
@@ -60,10 +64,11 @@ rock_predictors <- data_rock %>%
   deframe()
 
 surf_predictors <- data_surf %>% 
-  dplyr::select(where(~ max(., na.rm = T) > 0), -site) %>% 
+  dplyr::select(where(~ max(., na.rm = T) > 0), -c(site, bioregion)) %>% 
   names() %>% tibble(predictor = .) %>% 
   mutate(scale = sub("_", "", str_sub(predictor, -3, -1))) %>% 
   filter(!str_detect(predictor, "landward")) %>% 
+  filter(!str_detect(predictor, "biotic")) %>% 
   filter(!scale %in% c("25", "50")) %>%  # drop for now because NAs
   group_by(scale) %>%
   summarise(predictors = list(predictor), .groups = "drop") %>% 
@@ -120,7 +125,7 @@ get_predictors_intx <- function(habitat_buffer_list) {
   for (predictor in habitat_buffer_list) {
     augmented_habitat_list <- append(
       augmented_habitat_list,
-      list(predictor, paste0(predictor, "* site_type"))
+      list(predictor, paste0(predictor, " * site_type"))
     )
   }
   
@@ -133,7 +138,17 @@ get_predictors_intx <- function(habitat_buffer_list) {
   for (r in 1:length(augmented_habitat_list)) {
     habitat_combinations <- combn(augmented_habitat_list, r, simplify = FALSE)
     for (combo in habitat_combinations) {
-      predictors <- append(predictors, list(c(combo, base_predictors)))
+      # Filter out combinations containing both a predictor and its interaction
+      predictors_to_include <- TRUE
+      for (predictor in habitat_buffer_list) {
+        if (predictor %in% combo && paste0(predictor, " * site_type") %in% combo) {
+          predictors_to_include <- FALSE
+          break
+        }
+      }
+      if (predictors_to_include) {
+        predictors <- append(predictors, list(c(combo, base_predictors)))
+      }
     }
   }
   
@@ -146,7 +161,19 @@ kelp_list_intx <- kelp_predictors %>%
   unlist(recursive = FALSE) %>% # Flatten all combinations
   unique()
 
+rock_list_intx <- rock_predictors %>%
+  map(get_predictors_intx) %>% # Generate combinations for each scale
+  unlist(recursive = FALSE) %>% # Flatten all combinations
+  unique()
+
+surf_list_intx <- surf_predictors %>%
+  map(get_predictors_intx) %>% # Generate combinations for each scale
+  unlist(recursive = FALSE) %>% # Flatten all combinations
+  unique()
+
 saveRDS(kelp_list_intx, file.path("analyses/7habitat/intermediate_data", "kelp_predictors_interactions.Rds")) # no size last write 3 Dec 2024
+saveRDS(rock_list_intx, file.path("analyses/7habitat/intermediate_data", "rock_predictors_interactions.Rds")) # no size last write 3 Dec 2024
+saveRDS(surf_list_intx, file.path("analyses/7habitat/intermediate_data", "surf_predictors_interactions.Rds")) # no size last write 3 Dec 2024
 
 # Generate predictors manually ? -----------------------------------------------------------
 # Old format before dropping the areas where variability was zero in a region:
