@@ -14,6 +14,7 @@ fig.dir <- "~/ca-mpa/analyses/7habitat/figures"
 ltm.dir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_2024"
 sp.dir <- "/home/shares/ca-mpa/data/sync-data/species_traits/processed"
 int.dir <- "~/ca-mpa/analyses/7habitat/intermediate_data"
+kw.dir <- "/home/shares/ca-mpa/data/sync-data/kelpwatch/2024/processed"
 
 # Read Data --------------------------------------------------------------------------------------------------------------------
 habitat_raw <- readRDS(file.path(int.dir, "habitat_buffers_by_site_revised.Rds")) %>% # rm _revised for old version
@@ -23,6 +24,8 @@ habitat <- habitat_raw %>% # should be 913 sites (all except RI; 986 in full)
   dplyr::select(mpa, affiliated_mpa, site, site_type, area_m2, habitat_depth_buffer) %>% 
   pivot_wider(names_from = "habitat_depth_buffer", values_from = "area_m2") %>% 
   dplyr::select(-affiliated_mpa, -site_type) 
+
+kelp_watch <- readRDS(file.path(kw.dir, "kelp_site_buffers.Rds"))
 
 # Kelp -------------------------------------------------------------------------------------------------------------------
 
@@ -62,6 +65,8 @@ kelp <- kelp_raw %>%
   filter(age_at_survey >= 0) %>% 
   # Join habitat and site visitation information
   left_join(kelp_sites) %>% 
+  # Join annual kelp canopy estimates
+  left_join(kelp_watch) %>% 
   # Log-transformed biomass
   mutate(log_kg_per_m2 = log(kg_per_m2 + 1))
 
@@ -138,7 +143,7 @@ rock_mpas <- rock_sites %>%
   group_by(bioregion, affiliated_mpa, mpa_defacto_class, implementation_year, site_type) %>%
   summarize(n_total = sum(n_total), .groups = 'drop') %>%
   pivot_wider(names_from = site_type, values_from = n_total) %>% 
-  filter(MPA > 10 & Reference > 10) # at least 10 site-years; 30 MPAs total
+  filter(MPA > 10 & Reference > 10) # at least 10 site-years; 13 MPAs total
 
 rock <- rock_raw %>% 
   # Drop observations for dropped MPAs
@@ -147,6 +152,8 @@ rock <- rock_raw %>%
   filter(age_at_survey >= 0) %>% 
   # Join habitat and site visitation information
   left_join(rock_sites) %>% 
+  # Join kelp canopy annual estimates 
+  left_join(kelp_watch) %>% 
   # Log-transformed biomass
   mutate(log_bpue_kg = log(weight_kg + 1))
 
@@ -167,12 +174,14 @@ surf_sites <- surf_raw %>%
 surf <- surf_raw %>% 
   # Join habitat and site visitation information
   left_join(surf_sites) %>% 
+  # Join kelp canopy annual estimates
+  left_join(kelp_watch) %>% 
   # Log-transformed biomass
   mutate(log_kg_per_haul = log(kg_per_haul + 1))
 
 # Export 
 
-saveRDS(kelp, file.path(ltm.dir, "combine_tables/kelp_combine_table.Rds"))  # Last write 2 Dec 2024
-saveRDS(surf, file.path(ltm.dir, "combine_tables/surf_combine_table.Rds"))  # Last write 2 Dec 2024
-saveRDS(rock, file.path(ltm.dir, "combine_tables/ccfrp_combine_table.Rds")) # Last write 2 Dec 2024
+saveRDS(kelp, file.path(ltm.dir, "combine_tables/kelp_combine_table.Rds"))  # Last write 5 Dec 2024
+saveRDS(surf, file.path(ltm.dir, "combine_tables/surf_combine_table.Rds"))  # Last write 5 Dec 2024
+saveRDS(rock, file.path(ltm.dir, "combine_tables/ccfrp_combine_table.Rds")) # Last write 5 Dec 2024
 
