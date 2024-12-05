@@ -270,6 +270,81 @@ comparison <- compare_performance(model_comparison$models$m1, model_comparison$m
 comparison
 test_performance(model_comparison$models$m3, model_comparison$models$m1, model_comparison$models$m2, model_comparison$models$m4)
 
+library(lme4)
+library(effects)
+
+# Example mixed-effects model
+model <- lmer(kg_per_m2 ~ predictor1 + predictor2 + (1 | affiliated_mpa/site), data = data)
+
+# Compute effects
+
+effects_list <- allEffects(data$models$m3)
+
+# Plot effects
+plot(effects_list)
+
+m3 <- data$models$m3
+data_sp$partial_pref_habitat <- resid(m3) +
+  model.matrix(m3)[, "pref_habitat"] * fixef(m3)["pref_habitat"] +
+  model.matrix(m3)[, "site_typeReference:pref_habitat"] * fixef(m3)["site_typeReference:pref_habitat"]
+
+# Plot partial residuals
+ggplot(data_sp, aes(x = pref_habitat, y = partial_pref_habitat, color = site_type)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "lm", se = FALSE) +
+  scale_color_manual(values = c("#e5188b", "#7e67f8")) +
+  labs(
+    x = "Preferred Habitat",
+    y = "Partial Residuals",
+    color = NULL
+  ) + theme_minimal()
+
+
+m1 <- data$models$m1
+m2 <- data$models$m2
+m3 <- data$models$m3
+data_sp <- data$data_sp
+library(ggplot2)
+library(dplyr)
+
+# Residuals for M1 plotted against pref_habitat (no partial residuals)
+data_sp$residuals_m1 <- resid(m1)
+
+# Partial residuals for M2
+data_sp$partial_pref_habitat_m2 <- resid(m2) + model.matrix(m2)[, "pref_habitat"] * fixef(m2)["pref_habitat"]
+
+# Partial residuals for M3 (with interaction term)
+data_sp$partial_pref_habitat_m3 <- resid(m3) +
+  model.matrix(m3)[, "pref_habitat"] * fixef(m3)["pref_habitat"] +
+  model.matrix(m3)[, "site_typeReference:pref_habitat"] * fixef(m3)["site_typeReference:pref_habitat"]
+
+# Combine data for plotting
+plot_data <- data_sp %>%
+  dplyr::select(pref_habitat, site_type, residuals_m1, partial_pref_habitat_m2, partial_pref_habitat_m3) %>%
+  pivot_longer(
+    cols = c(residuals_m1, partial_pref_habitat_m2, partial_pref_habitat_m3),
+    names_to = "model",
+    values_to = "residuals"
+  ) %>%
+  mutate(model = recode(model, 
+                        "residuals_m1" = "M1 (raw residuals)",
+                        "partial_pref_habitat_m2" = "M2 (partial residuals)",
+                        "partial_pref_habitat_m3" = "M3 (partial residuals)"))
+
+# Plot residuals for all models
+ggplot(plot_data, aes(x = pref_habitat, y = residuals, color = site_type)) +
+  geom_point(alpha = 0.4) +
+  geom_smooth(method = "lm", se = FALSE) +
+  scale_color_manual(values = c("#e5188b", "#7e67f8")) +
+  facet_wrap(~model) +
+  labs(
+    x = "Preferred Habitat",
+    y = "Residuals / Partial Residuals",
+    color = NULL
+  ) + theme_minimal()
+
+
+
 
 # Compare models usm3# Compare models using AICc
 summary(m1) 
@@ -398,4 +473,60 @@ ggplot(species_transitions %>%
   guides(color = "none") +  # Remove the species color legend
   theme_minimal()+
   theme(legend.position = "top")
+
+
+# Try the two degree plot:
+
+# Initialize an empty data frame to store results
+effect_size_comparison <- data.frame()
+
+sp <- rock_codes
+path <- "analyses/7habitat/output/refine_pref_habitat/rock/all_regions"
+interaction_terms <- c("site_typeReference:age_at_survey", "site_typeReference:pref_habitat")
+
+# Loop through species
+for (species in sp) {
+  data <- readRDS(file.path(path, paste0(species, "_model_comparison.rds")))
+  
+  # Loop through models and interaction terms
+  for (model_name in c("m1", "m2", "m3", "m4")) {
+    for (term in interaction_terms) {
+      # Check if the term exists in the fixed effects to avoid errors
+      if (term %in% names(fixef(data$models[[model_name]]))) {
+        result <- data.frame(
+          species = species,
+          model = toupper(model_name), # Convert model name to "M1", "M2", etc.
+          interaction_term = term,
+          estimate = fixef(data$models[[model_name]])[term],
+          conf.low = confint(data$models[[model_name]], parm = term, level = 0.95)[1],
+          conf.high = confint(data$models[[model_name]], parm = term, level = 0.95)[2]
+        )
+        
+        # Add to effect_size_comparison
+        effect_size_comparison <- bind_rows(effect_size_comparison, result)
+      }
+    }
+  }
+}
+
+effect_df <- effect_size_comparison %>% 
+  mutate(
+    direction = ifelse(estimate > 0, "Positive", "Negative"),
+    significant = ifelse(conf.low > 0 | conf.high < 0, "Significant", "Not Significant"),
+    group = paste(direction, significant, sep = " - ")  # Combine categories
+  ) %>% 
+  filter(model == "M3")
+
+est_df <- effect_df %>% 
+  pivot_wider(id_cols = species, names_from = "interaction_term", values_from = "estimate")
+
+
+ggplot() +
+  geom_hline(yintercept = 0) +
+  geom_vline(xintercept = 0)+
+  geom_point(data = est_df,
+             aes(x = `site_typeReference:age_at_survey`, y = `site_typeReference:pref_habitat`, color = species))
+
+
+
 

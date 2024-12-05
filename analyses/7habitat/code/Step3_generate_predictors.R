@@ -111,6 +111,42 @@ saveRDS(kelp_list, file.path("analyses/7habitat/intermediate_data", "kelp_predic
 saveRDS(surf_list, file.path("analyses/7habitat/intermediate_data", "surf_predictors.Rds")) # no size last write 3 Dec 2024
 saveRDS(rock_list, file.path("analyses/7habitat/intermediate_data", "rock_predictors.Rds")) # no size last write 3 Dec 2024
 
+# Add interactions
+
+get_predictors_intx <- function(habitat_buffer_list) {
+  augmented_habitat_list <- list()
+  
+  # Add original habitat predictors and their interactions with site_type
+  for (predictor in habitat_buffer_list) {
+    augmented_habitat_list <- append(
+      augmented_habitat_list,
+      list(predictor, paste0(predictor, "* site_type"))
+    )
+  }
+  
+  predictors <- list()
+  
+  # Add only the base predictors
+  predictors <- append(predictors, list(base_predictors))
+  
+  # Generate combinations of augmented habitat predictors with base predictors
+  for (r in 1:length(augmented_habitat_list)) {
+    habitat_combinations <- combn(augmented_habitat_list, r, simplify = FALSE)
+    for (combo in habitat_combinations) {
+      predictors <- append(predictors, list(c(combo, base_predictors)))
+    }
+  }
+  
+  return(predictors)
+}
+
+
+kelp_list_intx <- kelp_predictors %>%
+  map(get_predictors_intx) %>% # Generate combinations for each scale
+  unlist(recursive = FALSE) %>% # Flatten all combinations
+  unique()
+
+saveRDS(kelp_list_intx, file.path("analyses/7habitat/intermediate_data", "kelp_predictors_interactions.Rds")) # no size last write 3 Dec 2024
 
 # Generate predictors manually ? -----------------------------------------------------------
 # Old format before dropping the areas where variability was zero in a region:
