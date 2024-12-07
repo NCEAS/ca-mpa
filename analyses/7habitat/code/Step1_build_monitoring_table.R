@@ -195,7 +195,7 @@ rock <- rock_orig %>%
   # Calculate biomass per unit effort (trip-cell) for each fish
   mutate(bpue_kg = weight_kg/total_angler_hrs_cell) %>% 
   # Update OYT to include both OLV and YTL
-  mutate(species_code = ifelse(species_code %in% c("OLV", "YTL"), "OYT", species_code)) %>%  
+  # mutate(species_code = ifelse(species_code %in% c("OLV", "YTL"), "OYT", species_code)) %>%  
   # Total BPUE for each species in each site (grid cell) and year
   group_by(year, bioregion, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation, grid_cell_id,
            species_code, sciname, genus, target_status) %>% 
@@ -231,21 +231,21 @@ rock_complete <- rock_effort %>%
 
 
 ## Deep ----
-deep_effort <- deep_orig %>% 
-  # Identify distinct transects (1524)
-  distinct(year, affiliated_mpa, 
-           mpa_defacto_class, mpa_defacto_designation, line_id) %>% 
-  # Calculate effort as number of transects per site per year
-  group_by(year, affiliated_mpa, 
-           mpa_defacto_class, mpa_defacto_designation) %>% 
-  summarize(n_rep = n()) # 133 site-year combos
-
-# calculate total biom for each rep unit (transect - aka line_id)
-deep <- deep_orig %>%
-  group_by(year, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation,
-           line_id, family, genus, sciname, target_status, level) %>%
-  dplyr::summarize(total_biomass_kg = sum(weight_kg)) %>% 
-  full_join(deep_effort)
+# deep_effort <- deep_orig %>% 
+#   # Identify distinct transects (1524)
+#   distinct(year, affiliated_mpa, 
+#            mpa_defacto_class, mpa_defacto_designation, line_id) %>% 
+#   # Calculate effort as number of transects per site per year
+#   group_by(year, affiliated_mpa, 
+#            mpa_defacto_class, mpa_defacto_designation) %>% 
+#   summarize(n_rep = n()) # 133 site-year combos
+# 
+# # calculate total biom for each rep unit (transect - aka line_id)
+# deep <- deep_orig %>%
+#   group_by(year, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation,
+#            line_id, family, genus, sciname, target_status, level) %>%
+#   dplyr::summarize(total_biomass_kg = sum(weight_kg)) %>% 
+#   full_join(deep_effort)
 
 
 # Export -------------------------------------------------------------------------------------
@@ -258,9 +258,9 @@ deep <- deep_orig %>%
 saveRDS(kelp_effort, file.path(ltm.dir, "update_2024/kelp_site_year_effort.Rds"))
 saveRDS(rock_effort, file.path(ltm.dir, "update_2024/ccfrp_site_year_effort.Rds"))
 
-saveRDS(kelp_complete, file.path(ltm.dir, "update_2024/kelp_biomass_complete.Rds")) # last write Nov 15 2024
-saveRDS(rock_complete, file.path(ltm.dir, "update_2024/rock_biomass_complete.Rds")) # last write Nov 30 2024; w/ update to OYT
-saveRDS(surf_complete, file.path(ltm.dir, "update_2024/surf_biomass_complete.Rds")) # last write Nov 18 2024
+saveRDS(kelp_complete, file.path(ltm.dir, "update_2024/kelp_biomass_complete.Rds")) # last write Dec 5 2024;
+saveRDS(rock_complete, file.path(ltm.dir, "update_2024/rock_biomass_complete.Rds")) # last write Dec 5 2024; w/out update to OYT but updated incorrect cell coding for BH07
+saveRDS(surf_complete, file.path(ltm.dir, "update_2024/surf_biomass_complete.Rds")) # last write Dec 5 2024;
 
 
 

@@ -20,11 +20,26 @@ kw.dir <- "/home/shares/ca-mpa/data/sync-data/kelpwatch/2024/processed"
 habitat_raw <- readRDS(file.path(int.dir, "habitat_buffers_by_site_revised.Rds")) %>% # rm _revised for old version
   filter(!habitat == "Rocky intertidal")
 
+# Original version of habitat (hard, soft, biotic, etc.)
 habitat <- habitat_raw %>% # should be 913 sites (all except RI; 986 in full)
   dplyr::select(mpa, affiliated_mpa, site, site_type, area_m2, habitat_depth_buffer) %>% 
   pivot_wider(names_from = "habitat_depth_buffer", values_from = "area_m2") %>% 
   dplyr::select(-affiliated_mpa, -site_type) 
 
+# Revised version after incorporating kelpwatch (retaining both for now)
+# This changes anything _biotic to just a substrate instance, and combines the hard/soft within each depth/buffer
+habitat_revised <- habitat_raw %>%
+  mutate(across(c(habitat_class, habitat_depth, habitat_depth_buffer), ~ str_remove(., "_biotic"))) %>% 
+  filter(!habitat_depth %in% c("hard_bottom_200m", "soft_bottom_200m")) %>% # drop the 200m category for now
+  filter(!str_detect(habitat_depth, "landward")) %>% # drop landward for now
+  group_by(habitat, mpa, affiliated_mpa, site, site_type, 
+           buffer, habitat_class, habitat_depth, depth_zone, habitat_depth_buffer) %>% 
+  summarize(area_m2 = sum(area_m2, na.rm = T), .groups = 'drop') %>% 
+  dplyr::select(mpa, affiliated_mpa, site, site_type, area_m2, habitat_depth_buffer) %>% 
+  pivot_wider(names_from = "habitat_depth_buffer", values_from = "area_m2") %>% 
+  dplyr::select(-affiliated_mpa, -site_type) 
+
+  
 kelp_watch <- readRDS(file.path(kw.dir, "kelp_site_buffers.Rds"))
 
 # Kelp -------------------------------------------------------------------------------------------------------------------
@@ -45,7 +60,7 @@ kelp_sites <- kelp_raw %>%
   filter(!is.na(site_type)) %>%
   # Drop sites that haven't been visited at least 5 times
   filter(n_after >= 5) %>% 
-  left_join(habitat)
+  left_join(habitat_revised)
 
 kelp_mpas <- kelp_sites %>%
   group_by(bioregion, affiliated_mpa, implementation_year, size_km2, site_type) %>%
@@ -137,13 +152,13 @@ rock_sites <- rock_raw %>%
             n_after = sum(after), # max visited is 16; most visited <5 times
             n_total = n_before + n_after, .groups = 'drop') %>% 
   # Decide to not filter grid cells because there are so many options for each MPA/Ref
-  left_join(habitat)
+  left_join(habitat_revised)
 
 rock_mpas <- rock_sites %>%
   group_by(bioregion, affiliated_mpa, mpa_defacto_class, implementation_year, site_type) %>%
   summarize(n_total = sum(n_total), .groups = 'drop') %>%
   pivot_wider(names_from = site_type, values_from = n_total) %>% 
-  filter(MPA > 10 & Reference > 10) # at least 10 site-years; 13 MPAs total
+  filter(MPA > 10 & Reference > 10) # at least 10 site-years; 15 MPAs total
 
 rock <- rock_raw %>% 
   # Drop observations for dropped MPAs
@@ -153,9 +168,10 @@ rock <- rock_raw %>%
   # Join habitat and site visitation information
   left_join(rock_sites) %>% 
   # Join kelp canopy annual estimates 
-  left_join(kelp_watch) %>% 
+  left_join(kelp_watch, by = c("year", "site", "site_type")) %>% 
   # Log-transformed biomass
   mutate(log_bpue_kg = log(weight_kg + 1))
+
 
 # Surf zone (seines) ----------------------------------------------------------------------------------------------
 
@@ -167,7 +183,7 @@ surf_sites <- surf_raw %>%
   # Count number of years each site was visited before and after the MPA was implemented
   group_by(site, bioregion, affiliated_mpa, mpa_defacto_class, implementation_year, site_type) %>% 
   summarize(n_total = n(), .groups = 'drop') %>% # Started in 2019 so no need to do breakdown
-  left_join(habitat)
+  left_join(habitat_revised)
 
 # Even sampling across years and MPAs, no neeed to filter
 
@@ -181,7 +197,7 @@ surf <- surf_raw %>%
 
 # Export 
 
-saveRDS(kelp, file.path(ltm.dir, "combine_tables/kelp_combine_table.Rds"))  # Last write 5 Dec 2024
-saveRDS(surf, file.path(ltm.dir, "combine_tables/surf_combine_table.Rds"))  # Last write 5 Dec 2024
-saveRDS(rock, file.path(ltm.dir, "combine_tables/ccfrp_combine_table.Rds")) # Last write 5 Dec 2024
+saveRDS(kelp, file.path(ltm.dir, "combine_tables/kelp_combine_table.Rds"))  # Last write 7 Dec 2024
+saveRDS(surf, file.path(ltm.dir, "combine_tables/surf_combine_table.Rds"))  # Last write 7 Dec 2024
+saveRDS(rock, file.path(ltm.dir, "combine_tables/ccfrp_combine_table.Rds")) # Last write 7 Dec 2024
 
