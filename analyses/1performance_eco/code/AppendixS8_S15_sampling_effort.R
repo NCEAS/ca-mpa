@@ -12,7 +12,7 @@ figdir <- here::here("analyses","1performance_eco","figures")
 
 
 # Load data
-biomass_mod <- readRDS(file.path(dat_path, "biomass_with_moderators_new2.Rds")) 
+biomass_mod <- readRDS(file.path(dat_path, "biomass_with_moderators.Rds")) 
 
 ################################################################################
 #get all unique MPAs and types
@@ -30,7 +30,7 @@ mpa_type_wide <- mpa_type_summary %>%
   pivot_wider(names_from = Ecosystem, values_from = years)
 
 
-write.csv(mpa_type_wide, file.path(tabdir, "TableS4_survey_effort.csv"),row.names = FALSE)
+write.csv(mpa_type_wide, file.path(tabdir, "AppendixS8_survey_effort.csv"),row.names = FALSE)
 
 
 ################################################################################
@@ -69,7 +69,7 @@ g <- ggplot(mpa_effort %>%
 g
 
 # Export
-ggsave(g, filename=file.path(figdir, "FigS1_data_availability.png"), 
+ggsave(g, filename=file.path(figdir, "AppendixS15_data_availability.png"), 
        width=6.5, height=5.5, units="in", dpi=600)
 
 
