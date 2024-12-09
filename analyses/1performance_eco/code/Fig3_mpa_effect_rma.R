@@ -149,7 +149,7 @@ g <- ggplot(pooled_results, aes(x = estimate, y = mpa)) +
   scale_fill_gradientn(colors = c("navyblue", "grey80", "indianred"),
                        values = scales::rescale(c(-1.4, -0.2, 0, 2.4)),
                        name = "Effect size") +
-  scale_size_continuous(name = "No. ecosystems") +
+  scale_size_continuous(name = expression(italic("n") * " ecosystems"))+
   scale_x_continuous(limits = c(-5,6.8))+
   xlab("Effect size \n(log response ratio)") +
   guides(color = guide_colourbar(ticks.colour = "black",
@@ -160,7 +160,7 @@ g <- ggplot(pooled_results, aes(x = estimate, y = mpa)) +
   theme_bw() + my_theme 
 g
 
-ggsave(g, filename=file.path(fig_dir, "Fig3_mpa_effect_size3.png"), bg = "white",
+ggsave(g, filename=file.path(fig_dir, "Fig3_mpa_effect_size.png"), bg = "white",
       width=8, height=10, units="in", dpi=600) 
 
 
