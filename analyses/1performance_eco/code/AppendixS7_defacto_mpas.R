@@ -64,7 +64,7 @@ mpa_type_wide <- mpa_type %>%
          "MPA type" = mpa_state_class
          )
 
-write.csv(mpa_type_wide, file.path(tabdir, "TableS3_defacto_MPAs.csv"),row.names = FALSE)
+write.csv(mpa_type_wide, file.path(tabdir, "AppendixS7_defacto_MPAs.csv"),row.names = FALSE)
 
 
 
