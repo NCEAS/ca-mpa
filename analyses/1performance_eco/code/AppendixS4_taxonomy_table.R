@@ -42,7 +42,7 @@ taxon_table <- rbind(surf_table, kelp_table, ccrfp_table, deep_table) %>%
 ################################################################################
 #Create table
 
-write.csv(taxon_table, file.path(tabdir, "TableS1_taxonomy.csv"),row.names = FALSE)
+write.csv(taxon_table, file.path(tabdir, "AppendixS4_taxonomy_table.csv"),row.names = FALSE)
 
 
 
