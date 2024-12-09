@@ -141,11 +141,24 @@ meta_results$target_status <- factor(meta_results$target_status, levels = c("Tar
 #state_labels <- c(expression(italic("Pooled")), "South Coast", "Central Coast", "North Central Coast", "North Coast")
 
 
-habitat <- meta_results %>% filter(!(habitat %in% c("Region","Network"))) 
+habitat <- meta_results %>% filter(!(habitat %in% c("Region","Network"))) %>%
+  mutate(mpa_defacto_class = mpa_defacto_class %>%
+           str_replace_all("-", " ") %>%  
+           str_to_lower() %>%          
+           str_to_sentence())               
+                    
   
-region <- meta_results %>% filter(habitat %in% c('Region','Network')) %>% filter(!(state_region == "Network level")) 
+region <- meta_results %>% filter(habitat %in% c('Region','Network')) %>% filter(!(state_region == "Network level")) %>%
+  mutate(mpa_defacto_class = mpa_defacto_class %>%
+           str_replace_all("-", " ") %>%  
+           str_to_lower() %>%          
+           str_to_sentence())   
   
-network <- meta_results %>% filter(habitat %in% c('Region','Network')) %>% filter(state_region == "Network level")
+network <- meta_results %>% filter(habitat %in% c('Region','Network')) %>% filter(state_region == "Network level") %>%
+  mutate(mpa_defacto_class = mpa_defacto_class %>%
+           str_replace_all("-", " ") %>%  
+           str_to_lower() %>%          
+           str_to_sentence())   
 
 
 # Theme
@@ -217,7 +230,7 @@ g1 <- ggplot(habitat %>%
         panel.background = element_rect(fill = "white", color = NA)) +
   labs(x= "Effect size \n(log response ratio)",
        title = "Ecosystem performance",
-       tag = "C") +
+       tag = "c") +
   theme_bw() + my_theme + theme(plot.margin = ggplot2::margin(0, 0, 0, 0, "cm"))
 #g1
 
@@ -268,7 +281,7 @@ g2 <- ggplot(region %>%
         panel.spacing = unit(1, "lines"),
         panel.background = element_rect(fill = "white", color = NA)) +
   labs(title = "Regional performance",
-       tag = "B")+
+       tag = "b")+
   theme_bw() + my_theme + theme(plot.margin = ggplot2::margin(-0.2,0,0,0,"cm"))
 
 #g2
@@ -314,7 +327,7 @@ g3 <- ggplot(network %>%
         panel.spacing = unit(1, "lines"),
         panel.background = element_rect(fill = "white", color = NA))+
   labs(title = "Network performance",
-       tag = "A")+
+       tag = "a")+
   theme_bw() + my_theme + theme(plot.margin = ggplot2::margin(0,0,0,0,"cm"))
 
 #g3
@@ -330,8 +343,8 @@ legend_only <- cowplot::get_legend(g1)
 g_final <- ggpubr::ggarrange(g, legend_only, widths = c(0.8,0.2), ncol=2)
 g_final
 
-ggsave(g_final, filename=file.path(fig_dir, "Fig2_network_forestplot3.png"), bg = "white",
-       width=6.5, height=10, units="in", dpi=600) 
+#ggsave(g_final, filename=file.path(fig_dir, "Fig2_network_forestplot.png"), bg = "white",
+ #      width=6.5, height=10, units="in", dpi=600) 
 
 
 
@@ -527,7 +540,7 @@ legend_only <- cowplot::get_legend(g1)
 g_final <- ggpubr::ggarrange(g, legend_only, widths = c(0.8,0.2), ncol=2)
 
 
-ggsave(g_final, filename=file.path(fig_dir, "archive/Fig2_network_forestplot_no_take.png"), bg = "white",
-      width=6.5, height=8, units="in", dpi=800) 
+#ggsave(g_final, filename=file.path(fig_dir, "archive/Fig2_network_forestplot_no_take.png"), bg = "white",
+ #     width=6.5, height=8, units="in", dpi=800) 
 
 
