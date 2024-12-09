@@ -14,7 +14,7 @@ datadir <- "analyses/1performance_eco/output"
 plotdir <- "analyses/1performance_eco/figures"
 
 # Read data
-data_orig <- readRDS(file.path(datadir, "biomass_with_moderators_new2.Rds")) %>% 
+data_orig <- readRDS(file.path(datadir, "biomass_with_moderators.Rds")) %>% 
   #restrict to targeted species and no-take MPAs
   filter(target_status == "Targeted" & mpa_defacto_class == "smr")%>%
   #drop missing values
@@ -248,7 +248,7 @@ g
 
 
 # Export
-ggsave(g, filename=file.path(plotdir, "Fig5_random_forest.png"), 
+ggsave(g, filename=file.path(plotdir, "AppendixS17.png"), 
        width=7, height=6.5, units="in", dpi=600)
 
 
