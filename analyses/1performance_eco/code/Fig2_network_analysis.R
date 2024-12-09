@@ -47,7 +47,7 @@ habitat_region <- filtered_data %>%
 
 
 #save results to .rdata to generate summary table
-#saveRDS(habitat_region, file = file.path(dat_path, "habitat_region_meta_results2.Rds"))
+#saveRDS(habitat_region, file = file.path(dat_path, "habitat_region_meta_results.Rds"))
 
 ################################################################################
 # Calculate the pooled effects for each habitat and target status
@@ -66,7 +66,7 @@ habitat <- filtered_data %>%
          )
 
 #save results to .rdata to generate summary table
-#saveRDS(habitat, file = file.path(dat_path, "habitat_target_meta_results2.Rds"))
+#saveRDS(habitat, file = file.path(dat_path, "habitat_target_meta_results.Rds"))
 
 ################################################################################
 # Calculate the pooled effects for each region across habitat
@@ -85,7 +85,7 @@ region <- filtered_data %>%
   )
 
 #save results to .rdata to generate summary table
-#saveRDS(region, file = file.path(dat_path, "region_meta_results2.Rds"))
+#saveRDS(region, file = file.path(dat_path, "region_meta_results.Rds"))
 
 ################################################################################
 # Calculate the pooled effect for entire state
@@ -106,7 +106,7 @@ state <- filtered_data %>%
   )
 
  #save results to .rdata to generate summary table
-#saveRDS(state, file = file.path(dat_path, "state_meta_results2.Rds"))
+#saveRDS(state, file = file.path(dat_path, "state_meta_results.Rds"))
 
 ################################################################################
 #join everything
