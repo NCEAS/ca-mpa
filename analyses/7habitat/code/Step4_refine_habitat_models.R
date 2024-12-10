@@ -22,7 +22,7 @@ ltm.dir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_
 data_kelp <- readRDS(file.path(ltm.dir, "combine_tables/kelp_combine_table.Rds")) %>% mutate(site_type = factor(site_type, levels = c("Reference", "MPA")))
 data_surf <- readRDS(file.path(ltm.dir, "combine_tables/surf_combine_table.Rds")) %>% mutate(site_type = factor(site_type, levels = c("MPA", "Reference")))
 data_rock <- readRDS(file.path(ltm.dir, "combine_tables/ccfrp_combine_table.Rds")) %>% mutate(site_type = factor(site_type, levels = c("MPA", "Reference")))
-
+ 
 pred_kelp <- readRDS(file.path("analyses/7habitat/intermediate_data/kelp_predictors.Rds")) #%>% map(~ .x[.x != "site_type * age_at_survey"])
 pred_surf <- readRDS(file.path("analyses/7habitat/intermediate_data/surf_predictors.Rds")) 
 pred_rock <- readRDS(file.path("analyses/7habitat/intermediate_data/rock_predictors.Rds"))
@@ -48,11 +48,11 @@ sp_kelp <- data_kelp %>%
 data_kelp_subset <- data_kelp %>% 
   dplyr::select(year:affiliated_mpa, size_km2, age_at_survey,
                 species_code:target_status, assemblage_new, weight_kg:count_per_m2, log_kg_per_m2,
-                all_of(setdiff(unique(unlist(pred_kelp)), c("site_type * age_at_survey")))) 
+                all_of(pred_kelp$predictor))
 
 
 
-# 1. Compare habitat combinations ----------------------------------------------
+# Fit all habitat combinations --------------------------------------------------------------
 refine_habitat <- function(species, response, predictors_list, random_effects, data_subset, regions, save_path) {
   data_sp <- data_subset %>% 
     filter(species_code == species) %>% 
@@ -61,70 +61,92 @@ refine_habitat <- function(species, response, predictors_list, random_effects, d
   
   models <- list()
   
-  models_df <- map_dfr(predictors_list, function(predictors) {
-    model_formula <- as.formula(paste(response, "~", paste(predictors, collapse = " + "), "+", paste0("(1 | ", random_effects, ")", collapse = " + ")))
-    model <- lmer(model_formula, data = data_sp)
-    models[[paste(predictors, collapse = ", ")]] <<- model
+  models_df <- map_dfr(predictors_list$predictors, function(predictors) {
+    model_formula <- as.formula(paste(response, "~", predictors, "+", paste0("(1 | ", random_effects, ")", collapse = " + ")))
+    warning_message <- NULL
+    singular_status <- "Unknown"
     
-    data.frame(predictors = paste(predictors, collapse = ", "),
+    model <- suppressWarnings(
+      tryCatch(
+        {
+          m <- lmer(model_formula, data = data_sp)
+          singular_status <- if (isSingular(m)) "Singular fit" else "OK"
+          m
+        },
+        warning = function(w) {
+          warning_message <<- conditionMessage(w) # Capture the warning message
+          return(NULL) # Return NULL for the model if a warning occurs
+        },
+        error = function(e) {
+          warning_message <<- conditionMessage(e) # Capture the error message
+          return(NULL) # Return NULL for the model if an error occurs
+        }
+      )
+    )
+    
+    models[[gsub("\\s*\\+\\s*", ", ", predictors)]] <<- model
+    
+    data.frame(predictors = gsub("\\s*\\+\\s*", ", ", predictors),
                regions = paste(regions, collapse = ", "),
                random_effects = paste(random_effects, collapse = ", "),
-               AICc = AICc(model),
-               logLik = logLik(model),
-               n = nobs(model),
-               n_sites = n_distinct(data_sp$site),
-               n_mpas = n_distinct(data_sp$affiliated_mpa))}) %>%
-    mutate(delta_AICc = AICc - min(AICc)) %>% 
+               AICc = if (!is.null(model)) AICc(model) else NA,
+               logLik = if (!is.null(model)) as.numeric(logLik(model)) else NA,
+               n = if (!is.null(model)) nobs(model) else NA,
+               n_sites = if (!is.null(model)) n_distinct(data_sp$site) else NA,
+               n_mpas = if (!is.null(model)) n_distinct(data_sp$affiliated_mpa) else NA,
+               singular_status = singular_status,
+               warnings = ifelse(is.null(warning_message), "OK", warning_message))
+  }) %>%
+    mutate(delta_AICc = AICc - min(AICc, na.rm = TRUE)) %>% 
     arrange(delta_AICc)
-
-  saveRDS(list(models_df = models_df, models = models), 
+  
+  saveRDS(list(models_df = models_df, models = models, data_sp = data_sp), 
           file = file.path(save_path, paste0(species, "_models.rds")))
   models_df
 }
 
+## Define parameters and run ---------------------------------------------------
 
-# 2. Load models and filter for positive habitat relationships ------------------------------------------------
+walk(unique(sp_kelp$species_code), function(species) { # Top 8 statewide species
+  results_df <- refine_habitat(species = species,
+                               response = "log_kg_per_m2",
+                               predictors_list = pred_kelp_int, # With interactions 
+                               random_effects = c("year", "bioregion", "affiliated_mpa"), # With MPA RE
+                               data_subset = data_kelp_subset, # Scaled numeric predictors
+                               regions = c("Central", "North", "South"), # All regions
+                               save_path = "analyses/7habitat/output/refine_pref_habitat/kelp/all_regions/interaction")
+  cat("\nTop 5 models for species:", species, "\n")
+  print(head(results_df, 5))
+})
 
-filter_positive_models <- function(species, habitat_predictors, save_path) {
-  data <- readRDS(file.path(save_path, paste0(species, "_models.rds")))
-  models <- data$models
+
+
+# Extract and save the top models and core models ---------------------------------------------------
+extract_models <- function(species, path, predictor_list){
+  # Read data containing all the models and the comparison df
+  data <- readRDS(file.path(path, paste0(species, "_models.rds"))) 
   
-  positive_models_df <- map_dfr(names(models), function(model_name) {
-    model <- models[[model_name]]
-    coefs <- fixef(model)[names(fixef(model)) %in% habitat_predictors]
-    
-    if (length(coefs) > 0 && any(coefs > 0)) {
-      data.frame(
-        predictors = model_name,
-        AICc = AICc(model),
-        logLik = logLik(model),
-        n = nobs(model),
-        n_sites = data$models_df$n_sites[1],
-        n_mpas = data$models_df$n_mpas[1]
-      )
-    } else {
-      NULL  
-    }
-  }) %>%
-    mutate(delta_AICc = AICc - min(AICc, na.rm = TRUE)) %>%
-    arrange(delta_AICc)
+  # Extract the base model and full models for each scale
+  core_models <- data$models[predictor_list %>%
+                               filter(type %in% c("base", "full")) %>%
+                               mutate(predictors = gsub("\\s*\\+\\s*", ", ", predictors)) %>%
+                               pull(predictors)]
   
-  # Save filtered positive models
-  saveRDS(list(models_df = positive_models_df, 
-               models = models[names(models) %in% positive_models_df$predictors]), 
-         file = file.path(save_path, paste0(species, "_positive_models.rds")))
-
-  positive_models_df
-}
-
-
-# 3. Load remaining models and compare ------------------------------------------------------------------------
-analyze_top_models <- function(species, save_path) {
-  data <- readRDS(file.path(save_path, paste0(species, "_models.rds")))
+  # Extract the top models within deltaAICc of 4
+  top_model_names <- data$models_df %>%
+    filter(delta_AICc <= 4) %>%
+    pull(predictors)
   
-  top_model_names <- data$models_df %>% filter(delta_AICc <= 4) %>% pull(predictors)
   top_models <- data$models[top_model_names]
-
+  
+  # Filter for reduced dataframe with top, core, and full models
+  models_df <- data$models_df %>%
+    filter(predictors %in% c(top_model_names, core_models)) %>% 
+    mutate(type = case_when(predictors %in% top_model_names ~ "top",
+                            predictors %in% core_models ~ "core",
+                            predictors == "site_type * age_at_survey" ~ "base"))
+  
+  # Analyze the top models
   if (length(top_models) > 1) {
     model_avg <- model.avg(top_models, fit = TRUE)
     coef_table <- data.frame(coefTable(model_avg)) %>%
@@ -139,149 +161,70 @@ analyze_top_models <- function(species, save_path) {
              importance = 1)
   } 
   
-  
   summary_df <- data.frame(coef_table) %>% 
-    mutate(species = species,
+    mutate(species_code = species,
            sign = sign(estimate),
            num_models = length(top_models)) %>% 
-    filter(!predictor %in%c("(Intercept)")) %>% 
-    dplyr::select(species, everything())
+    filter(!predictor %in%c("(Intercept)"))
   
-  return(summary_df)
+  
+  saveRDS(list(models_df = models_df, summary_df = summary_df,
+               top_models = top_models, core_models = core_models,
+               data_sp = data$data_sp),
+          file = file.path(path, paste0(species, "_model_subsets.rds")))
 }
 
-# 4. Define parameters and run models ----------------------------------------------------
-
-## Kelp ------------------------------------------------------------------------
-
-### 1. Refine habitat ----------------------------------------------------------
-# walk(sp_kelp$species_code, function(species) { # Top 8 statewide species
-#   results_df <- refine_habitat(species = species,
-#                                response = "log_kg_per_m2",
-#                                predictors_list = pred_kelp, # No interactions 
-#                                random_effects = c("year", "bioregion", "affiliated_mpa"), # With MPA RE
-#                                data_subset = data_kelp_subset, # Scaled numeric predictors
-#                                regions = c("North", "Central", "South"), # All regions
-#                                save_path = "analyses/7habitat/output/refine_pref_habitat/kelp/all_regions")
-#   cat("\nTop 5 models for species:", species, "\n")
-#   print(head(results_df, 5))
-# })
-
-# walk(sp_kelp$species_code, function(species) { # Top 8 statewide species
-#   results_df <- refine_habitat(species = species,
-#                                response = "log_kg_per_m2",
-#                                predictors_list = pred_kelp, # No interactions
-#                                random_effects = c("year", "affiliated_mpa"), # With MPA RE
-#                                data_subset = data_kelp_subset,
-#                                regions = c("South"), # South only
-#                                save_path = "analyses/7habitat/output/refine_pref_habitat/kelp/south")
-#   cat("\nTop 5 models for species:", species, "\n")
-#   print(head(results_df, 5))
-# })
-
-walk(sp_kelp$species_code, function(species) { # Top 8 statewide species
-  results_df <- refine_habitat(species = species,
-                               response = "log_kg_per_m2",
-                               predictors_list = pred_kelp_int, # With interactions 
-                               random_effects = c("year", "bioregion", "affiliated_mpa"), # With MPA RE
-                               data_subset = data_kelp_subset, # Scaled numeric predictors
-                               regions = c("Central", "North", "South"), # All regions
-                               save_path = "analyses/7habitat/output/refine_pref_habitat/kelp/all_regions/interaction")
-  cat("\nTop 5 models for species:", species, "\n")
-  print(head(results_df, 5))
-})
+walk(unique(sp_kelp$species_code), 
+     ~ extract_models(.x, 
+                      path = "analyses/7habitat/output/refine_pref_habitat/kelp/all_regions/interaction", 
+                      predictor_list = pred_kelp_int))
 
 
 
-### 2. Filter positive models --------------------------------------------------
 
-# Identify habitat predictors in data
-# habitat_predictors <- grep("^(hard|soft|kelp)", names(data_kelp), value = TRUE)
-# habitat_predictors_int <- unique(unlist(pred_kelp_int))
-# 
-# 
-# walk(sp_kelp$species_code, function(species) { # Top 8 statewide species
-#   results_pos <- filter_positive_models(species = species, 
-#                                         habitat_predictors = habitat_predictors, # No interactions
-#                                         save_path = "analyses/7habitat/output/refine_pref_habitat/kelp/all_regions")
-#   cat("\nTop 5 models for species:", species, "\n")
-#   print(head(results_pos, 5))
-# })
-# 
-# walk(sp_kelp$species_code, function(species) { # Top 8 statewide species
-#   results_pos <- filter_positive_models(species = species, 
-#                                         habitat_predictors = habitat_predictors_int, # With interactions
-#                                         save_path = "analyses/7habitat/output/refine_pref_habitat/kelp/all_regions/interaction")
-#   cat("\nTop 5 models for species:", species, "\n")
-#   print(head(results_pos, 5))
-# })
-# 
-# walk(sp_kelp$species_code, function(species) { # Top 8 statewide species
-#   results_pos <- filter_positive_models(species = species, 
-#                                         habitat_predictors = habitat_predictors,
-#                                         save_path = "analyses/7habitat/output/refine_pref_habitat/kelp/south")
-#   cat("\nTop 5 models for species:", species, "\n")
-#   print(head(results_pos, 5))
-# })
+
 
 ### 3. Average the top models --------------------------------------------------
-consolidated_results <- map2(sp_kelp$species_code, 
-                             "analyses/7habitat/output/refine_pref_habitat/kelp/all_regions/interaction",
-                             analyze_top_models) %>% list_rbind() 
+# consolidated_results <- map2(sp_kelp$species_code, 
+#                              "analyses/7habitat/output/refine_pref_habitat/kelp/all_regions/interaction",
+#                              analyze_top_models) %>% list_rbind() 
+# consolidated_results <- map2("SMIN",
+#                              "analyses/7habitat/output/refine_pref_habitat/kelp/all_regions/interaction",
+#                              analyze_top_models) %>% list_rbind()
+# 
+# saveRDS(consolidated_results, file.path("analyses/7habitat/output/refine_pref_habitat/kelp/all_regions/interaction", 
+#                                         "consolidated_results.Rds"))
 
 
-species <- "ELAT"
-save_path <- "analyses/7habitat/output/refine_pref_habitat/kelp/all_regions/interaction"
-data <- readRDS(file.path(save_path, paste0(species, "_models.rds")))
-
-top_model_names <- data$models_df %>% filter(delta_AICc <= 4) %>% pull(predictors)
-top_models <- data$models[top_model_names]
-
-if (length(top_models) > 1) {
-  model_avg <- model.avg(top_models, fit = TRUE)
-  coef_table <- data.frame(coefTable(model_avg)) %>%
-    rownames_to_column("predictor") %>%
-    dplyr::select(predictor, estimate = "Estimate") %>%
-    mutate(predictor = str_replace(predictor, "typeMPA", "type"),
-           importance = sw(model_avg)[predictor]) 
-} else {
-  coef_table <- data.frame(estimate = fixef(top_models[[1]])) %>% 
-    rownames_to_column("predictor") %>% 
-    mutate(predictor = str_replace(predictor, "typeMPA", "type"),
-           importance = 1)
-} 
 
 
-summary_df <- data.frame(coef_table) %>% 
-  mutate(species = species,
-         sign = sign(estimate),
-         num_models = length(top_models)) %>% 
-  filter(!predictor %in%c("(Intercept)")) %>% 
-  dplyr::select(species, everything())
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 # Extract signs and filter habitat predictors
 habitat_predictors <- setdiff(names(predictor_signs), 
                               c("site_type", "age_at_survey", "site_typeMPA", "(Intercept)", "size_km2")) # still include site*age in case thats the only one
-
-# Map expanded interaction names back to generic ones
-predictor_importance_names <- names(predictor_importance) %>% 
-  str_replace_all(., "site_typeMPA:", "site_type:") %>% 
-  str_replace_all(., ":site_typeMPA", ":site_type")
-
-# Create summary data frame
-summary_df <- data.frame(
-  species_code = species,
-  predictor = habitat_predictors,
-  importance_score = unname(predictor_importance[predictor_importance_names]),
-  sign = unname(predictor_signs[predictor_importance_names]),
-  num_models = length(top_models),
-  row.names = NULL
-)
-
-
-
-saveRDS(consolidated_results, file.path("analyses/7habitat/output/refine_pref_habitat/kelp/all_regions", 
-                                        "consolidated_results.Rds"))
 
 
 
