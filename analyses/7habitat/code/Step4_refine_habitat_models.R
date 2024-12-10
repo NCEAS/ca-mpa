@@ -127,10 +127,12 @@ extract_models <- function(species, path, predictor_list){
   data <- readRDS(file.path(path, paste0(species, "_models.rds"))) 
   
   # Extract the base model and full models for each scale
-  core_models <- data$models[predictor_list %>%
-                               filter(type %in% c("base", "full")) %>%
-                               mutate(predictors = gsub("\\s*\\+\\s*", ", ", predictors)) %>%
-                               pull(predictors)]
+  core_model_names <- predictor_list %>%
+    filter(type %in% c("base", "full")) %>%
+    mutate(predictors = gsub("\\s*\\+\\s*", ", ", predictors)) %>%
+    pull(predictors)
+  
+  core_models <- data$models[core_model_names]
   
   # Extract the top models within deltaAICc of 4
   top_model_names <- data$models_df %>%
@@ -141,9 +143,9 @@ extract_models <- function(species, path, predictor_list){
   
   # Filter for reduced dataframe with top, core, and full models
   models_df <- data$models_df %>%
-    filter(predictors %in% c(top_model_names, core_models)) %>% 
+    filter(predictors %in% c(top_model_names, core_model_names)) %>% 
     mutate(type = case_when(predictors %in% top_model_names ~ "top",
-                            predictors %in% core_models ~ "core",
+                            predictors %in% core_model_names ~ "core",
                             predictors == "site_type * age_at_survey" ~ "base"))
   
   # Analyze the top models
@@ -151,9 +153,11 @@ extract_models <- function(species, path, predictor_list){
     model_avg <- model.avg(top_models, fit = TRUE)
     coef_table <- data.frame(coefTable(model_avg)) %>%
       rownames_to_column("predictor") %>%
-      dplyr::select(predictor, estimate = "Estimate") %>%
+      dplyr::select(predictor, estimate = "Estimate", se = "Std. Error") %>%
       mutate(predictor = str_replace(predictor, "typeMPA", "type"),
-             importance = sw(model_avg)[predictor]) 
+             importance = sw(model_avg)[predictor],
+             conf.low = estimate - 1.96*se,
+             conf.high = estimate + 1.96*se) 
   } else {
     coef_table <- data.frame(estimate = fixef(top_models[[1]])) %>% 
       rownames_to_column("predictor") %>% 
@@ -171,7 +175,7 @@ extract_models <- function(species, path, predictor_list){
   saveRDS(list(models_df = models_df, summary_df = summary_df,
                top_models = top_models, core_models = core_models,
                data_sp = data$data_sp),
-          file = file.path(path, paste0(species, "_model_subsets.rds")))
+          file = file.path(path, paste0(species, "_subset.rds")))
 }
 
 walk(unique(sp_kelp$species_code), 
@@ -182,44 +186,9 @@ walk(unique(sp_kelp$species_code),
 
 
 
-
-
-### 3. Average the top models --------------------------------------------------
-# consolidated_results <- map2(sp_kelp$species_code, 
-#                              "analyses/7habitat/output/refine_pref_habitat/kelp/all_regions/interaction",
-#                              analyze_top_models) %>% list_rbind() 
-# consolidated_results <- map2("SMIN",
-#                              "analyses/7habitat/output/refine_pref_habitat/kelp/all_regions/interaction",
-#                              analyze_top_models) %>% list_rbind()
-# 
-# saveRDS(consolidated_results, file.path("analyses/7habitat/output/refine_pref_habitat/kelp/all_regions/interaction", 
-#                                         "consolidated_results.Rds"))
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+# -------------------------------------------------------------------------------------------
+# To Archive 
+# -------------------------------------------------------------------------------------------
 
 
 # Extract signs and filter habitat predictors
