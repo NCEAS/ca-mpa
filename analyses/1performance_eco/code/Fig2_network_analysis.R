@@ -141,24 +141,17 @@ meta_results$target_status <- factor(meta_results$target_status, levels = c("Tar
 #state_labels <- c(expression(italic("Pooled")), "South Coast", "Central Coast", "North Central Coast", "North Coast")
 
 
-habitat <- meta_results %>% filter(!(habitat %in% c("Region","Network"))) %>%
-  mutate(mpa_defacto_class = mpa_defacto_class %>%
-           str_replace_all("-", " ") %>%  
-           str_to_lower() %>%          
-           str_to_sentence())               
+habitat <- meta_results %>% filter(!(habitat %in% c("Region","Network"))) #%>%
+  #mutate(mpa_defacto_class = mpa_defacto_class %>%
+   #        str_replace_all("-", " ") %>%  
+    #       str_to_lower() %>%          
+     #      str_to_sentence())               
                     
   
-region <- meta_results %>% filter(habitat %in% c('Region','Network')) %>% filter(!(state_region == "Network level")) %>%
-  mutate(mpa_defacto_class = mpa_defacto_class %>%
-           str_replace_all("-", " ") %>%  
-           str_to_lower() %>%          
-           str_to_sentence())   
+region <- meta_results %>% filter(habitat %in% c('Region','Network')) %>% filter(!(state_region == "Network level")) 
+
   
-network <- meta_results %>% filter(habitat %in% c('Region','Network')) %>% filter(state_region == "Network level") %>%
-  mutate(mpa_defacto_class = mpa_defacto_class %>%
-           str_replace_all("-", " ") %>%  
-           str_to_lower() %>%          
-           str_to_sentence())   
+network <- meta_results %>% filter(habitat %in% c('Region','Network')) %>% filter(state_region == "Network level")
 
 
 # Theme
@@ -220,7 +213,7 @@ g1 <- ggplot(habitat %>%
                      name = "Target status") +  
   scale_shape_manual(values = c("Non-targeted" = 0, "Targeted" = 15), 
                      name = "Target status") +  # Open square for Non-targeted, solid square for Targeted
-  scale_size_continuous(name = "No. MPAs", breaks = breaks, labels = labels,
+  scale_size_continuous(name = expression(italic(n) ~ "MPAs"), 
                         range = c(1, 3), guide = guide_legend(override.aes = list(shape = 15))) +  # Square shape in size legend
   scale_x_continuous(limits= c(-3,3)) +
   theme_minimal() +
@@ -271,7 +264,7 @@ g2 <- ggplot(region %>%
   ylab("") +
   scale_color_manual(values = c("#007F00","#663399"),
                      name = "Target status") +  
-  scale_size_continuous(name = "No. MPAs", range = c(1, 3)) +
+  scale_size_continuous(name = expression(italic(n) ~ "MPAs"), range = c(1, 3)) +
   scale_x_continuous(limits= c(-3,3))+
   #guides(color = guide_legend(override.aes = list(shape = c(15, 15))),  # Set the shape to 15 (square) for color legend
   #      size = guide_legend(override.aes = list(shape = c(15, 15)))) +  # Set the shape to 15 (square) for size legend
@@ -319,7 +312,7 @@ g3 <- ggplot(network %>%
   ylab("") +
   scale_color_manual(values = c("#007F00","#663399"),
                      name = "Target status") +  
-  scale_size_continuous(name = "No. MPAs", range = c(1, 3)) +
+  scale_size_continuous(name = expression(italic(n) ~ "MPAs"), range = c(1, 3)) +
   scale_x_continuous(limits= c(-3,3))+
   theme_minimal() +
   theme(strip.text = element_text(size = 10, face = "bold"),
@@ -344,7 +337,7 @@ g_final <- ggpubr::ggarrange(g, legend_only, widths = c(0.8,0.2), ncol=2)
 g_final
 
 #ggsave(g_final, filename=file.path(fig_dir, "Fig2_network_forestplot.png"), bg = "white",
- #      width=6.5, height=10, units="in", dpi=600) 
+ #    width=6.5, height=10, units="in", dpi=600) 
 
 
 
