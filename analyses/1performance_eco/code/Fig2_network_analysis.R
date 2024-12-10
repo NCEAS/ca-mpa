@@ -141,17 +141,19 @@ meta_results$target_status <- factor(meta_results$target_status, levels = c("Tar
 #state_labels <- c(expression(italic("Pooled")), "South Coast", "Central Coast", "North Central Coast", "North Coast")
 
 
-habitat <- meta_results %>% filter(!(habitat %in% c("Region","Network"))) #%>%
-  #mutate(mpa_defacto_class = mpa_defacto_class %>%
+habitat <- meta_results %>% filter(!(habitat %in% c("Region","Network"))) %>%
+  mutate(mpa_defacto_class = str_to_sentence(mpa_defacto_class)) 
    #        str_replace_all("-", " ") %>%  
     #       str_to_lower() %>%          
      #      str_to_sentence())               
                     
   
-region <- meta_results %>% filter(habitat %in% c('Region','Network')) %>% filter(!(state_region == "Network level")) 
+region <- meta_results %>% filter(habitat %in% c('Region','Network')) %>% filter(!(state_region == "Network level")) %>%
+  mutate(mpa_defacto_class = str_to_sentence(mpa_defacto_class)) 
 
   
-network <- meta_results %>% filter(habitat %in% c('Region','Network')) %>% filter(state_region == "Network level")
+network <- meta_results %>% filter(habitat %in% c('Region','Network')) %>% filter(state_region == "Network level") %>%
+  mutate(mpa_defacto_class = str_to_sentence(mpa_defacto_class)) 
 
 
 # Theme
