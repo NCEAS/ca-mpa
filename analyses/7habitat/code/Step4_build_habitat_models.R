@@ -2,9 +2,13 @@
 # Cori Lopazanski
 # Nov 2024
 
-# This script separates the step that refines the preferred habitat type 
-# and exports the model results and preferred habitat names to a dataframe
-# that can be used in subsequent modeling steps.
+# This script builds and fits the models across the predictor lists generated in
+# the previous step, including interactions with all possible habitat predictors.
+# 1. Fit and save all of the candidate models
+# 2. Extract the following focal models for each species:
+#     -- Top models within 4 AICc of the model with the lowest AICc
+#     -- The base model (site type * age at survey only)
+#     -- The full models at each scale (all predictors with interactions)
 
 library(lme4)
 library(MuMIn)
@@ -53,15 +57,18 @@ data_kelp_subset <- data_kelp %>%
 
 
 # Fit all habitat combinations --------------------------------------------------------------
-refine_habitat <- function(species, response, predictors_list, random_effects, data_subset, regions, save_path) {
-  data_sp <- data_subset %>% 
+refine_habitat <- function(species, response, predictors_df, random_effects, data, regions, path) {
+  data_sp <- data %>% 
     filter(species_code == species) %>% 
     filter(bioregion %in% regions) %>% 
     mutate(across(where(is.numeric), scale)) # scale numeric predictors
   
   models <- list()
   
-  models_df <- map_dfr(predictors_list$predictors, function(predictors) {
+  models_df <- map_dfr(seq_len(nrow(predictors_df)), function(i) {
+    predictors <- predictors_df$predictors[i]
+    model_id <- predictors_df$model_id[i]
+    
     model_formula <- as.formula(paste(response, "~", predictors, "+", paste0("(1 | ", random_effects, ")", collapse = " + ")))
     warning_message <- NULL
     singular_status <- "Unknown"
@@ -84,9 +91,10 @@ refine_habitat <- function(species, response, predictors_list, random_effects, d
       )
     )
     
-    models[[gsub("\\s*\\+\\s*", ", ", predictors)]] <<- model
+    models[[model_id]] <<- model
     
-    data.frame(predictors = gsub("\\s*\\+\\s*", ", ", predictors),
+    data.frame(model_id = model_id,
+               predictors = gsub("\\s*\\+\\s*", ", ", predictors),
                regions = paste(regions, collapse = ", "),
                random_effects = paste(random_effects, collapse = ", "),
                AICc = if (!is.null(model)) AICc(model) else NA,
@@ -101,7 +109,7 @@ refine_habitat <- function(species, response, predictors_list, random_effects, d
     arrange(delta_AICc)
   
   saveRDS(list(models_df = models_df, models = models, data_sp = data_sp), 
-          file = file.path(save_path, paste0(species, "_models.rds")))
+          file = file.path(path, paste0(species, "_models.rds")))
   models_df
 }
 
@@ -110,78 +118,110 @@ refine_habitat <- function(species, response, predictors_list, random_effects, d
 walk(unique(sp_kelp$species_code), function(species) { # Top 8 statewide species
   results_df <- refine_habitat(species = species,
                                response = "log_kg_per_m2",
-                               predictors_list = pred_kelp_int, # With interactions 
+                               predictors_df = pred_kelp_int, # With interactions 
                                random_effects = c("year", "bioregion", "affiliated_mpa"), # With MPA RE
-                               data_subset = data_kelp_subset, # Scaled numeric predictors
+                               data = data_kelp_subset, # Scaled numeric predictors
                                regions = c("Central", "North", "South"), # All regions
-                               save_path = "analyses/7habitat/output/refine_pref_habitat/kelp/all_regions/interaction")
+                               path = "analyses/7habitat/output/refine_pref_habitat/kelp/all_regions/interaction")
   cat("\nTop 5 models for species:", species, "\n")
   print(head(results_df, 5))
 })
 
 
-
 # Extract and save the top models and core models ---------------------------------------------------
-extract_models <- function(species, path, predictor_list){
+extract_models <- function(species, path, predictor_df){
   # Read data containing all the models and the comparison df
   data <- readRDS(file.path(path, paste0(species, "_models.rds"))) 
   
   # Extract the base model and full models for each scale
-  core_model_names <- predictor_list %>%
+  core_model_names <- predictor_df %>%
     filter(type %in% c("base", "full")) %>%
-    mutate(predictors = gsub("\\s*\\+\\s*", ", ", predictors)) %>%
-    pull(predictors)
-  
-  core_models <- data$models[core_model_names]
+    pull(model_id)
   
   # Extract the top models within deltaAICc of 4
   top_model_names <- data$models_df %>%
     filter(delta_AICc <= 4) %>%
-    pull(predictors)
+    pull(model_id)
   
-  top_models <- data$models[top_model_names]
+  # Extract the model objects for the core + top models
+  models <- data$models[unique(c(top_model_names, core_model_names))]
   
-  # Filter for reduced dataframe with top, core, and full models
+  # Filter for reduced df with top, core, and full models
   models_df <- data$models_df %>%
-    filter(predictors %in% c(top_model_names, core_model_names)) %>% 
-    mutate(type = case_when(predictors %in% top_model_names ~ "top",
-                            predictors %in% core_model_names ~ "core",
-                            predictors == "site_type * age_at_survey" ~ "base"))
+    filter(model_id %in% c(top_model_names, core_model_names)) %>% 
+    mutate(type = case_when(model_id %in% top_model_names ~ "top",
+                            predictors == "site_type * age_at_survey" ~ "base",
+                            model_id %in% core_model_names ~ "core"))
   
-  # Analyze the top models
-  if (length(top_models) > 1) {
-    model_avg <- model.avg(top_models, fit = TRUE)
-    coef_table <- data.frame(coefTable(model_avg)) %>%
-      rownames_to_column("predictor") %>%
-      dplyr::select(predictor, estimate = "Estimate", se = "Std. Error") %>%
-      mutate(predictor = str_replace(predictor, "typeMPA", "type"),
-             importance = sw(model_avg)[predictor],
-             conf.low = estimate - 1.96*se,
-             conf.high = estimate + 1.96*se) 
-  } else {
-    coef_table <- data.frame(estimate = fixef(top_models[[1]])) %>% 
-      rownames_to_column("predictor") %>% 
-      mutate(predictor = str_replace(predictor, "typeMPA", "type"),
-             importance = 1)
-  } 
-  
-  summary_df <- data.frame(coef_table) %>% 
-    mutate(species_code = species,
-           sign = sign(estimate),
-           num_models = length(top_models)) %>% 
-    filter(!predictor %in%c("(Intercept)"))
-  
-  
-  saveRDS(list(models_df = models_df, summary_df = summary_df,
-               top_models = top_models, core_models = core_models,
-               data_sp = data$data_sp),
+  # Save the subset
+  saveRDS(list(models_df = models_df, models = models, data_sp = data$data_sp),
           file = file.path(path, paste0(species, "_subset.rds")))
 }
 
 walk(unique(sp_kelp$species_code), 
      ~ extract_models(.x, 
                       path = "analyses/7habitat/output/refine_pref_habitat/kelp/all_regions/interaction", 
-                      predictor_list = pred_kelp_int))
+                      predictor_df = pred_kelp_int))
+
+
+# TEST AGAIN
+species <- "ELAT"
+path <-"analyses/7habitat/output/refine_pref_habitat/kelp/all_regions/interaction"
+predictor_df <- pred_kelp_int
+
+# Read data containing all the models and the comparison df
+data <- readRDS(file.path(path, paste0(species, "_models.rds"))) 
+
+# Extract the base model and full models for each scale
+core_model_names <- predictor_df %>%
+  filter(type %in% c("base", "full")) %>%
+  pull(model_id)
+
+# Extract the top models within deltaAICc of 4
+top_model_names <- data$models_df %>%
+  filter(delta_AICc <= 4) %>%
+  pull(model_id)
+
+# Extract the model objects for the core + top models
+models <- data$models[unique(c(top_model_names, core_model_names))]
+
+# Filter for reduced df with top, core, and full models
+models_df <- data$models_df %>%
+  filter(model_id %in% c(top_model_names, core_model_names)) %>% 
+  mutate(type = case_when(model_id %in% top_model_names ~ "top",
+                          predictors == "site_type * age_at_survey" ~ "base",
+                          model_id %in% core_model_names ~ "core"))
+
+# Analyze the top models
+if (length(top_model_names) > 1) {
+  model_avg <- model.avg(models[top_model_names], fit = TRUE)
+  coef_table <- data.frame(coefTable(model_avg)) %>%
+    rownames_to_column("predictor") %>%
+    dplyr::select(predictor, estimate = "Estimate", se = "Std. Error") %>%
+    mutate(predictor = str_replace(predictor, "typeMPA", "type"),
+           importance = sw(model_avg)[predictor],
+           conf.low = estimate - 1.96*se,
+           conf.high = estimate + 1.96*se) 
+} else {
+  coef_table <- data.frame(estimate = fixef(models[top_model_names][[1]])) %>% 
+    rownames_to_column("predictor") %>% 
+    mutate(predictor = str_replace(predictor, "typeMPA", "type"),
+           importance = 1)
+} 
+
+summary_df <- data.frame(coef_table) %>% 
+  mutate(species_code = species,
+         sign = sign(estimate),
+         num_models = length(top_model_names)) %>% 
+  filter(!predictor %in%c("(Intercept)"))
+
+
+saveRDS(list(models_df = models_df, summary_df = summary_df,
+             models = models, data_sp = data$data_sp),
+        file = file.path(path, paste0(species, "_subset.rds")))
+
+
+
 
 
 
