@@ -44,7 +44,7 @@ sp_kelp <- data_kelp %>%
   summarize(total_biomass = sum(kg_per_m2),
             total_count = sum(count_per_m2),
             n_obs = n()) %>%
-  filter(n_obs > 40) %>% 
+ # filter(n_obs > 20) %>% 
   pivot_wider(names_from = bioregion, values_from = c(total_biomass, total_count, n_obs)) %>% 
   filter(!is.na(n_obs_North)) %>% 
   filter(!is.na(n_obs_South))
@@ -68,6 +68,7 @@ refine_habitat <- function(species, response, predictors_df, random_effects, dat
   models_df <- map_dfr(seq_len(nrow(predictors_df)), function(i) {
     predictors <- predictors_df$predictors[i]
     model_id <- predictors_df$model_id[i]
+    scale <- predictors_df$scale[i]
     
     model_formula <- as.formula(paste(response, "~", predictors, "+", paste0("(1 | ", random_effects, ")", collapse = " + ")))
     warning_message <- NULL
@@ -97,6 +98,7 @@ refine_habitat <- function(species, response, predictors_df, random_effects, dat
                predictors = gsub("\\s*\\+\\s*", ", ", predictors),
                regions = paste(regions, collapse = ", "),
                random_effects = paste(random_effects, collapse = ", "),
+               scale = scale,
                AICc = if (!is.null(model)) AICc(model) else NA,
                logLik = if (!is.null(model)) as.numeric(logLik(model)) else NA,
                n = if (!is.null(model)) nobs(model) else NA,
@@ -126,6 +128,14 @@ walk(unique(sp_kelp$species_code), function(species) { # Top 8 statewide species
   cat("\nTop 5 models for species:", species, "\n")
   print(head(results_df, 5))
 })
+
+results_df <- refine_habitat(species = "PCLA",
+                               response = "log_kg_per_m2",
+                               predictors_df = pred_kelp_int, # With interactions 
+                               random_effects = c("year", "affiliated_mpa"), # With MPA RE
+                               data = data_kelp_subset, # Scaled numeric predictors
+                               regions = c("South"), # All regions
+                               path = "analyses/7habitat/output/refine_pref_habitat/kelp/all_regions/interaction")
 
 
 # Extract and save the top models and core models ---------------------------------------------------
@@ -165,3 +175,6 @@ walk(unique(sp_kelp$species_code),
 
 
 
+extract_models("PCLA", 
+               path = "analyses/7habitat/output/refine_pref_habitat/kelp/all_regions/interaction", 
+               predictor_df = pred_kelp_int)
