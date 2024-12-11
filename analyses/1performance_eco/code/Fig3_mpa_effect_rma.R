@@ -13,7 +13,7 @@ tab_dir <- here::here("analyses","1performance_eco","tables")
 dat_path <- here::here("analyses","1performance_eco","output")
 
 #read data
-biomass_mod <- readRDS(file.path(dat_path, "biomass_with_moderators_new2.Rds")) 
+biomass_mod <- readRDS(file.path(dat_path, "biomass_with_moderators.Rds")) 
 
 unique(biomass_mod$mpa) 
 
@@ -63,7 +63,7 @@ pooled_results <- filtered_data %>%
 
 
 #save results to .rdata to generate summary table
-#saveRDS(pooled_results, file = file.path(dat_path, "mpa_level_meta_results2.Rds"))
+#saveRDS(pooled_results, file = file.path(dat_path, "mpa_level_meta_results.Rds"))
 
 ##warning is OK -- tau^2 can't be estimated for MPAs with only one habitat. 
 
@@ -149,7 +149,7 @@ g <- ggplot(pooled_results, aes(x = estimate, y = mpa)) +
   scale_fill_gradientn(colors = c("navyblue", "grey80", "indianred"),
                        values = scales::rescale(c(-1.4, -0.2, 0, 2.4)),
                        name = "Effect size") +
-  scale_size_continuous(name = "No. ecosystems") +
+  scale_size_continuous(name = expression(italic("n") * " ecosystems"))+
   scale_x_continuous(limits = c(-5,6.8))+
   xlab("Effect size \n(log response ratio)") +
   guides(color = guide_colourbar(ticks.colour = "black",
@@ -160,7 +160,7 @@ g <- ggplot(pooled_results, aes(x = estimate, y = mpa)) +
   theme_bw() + my_theme 
 g
 
-ggsave(g, filename=file.path(fig_dir, "Fig3_mpa_effect_size3.png"), bg = "white",
+ggsave(g, filename=file.path(fig_dir, "Fig3_mpa_effect_size.png"), bg = "white",
       width=8, height=10, units="in", dpi=600) 
 
 

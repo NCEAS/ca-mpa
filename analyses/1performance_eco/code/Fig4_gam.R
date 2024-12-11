@@ -14,7 +14,7 @@ tab_dir <- here::here("analyses","1performance_eco","tables")
 dat_path <- here::here("analyses","1performance_eco","output")
 
 #read data
-biomass_mod <- readRDS(file.path(dat_path, "biomass_with_moderators_new2.Rds")) %>%
+biomass_mod <- readRDS(file.path(dat_path, "biomass_with_moderators.Rds")) %>%
                     #In Fig 2 we found partial take have little effect, so 
                     #this analysis includes only SMRs and targeted species. 
                     filter(mpa_defacto_class == "smr" & target_status == "Targeted")
@@ -208,40 +208,48 @@ my_theme <-  theme(axis.text=element_text(size=4, color = "black"),
                    strip.placement = "outside",
                    strip.text = element_text(size = 6 , face="plain", color = "black", vjust=4)
 )
-
-pval <- sm_dat %>% dplyr::select(smooth, p.value, EDF) %>% distinct() %>%
-          mutate(color = ifelse(p.value < 0.05, "red","black"),
-                 label = paste0(ifelse(p.value < 0.001, "p < 0.001", paste("p = ", round(p.value, 3))),
-                               ", EDF: ",round(EDF,2))
-                 )
+pval <- sm_dat %>%
+  dplyr::select(smooth, p.value, EDF) %>%
+  distinct() %>%
+  mutate(
+    color = ifelse(p.value < 0.05, "red", "black"),
+    label = ifelse(
+      p.value < 0.001,
+      "italic('p') < 0.001",
+      paste0("italic('p') == ", round(p.value, 3), " * ', EDF: ", round(EDF, 2), "'")
+    )
+  )
 
 p <- sm_dat %>%
   ggplot() +
   scale_fill_brewer(palette = "Blues") +
-  #add residuas
-  geom_point(aes(x = pred_val, y = res_val), data = resid_dat, colour = "steelblue3", size=1, alpha=0.4) +
-  #add CI
+  # Add residuals
+  geom_point(aes(x = pred_val, y = res_val), data = resid_dat, colour = "steelblue3", size = 1, alpha = 0.4) +
+  # Add CI
   geom_ribbon(aes(ymin = lower_ci, ymax = upper_ci, x = var_val), color = "darkblue", linetype = "dashed", fill = NA) +
-  #add smooth
+  # Add smooth
   geom_line(aes(x = var_val, y = est), lwd = 0.8, color = "darkblue") +
   facet_wrap(~smooth, scales = "free", labeller = as_labeller(
     c("Age at survey" = "MPA age \n(year)", "Fishing pressure" = "Local pre-MPA landings \n(lbs/sqkm)",
-      "Habitat diversity" = "Habitat diversity \n(Shannon index)","Habitat richness"= "Habitat richness \n(no. habitats)",
-      "Prop rock" = "Proportion \nrock", "Settlement habitat"="Settlement to \necosystem",
+      "Habitat diversity" = "Habitat diversity \n(Shannon index)", "Habitat richness" = "Habitat richness \n(no. habitats)",
+      "Prop rock" = "Proportion \nrock", "Settlement habitat" = "Settlement to \necosystem",
       "Settlement mpa total" = "Settlement to \nMPA", "Size" = "MPA area \n(km²)",
       "Year" = "Year \n")), 
     strip.position = "bottom") +
-  geom_text(aes(x = -Inf, y = Inf, label = label), data = pval, hjust = -0.1, vjust = 1.3, size = 2.5, color = pval$color) +
+  geom_text(aes(x = -Inf, y = Inf, label = label), data = pval,
+            hjust = -0.1, vjust = 1.3, size = 2.5, color = pval$color, parse = TRUE) +
   labs(y = "Partial effect", x  = "", fill = "Scaled residual density") +
   theme_bw() + my_theme +
-  geom_hline(yintercept = 0, color = "black", linetype = "solid", size=0.2, alpha=0.6) 
+  geom_hline(yintercept = 0, color = "black", linetype = "solid", size = 0.2, alpha = 0.6)
 
 p
 
 
 
 
-ggsave(p, filename=file.path(fig_dir, "Fig4_GAM2.png"), bg = "white",
+
+
+ggsave(p, filename=file.path(fig_dir, "Fig4_GAM.png"), bg = "white",
        width=5, height=5, units="in", dpi=600) 
 
 

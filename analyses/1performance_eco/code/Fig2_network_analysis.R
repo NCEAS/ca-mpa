@@ -13,7 +13,7 @@ tab_dir <- here::here("analyses","1performance_eco","tables")
 dat_path <- here::here("analyses","1performance_eco","output")
 
 #read data
-biomass_mod <- readRDS(file.path(dat_path, "biomass_with_moderators_new2.Rds")) 
+biomass_mod <- readRDS(file.path(dat_path, "biomass_with_moderators.Rds")) 
 
 
 ################################################################################
@@ -47,7 +47,7 @@ habitat_region <- filtered_data %>%
 
 
 #save results to .rdata to generate summary table
-#saveRDS(habitat_region, file = file.path(dat_path, "habitat_region_meta_results2.Rds"))
+#saveRDS(habitat_region, file = file.path(dat_path, "habitat_region_meta_results.Rds"))
 
 ################################################################################
 # Calculate the pooled effects for each habitat and target status
@@ -66,7 +66,7 @@ habitat <- filtered_data %>%
          )
 
 #save results to .rdata to generate summary table
-#saveRDS(habitat, file = file.path(dat_path, "habitat_target_meta_results2.Rds"))
+#saveRDS(habitat, file = file.path(dat_path, "habitat_target_meta_results.Rds"))
 
 ################################################################################
 # Calculate the pooled effects for each region across habitat
@@ -85,7 +85,7 @@ region <- filtered_data %>%
   )
 
 #save results to .rdata to generate summary table
-#saveRDS(region, file = file.path(dat_path, "region_meta_results2.Rds"))
+#saveRDS(region, file = file.path(dat_path, "region_meta_results.Rds"))
 
 ################################################################################
 # Calculate the pooled effect for entire state
@@ -106,7 +106,7 @@ state <- filtered_data %>%
   )
 
  #save results to .rdata to generate summary table
-#saveRDS(state, file = file.path(dat_path, "state_meta_results2.Rds"))
+#saveRDS(state, file = file.path(dat_path, "state_meta_results.Rds"))
 
 ################################################################################
 #join everything
@@ -141,11 +141,19 @@ meta_results$target_status <- factor(meta_results$target_status, levels = c("Tar
 #state_labels <- c(expression(italic("Pooled")), "South Coast", "Central Coast", "North Central Coast", "North Coast")
 
 
-habitat <- meta_results %>% filter(!(habitat %in% c("Region","Network"))) 
+habitat <- meta_results %>% filter(!(habitat %in% c("Region","Network"))) %>%
+  mutate(mpa_defacto_class = str_to_sentence(mpa_defacto_class)) 
+   #        str_replace_all("-", " ") %>%  
+    #       str_to_lower() %>%          
+     #      str_to_sentence())               
+                    
   
-region <- meta_results %>% filter(habitat %in% c('Region','Network')) %>% filter(!(state_region == "Network level")) 
+region <- meta_results %>% filter(habitat %in% c('Region','Network')) %>% filter(!(state_region == "Network level")) %>%
+  mutate(mpa_defacto_class = str_to_sentence(mpa_defacto_class)) 
+
   
-network <- meta_results %>% filter(habitat %in% c('Region','Network')) %>% filter(state_region == "Network level")
+network <- meta_results %>% filter(habitat %in% c('Region','Network')) %>% filter(state_region == "Network level") %>%
+  mutate(mpa_defacto_class = str_to_sentence(mpa_defacto_class)) 
 
 
 # Theme
@@ -207,7 +215,7 @@ g1 <- ggplot(habitat %>%
                      name = "Target status") +  
   scale_shape_manual(values = c("Non-targeted" = 0, "Targeted" = 15), 
                      name = "Target status") +  # Open square for Non-targeted, solid square for Targeted
-  scale_size_continuous(name = "No. MPAs", breaks = breaks, labels = labels,
+  scale_size_continuous(name = expression(italic(n) ~ "MPAs"), 
                         range = c(1, 3), guide = guide_legend(override.aes = list(shape = 15))) +  # Square shape in size legend
   scale_x_continuous(limits= c(-3,3)) +
   theme_minimal() +
@@ -217,7 +225,7 @@ g1 <- ggplot(habitat %>%
         panel.background = element_rect(fill = "white", color = NA)) +
   labs(x= "Effect size \n(log response ratio)",
        title = "Ecosystem performance",
-       tag = "C") +
+       tag = "c") +
   theme_bw() + my_theme + theme(plot.margin = ggplot2::margin(0, 0, 0, 0, "cm"))
 #g1
 
@@ -258,7 +266,7 @@ g2 <- ggplot(region %>%
   ylab("") +
   scale_color_manual(values = c("#007F00","#663399"),
                      name = "Target status") +  
-  scale_size_continuous(name = "No. MPAs", range = c(1, 3)) +
+  scale_size_continuous(name = expression(italic(n) ~ "MPAs"), range = c(1, 3)) +
   scale_x_continuous(limits= c(-3,3))+
   #guides(color = guide_legend(override.aes = list(shape = c(15, 15))),  # Set the shape to 15 (square) for color legend
   #      size = guide_legend(override.aes = list(shape = c(15, 15)))) +  # Set the shape to 15 (square) for size legend
@@ -268,7 +276,7 @@ g2 <- ggplot(region %>%
         panel.spacing = unit(1, "lines"),
         panel.background = element_rect(fill = "white", color = NA)) +
   labs(title = "Regional performance",
-       tag = "B")+
+       tag = "b")+
   theme_bw() + my_theme + theme(plot.margin = ggplot2::margin(-0.2,0,0,0,"cm"))
 
 #g2
@@ -306,7 +314,7 @@ g3 <- ggplot(network %>%
   ylab("") +
   scale_color_manual(values = c("#007F00","#663399"),
                      name = "Target status") +  
-  scale_size_continuous(name = "No. MPAs", range = c(1, 3)) +
+  scale_size_continuous(name = expression(italic(n) ~ "MPAs"), range = c(1, 3)) +
   scale_x_continuous(limits= c(-3,3))+
   theme_minimal() +
   theme(strip.text = element_text(size = 10, face = "bold"),
@@ -314,7 +322,7 @@ g3 <- ggplot(network %>%
         panel.spacing = unit(1, "lines"),
         panel.background = element_rect(fill = "white", color = NA))+
   labs(title = "Network performance",
-       tag = "A")+
+       tag = "a")+
   theme_bw() + my_theme + theme(plot.margin = ggplot2::margin(0,0,0,0,"cm"))
 
 #g3
@@ -330,8 +338,8 @@ legend_only <- cowplot::get_legend(g1)
 g_final <- ggpubr::ggarrange(g, legend_only, widths = c(0.8,0.2), ncol=2)
 g_final
 
-ggsave(g_final, filename=file.path(fig_dir, "Fig2_network_forestplot3.png"), bg = "white",
-       width=6.5, height=10, units="in", dpi=600) 
+#ggsave(g_final, filename=file.path(fig_dir, "Fig2_network_forestplot.png"), bg = "white",
+ #    width=6.5, height=10, units="in", dpi=600) 
 
 
 
@@ -527,7 +535,7 @@ legend_only <- cowplot::get_legend(g1)
 g_final <- ggpubr::ggarrange(g, legend_only, widths = c(0.8,0.2), ncol=2)
 
 
-ggsave(g_final, filename=file.path(fig_dir, "archive/Fig2_network_forestplot_no_take.png"), bg = "white",
-      width=6.5, height=8, units="in", dpi=800) 
+#ggsave(g_final, filename=file.path(fig_dir, "archive/Fig2_network_forestplot_no_take.png"), bg = "white",
+ #     width=6.5, height=8, units="in", dpi=800) 
 
 

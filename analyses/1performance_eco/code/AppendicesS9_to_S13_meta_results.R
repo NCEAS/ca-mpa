@@ -13,11 +13,11 @@ tab_dir <- here::here("analyses","1performance_eco","tables")
 dat_path <- here::here("analyses","1performance_eco","output")
 
 #read data
-mpa_meta_results <- readRDS(file.path(dat_path, "mpa_level_meta_results2.Rds")) 
-habitat_region_results <- readRDS(file.path(dat_path, "habitat_region_meta_results2.Rds")) 
-habitat_target_results <- readRDS(file.path(dat_path, "habitat_target_meta_results2.Rds")) 
-region_results <- readRDS(file.path(dat_path, "region_meta_results2.Rds")) 
-state_results <- readRDS(file.path(dat_path, "state_meta_results2.Rds")) 
+mpa_meta_results <- readRDS(file.path(dat_path, "mpa_level_meta_results.Rds")) 
+habitat_region_results <- readRDS(file.path(dat_path, "habitat_region_meta_results.Rds")) 
+habitat_target_results <- readRDS(file.path(dat_path, "habitat_target_meta_results.Rds")) 
+region_results <- readRDS(file.path(dat_path, "region_meta_results.Rds")) 
+state_results <- readRDS(file.path(dat_path, "state_meta_results.Rds")) 
 
 
 ################################################################################
@@ -64,7 +64,7 @@ mpa_meta_out <- mpa_meta_results %>%
   mutate(Region = str_remove(Region, "Coast"),
          `Ecosystem (latest year)` = as.character(`Ecosystem (latest year)`))
 
-write.csv(mpa_meta_out, file = file.path(tab_dir, "TableS10_mpa_meta_table2.csv"), row.names = FALSE)
+write.csv(mpa_meta_out, file = file.path(tab_dir, "AppendixS13_mpa_meta_table.csv"), row.names = FALSE)
 
 
 
@@ -120,7 +120,7 @@ hab_region_meta_out <- habitat_region_results %>%
 
 
 
-write.csv(hab_region_meta_out, file = file.path(tab_dir,"TableS9_habitat_region_meta_table2.csv"),row.names = FALSE)
+write.csv(hab_region_meta_out, file = file.path(tab_dir,"AppendixS12_habitat_region_meta_table.csv"),row.names = FALSE)
 
 
 ################################################################################
@@ -174,7 +174,7 @@ hab_target_meta_out <- habitat_target_results %>%
   arrange(Ecosystem)
 
 
-write.csv(hab_target_meta_out, file = file.path(tab_dir,"TableS8_hab_target_meta_table2.csv"),row.names = FALSE)
+write.csv(hab_target_meta_out, file = file.path(tab_dir,"AppendixS11_hab_target_meta_table.csv"),row.names = FALSE)
 
 
 ################################################################################
@@ -221,7 +221,7 @@ region_meta_out <- region_results %>%
   )
 
 
-write.csv(region_meta_out, file = file.path(tab_dir,"TableS7_region_target_meta_table2.csv"),row.names = FALSE)
+write.csv(region_meta_out, file = file.path(tab_dir,"AppendixS10_region_target_meta_table.csv"),row.names = FALSE)
 
 
 ################################################################################
@@ -265,7 +265,7 @@ state_meta_out <- state_results %>%
     "No. MPA-Ecosystem pairs" = n_mpas
   )
 
-write.csv(state_meta_out, file = file.path(tab_dir,"TableS6_network_results2.csv"),row.names = FALSE)
+write.csv(state_meta_out, file = file.path(tab_dir,"AppendixS9_network_meta_table.csv"),row.names = FALSE)
 
 
 

@@ -14,8 +14,8 @@ basedir <- here::here("analyses","1performance_eco","output")
 plotdir <- here::here("analyses","1performance_eco","figures")
 
 # Read data
-rd_dat <- readRDS(file.path(basedir, "biomass_richness_diversity2.Rds"))
-biomass_dat <- readRDS(file.path(basedir, "biomass_with_moderators_new2.Rds")) 
+rd_dat <- readRDS(file.path(basedir, "biomass_richness_diversity.Rds"))
+biomass_dat <- readRDS(file.path(basedir, "biomass_with_moderators.Rds")) 
 
 
 ################################################################################
@@ -115,9 +115,9 @@ B <- ggplot(rd_build1, aes(x = richness_unweighted_logRR)) +
 c <- ggpubr::ggarrange(A,B,nrow=1)
 
 annotated_figure <- ggpubr::annotate_figure(c, 
-                                            bottom = text_grob("Response ratio", size = 8, face = "plain",
+                                            bottom = ggpubr::text_grob("Response ratio", size = 8, face = "plain",
                                                                hjust=0.3, vjust=-1),
-                                            left = text_grob("Frequency", size = 8, face = "plain",
+                                            left = ggpubr::text_grob("Frequency", size = 8, face = "plain",
                                                              rot = 90,
                                                              vjust=1)
 )
@@ -125,7 +125,7 @@ annotated_figure <- ggpubr::annotate_figure(c,
 (t_test_result <- t.test(biomass_dat$yi, mu = 0))
 
 
-ggsave(annotated_figure, filename=file.path(plotdir, "FigS1_histogram.png"), bg = "white",
+ggsave(annotated_figure, filename=file.path(plotdir, "AppendixS16.png"), bg = "white",
        width=5, height=5, units="in", dpi=600) 
 
 
