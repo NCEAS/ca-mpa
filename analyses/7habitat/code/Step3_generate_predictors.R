@@ -30,7 +30,10 @@ data_rock <- readRDS(file.path(ltm.dir, "combine_tables/ccfrp_combine_table.Rds"
   distinct()
 
 
-# Identify the predictors that are not all zero across all sites
+# Identify the predictors to retain for each ecosystem
+# -- Remove predictors that are zero across all of the sites 
+# -- Explore those that are limited in variability within a region (could skew results)
+
 kelp_predictors <- data_kelp %>%
   dplyr::select(site, bioregion, where(~ max(.) > 0)) %>% 
   pivot_longer(cols = -c(site, bioregion), names_to = "predictor", values_to = "value") %>%
@@ -42,39 +45,26 @@ kelp_predictors <- data_kelp %>%
   filter(!str_detect(predictor, "30_100m_100$")) %>% 
   filter(!str_detect(predictor, "100_200m_500")) %>% 
   dplyr::select(predictor) %>% 
-  mutate(scale = sub("_", "", str_sub(predictor, -3, -1)))# %>% 
- # group_by(scale) %>%
- # summarise(predictors = list(predictor), .groups = "drop") %>% 
- # deframe()
+  mutate(scale = sub("_", "", str_sub(predictor, -3, -1))) # 19 predictors for kelp
 
-# Need to revisit these now that kelp was added - the above had to be corrected
-# rock_predictors <- data_rock %>% 
-#   dplyr::select(site, bioregion, where(~ max(., na.rm = T) > 0)) %>% 
-#   pivot_longer(cols = -c(site, bioregion), names_to = "predictor", values_to = "value") %>%
-#   group_by(bioregion, predictor) %>%
-#   summarize(sd = sd(value)) %>% ungroup() %>% 
-#   filter(!str_detect(predictor, "landward")) %>% 
-#   filter(!str_detect(predictor, "100_200m")) %>% 
-#   #filter(sd > 0) %>% # if you use this drops kelp below 250 buffer b/c not in north?
-#   filter(!str_detect(predictor, "biotic")) %>% 
-#   pivot_wider(names_from = predictor, values_from = sd) %>% 
-#   dplyr::select(where(~ all(!is.na(.))), -bioregion) %>% 
-#   names() %>% tibble(predictor = .) %>% 
-#   mutate(scale = sub("_", "", str_sub(predictor, -3, -1))) %>% 
-#   group_by(scale) %>%
-#   summarise(predictors = list(predictor), .groups = "drop") %>% 
-#   deframe()
-# 
-# surf_predictors <- data_surf %>% 
-#   dplyr::select(where(~ max(., na.rm = T) > 0), -c(site, bioregion)) %>% 
-#   names() %>% tibble(predictor = .) %>% 
-#   mutate(scale = sub("_", "", str_sub(predictor, -3, -1))) %>% 
-#   filter(!str_detect(predictor, "landward")) %>% 
-#   filter(!str_detect(predictor, "biotic")) %>% 
-#   filter(!scale %in% c("25", "50")) %>%  # drop for now because NAs
-#   group_by(scale) %>%
-#   summarise(predictors = list(predictor), .groups = "drop") %>% 
-#   deframe()
+rock_predictors <- data_rock %>%
+  dplyr::select(site, bioregion, where(~ max(., na.rm = T) > 0)) %>%
+  pivot_longer(cols = -c(site, bioregion), names_to = "predictor", values_to = "value") %>%
+  group_by(bioregion, predictor) %>%
+  summarize(sd = sd(value), .groups = "drop") %>% 
+  pivot_wider(names_from = "bioregion", values_from = "sd") %>% 
+  filter(!str_detect(predictor, "100_200m")) %>% 
+  dplyr::select(predictor) %>% 
+  mutate(scale = sub("_", "", str_sub(predictor, -3, -1))) # 25 predictors for rock
+
+surf_predictors <- data_surf %>%
+  dplyr::select(site, bioregion, where(~ max(., na.rm = T) > 0)) %>%
+  pivot_longer(cols = -c(site, bioregion), names_to = "predictor", values_to = "value") %>%
+  group_by(bioregion, predictor) %>%
+  summarize(sd = sd(value, na.rm = T), .groups = "drop") %>%
+  pivot_wider(names_from = "bioregion", values_from = "sd") %>% 
+  dplyr::select(predictor) %>% 
+  mutate(scale = sub("_", "", str_sub(predictor, -3, -1))) # 13 predictors for surf
 
 # surf_na <- data_surf  %>% 
 #   filter(if_any(everything(), is.na)) %>% # Keep rows with any NA
@@ -83,6 +73,8 @@ kelp_predictors <- data_kelp %>%
 
 # Save the predictor list for subsetting the dataset to only the variables of interest
 saveRDS(kelp_predictors, file.path("analyses/7habitat/intermediate_data", "kelp_predictors.Rds")) # last write 10 Dec 2024
+saveRDS(rock_predictors, file.path("analyses/7habitat/intermediate_data", "rock_predictors.Rds")) # last write 11 Dec 2024
+saveRDS(surf_predictors, file.path("analyses/7habitat/intermediate_data", "surf_predictors.Rds")) # last write 11 Dec 2024
 
 
 # Function to generate combinations including interactions for each scale
@@ -107,17 +99,30 @@ generate_combinations <- function(predictors, interaction = "site_type") {
 
 
 # Generate combinations by scale
-kelp_list_intx <- kelp_predictors %>%
-  group_by(scale) %>%
-  summarise(predictors = list(generate_combinations(predictor))) %>%
-  unnest(predictors) %>% 
-  distinct(predictors, .keep_all = T) %>% 
-  mutate(scale = case_when(type == "base" ~ NA, T~scale))
+run_combinations <- function(predictor_list){
+  list_intx <- predictor_list %>% 
+    group_by(scale) %>%
+    summarise(predictors = list(generate_combinations(predictor))) %>%
+    unnest(predictors) %>% 
+    distinct(predictors, .keep_all = T) %>% 
+    mutate(scale = case_when(type == "base" ~ NA, T~scale)) %>% 
+    mutate(model_id = # create shorthand
+             str_replace_all(predictors, "hard_bottom_\\d+_(\\d+m?)_(\\d+)", "H\\1\\2") %>% 
+             str_replace_all("soft_bottom_\\d+_(\\d+m?)_(\\d+)", "S\\1\\2") %>% 
+             str_replace_all("kelp_annual_(\\d+)", "K\\1") %>% 
+             str_replace_all("site_type", "ST") %>%
+             str_replace_all("age_at_survey", "A") %>% 
+             str_replace_all("\\s+", ""))
+  return(list_intx)
+}
 
+kelp_list_intx <- run_combinations(kelp_predictors)  # 563
+rock_list_intx <- run_combinations(rock_predictors) # 1211
+surf_list_intx <- run_combinations(surf_predictors) # 95
 
-saveRDS(kelp_list_intx, file.path("analyses/7habitat/intermediate_data", "kelp_predictors_interactions.Rds")) # no size last write 10 Dec 2024
-#saveRDS(rock_list_intx, file.path("analyses/7habitat/intermediate_data", "rock_predictors_interactions.Rds")) # no size last write 3 Dec 2024
-#saveRDS(surf_list_intx, file.path("analyses/7habitat/intermediate_data", "surf_predictors_interactions.Rds")) # no size last write 3 Dec 2024
+saveRDS(kelp_list_intx, file.path("analyses/7habitat/intermediate_data", "kelp_predictors_interactions.Rds")) # no size last write 11 Dec 2024
+saveRDS(rock_list_intx, file.path("analyses/7habitat/intermediate_data", "rock_predictors_interactions.Rds")) # no size last write 11 Dec 2024
+saveRDS(surf_list_intx, file.path("analyses/7habitat/intermediate_data", "surf_predictors_interactions.Rds")) # no size last write 11 Dec 2024
 
 
 
