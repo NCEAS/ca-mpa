@@ -22,7 +22,6 @@ library(kableExtra)
 library(gt)
 
 
-
 # Read Data --------------------------------------------------------------------
 ltm.dir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_2024"
 
@@ -114,7 +113,7 @@ run_comparison <- function(species, data_subset, regions, response, random_effec
   f3 <- as.formula(paste(response, " ~ site_type * age_at_survey + site_type * pref_habitat + ", paste0("(1 | ", random_effects, ")", collapse = " + "))) 
   f4 <- as.formula(paste(response, " ~ site_type * age_at_survey +", paste(all_habitat, collapse = " + "), " + ", paste0("(1 | ", random_effects, ")", collapse = " + "))) 
   
-  m1 <- lmer(f1, data = data_sp, REML = FALSE) 
+  m1 <- lmer(f1, data = data_sp)
   print("Model 1 Complete")
   m2 <- lmer(f2, data = data_sp, REML = FALSE)
   print("Model 2 Complete")
@@ -139,6 +138,73 @@ run_comparison <- function(species, data_subset, regions, response, random_effec
   print(model_comparison)
 
 }
+
+# Test with the interactions to revise
+path <- "analyses/7habitat/output/refine_pref_habitat/kelp/all_regions/interaction"
+species <- "SMIN"
+response <- "log_kg_per_m2"
+random_effects = c("bioregion", "affiliated_mpa")
+data_subset <- data_kelp_subset
+regions <- c("North", "Central", "South")
+consolidated_results <- readRDS(file.path(path, "consolidated_results.Rds"))
+
+preferred_habitat <- consolidated_results %>%
+  rename(species_code = species) %>% 
+  filter(species_code == species) %>% 
+  filter(importance >= 0.5) %>%
+  filter(str_detect(predictor, "hard|soft|kelp")) %>% 
+  mutate(type = if_else(str_detect(predictor, ":"), "interaction", "normal")) %>% 
+  mutate(predictor = gsub(":site_type|site_type:", "", predictor)) %>% 
+  group_by(predictor) %>%
+  mutate(has_interaction = any(type == "interaction")) %>%
+  filter(!(has_interaction & type == "normal")) %>%
+  dplyr::select(-has_interaction) %>%
+  ungroup() %>% 
+  pull(predictor, type)
+
+print(paste("Pref Habitat: ", preferred_habitat))
+
+preferred_scale <- str_sub(preferred_habitat, -3, -1) 
+all_habitat <- names(data_subset)[str_ends(names(data_subset), preferred_scale[1])]
+print(paste("Pref Scale: ", preferred_scale))
+
+data_sp <- data_subset %>% 
+  filter(species_code == species) %>% 
+  filter(bioregion %in% regions) %>% 
+  mutate(pref_habitat = rowSums(across(all_of(preferred_habitat)), na.rm = TRUE)) %>% 
+  mutate(across(where(is.numeric), scale))
+
+f1 <- as.formula(paste(response, " ~ site_type * age_at_survey  + ", paste0("(1 | ", random_effects, ")", collapse = " + "))) 
+f2 <- as.formula(paste(response, " ~ site_type * age_at_survey + pref_habitat + ", paste0("(1 | ", random_effects, ")", collapse = " + ")))  
+f3 <- as.formula(paste(response, " ~ site_type * age_at_survey + site_type * pref_habitat + ", paste0("(1 | ", random_effects, ")", collapse = " + "))) 
+f4 <- as.formula(paste(response, " ~ site_type * age_at_survey +", paste(all_habitat, collapse = " + "), " + ", paste0("(1 | ", random_effects, ")", collapse = " + "))) 
+
+m1 <- lmer(f1, data = data_sp, REML = FALSE) 
+print("Model 1 Complete")
+m2 <- lmer(f2, data = data_sp, REML = FALSE)
+print("Model 2 Complete")
+m3 <- lmer(f3, data = data_sp, REML = FALSE)
+print("Model 3 Complete")
+m4 <- lmer(f4, data = data_sp, REML = FALSE)
+print("Model 4 Complete")
+model_comparison <- compare_performance(m1, m2, m3, m4)
+
+saveRDS(
+  list(
+    data_sp = data_sp,
+    species = species,
+    preferred_habitat = preferred_habitat,
+    preferred_scale = preferred_scale,
+    models = list(m1 = m1, m2 = m2, m3 = m3, m4 = m4),
+    model_comparison = model_comparison
+  ),
+  file = file.path(path, paste0(species, "_model_comparison.rds"))
+)
+
+print(model_comparison)
+
+
+
 
 # Run and save the comparisons
 kelp_codes <- c("ELAT", "OELO", "OPIC", "OYT",  "SCAR", "SMEL", "SMIN", "SMYS")
@@ -188,11 +254,22 @@ species <- "OYT"
 path <- "analyses/7habitat/output/refine_pref_habitat/kelp/south"
 data <- readRDS(file.path(path, paste0(species, "_model_comparison.rds")))
 
+species <- "SMIN"
+path <- "analyses/7habitat/output/refine_pref_habitat/kelp/all_regions/interaction"
+data <- readRDS(file.path(path, paste0(species, "_models.rds")))
+regions <- c("North", "Central", "South")
+
+data_kelp_means <- data_kelp_subset %>% 
+  filter(species_code == species) %>% 
+  filter(bioregion %in% regions) %>% 
+  mutate(pref_habitat = rowSums(across(all_of(preferred_habitat)), na.rm = TRUE)) %>% 
+  dplyr::select(age_at_survey, pref_habitat, log_kg_per_m2) %>% 
+  summarise(across(everything(), list(mean = mean, sd = sd)))
+
 
 
 length(unique(data$data_sp$affiliated_mpa))
 length(unique(data$data_sp$site))
-unique(data$data_sp$year)
 length(unique(data$data_sp$year))
 mean(data$data_sp$age_at_survey)
 unique(data$data_sp$age_at_survey)
@@ -265,28 +342,57 @@ plot(result)
 
 library(performance)
 library(see)
-
-comparison <- compare_performance(model_comparison$models$m1, model_comparison$models$m2,model_comparison$models$m3, model_comparison$models$m4)
-comparison
-test_performance(model_comparison$models$m3, model_comparison$models$m1, model_comparison$models$m2, model_comparison$models$m4)
-
 library(lme4)
 library(effects)
 
-# Example mixed-effects model
-model <- lmer(kg_per_m2 ~ predictor1 + predictor2 + (1 | affiliated_mpa/site), data = data)
+
+
+
 
 # Compute effects
-
 effects_list <- allEffects(data$models$m3)
 
 # Plot effects
 plot(effects_list)
 
-m3 <- data$models$m3
+# Compute effects
+effects_list <- allEffects(data$models$m3)
+
+# Extract the effect for a single term
+partial_age <- as.data.frame(effects_list[[1]]) %>% 
+  mutate()
+partial_habitat <- as.data.frame(effects_list[[2]]) 
+
+age <- ggplot(partial_age, aes(x = age_at_survey)) +
+  geom_line(aes(y = fit, color = site_type), size = 1, show.legend = F) +
+  geom_ribbon(aes(ymin = lower, ymax = upper, fill = site_type), alpha = 0.2, show.legend = F) +
+  scale_color_manual(values = c("#7e67f8", "#e5188b")) +
+  scale_fill_manual(values = c("#7e67f8", "#e5188b")) +
+  scale_y_continuous(limits = c(-1, 2.5), expand = c(0,0))+
+  labs(x = "Age at survey (scaled)", 
+       y = "Biomass (scaled)",
+       title = "Site Type * MPA Age",
+       color = NULL, fill = NULL) +
+  theme_minimal()
+  
+habitat <- ggplot(partial_habitat, aes(x = pref_habitat)) +
+  geom_line(aes(y = fit, color = site_type), size = 1) +
+  geom_ribbon(aes(ymin = lower, ymax = upper, fill = site_type), alpha = 0.2) +
+  scale_color_manual(values = c("#7e67f8", "#e5188b")) +
+  scale_fill_manual(values = c("#7e67f8", "#e5188b")) +
+  scale_y_continuous(limits = c(-1, 2.5), expand = c(0,0))+
+  labs(x = "Amount of preferred habitat (scaled)", 
+       y = NULL,
+       title = "Site Type * Pref Habitat",
+       color = NULL, fill = NULL) +
+  theme_minimal()
+
+age + habitat
+
+sm3 <- data$models$m3
 data_sp$partial_pref_habitat <- resid(m3) +
   model.matrix(m3)[, "pref_habitat"] * fixef(m3)["pref_habitat"] +
-  model.matrix(m3)[, "site_typeReference:pref_habitat"] * fixef(m3)["site_typeReference:pref_habitat"]
+  model.matrix(m3)[, "site_typeMPA:pref_habitat"] * fixef(m3)["site_typeMPA:pref_habitat"]
 
 # Plot partial residuals
 ggplot(data_sp, aes(x = pref_habitat, y = partial_pref_habitat, color = site_type)) +
@@ -316,7 +422,7 @@ data_sp$partial_pref_habitat_m2 <- resid(m2) + model.matrix(m2)[, "pref_habitat"
 # Partial residuals for M3 (with interaction term)
 data_sp$partial_pref_habitat_m3 <- resid(m3) +
   model.matrix(m3)[, "pref_habitat"] * fixef(m3)["pref_habitat"] +
-  model.matrix(m3)[, "site_typeReference:pref_habitat"] * fixef(m3)["site_typeReference:pref_habitat"]
+  model.matrix(m3)[, "site_typeMPA:pref_habitat"] * fixef(m3)["site_typeMPA:pref_habitat"]
 
 # Combine data for plotting
 plot_data <- data_sp %>%
@@ -335,7 +441,7 @@ plot_data <- data_sp %>%
 ggplot(plot_data, aes(x = pref_habitat, y = residuals, color = site_type)) +
   geom_point(alpha = 0.4) +
   geom_smooth(method = "lm", se = FALSE) +
-  scale_color_manual(values = c("#e5188b", "#7e67f8")) +
+  scale_color_manual(values = c("#7e67f8", "#e5188b")) +
   facet_wrap(~model) +
   labs(
     x = "Preferred Habitat",
