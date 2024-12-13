@@ -24,8 +24,8 @@ gc()
 ltm.dir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_2024"
 
 data_kelp <- readRDS(file.path(ltm.dir, "combine_tables/kelp_combine_table.Rds")) %>% mutate(site_type = factor(site_type, levels = c("Reference", "MPA")))
-data_surf <- readRDS(file.path(ltm.dir, "combine_tables/surf_combine_table.Rds")) %>% mutate(site_type = factor(site_type, levels = c("MPA", "Reference")))
-data_rock <- readRDS(file.path(ltm.dir, "combine_tables/ccfrp_combine_table.Rds")) %>% mutate(site_type = factor(site_type, levels = c("MPA", "Reference")))
+data_surf <- readRDS(file.path(ltm.dir, "combine_tables/surf_combine_table.Rds")) %>% mutate(site_type = factor(site_type, levels = c("Reference", "MPA")))
+data_rock <- readRDS(file.path(ltm.dir, "combine_tables/ccfrp_combine_table.Rds")) %>% mutate(site_type = factor(site_type, levels = c("Reference", "MPA")))
  
 pred_kelp <- readRDS(file.path("analyses/7habitat/intermediate_data/kelp_predictors.Rds")) #%>% map(~ .x[.x != "site_type * age_at_survey"])
 pred_surf <- readRDS(file.path("analyses/7habitat/intermediate_data/surf_predictors.Rds")) 
@@ -38,6 +38,7 @@ pred_surf_int <- readRDS(file.path("analyses/7habitat/intermediate_data/surf_pre
 
 # Build Data  --------------------------------------------------------------------
 
+## Kelp ------------------------------------------
 sp_kelp <- data_kelp %>%
   filter(kg_per_m2 > 0) %>%
   group_by(species_code, sciname, target_status, bioregion) %>%
@@ -53,6 +54,17 @@ data_kelp_subset <- data_kelp %>%
   dplyr::select(year:affiliated_mpa, size_km2, age_at_survey,
                 species_code:target_status, assemblage_new, weight_kg:count_per_m2, log_kg_per_m2,
                 all_of(pred_kelp$predictor))
+
+
+## Rock ------------------------------------------
+sp_rock <- data_rock %>% 
+  filter(weight_kg > 0) %>% 
+  group_by(species_code, sciname, target_status, bioregion) %>%
+  summarize(total_biomass = sum(weight_kg),
+            total_count = sum(count),
+            n_obs = n()) 
+
+## Surf ------------------------------------------
 
 
 
