@@ -62,11 +62,20 @@ sp_rock <- data_rock %>%
   group_by(species_code, sciname, target_status, bioregion) %>%
   summarize(total_biomass = sum(weight_kg),
             total_count = sum(count),
-            n_obs = n()) 
+            n_obs = n()) %>% 
+  pivot_wider(names_from = bioregion, values_from = c(total_biomass, total_count, n_obs)) %>% 
+  filter(!is.na(n_obs_Central) & !is.na(n_obs_North) & !is.na(n_obs_South)) %>% 
+  filter(n_obs_South > 100)
+
+data_rock_subset <- data_rock %>% 
+  dplyr::select(year:affiliated_mpa, size_km2, age_at_survey,
+                species_code:target_status, assemblage_new, weight_kg, count, log_bpue_kg,
+                all_of(pred_rock$predictor))
+
 
 ## Surf ------------------------------------------
 
-
+## Add here.
 
 # Fit all habitat combinations --------------------------------------------------------------
 refine_habitat <- function(species, response, predictors_df, random_effects, data, regions, path) {
@@ -141,13 +150,19 @@ walk(unique(sp_kelp$species_code), function(species) { # Top 8 statewide species
   print(head(results_df, 5))
 })
 
-results_df <- refine_habitat(species = "PCLA",
-                               response = "log_kg_per_m2",
-                               predictors_df = pred_kelp_int, # With interactions 
-                               random_effects = c("year", "affiliated_mpa"), # With MPA RE
-                               data = data_kelp_subset, # Scaled numeric predictors
-                               regions = c("South"), # All regions
-                               path = "analyses/7habitat/output/refine_pref_habitat/kelp/all_regions/interaction")
+walk(unique(sp_rock$species_code), function(species) { # Top 8 statewide species
+  results_df <- refine_habitat(species = species,
+                               response = "log_bpue_kg",
+                               predictors_df = pred_rock_int, # With interactions 
+                               random_effects = c("year", "bioregion", "affiliated_mpa"), # With MPA RE
+                               data = data_rock_subset, # Scaled numeric predictors
+                               regions = c("Central", "North", "South"), # All regions
+                               path = "analyses/7habitat/output/refine_pref_habitat/rock/all_regions/interaction")
+  cat("\nTop 5 models for species:", species, "\n")
+  print(head(results_df, 5))
+})
+
+
 
 
 # Extract and save the top models and core models ---------------------------------------------------
@@ -185,6 +200,10 @@ walk(unique(sp_kelp$species_code),
                       path = "analyses/7habitat/output/refine_pref_habitat/kelp/all_regions/interaction", 
                       predictor_df = pred_kelp_int))
 
+walk(unique(sp_rock$species_code), 
+     ~ extract_models(.x, 
+                      path = "analyses/7habitat/output/refine_pref_habitat/rock/all_regions/interaction", 
+                      predictor_df = pred_rock_int))
 
 
 extract_models("PCLA", 
