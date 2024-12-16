@@ -132,5 +132,9 @@ sp_list <- list.files(path = "analyses/7habitat/output/refine_pref_habitat/kelp/
 
 walk(sp_list, ~analyze_models(.x, path = "analyses/7habitat/output/refine_pref_habitat/kelp/all_regions/interaction"))
 
+sp_list <- list.files(path = "analyses/7habitat/output/refine_pref_habitat/rock/all_regions/interaction") %>% 
+  str_remove_all(., "_models.rds|_subset.rds|_results.rds") %>% unique()
+
+walk(sp_list, ~analyze_models(.x, path = "analyses/7habitat/output/refine_pref_habitat/rock/all_regions/interaction"))
 
 
