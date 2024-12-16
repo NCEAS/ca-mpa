@@ -199,3 +199,7 @@ sites_review <- bind_rows(kelp_sites_review, rock_sites_review, surf_sites_revie
 saveRDS(sites_review, file.path("/home/shares/ca-mpa/data/sync-data/habitat_pmep/processed_v2/review", "sites_review.Rds"))
 
 
+saveRDS(kelp, file.path(ltm.dir, "combine_tables/kelp_combine_table.Rds"))  # Last write 16 Dec 2024
+saveRDS(surf, file.path(ltm.dir, "combine_tables/surf_combine_table.Rds"))  # Last write 16 Dec 2024
+saveRDS(rock, file.path(ltm.dir, "combine_tables/ccfrp_combine_table.Rds")) # Last write 16 Dec 2024
+
