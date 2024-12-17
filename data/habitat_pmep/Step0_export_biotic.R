@@ -27,9 +27,10 @@ library(terra)
 library(gdalUtils)
 
 # Directories
-#gdb.dir <- "/Users/lopazanski/Documents/habitat/PMEP/PMEP_Nearshore_Zones_and_Habitat.gdb" # Local
-gdb.dir <- "/home/shares/ca-mpa/data/sync-data/habitat_pmep/PMEP_Nearshore_Zones_and_Habitat.gdb" # Aurora
+gdb.dir <- "/home/shares/ca-mpa/data/sync-data/habitat_pmep/PMEP_Nearshore_Zones_and_Habitat.gdb" 
 out.dir <- "/home/shares/ca-mpa/data/sync-data/habitat_pmep/processed"
+gdb.dir <-  "/home/shares/ca-mpa/data/sync-data/habitat_pmep/PMEP_Nearshore_Zones_and_Habitat_V2.gdb" # check second version
+out.dir <- "/home/shares/ca-mpa/data/sync-data/habitat_pmep/processed_v2"
 
 # Read Data ----------------------------------------------------------------------------
 # Check layer names
@@ -40,6 +41,7 @@ biotic_full_table <- terra::vect(gdb.dir, layer = 'West_Coast_USA_Nearshore_CMEC
                                  what = "attributes")
 
 saveRDS(biotic_full_table, file.path(out.dir, "biotic", "West_Coast_USA_Nearshore_CMECS_Biotic_Habitat_Attributes.Rds"))
+# Second version is exactly the same as first - so will use original export
 
 
 # Export CA subset -------------------------------------------------------------------

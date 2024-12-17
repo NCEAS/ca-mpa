@@ -9,31 +9,30 @@ rm(list = ls())
 library(tidyverse)
 library(sf)
 
-fig.dir <- "~/ca-mpa/analyses/7habitat/figures"
-com.dir <- "/home/shares/ca-mpa/data/sync-data/habitat_pmep/processed/combined/combined_mlpa_sites_1000m"
+com.dir <- "/home/shares/ca-mpa/data/sync-data/habitat_pmep/processed_v2/combined"
 ltm.dir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data"
-sp.dir <- "/home/shares/ca-mpa/data/sync-data/species_traits/processed"
+
 
 # Read  ----------------------------------------------------------------------
 # Read the sites
 # Created here: data/monitoring_data/processing_code/archive/clean_monitoring_sites.R
-sites_raw <- readRDS("/home/shares/ca-mpa/data/sync-data/monitoring/monitoring_sites_clean.Rds")
+sites_raw <- readRDS("/home/shares/ca-mpa/data/sync-data/monitoring/monitoring_sites_clean.Rds") %>% 
+  filter(!habitat == "Rocky intertidal") %>% 
+  st_as_sf(., coords = c("long_dd", "lat_dd"), crs = 4326) 
 
-sites_raw <- st_as_sf(sites_raw, coords = c("long_dd", "lat_dd"), crs = 4326) 
-sites_raw <- st_transform(sites_raw, crs = 32610) 
-
-habitat.files <- list.files(file.path(com.dir), pattern = "combined_hsb_revised", full.names = T) # remove "_revised" to use previous version
+# Project so the buffer can be in meters
+sites <- st_transform(sites_raw, crs = 26910) 
 
 # Function to calculate buffers
 calculate_buffers <- function(section, buffer) {
   print(paste("Section:", section))
   print(paste("Buffer:", buffer))
   
-  habitat <- readRDS(file.path(com.dir, paste0("combined_hsb_revised", section, ".Rds"))) 
-  sites <- st_transform(sites_raw, crs = st_crs(habitat))
-  sites <- st_buffer(sites, dist = buffer)
+  habitat <- readRDS(file.path(com.dir, paste0("combined_", section, ".Rds"))) 
+  sites_buffer <- st_buffer(sites, dist = buffer)
+  sites_buffer <- st_transform(sites_buffer, crs = st_crs(habitat))
   
-  intersect <- st_intersection(habitat, sites)
+  intersect <- st_intersection(sites_buffer, habitat)
   print("Intersection complete")
   
   intersect <- intersect %>%
@@ -48,10 +47,6 @@ calculate_buffers <- function(section, buffer) {
   intersect <- st_transform(intersect, crs = 32610)
   print("Transform complete")
   
-  # Calculate area in square meters
-  intersect$area_m2 <- as.numeric(st_area(intersect$geometry))
-  print("Area calculation complete.")
-  
   # Save the result
   saveRDS(intersect, file.path(com.dir, "buffers", paste0(buffer, "m/combined_hsb_revised", section, "_", buffer, "m.Rds"))) # remove "_revised" to use old version
 }
@@ -63,3 +58,31 @@ section_buffers <- expand.grid(section = sections, buffer = buffers)
 
 # Calculate buffers for each section
 walk2(section_buffers$section, section_buffers$buffer, calculate_buffers)
+
+section <- "23"
+buffer <- 100
+habitat <- readRDS(file.path(com.dir, paste0("combined_", section, ".Rds"))) 
+sites_buffer <- st_buffer(sites, dist = buffer)
+sites_buffer <- st_transform(sites_buffer, crs = st_crs(habitat))
+
+intersect <- st_intersection(sites_buffer, habitat)
+
+intersect <- intersect %>% 
+  filter(habitat == habitat.1) %>%
+  filter(mpa == mpa.1) %>%
+  filter(mpa_orig == mpa_orig.1) %>%
+  filter(site == site.1) %>%
+  filter(site_type == site_type.1) %>% 
+  dplyr::select(!contains(".1"))
+
+kelp <- intersect %>% 
+  filter(site == "PYRAMID_POINT_1")
+
+kelp_orig <- habitat %>% 
+  filter(site == "PYRAMID_POINT_1")
+
+ggplot(kelp) +
+  geom_sf(aes(fill = habitat_class)) 
+
+ggplot(kelp_orig)+
+  geom_sf(aes(fill = habitat_class)) 
