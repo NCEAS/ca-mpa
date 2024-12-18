@@ -634,5 +634,192 @@ ggplot() +
              aes(x = `site_typeReference:age_at_survey`, y = `site_typeReference:pref_habitat`, color = species))
 
 
+# Misc Plots for Meeting with Darcy on 12-13 -----
+
+# New stuff --------------------------------------------------------------------
+library(effects)
+library(performance)
+
+species <- "ELAT"
+path <- "analyses/7habitat/output/refine_pref_habitat/kelp/all_regions/interaction"
+
+#Read data containing all the focal models 
+data <- readRDS(file.path(path, paste0(species, "_subset.rds"))) 
+models_df <- data$models_df
+data_sp <- data$data_sp
+
+
+full_model <-  data$models$`H30m250*ST+H100m250*ST+K250*ST+S30m250*ST+S100m250*ST+ST*A`
+top_model <- data$models$`K250*ST+S30m250*ST+ST*A`
+
+check_model(full_model, residual_type = "simulated", check = c("ncv", "qq", "normality"))
+check_model(top_model, residual_type = "simulated", check = c("ncv", "qq", "normality"))
+
+check_collinearity(full_model) %>% 
+  as.data.frame() %>% 
+  mutate(Term = fct_reorder(factor(Term), VIF)) %>% 
+  ggplot() +
+  geom_bar(aes(x = VIF, y = Term), stat = "identity") +
+  geom_vline(xintercept = 5, linetype = "dashed", color = "red") +
+  labs(
+    title = "Variance Inflation Factor (VIF)",
+    x = "VIF"
+  ) +
+  theme_minimal() 
+
+vif_results <- check_collinearity(top_model) %>% 
+  as.data.frame() %>% 
+  mutate(Term = fct_reorder(factor(Term), VIF)) %>% 
+  ggplot() +
+  geom_bar(aes(x = VIF, y = Term), stat = "identity") +
+  geom_vline(xintercept = 5, linetype = "dashed", color = "red") +
+  labs(
+    title = "Variance Inflation Factor (VIF)",
+    x = "VIF"
+  ) +
+  theme_minimal() 
+
+
+# Compute effects for the full model
+effects_list <- allEffects(full_model)
+plot(effects_list)
+
+# Compute effects for the top model
+effects_list <- allEffects(top_model)
+plot(effects_list)
+
+
+
+# Extract the effect for a single term
+partial_age <- as.data.frame(effects_list[[1]]) %>% 
+  mutate()
+partial_habitat <- as.data.frame(effects_list[[2]]) 
+
+age <- ggplot(partial_age, aes(x = age_at_survey)) +
+  geom_line(aes(y = fit, color = site_type), size = 1, show.legend = F) +
+  geom_ribbon(aes(ymin = lower, ymax = upper, fill = site_type), alpha = 0.2, show.legend = F) +
+  scale_color_manual(values = c("#7e67f8", "#e5188b")) +
+  scale_fill_manual(values = c("#7e67f8", "#e5188b")) +
+  scale_y_continuous(limits = c(-1, 2.5), expand = c(0,0))+
+  labs(x = "Age at survey (scaled)", 
+       y = "Biomass (scaled)",
+       title = "Site Type * MPA Age",
+       color = NULL, fill = NULL) +
+  theme_minimal()
+
+habitat <- ggplot(partial_habitat, aes(x = pref_habitat)) +
+  geom_line(aes(y = fit, color = site_type), size = 1) +
+  geom_ribbon(aes(ymin = lower, ymax = upper, fill = site_type), alpha = 0.2) +
+  scale_color_manual(values = c("#7e67f8", "#e5188b")) +
+  scale_fill_manual(values = c("#7e67f8", "#e5188b")) +
+  scale_y_continuous(limits = c(-1, 2.5), expand = c(0,0))+
+  labs(x = "Amount of preferred habitat (scaled)", 
+       y = NULL,
+       title = "Site Type * Pref Habitat",
+       color = NULL, fill = NULL) +
+  theme_minimal()
+
+age + habitat
+
+
+# Test out plotting the predictions
+
+species <- "SMIN"
+path <- "analyses/7habitat/output/refine_pref_habitat/kelp/all_regions/interaction"
+
+#Read data containing all the focal models 
+data <- readRDS(file.path(path, paste0(species, "_subset.rds"))) 
+models_df <- data$models_df
+data_sp <- data$data_sp
+
+pred1 <- predict(data$models$`ST*A`, data$data_sp, re.form = NA)
+pred2 <- predict(data$models$`H30m500*ST+ST*A`, data$data_sp, re.form = NA)
+
+# Extract scaling attributes for each variable
+log_kg_center <- attr(data$data_sp$log_kg_per_m2, "scaled:center")
+log_kg_scale <- attr(data$data_sp$log_kg_per_m2, "scaled:scale")
+
+age_center <- attr(data$data_sp$age_at_survey, "scaled:center")
+age_scale <- attr(data$data_sp$age_at_survey, "scaled:scale")
+
+H30m500_center <- attr(data$data_sp$hard_bottom_0_30m_500, "scaled:center")
+H30m500_scale <- attr(data$data_sp$hard_bottom_0_30m_500, "scaled:scale")
+
+# Unscale the predictions and any predictors if necessary
+new_data <- data$data_sp %>%
+  mutate(
+    # Reverse scaling for predictions
+    pred1_unscaled = exp(pred1 * log_kg_scale + log_kg_center) - 1,
+    pred2_unscaled = exp(pred2 * log_kg_scale + log_kg_center) -1,
+    
+    # Optionally unscale predictors for clarity in plotting
+    age_at_survey_unscaled = age_at_survey * age_scale + age_center,
+    H30m500_unscaled = hard_bottom_0_30m_500 * H30m500_scale + H30m500_center
+  ) %>%
+  pivot_longer(
+    cols = starts_with("pred"), 
+    names_to = "model", 
+    values_to = "value"
+  ) %>%
+  mutate(
+    model_name = factor(case_when(
+      model == "pred1_unscaled" ~ "Protection Only",
+      model == "pred2_unscaled" ~ "Best Model"
+    ), levels = c("Protection Only", "Best Model"))
+  )
+
+
+## Plots 
+
+plot <- ggplot(new_data) +
+  #  geom_point(data = data$data_sp,
+  #            aes(x = age_at_survey, y = log_kg_per_m2, color = site_type), alpha = 0.2) +
+  geom_smooth(aes(x = H30m500_unscaled, y = value, color = site_type), method = "glm") +
+  scale_color_manual(values = c("#7e67f8","#e5188b")) +
+  labs(title = paste0("Species: ", species),
+       x = "Area of hard bottom 0-30m at 500m buffer",
+       y = "Predicted Biomass (kg per m2)",
+       color = "Site Type",
+       fill = "Site Type") +
+  theme_minimal() +
+  facet_wrap(~model_name)
+plot
+
+surf_lines <- ggplot(surf_new_data) +
+  geom_smooth(aes(x = pref_habitat, y = value, color = site_type), method = "glm", show.legend = F) +
+  scale_color_manual(values = c("#e5188b", "#7e67f8")) +
+  scale_y_continuous(limits = c(0, 0.5), expand = c(0,0)) +
+  labs(x = NULL,
+       y = NULL,
+       color = NULL,
+       fill = NULL) +
+  theme_minimal() +
+  facet_wrap(~model_name)
+surf_lines
+
+surf_age <- ggplot(surf_new_data) +
+  geom_point(data = surf_data$data_sp,
+             aes(x = age_at_survey, y = kg_per_haul, color = site_type), alpha = 0.2, show.legend = F) +
+  geom_smooth(aes(x = age_at_survey, y = value, color = site_type), method = "glm", show.legend = F) +
+  scale_color_manual(values = c("#e5188b", "#7e67f8")) +
+  labs(x = NULL,
+       y = NULL,
+       color = NULL,
+       fill = NULL) +
+  theme_minimal() +
+  facet_wrap(~model_name)
+surf_age
+
+surf_age_lines <- ggplot(surf_new_data) +
+  geom_smooth(aes(x = age_at_survey, y = value, color = site_type), method = "glm", show.legend = F) +
+  scale_color_manual(values = c("#e5188b", "#7e67f8")) +
+  labs(x = NULL,
+       y = NULL,
+       color = NULL,
+       fill = NULL) +
+  theme_minimal() +
+  facet_wrap(~model_name)
+surf_age_lines
+
 
 
