@@ -45,6 +45,7 @@ library(performance)
 library(patchwork)
 library(tidyverse)
 library(broom.mixed)
+library(effects)
 
 ltm.dir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_2024"
 pred_kelp <- readRDS(file.path("/home/lopazanski/ca-mpa/analyses/7habitat/intermediate_data/kelp_predictors.Rds"))
@@ -89,7 +90,11 @@ Partial residuals represent the response variable adjusted for all other terms i
 
 -   Partial Residuals = Response - Predictions (Excluding TOI) + Effect of TOI
 
--       = (Full Residuals) + Effect of TOI
+-   
+
+    ```         
+      = (Full Residuals) + Effect of TOI
+    ```
 
 The following function will:
 
@@ -170,7 +175,6 @@ plot_partial_residuals <- function(model){
   }
 }
 ```
-
 
 # GLMMs
 
@@ -267,7 +271,6 @@ qqnorm(residuals(glm2), main = paste(attr(glm2, "name"), "QQ Plot")); qqline(res
 qqnorm(residuals(glm3), main = paste(attr(glm3, "name"), "QQ Plot")); qqline(residuals(glm3))
 qqnorm(residuals(glm4), main = paste(attr(glm4, "name"), "QQ Plot")); qqline(residuals(glm4))
 ```
-
 :::
 
 ## GLMM Partial Residuals
@@ -275,8 +278,7 @@ qqnorm(residuals(glm4), main = paste(attr(glm4, "name"), "QQ Plot")); qqline(res
 Note that these plots are zoomed in - the residuals themselves have much wider spread; plots focus on the lines.
 
 ::: {.panel-tabset .nav-pills}
-
-## GLMM: B ~ H * ST + ST * A
+## GLMM: B \~ H \* ST + ST \* A
 
 ```{r}
 #| out.width: "100%"
@@ -295,7 +297,7 @@ plot(predictorEffects(glm1, ~ hard_bottom_0_30m_500, partial.residuals = TRUE),
      residuals.cex = 0.2)
 ```
 
-## GLMM: logB ~  H * ST + ST * A
+## GLMM: logB \~ H \* ST + ST \* A
 
 ```{r}
 #| out.width: "100%"
@@ -314,7 +316,7 @@ plot(predictorEffects(glm2, ~ hard_bottom_0_30m_500, partial.residuals = TRUE),
      residuals.cex = 0.2)
 ```
 
-## GLMM: B ~ H * ST * A
+## GLMM: B \~ H \* ST \* A
 
 ```{r}
 #| out.width: "100%"
@@ -333,7 +335,7 @@ plot(predictorEffects(glm3, ~ hard_bottom_0_30m_500, partial.residuals = TRUE),
      residuals.cex = 0.2)
 ```
 
-## GLMM: logB ~ H * ST * A
+## GLMM: logB \~ H \* ST \* A
 
 ```{r}
 #| out.width: "100%"
@@ -351,7 +353,6 @@ plot(predictorEffects(glm4, ~ hard_bottom_0_30m_500, partial.residuals = TRUE),
      residuals.pch = 19,   
      residuals.cex = 0.2)
 ```
-
 :::
 
 ## GLMM Summary
@@ -384,22 +385,19 @@ attr(gglm2, "name") <- "Gamma: B ~ H*ST*A"
 
 ```
 
-
 ## Gamma GLM Comparison
 
 Click the tabs below to explore the model comparison and diagnostic plots.
 
 ::: {.panel-tabset .nav-pills}
-
 ## Summary
 
-The random effect variance is extremely high (from <1% to 98% marginal to conditional is concerning)
+The random effect variance is extremely high (from \<1% to 98% marginal to conditional is concerning)
 
 ```{r}
 summary(gglm1)
 summary(gglm2)
 ```
-
 
 ## Comparison
 
@@ -426,14 +424,12 @@ qqline(residuals(gglm1, type = "deviance"))
 qqnorm(residuals(gglm2, type = "deviance"), main = paste(attr(gglm2, "name")))
 qqline(residuals(gglm2, type = "deviance"))
 ```
-
 :::
 
 ## Gamma GLM Partial Residuals
 
 ::: {.panel-tabset .nav-pills}
-
-## Gamma GLMM: B ~ H * ST + ST * A
+## Gamma GLMM: B \~ H \* ST + ST \* A
 
 ```{r}
 #| out.width: "100%"
@@ -454,7 +450,7 @@ plot(predictorEffects(gglm2, ~ hard_bottom_0_30m_500, partial.residuals = TRUE),
 
 ```
 
-## Gamma GLMM: B ~ H * ST * A
+## Gamma GLMM: B \~ H \* ST \* A
 
 ```{r}
 #| fig.width: 8
@@ -476,7 +472,6 @@ plot(predictorEffects(gglm2, ~ hard_bottom_0_30m_500, partial.residuals = TRUE),
      residuals.pch = 19,   
      residuals.cex = 0.2)
 ```
-
 :::
 
 # GAM
@@ -512,13 +507,14 @@ gam3 <- gam(kg_per_m2 ~ ti(hard_bottom_0_30m_500, age_at_survey, by = site_type)
 attr(gam3, "name") <- "GAM: B ~ ti(H, A, by = ST)"
 ```
 
-
 Summary:
+
 ```{r}
 summary(gam1)
 summary(gam2)
 summary(gam3)
 ```
+
 Compare performance
 
 ```{r}
@@ -532,7 +528,6 @@ print(model_fit)
 
 ```
 
-
 # Compare All
 
 ```{r}
@@ -544,9 +539,8 @@ print(compare_all)
 
 ```
 
-
-
 Check the model:
+
 ```{r}
 par(mfrow = c(2, 2)) 
 
@@ -555,15 +549,16 @@ gam.check(gam2)
 ```
 
 Check k:
+
 ```{r}
 mgcv::k.check(gam1)
 ```
 
-Plot it: 
+Plot it:
+
 ```{r}
 plot(gam1, pages = 1, rug = TRUE, shade = TRUE)
 ```
-
 
 ## GAM: Smooth for MPA Age & Smooth for Hard Bottom
 
@@ -577,29 +572,34 @@ attr(gam2, "name") <- "GAM: B ~ S(H, by = ST) + S(A, by = ST)"
 ```
 
 Summary:
+
 ```{r}
 summary(gam2)
 ```
 
 Check the model:
+
 ```{r}
 par(mfrow = c(2, 2)) 
 gam.check(gam2)
 ```
 
 Check k-index:
+
 ```{r}
 mgcv::k.check(gam2)
 ```
 
-Plot it: 
+Plot it:
+
 ```{r}
 plot(gam2, pages = 1, rug = TRUE, shade = TRUE)
 ```
 
-## GAM: Interactive H * ST * A with Smooth
+## GAM: Interactive H \* ST \* A with Smooth
 
-## GAM: Smooth for MPA Age 
+## GAM: Smooth for MPA Age
+
 ```{r}
 gam3 <- gam(kg_per_m2 ~ ti(hard_bottom_0_30m_500, age_at_survey, by = site_type) +
             s(year, bs = "re") + s(bioregion, bs = "re") + s(affiliated_mpa, bs = "re"), 
@@ -610,22 +610,26 @@ attr(gam3, "name") <- "GAM: B ~ ti(H, A, by = ST)"
 ```
 
 Summary:
+
 ```{r}
 summary(gam3)
 ```
 
 Check the model:
+
 ```{r}
 par(mfrow = c(2, 2)) 
 gam.check(gam3)
 ```
 
 Check k:
+
 ```{r}
 mgcv::k.check(gam3)
 ```
 
-Plot it: 
+Plot it:
+
 ```{r}
 vis.gam(gam3, view = c("hard_bottom_0_30m_500", "age_at_survey"),
         cond = list(site_type = "MPA"),
@@ -635,9 +639,6 @@ vis.gam(gam3, view = c("hard_bottom_0_30m_500", "age_at_survey"),
         cond = list(site_type = "Reference"),
         type = "response", plot.type = "contour", color = "topo")
 ```
-
-
-
 
 ```{r}
 #| echo: FALSE
@@ -710,4 +711,3 @@ vis.gam(gam3, view = c("hard_bottom_0_30m_500", "age_at_survey"),
 #check_model(m3, residual_type = "simulated", check = c("ncv", "qq", "normality", "vif"))
 
 ```
-
