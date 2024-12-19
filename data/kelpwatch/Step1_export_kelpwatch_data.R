@@ -28,27 +28,22 @@ librarian::shelf(tidyverse, tidync, sf, rnaturalearth, terra)
 # paths
 site.dir <- "/home/shares/ca-mpa/data/sync-data/monitoring/ltm_sites_1000m_merged"
 kelp.dir <- "/home/shares/ca-mpa/data/sync-data/kelpwatch/2024"
-
-kelpwatch_file <- "LandsatKelpBiomass_2024_Q3_withmetadata.nc"
-
+ltm.dir  <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_2024"
 
 # read the data in
+kelpwatch_file <- "LandsatKelpBiomass_2024_Q3_withmetadata.nc"
 kelpwatch_raw <- tidync(file.path(kelp.dir, kelpwatch_file))
 kelpwatch_raw # select the biomass grid by default
-sites_raw <- read_sf("/home/shares/ca-mpa/data/sync-data/monitoring/ltm_sites_1000m_merged/ltm_sites_1000m_merged.shp") 
 
+# Read the LTM sites (these are ones incldued in the habitat analyses)
+sites_included <- readRDS(file.path(ltm.dir, "combine_tables/kelp_combine_table.Rds")) %>% distinct(site, site_type) %>% 
+  bind_rows(., readRDS(file.path(ltm.dir, "combine_tables/surf_combine_table.Rds")) %>% distinct(site, site_name, site_type)) %>% 
+  bind_rows(., readRDS(file.path(ltm.dir, "combine_tables/ccfrp_combine_table.Rds")) %>% distinct(site, site_type))
 
-# Transform the biomass grid into a data frame
-kelpwatch_df <- kelpwatch_raw %>% 
-  hyper_tibble(force = TRUE)
-
-# Transform the time grid into a data frame
-kelp_time <- kelpwatch_raw %>% 
-  activate("year") %>% 
-  hyper_tibble()
-
-# Join the kelp data with the time grid
-kelp <- left_join(kelpwatch_df, kelp_time)
+sites <- readRDS("/home/shares/ca-mpa/data/sync-data/monitoring/monitoring_sites_clean.Rds") %>% 
+  filter(site %in% sites_included$site) %>% 
+  st_as_sf(., coords = c("long_dd", "lat_dd"), crs = 4326) %>% 
+  mutate(site_id = row_number())
 
 # Transform the latitude grid into a data frame
 kelp_lat <- kelpwatch_raw %>%
@@ -69,7 +64,10 @@ kelp_latlon <- left_join(kelp_lat, kelp_lon, by = "station") %>%
   st_transform(crs = 26910)
 
 # Transform sites to match the kelp lat/lon
-sites <- st_transform(sites_raw, crs = 26910)
+sites <- st_transform(sites, crs = 26910)
+
+# Buffer the sites to a little over 500m radii (in case cell spans boundary)
+sites <- st_buffer(sites, dist = 550)
 
 # Identify the stations that overlap with the sites
 site_station_intersect <- st_intersects(kelp_latlon, sites)
@@ -79,6 +77,18 @@ intersect_logical <- lengths(site_station_intersect) > 0
 
 # Filter kelp_latlon for stations that intersect
 site_station <- kelp_latlon[intersect_logical, ]
+
+# Transform the biomass grid into a data frame
+kelpwatch_df <- kelpwatch_raw %>% 
+  hyper_tibble(force = TRUE)
+
+# Transform the time grid into a data frame
+kelp_time <- kelpwatch_raw %>% 
+  activate("year") %>% 
+  hyper_tibble()
+
+# Join the kelp data with the time grid
+kelp <- left_join(kelpwatch_df, kelp_time)
 
 # Filter the kelp data for the stations that intersect and years of interest
 kelp <- kelp %>% 
@@ -94,11 +104,14 @@ kelp_present <- kelp %>%
 # Calculate annual max
 kelp_annual <- kelp_present %>%
   arrange(station, year) %>%
-  group_by(station, year, .drop = F) %>%
+  group_by(station, year, .drop = T) %>%
   summarise_all(max, na.rm = T) 
 
+# Create vector object from sites to align with the terra
+sites_vect <- vect(sites)
+
 # Create raster template for 30x30m grid
-raster_template <- terra::rast(extent = sites,
+raster_template <- terra::rast(extent = sites_vect,
                                crs = st_crs(kelp_latlon)$wkt,
                                resolution = 30)
 
@@ -138,7 +151,6 @@ raster_2004 <- terra::rast(file.path(kelp.dir, "processed", "kelp_canopy_2004.ti
 print(raster_2004)
 
 plot(raster_2004, main = "Kelp Canopy 2004")
-plot(st_geometry(kelp_latlon), add = TRUE, col = "red", pch = 20)
 plot(st_geometry(sites), add = TRUE, border = "blue")
 
 # Compare input data and rasterized values
