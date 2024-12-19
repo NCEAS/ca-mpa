@@ -63,7 +63,7 @@ intersect_biotic <- function(section){
   section_intersect <- st_intersection(sect, sites)
   print("Intersection complete")
   
-  saveRDS(section_intersect, file.path(bio.dir, "biotic_istes_500m", paste0("biotic_sites_section_", section, ".Rds")))
+  saveRDS(section_intersect, file.path(bio.dir, "biotic_sites_500m", paste0("biotic_sites_section_", section, ".Rds")))
   print("Save complete")
 }
 
