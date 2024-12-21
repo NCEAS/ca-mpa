@@ -5,6 +5,7 @@
 # Setup ------------------------------------------------------------------------
 library(sf)
 library(terra)
+library(tidyverse)
 
 kelp.dir <- "/home/shares/ca-mpa/data/sync-data/kelpwatch/2024/processed"
 ltm.dir  <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_2024"
@@ -12,14 +13,12 @@ ltm.dir  <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update
 # Read Data --------------------------------------------------------------------
 # Created here: data/monitoring_data/processing_code/archive/clean_monitoring_sites.R
 # Read the LTM sites (these are ones incldued in the habitat analyses)
-sites_included <- readRDS(file.path(ltm.dir, "combine_tables/kelp_combine_table.Rds")) %>% distinct(site, site_type) %>% 
-  bind_rows(., readRDS(file.path(ltm.dir, "combine_tables/surf_combine_table.Rds")) %>% distinct(site, site_name, site_type)) %>% 
-  bind_rows(., readRDS(file.path(ltm.dir, "combine_tables/ccfrp_combine_table.Rds")) %>% distinct(site, site_type))
+# sites_included <- readRDS(file.path(ltm.dir, "combine_tables/kelp_combine_table.Rds")) %>% distinct(site, site_type) %>% 
+#   bind_rows(., readRDS(file.path(ltm.dir, "combine_tables/surf_combine_table.Rds")) %>% distinct(site, site_name, site_type)) %>% 
+#   bind_rows(., readRDS(file.path(ltm.dir, "combine_tables/ccfrp_combine_table.Rds")) %>% distinct(site, site_type))
 
-sites <- readRDS("/home/shares/ca-mpa/data/sync-data/monitoring/monitoring_sites_clean.Rds") %>% 
-  filter(site %in% sites_included$site) %>% 
-  st_as_sf(., coords = c("long_dd", "lat_dd"), crs = 4326) %>% 
-  mutate(site_id = row_number())
+sites <- readRDS(file.path("/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_2024", "site_locations_corrected.Rds")) %>% 
+  mutate(site_id = row_number()) # already crs 26910
 
 # Transform site geometries to match raster CRS
 sites <- st_transform(sites, crs = 26910)

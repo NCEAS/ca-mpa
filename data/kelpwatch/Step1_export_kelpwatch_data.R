@@ -36,13 +36,7 @@ kelpwatch_raw <- tidync(file.path(kelp.dir, kelpwatch_file))
 kelpwatch_raw # select the biomass grid by default
 
 # Read the LTM sites (these are ones incldued in the habitat analyses)
-sites_included <- readRDS(file.path(ltm.dir, "combine_tables/kelp_combine_table.Rds")) %>% distinct(site, site_type) %>% 
-  bind_rows(., readRDS(file.path(ltm.dir, "combine_tables/surf_combine_table.Rds")) %>% distinct(site, site_name, site_type)) %>% 
-  bind_rows(., readRDS(file.path(ltm.dir, "combine_tables/ccfrp_combine_table.Rds")) %>% distinct(site, site_type))
-
-sites <- readRDS("/home/shares/ca-mpa/data/sync-data/monitoring/monitoring_sites_clean.Rds") %>% 
-  filter(site %in% sites_included$site) %>% 
-  st_as_sf(., coords = c("long_dd", "lat_dd"), crs = 4326) %>% 
+sites <- readRDS(file.path("/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_2024", "site_locations_corrected.Rds")) %>% 
   mutate(site_id = row_number())
 
 # Transform the latitude grid into a data frame

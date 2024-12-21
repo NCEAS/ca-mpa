@@ -2,8 +2,6 @@
 # Cori Lopazanski (lopazanski@bren.ucsb.edu)
 # December 2024
 
-
-
 library(tidyverse)
 library(sf)
 library(terra)
@@ -18,10 +16,8 @@ sites_included <- readRDS(file.path(ltm.dir, "combine_tables/kelp_combine_table.
   bind_rows(., readRDS(file.path(ltm.dir, "combine_tables/surf_combine_table.Rds")) %>% distinct(site, site_name, site_type)) %>% 
   bind_rows(., readRDS(file.path(ltm.dir, "combine_tables/ccfrp_combine_table.Rds")) %>% distinct(site, site_type))
 
-sites <- readRDS("/home/shares/ca-mpa/data/sync-data/monitoring/monitoring_sites_clean.Rds") %>% 
-  filter(!habitat == "Rocky intertidal") %>% 
-  filter(site %in% sites_included$site) %>% 
-  st_as_sf(., coords = c("long_dd", "lat_dd"), crs = 4326) %>% 
+sites <- readRDS(file.path("/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_2024", 
+                           "site_locations_corrected.Rds")) %>% 
   mutate(site_id = row_number())
 
 # Project sites to a linear CRS
@@ -69,14 +65,14 @@ depth_df <- do.call(rbind, lapply(regions, function(region_name) {
   }) %>% bind_rows()
 }))
 
-# Format the depth dataframe
+# Format the depth data frame
 depth_2m_df <- depth_df %>% 
   filter(!na == n) %>% 
   mutate(prop_na = na/n*100) %>% 
   mutate(resolution = 2)
 
 # Save to disk
-#saveRDS(depth_df2, file.path("/home/shares/ca-mpa/data/sync-data/habitat_anita/processed/depth_buffers_2m.Rds"))
+saveRDS(depth_2m_df, file.path("/home/shares/ca-mpa/data/sync-data/habitat_anita/processed/depth_buffers_2m.Rds"))
 
 # Calculate buffers with the 30m layer  -------------------------------------------
 
@@ -134,14 +130,35 @@ saveRDS(depth_all, file.path("/home/shares/ca-mpa/data/sync-data/habitat_anita/p
 
 # Build --------------------------------------------------------------------------------
 
+depth_all <- readRDS(file.path("/home/shares/ca-mpa/data/sync-data/habitat_anita/processed/depth_buffers.Rds"))
+
 depth <- depth_all %>% 
   dplyr::select(ID, depth_mean, depth_sd, buffer, prop_na, resolution) %>% 
   pivot_longer(cols = c(depth_mean, depth_sd), names_to = "habitat", values_to = "value_m") %>% 
   mutate(habitat_buffer = paste0(habitat, "_", buffer)) %>% 
   dplyr::select(ID, habitat_buffer, value_m, prop_na, resolution)
 
-depth_means <- depth %>%
-  filter(str_detect(habitat_buffer, "mean"))
 
+depth <- depth_all %>% 
+  mutate(resolution = factor(resolution, levels = c("2", "30", "25"))) %>% 
+  arrange(ID, buffer, resolution, prop_na) %>%  # Arrange by ID, buffer, resolution (factor), and prop_na (ascending)
+  group_by(ID, buffer) %>%                      # Group by ID and buffer
+  slice(1) %>%                                  # Select the first row per group (best resolution and lowest prop_na)
+  ungroup()  %>%           
+  dplyr::select(ID, depth_mean, depth_sd, buffer, resolution) %>% 
+  pivot_longer(cols = c(depth_mean, depth_sd), names_to = "habitat", values_to = "value_m") %>% 
+  mutate(habitat_buffer = paste0(habitat, "_", buffer)) %>% 
+  dplyr::select(ID, habitat_buffer, value_m) %>% 
+  pivot_wider(names_from = "habitat_buffer", values_from = "value_m")
 
+# Merge with sites
+sites <- readRDS(file.path("/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_2024", 
+                           "site_locations_corrected.Rds")) %>% 
+  mutate(ID = row_number()) %>% 
+  st_drop_geometry()
 
+sites_depth <- sites %>% left_join(depth) %>% dplyr::select(-ID)
+
+saveRDS(sites_depth, file.path(ltm.dir, "site_depth.Rds"))
+
+        
