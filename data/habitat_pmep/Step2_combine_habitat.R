@@ -13,7 +13,7 @@ bio.dir <- "/home/shares/ca-mpa/data/sync-data/habitat_pmep/processed/biotic"
 sub.dir <- "/home/shares/ca-mpa/data/sync-data/habitat_pmep/processed_v2/substrate"
 com.dir <- "/home/shares/ca-mpa/data/sync-data/habitat_pmep/processed_v2/combined"
 
-site_columns <- c("habitat", "mpa", "mpa_orig", "site", "site_type") # remove PMEP Zone because we create our own below
+site_columns <- c("habitat", "site", "site_type") # remove PMEP Zone because we create our own below
 bio_columns <- c("FaunalBed", "AquaticVegetationBed", "BenthicMacroalgae", "Kelp", "OtherMacroalgae", "Seagrass", "AquaticVascularVegetation", "FloatingSuspendedBiota")
 
 
@@ -60,21 +60,58 @@ bio_depth <- bio_att %>%
                              levels = c("landward", "0_30m", "30_100m", "100_200m", "200m")))
     
 
+# Address unclassified substrate for each section w/ nearest neighbor ----------------------
+classify_substrate <- function(section){
+  # Read the substrate file for the section
+  substrate <- readRDS(file.path(sub.dir, paste0("substrate_sites_500m/substrate_sites_section_", section, ".Rds"))) 
+  
+  # Build the substrate table and simplify across habitat classes
+  sub <- substrate %>% 
+    left_join(sub_habitat) %>% 
+    left_join(sub_depth) %>% 
+    group_by(across(all_of(site_columns)), habitat_class, depth_zone) %>% 
+    summarize(geometry = st_union(Shape), .groups = "drop") 
+  
+  # Use nearest neighbor to fix unclassified polygons
+  unclassified <- sub %>% 
+    filter(habitat_class == "Unclassified")
+  
+  classified <- sub %>% 
+    filter(habitat_class != "Unclassified")
+  
+  if (nrow(unclassified) > 0 && nrow(classified) > 0) {
+    nearest_indices <- st_nearest_feature(unclassified, classified)
+    
+    unclassified <- unclassified %>%
+      mutate(habitat_class = classified$habitat_class[nearest_indices])
+    
+    sub <- bind_rows(classified, unclassified) %>% 
+      group_by(across(all_of(site_columns)), habitat_class, depth_zone) %>% 
+      summarize(geometry = st_union(geometry), .groups = "drop") 
+  }
+  
+  saveRDS(sub, file.path(sub.dir, paste0("substrate_sites_500m/substrate_sites_section_classified_", section, ".Rds")))
+  
+  }
+  
+
+classify_substrate(section = "23")
+classify_substrate(section = "30")
+classify_substrate(section = "31")
+classify_substrate(section = "32")
+classify_substrate(section = "33")
+classify_substrate(section = "40")
+classify_substrate(section = "41")
+
 
 
 # Build table for each section ------------------------------------------------------------------------------------------------------------------------
 
 build_habitat <- function(section){
   print(paste("Section: ", section))
-  substrate <- readRDS(file.path(sub.dir, paste0("substrate_sites_500m/substrate_sites_section_", section, ".Rds"))) 
+  substrate <- readRDS(file.path(sub.dir, paste0("substrate_sites_500m/substrate_sites_section_classified_", section, ".Rds"))) 
   
   sub_crs <- st_crs(substrate)
-  
-  sub <- substrate %>% 
-    left_join(sub_habitat) %>% 
-    left_join(sub_depth) %>% 
-    group_by(across(all_of(site_columns)), habitat_class, depth_zone) %>% 
-    summarize(geometry = st_union(Shape), .groups = "drop") 
   
   biotic <- readRDS(file.path(bio.dir, paste0("biotic_sites_500m/biotic_sites_section_", section, ".Rds"))) 
   
@@ -124,7 +161,7 @@ build_habitat <- function(section){
     aqu_vas <- NULL
   }
   
-  habitat <- bind_rows(sub, seagrass, aqu_veg, aqu_vas)
+  habitat <- bind_rows(substrate, seagrass, aqu_veg, aqu_vas)
   
   saveRDS(habitat, file.path(com.dir, paste0("combined_", section, ".Rds")))
   

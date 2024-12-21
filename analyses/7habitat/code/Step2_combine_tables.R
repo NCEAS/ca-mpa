@@ -1,4 +1,4 @@
-# Cori Loapzanski
+# Cori Lopazanski
 # August 2024
 
 # About ------------------------------------------------------------------------------------
@@ -10,37 +10,19 @@ library(tidyverse)
 rm(list = ls())
 
 # Directories
-fig.dir <- "~/ca-mpa/analyses/7habitat/figures"
 ltm.dir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_2024"
 sp.dir <- "/home/shares/ca-mpa/data/sync-data/species_traits/processed"
 int.dir <- "~/ca-mpa/analyses/7habitat/intermediate_data"
 kw.dir <- "/home/shares/ca-mpa/data/sync-data/kelpwatch/2024/processed"
 
 # Read Data --------------------------------------------------------------------------------------------------------------------
-habitat_raw <- readRDS(file.path(int.dir, "habitat_buffers_by_site_revised.Rds")) %>% # rm _revised for old version
-  filter(!habitat == "Rocky intertidal")
+habitat_raw <- readRDS(file.path(int.dir, "habitat_buffers_by_site_v2.Rds")) 
 
-# Original version of habitat (hard, soft, biotic, etc.)
-habitat <- habitat_raw %>% # should be 913 sites (all except RI; 986 in full)
-  dplyr::select(mpa, affiliated_mpa, site, site_type, area_m2, habitat_depth_buffer) %>% 
-  pivot_wider(names_from = "habitat_depth_buffer", values_from = "area_m2") %>% 
-  dplyr::select(-affiliated_mpa, -site_type) 
-
-# Revised version after incorporating kelpwatch (retaining both for now)
-# This changes anything _biotic to just a substrate instance, and combines the hard/soft within each depth/buffer
-habitat_revised <- habitat_raw %>%
-  mutate(across(c(habitat_class, habitat_depth, habitat_depth_buffer), ~ str_remove(., "_biotic"))) %>% 
-  filter(!habitat_depth %in% c("hard_bottom_200m", "soft_bottom_200m")) %>% # drop the 200m category for now
-  filter(!str_detect(habitat_depth, "landward")) %>% # drop landward for now
-  group_by(habitat, mpa, affiliated_mpa, site, site_type, 
-           buffer, habitat_class, habitat_depth, depth_zone, habitat_depth_buffer) %>% 
-  summarize(area_m2 = sum(area_m2, na.rm = T), .groups = 'drop') %>% 
-  dplyr::select(mpa, affiliated_mpa, site, site_type, area_m2, habitat_depth_buffer) %>% 
-  pivot_wider(names_from = "habitat_depth_buffer", values_from = "area_m2") %>% 
-  dplyr::select(-affiliated_mpa, -site_type) 
-
+habitat <- habitat_raw %>% # should be 826
+  dplyr::select(habitat, site, site_type, area_m2, habitat_depth_buffer) %>% 
+  pivot_wider(names_from = "habitat_depth_buffer", values_from = "area_m2") 
   
-kelp_watch <- readRDS(file.path(kw.dir, "kelp_site_buffers.Rds"))
+habitat_kelp <- readRDS(file.path(kw.dir, "kelp_site_buffers.Rds"))
 
 # Kelp -------------------------------------------------------------------------------------------------------------------
 
@@ -48,11 +30,11 @@ kelp_raw <- readRDS(file.path(ltm.dir, "kelp_biomass_complete.Rds"))
 
 kelp_sites <- kelp_raw %>% 
   # Identify distinct site-year combinations
-  distinct(year, site, site_type, bioregion, affiliated_mpa, implementation_year, size_km2) %>% 
+  distinct(year, site, site_type, bioregion, affiliated_mpa, mpa_defacto_class, implementation_year, size_km2) %>% 
   mutate(before = if_else(year <= implementation_year, 1, 0),
          after = if_else(year > implementation_year, 1, 0)) %>% 
   # Count number of years each site was visited before and after the MPA was implemented
-  group_by(site, bioregion, affiliated_mpa, implementation_year, size_km2, site_type) %>% 
+  group_by(site, bioregion, affiliated_mpa,  mpa_defacto_class, implementation_year, size_km2, site_type) %>% 
   summarize(n_before = sum(before),
             n_after = sum(after),
             n_total = n_before + n_after, .groups = 'drop') %>% 
@@ -60,31 +42,29 @@ kelp_sites <- kelp_raw %>%
   filter(!is.na(site_type)) %>%
   # Drop sites that haven't been visited at least 5 times
   filter(n_after >= 5) %>% 
-  left_join(habitat_revised)
+  left_join(habitat)
 
 kelp_mpas <- kelp_sites %>%
-  group_by(bioregion, affiliated_mpa, implementation_year, size_km2, site_type) %>%
+  group_by(bioregion, affiliated_mpa, mpa_defacto_class, implementation_year, size_km2, site_type) %>%
   summarize(n_total = sum(n_total), .groups = 'drop') %>%
   pivot_wider(names_from = site_type, values_from = n_total) %>% 
   filter(!is.na(Reference)) %>% 
-  filter(!is.na(MPA))
+  filter(!is.na(MPA)) %>% 
+  filter(mpa_defacto_class == "smr")
 
 kelp <- kelp_raw %>% 
   # Drop observations for dropped sites 
   filter(site %in% kelp_sites$site) %>% 
   # Drop observations for dropped MPAs
   filter(affiliated_mpa %in% kelp_mpas$affiliated_mpa) %>% 
-  # Drop MPAs that are not defacto SMRs
-  filter(mpa_defacto_class == "smr") %>% 
   # Drop before data
   filter(age_at_survey >= 0) %>% 
   # Join habitat and site visitation information
   left_join(kelp_sites) %>% 
   # Join annual kelp canopy estimates
-  left_join(kelp_watch) %>% 
+  left_join(habitat_kelp) %>% 
   # Log-transformed biomass
   mutate(log_kg_per_m2 = log(kg_per_m2 + 1))
-
 
 # sp <- data %>% 
 #   filter(kg_per_m2 > 0) %>% 
@@ -152,7 +132,7 @@ rock_sites <- rock_raw %>%
             n_after = sum(after), # max visited is 16; most visited <5 times
             n_total = n_before + n_after, .groups = 'drop') %>% 
   # Decide to not filter grid cells because there are so many options for each MPA/Ref
-  left_join(habitat_revised)
+  left_join(habitat)
 
 rock_mpas <- rock_sites %>%
   group_by(bioregion, affiliated_mpa, mpa_defacto_class, implementation_year, site_type) %>%
@@ -168,7 +148,7 @@ rock <- rock_raw %>%
   # Join habitat and site visitation information
   left_join(rock_sites) %>% 
   # Join kelp canopy annual estimates 
-  left_join(kelp_watch) %>% 
+  left_join(habitat_kelp) %>% 
   # Log-transformed biomass
   mutate(log_bpue_kg = log(weight_kg + 1))
 
@@ -179,25 +159,43 @@ surf_raw <- readRDS(file.path(ltm.dir, "surf_biomass_complete.Rds"))
 
 surf_sites <- surf_raw %>% 
   # Identify distinct site-year combinations
-  distinct(year, site, site_type, bioregion, affiliated_mpa, mpa_defacto_class, implementation_year) %>% 
+  distinct(year, site, site_name, site_type, bioregion, affiliated_mpa, mpa_defacto_class, implementation_year) %>% 
   # Count number of years each site was visited before and after the MPA was implemented
-  group_by(site, bioregion, affiliated_mpa, mpa_defacto_class, implementation_year, site_type) %>% 
-  summarize(n_total = n(), .groups = 'drop') %>% # Started in 2019 so no need to do breakdown
-  left_join(habitat_revised)
+  group_by(site, site_name, bioregion, affiliated_mpa, mpa_defacto_class, implementation_year, site_type) %>% 
+  summarize(n_total = n(), .groups = 'drop') %>%  # Started in 2019 so no need to do breakdown
+  mutate(site = paste(site_name, site_type)) %>% 
+  left_join(habitat)
 
 # Even sampling across years and MPAs, no neeed to filter
-
 surf <- surf_raw %>% 
+  mutate(site = paste(site_name, site_type)) %>% 
   # Join habitat and site visitation information
   left_join(surf_sites) %>% 
   # Join kelp canopy annual estimates
-  left_join(kelp_watch) %>% 
+  left_join(habitat_kelp) %>% 
   # Log-transformed biomass
   mutate(log_kg_per_haul = log(kg_per_haul + 1))
 
 # Export 
+saveRDS(kelp, file.path(ltm.dir, "combine_tables/kelp_combine_table.Rds"))  # Last write 20 Dec 2024
+saveRDS(surf, file.path(ltm.dir, "combine_tables/surf_combine_table.Rds"))  # Last write 20 Dec 2024
+saveRDS(rock, file.path(ltm.dir, "combine_tables/ccfrp_combine_table.Rds")) # Last write 20 Dec 2024
 
-saveRDS(kelp, file.path(ltm.dir, "combine_tables/kelp_combine_table.Rds"))  # Last write 16 Dec 2024
-saveRDS(surf, file.path(ltm.dir, "combine_tables/surf_combine_table.Rds"))  # Last write 16 Dec 2024
-saveRDS(rock, file.path(ltm.dir, "combine_tables/ccfrp_combine_table.Rds")) # Last write 16 Dec 2024
+# Explore the sites that need to be reviewed for errors -----------------------------------------------------------
+
+rock_sites_review <- rock_sites %>% 
+  filter(affiliated_mpa %in% rock_mpas$affiliated_mpa) %>% 
+  filter(if_any(everything(), is.na))
+
+kelp_sites_review <- kelp_sites %>% 
+  filter(affiliated_mpa %in% kelp_mpas$affiliated_mpa) %>% 
+  filter(if_any(everything(), is.na))
+
+surf_sites_review <- surf_sites %>% filter(if_any(everything(), is.na))
+
+sites_review <- bind_rows(kelp_sites_review, rock_sites_review, surf_sites_review)
+
+# Save these to compare with the spatial data to determine issues:
+saveRDS(sites_review, file.path("/home/shares/ca-mpa/data/sync-data/habitat_pmep/processed_v2/review", "sites_review.Rds"))
+
 

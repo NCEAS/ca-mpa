@@ -22,9 +22,7 @@ crs_bio <- st_crs(st_read(file.path(bio.dir, "biotic_ca/sections/biotic_section_
 
 # Build 1000m site buffers  ----------------------------------------------------
 # Created here: data/monitoring_data/processing_code/archive/clean_monitoring_sites.R
-sites <- readRDS("/home/shares/ca-mpa/data/sync-data/monitoring/monitoring_sites_clean.Rds") %>% 
-  filter(!habitat == "Rocky intertidal") %>% 
-  st_as_sf(., coords = c("long_dd", "lat_dd"), crs = 4326)
+sites <- readRDS(file.path("/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_2024", "site_locations_corrected.Rds"))
 
 # Project CRS to use meters
 sites <- st_transform(sites, crs = 26910)  
