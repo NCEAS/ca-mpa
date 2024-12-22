@@ -131,16 +131,10 @@ saveRDS(depth_all, file.path("/home/shares/ca-mpa/data/sync-data/habitat_anita/p
 # Build --------------------------------------------------------------------------------
 
 depth_all <- readRDS(file.path("/home/shares/ca-mpa/data/sync-data/habitat_anita/processed/depth_buffers.Rds"))
-
-depth <- depth_all %>% 
-  dplyr::select(ID, depth_mean, depth_sd, buffer, prop_na, resolution) %>% 
-  pivot_longer(cols = c(depth_mean, depth_sd), names_to = "habitat", values_to = "value_m") %>% 
-  mutate(habitat_buffer = paste0(habitat, "_", buffer)) %>% 
-  dplyr::select(ID, habitat_buffer, value_m, prop_na, resolution)
-
-
+  
 depth <- depth_all %>% 
   mutate(resolution = factor(resolution, levels = c("2", "30", "25"))) %>% 
+  mutate(depth_sd = if_else(is.na(depth_sd), 0, depth_sd)) %>% 
   arrange(ID, buffer, resolution, prop_na) %>%  # Arrange by ID, buffer, resolution (factor), and prop_na (ascending)
   group_by(ID, buffer) %>%                      # Group by ID and buffer
   slice(1) %>%                                  # Select the first row per group (best resolution and lowest prop_na)

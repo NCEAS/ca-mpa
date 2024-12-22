@@ -16,13 +16,11 @@ int.dir <- "~/ca-mpa/analyses/7habitat/intermediate_data"
 kw.dir <- "/home/shares/ca-mpa/data/sync-data/kelpwatch/2024/processed"
 
 # Read Data --------------------------------------------------------------------------------------------------------------------
-habitat_raw <- readRDS(file.path(int.dir, "habitat_buffers_by_site_v2.Rds")) 
+habitat <- readRDS(file.path(int.dir, "habitat_buffers_by_site_v2.Rds")) %>% 
+  dplyr::select(-habitat)
 
-habitat <- habitat_raw %>% # should be 826
-  dplyr::select(habitat, site, site_type, area_m2, habitat_depth_buffer) %>% 
-  pivot_wider(names_from = "habitat_depth_buffer", values_from = "area_m2") 
-  
 habitat_kelp <- readRDS(file.path(kw.dir, "kelp_site_buffers.Rds"))
+
 
 # Kelp -------------------------------------------------------------------------------------------------------------------
 
@@ -177,12 +175,13 @@ surf <- surf_raw %>%
   mutate(log_kg_per_haul = log(kg_per_haul + 1))
 
 # Export 
-saveRDS(kelp, file.path(ltm.dir, "combine_tables/kelp_combine_table.Rds"))  # Last write 20 Dec 2024
-saveRDS(surf, file.path(ltm.dir, "combine_tables/surf_combine_table.Rds"))  # Last write 20 Dec 2024
-saveRDS(rock, file.path(ltm.dir, "combine_tables/ccfrp_combine_table.Rds")) # Last write 20 Dec 2024
+saveRDS(kelp, file.path(ltm.dir, "combine_tables/kelp_combine_table.Rds"))  # Last write 22 Dec 2024
+saveRDS(surf, file.path(ltm.dir, "combine_tables/surf_combine_table.Rds"))  # Last write 22 Dec 2024
+saveRDS(rock, file.path(ltm.dir, "combine_tables/ccfrp_combine_table.Rds")) # Last write 22 Dec 2024
 
 # Explore the sites that need to be reviewed for errors -----------------------------------------------------------
 
+<<<<<<< HEAD
 rock_sites_review <- rock_sites %>% 
   filter(affiliated_mpa %in% rock_mpas$affiliated_mpa) %>% 
   filter(if_any(everything(), is.na))
@@ -203,3 +202,21 @@ saveRDS(kelp, file.path(ltm.dir, "combine_tables/kelp_combine_table.Rds"))  # La
 saveRDS(surf, file.path(ltm.dir, "combine_tables/surf_combine_table.Rds"))  # Last write 16 Dec 2024
 saveRDS(rock, file.path(ltm.dir, "combine_tables/ccfrp_combine_table.Rds")) # Last write 16 Dec 2024
 
+=======
+# rock_sites_review <- rock_sites %>% 
+#   filter(affiliated_mpa %in% rock_mpas$affiliated_mpa) %>% 
+#   filter(if_any(everything(), is.na))
+# 
+# kelp_sites_review <- kelp_sites %>% 
+#   filter(affiliated_mpa %in% kelp_mpas$affiliated_mpa) %>% 
+#   filter(if_any(everything(), is.na))
+# 
+# surf_sites_review <- surf_sites %>% filter(if_any(everything(), is.na))
+# 
+# sites_review <- bind_rows(kelp_sites_review, rock_sites_review, surf_sites_review)
+# 
+# # Save these to compare with the spatial data to determine issues:
+# saveRDS(sites_review, file.path("/home/shares/ca-mpa/data/sync-data/habitat_pmep/processed_v2/review", "sites_review.Rds"))
+# 
+# 
+>>>>>>> 9224149 (update pipeline with new habitat)

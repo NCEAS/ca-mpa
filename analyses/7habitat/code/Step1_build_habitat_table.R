@@ -10,10 +10,14 @@ library(tidyverse)
 
 int.dir <- "~/ca-mpa/analyses/7habitat/intermediate_data"
 hab.dir <- "/home/shares/ca-mpa/data/sync-data/habitat_pmep/processed_v2/combined"
+ltm.dir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_2024"
+
 
 # Build  ----------------------------------------------------------------------
 
 habitat <- readRDS(file.path(hab.dir, "buffers", "habitat_buffers_combined.Rds")) 
+
+habitat_bathy <- readRDS(file.path(ltm.dir, "site_depth.Rds"))
 
 habitat_depth <- habitat %>% # create identifier matching depth to the habitat_depth combined class
   distinct(habitat_class, habitat_depth, depth_zone)
@@ -34,4 +38,13 @@ habitat2 <- habitat %>%
   # Retain biotic habitat types where the depth is 0-30m
   filter(!(habitat_type == "biotic" & depth_zone %in% c("30_100m", "100_200m", "200m")))
 
-saveRDS(habitat2, file.path(int.dir, "habitat_buffers_by_site_v2.Rds"))
+# Convert to wide format
+habitat3 <- habitat2 %>% # should be 828
+  dplyr::select(habitat, site, site_type, area_m2, habitat_depth_buffer) %>% 
+  pivot_wider(names_from = "habitat_depth_buffer", values_from = "area_m2") 
+
+# Add bathy
+habitat4 <- habitat3 %>% 
+  left_join(habitat_bathy)
+
+saveRDS(habitat4, file.path(int.dir, "habitat_buffers_by_site_v2.Rds"))
