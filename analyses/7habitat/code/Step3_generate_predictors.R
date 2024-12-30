@@ -18,15 +18,15 @@ gc()
 ltm.dir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_2024"
 
 data_kelp <- readRDS(file.path(ltm.dir, "combine_tables/kelp_combine_table.Rds")) %>% # 148 sites
-  dplyr::select(site, bioregion, all_of(grep("^(hard|soft|kelp)", names(.), value = TRUE))) %>% 
+  dplyr::select(site, bioregion, all_of(grep("^(hard|soft|kelp|depth)", names(.), value = TRUE))) %>% 
   distinct()
   
 data_surf <- readRDS(file.path(ltm.dir, "combine_tables/surf_combine_table.Rds")) %>% # 26 sites
-  dplyr::select(site, bioregion, all_of(grep("^(hard|soft|kelp)", names(.), value = TRUE))) %>% 
+  dplyr::select(site, bioregion, all_of(grep("^(hard|soft|kelp|depth)", names(.), value = TRUE))) %>% 
   distinct()
 
 data_rock <- readRDS(file.path(ltm.dir, "combine_tables/ccfrp_combine_table.Rds")) %>% # 335 sites
-  dplyr::select(site, bioregion, all_of(grep("^(hard|soft|kelp)", names(.), value = TRUE))) %>% 
+  dplyr::select(site, bioregion, all_of(grep("^(hard|soft|kelp|depth)", names(.), value = TRUE))) %>% 
   distinct()
 
 
@@ -35,36 +35,42 @@ data_rock <- readRDS(file.path(ltm.dir, "combine_tables/ccfrp_combine_table.Rds"
 # -- Explore those that are limited in variability within a region (could skew results)
 
 kelp_predictors <- data_kelp %>%
+  mutate(across(starts_with("depth_mean"), ~ .x * -1)) %>% 
   dplyr::select(site, bioregion, where(~ max(.) > 0)) %>% 
   pivot_longer(cols = -c(site, bioregion), names_to = "predictor", values_to = "value") %>%
   group_by(bioregion, predictor) %>%
   summarize(sd = sd(value), .groups = "drop") %>%
   pivot_wider(names_from = "bioregion", values_from = "sd") %>% 
+  filter(!str_detect(predictor, "landward")) %>% 
   filter(!str_detect(predictor, "30_100m_25$")) %>% 
   filter(!str_detect(predictor, "30_100m_50$")) %>% 
   filter(!str_detect(predictor, "30_100m_100$")) %>% 
   filter(!str_detect(predictor, "100_200m_500")) %>% 
   dplyr::select(predictor) %>% 
-  mutate(scale = sub("_", "", str_sub(predictor, -3, -1))) # 19 predictors for kelp
+  mutate(scale = sub("_", "", str_sub(predictor, -3, -1))) # 29 predictors for kelp
 
 rock_predictors <- data_rock %>%
+  mutate(across(starts_with("depth_mean"), ~ .x * -1)) %>% 
   dplyr::select(site, bioregion, where(~ max(., na.rm = T) > 0)) %>%
   pivot_longer(cols = -c(site, bioregion), names_to = "predictor", values_to = "value") %>%
   group_by(bioregion, predictor) %>%
   summarize(sd = sd(value), .groups = "drop") %>% 
   pivot_wider(names_from = "bioregion", values_from = "sd") %>% 
+  filter(!str_detect(predictor, "landward")) %>% 
   filter(!str_detect(predictor, "100_200m")) %>% 
   dplyr::select(predictor) %>% 
-  mutate(scale = sub("_", "", str_sub(predictor, -3, -1))) # 25 predictors for rock
+  mutate(scale = sub("_", "", str_sub(predictor, -3, -1))) # 35 predictors for rock
 
 surf_predictors <- data_surf %>%
+  mutate(across(starts_with("depth_mean"), ~ .x * -1)) %>% 
   dplyr::select(site, bioregion, where(~ max(., na.rm = T) > 0)) %>%
   pivot_longer(cols = -c(site, bioregion), names_to = "predictor", values_to = "value") %>%
   group_by(bioregion, predictor) %>%
   summarize(sd = sd(value, na.rm = T), .groups = "drop") %>%
   pivot_wider(names_from = "bioregion", values_from = "sd") %>% 
+  filter(!str_detect(predictor, "landward")) %>% 
   dplyr::select(predictor) %>% 
-  mutate(scale = sub("_", "", str_sub(predictor, -3, -1))) # 13 predictors for surf
+  mutate(scale = sub("_", "", str_sub(predictor, -3, -1))) # 24 predictors for surf
 
 # surf_na <- data_surf  %>% 
 #   filter(if_any(everything(), is.na)) %>% # Keep rows with any NA
@@ -72,9 +78,9 @@ surf_predictors <- data_surf %>%
 
 
 # Save the predictor list for subsetting the dataset to only the variables of interest
-saveRDS(kelp_predictors, file.path("analyses/7habitat/intermediate_data", "kelp_predictors.Rds")) # last write 10 Dec 2024
-saveRDS(rock_predictors, file.path("analyses/7habitat/intermediate_data", "rock_predictors.Rds")) # last write 11 Dec 2024
-saveRDS(surf_predictors, file.path("analyses/7habitat/intermediate_data", "surf_predictors.Rds")) # last write 11 Dec 2024
+saveRDS(kelp_predictors, file.path("analyses/7habitat/intermediate_data", "kelp_predictors.Rds")) # last write 30 Dec 2024
+saveRDS(rock_predictors, file.path("analyses/7habitat/intermediate_data", "rock_predictors.Rds")) # last write 30 Dec 2024
+saveRDS(surf_predictors, file.path("analyses/7habitat/intermediate_data", "surf_predictors.Rds")) # last write 30 Dec 2024
 
 
 # Function to generate combinations including interactions for each scale
@@ -116,18 +122,58 @@ run_combinations <- function(predictor_list){
   return(list_intx)
 }
 
-kelp_list_intx <- run_combinations(kelp_predictors)  # 563
-rock_list_intx <- run_combinations(rock_predictors) # 1211
-surf_list_intx <- run_combinations(surf_predictors) # 95
+kelp_list_intx <- run_combinations(kelp_predictors %>% filter(!str_detect(predictor, "depth")))  # 563
+rock_list_intx <- run_combinations(rock_predictors %>% filter(!str_detect(predictor, "depth"))) # 1211
+surf_list_intx <- run_combinations(surf_predictors %>% filter(!str_detect(predictor, "depth"))) # 113
 
-saveRDS(kelp_list_intx, file.path("analyses/7habitat/intermediate_data", "kelp_predictors_interactions.Rds")) # no size last write 11 Dec 2024
-saveRDS(rock_list_intx, file.path("analyses/7habitat/intermediate_data", "rock_predictors_interactions.Rds")) # no size last write 11 Dec 2024
-saveRDS(surf_list_intx, file.path("analyses/7habitat/intermediate_data", "surf_predictors_interactions.Rds")) # no size last write 11 Dec 2024
+saveRDS(kelp_list_intx, file.path("analyses/7habitat/intermediate_data", "kelp_predictors_interactions.Rds")) # no size last write 30 Dec 2024
+saveRDS(rock_list_intx, file.path("analyses/7habitat/intermediate_data", "rock_predictors_interactions.Rds")) # no size last write 30 Dec 2024
+saveRDS(surf_list_intx, file.path("analyses/7habitat/intermediate_data", "surf_predictors_interactions.Rds")) # no size last write 30 Dec 2024
 
+# Add depth combinations manually for each predictor combination
 
+# Create depth column combinations
+predictors_df <- kelp_predictors
+list_intx <- kelp_list_intx
 
+add_depth <- function(predictors_df, list_intx){
+  depth_combos <- predictors_df %>%
+    filter(str_detect(predictor, "depth")) %>%
+    bind_rows(tibble(predictor = predictors_df$predictor[str_detect(predictors_df$predictor, "depth")],scale = NA)) %>% 
+    mutate(depth_intx = paste0(predictor, " * site_type")) %>%
+    pivot_longer(cols = c(predictor, depth_intx),names_to = NULL, values_to = "depth_predictor") %>%
+    bind_rows(tibble(scale = unique(predictors_df$scale), depth_predictor = NA)) %>% 
+    bind_rows(tibble(scale = NA, depth_predictor = NA)) %>% 
+    group_by(scale) %>% 
+    summarize(depth_predictors = list(c(depth_predictor)), .groups = 'drop')
+  
+  list_intx_depth <- list_intx %>%
+    left_join(depth_combos, by = "scale") %>% # Join by scale
+    unnest(depth_predictors) %>% # Expand rows for each depth predictor
+    mutate(predictors = if_else(is.na(depth_predictors),
+                                predictors, 
+                                paste(predictors, depth_predictors, sep = " + "))) %>% 
+    mutate(depth_id = 
+             str_replace_all(depth_predictors, "site_type", "ST") %>% 
+             str_replace_all("depth_mean_(\\d+)", "DM\\1") %>% 
+             str_replace_all("depth_sd_(\\d+)", "DSD\\1") %>% 
+             str_replace_all("\\s+", "")) %>% 
+    mutate(model_id = if_else(is.na(depth_predictors),
+                              model_id,
+                              paste(model_id, depth_id, sep = "+"))) %>% 
+    select(scale, predictors, type, model_id)
+  
+  
+  return(list_intx_depth)
+}
 
+kelp_intx_depth <- add_depth(kelp_predictors, kelp_list_intx)
+rock_intx_depth <- add_depth(rock_predictors, rock_list_intx)
+surf_intx_depth <- add_depth(surf_predictors, surf_list_intx)
 
+saveRDS(kelp_intx_depth, file.path("analyses/7habitat/intermediate_data", "kelp_predictors_interactions_depth.Rds")) # no size last write 30 Dec 2024
+saveRDS(rock_intx_depth, file.path("analyses/7habitat/intermediate_data", "rock_predictors_interactions_depth.Rds")) # no size last write 30 Dec 2024
+saveRDS(surf_intx_depth, file.path("analyses/7habitat/intermediate_data", "surf_predictors_interactions_depth.Rds")) # no size last write 30 Dec 2024
 
 
 # Generate predictors manually ? -----------------------------------------------------------
