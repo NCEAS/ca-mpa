@@ -27,13 +27,13 @@ data_kelp <- readRDS(file.path(ltm.dir, "combine_tables/kelp_combine_table.Rds")
 data_surf <- readRDS(file.path(ltm.dir, "combine_tables/surf_combine_table.Rds")) %>% mutate(site_type = factor(site_type, levels = c("Reference", "MPA")))
 data_rock <- readRDS(file.path(ltm.dir, "combine_tables/ccfrp_combine_table.Rds")) %>% mutate(site_type = factor(site_type, levels = c("Reference", "MPA")))
  
-pred_kelp <- readRDS(file.path("analyses/7habitat/intermediate_data/kelp_predictors.Rds")) #%>% map(~ .x[.x != "site_type * age_at_survey"])
+pred_kelp <- readRDS(file.path("analyses/7habitat/intermediate_data/kelp_predictors.Rds")) 
 pred_surf <- readRDS(file.path("analyses/7habitat/intermediate_data/surf_predictors.Rds")) 
 pred_rock <- readRDS(file.path("analyses/7habitat/intermediate_data/rock_predictors.Rds"))
 
-pred_kelp_int <- readRDS(file.path("analyses/7habitat/intermediate_data/kelp_predictors_interactions.Rds"))
-pred_rock_int <- readRDS(file.path("analyses/7habitat/intermediate_data/rock_predictors_interactions.Rds"))
-pred_surf_int <- readRDS(file.path("analyses/7habitat/intermediate_data/surf_predictors_interactions.Rds"))
+pred_kelp_int <- readRDS(file.path("analyses/7habitat/intermediate_data/kelp_predictors_interactions_add.Rds"))
+pred_rock_int <- readRDS(file.path("analyses/7habitat/intermediate_data/rock_predictors_interactions_add.Rds"))
+pred_surf_int <- readRDS(file.path("analyses/7habitat/intermediate_data/surf_predictors_interactions_add.Rds"))
 
 
 # Build Data  --------------------------------------------------------------------
@@ -45,7 +45,7 @@ sp_kelp <- data_kelp %>%
   summarize(total_biomass = sum(kg_per_m2),
             total_count = sum(count_per_m2),
             n_obs = n()) %>%
- # filter(n_obs > 20) %>% 
+  filter(n_obs > 30) %>% 
   pivot_wider(names_from = bioregion, values_from = c(total_biomass, total_count, n_obs)) %>% 
   filter(!is.na(n_obs_North)) %>% 
   filter(!is.na(n_obs_South))
@@ -53,8 +53,17 @@ sp_kelp <- data_kelp %>%
 data_kelp_subset <- data_kelp %>% 
   dplyr::select(year:affiliated_mpa, size_km2, age_at_survey,
                 species_code:target_status, assemblage_new, weight_kg:count_per_m2, log_kg_per_m2,
-                all_of(pred_kelp$predictor))
-
+                all_of(pred_kelp$predictor)) %>% 
+  mutate(hard_bottom_25 = hard_bottom_0_30m_25,
+         hard_bottom_50 = hard_bottom_0_30m_50,
+         hard_bottom_100 = hard_bottom_0_30m_100,
+         hard_bottom_250 = hard_bottom_0_30m_250 + hard_bottom_30_100m_250,
+         hard_bottom_500 = hard_bottom_0_30m_500 + hard_bottom_30_100m_500,
+         soft_bottom_25 = soft_bottom_0_30m_25,
+         soft_bottom_50 = soft_bottom_0_30m_50,
+         soft_bottom_100 = soft_bottom_0_30m_100,
+         soft_bottom_250 = soft_bottom_0_30m_250 + soft_bottom_30_100m_250,
+         soft_bottom_500 = soft_bottom_0_30m_500 + soft_bottom_30_100m_500)
 
 ## Rock ------------------------------------------
 sp_rock <- data_rock %>% 
@@ -145,7 +154,7 @@ walk(unique(sp_kelp$species_code), function(species) { # Top 8 statewide species
                                random_effects = c("year", "bioregion", "affiliated_mpa"), # With MPA RE
                                data = data_kelp_subset, # Scaled numeric predictors
                                regions = c("Central", "North", "South"), # All regions
-                               path = "analyses/7habitat/output/refine_pref_habitat/kelp/all_regions/interaction")
+                               path = "analyses/7habitat/output/kelp/all_regions/w_depth")
   cat("\nTop 5 models for species:", species, "\n")
   print(head(results_df, 5))
 })
@@ -157,55 +166,10 @@ walk(unique(sp_rock$species_code), function(species) { # Top 8 statewide species
                                random_effects = c("year", "bioregion", "affiliated_mpa"), # With MPA RE
                                data = data_rock_subset, # Scaled numeric predictors
                                regions = c("Central", "North", "South"), # All regions
-                               path = "analyses/7habitat/output/refine_pref_habitat/rock/all_regions/interaction")
+                               path = "analyses/7habitat/output/rock/all_regions/interaction")
   cat("\nTop 5 models for species:", species, "\n")
   print(head(results_df, 5))
 })
 
 
 
-
-# Extract and save the top models and core models ---------------------------------------------------
-extract_models <- function(species, path, predictor_df){
-  # Read data containing all the models and the comparison df
-  data <- readRDS(file.path(path, paste0(species, "_models.rds"))) 
-  
-  # Extract the base model and full models for each scale
-  core_model_names <- predictor_df %>%
-    filter(type %in% c("base", "full")) %>%
-    pull(model_id)
-  
-  # Extract the top models within deltaAICc of 4
-  top_model_names <- data$models_df %>%
-    filter(delta_AICc <= 4) %>%
-    pull(model_id)
-  
-  # Extract the model objects for the core + top models
-  models <- data$models[unique(c(top_model_names, core_model_names))]
-  
-  # Filter for reduced df with top, core, and full models
-  models_df <- data$models_df %>%
-    filter(model_id %in% c(top_model_names, core_model_names)) %>% 
-    mutate(type = case_when(model_id %in% top_model_names ~ "top",
-                            predictors == "site_type * age_at_survey" ~ "base",
-                            model_id %in% core_model_names ~ "core"))
-  
-  # Save the subset
-  saveRDS(list(models_df = models_df, models = models, data_sp = data$data_sp),
-          file = file.path(path, paste0(species, "_subset.rds")))
-}
-
-walk(unique(sp_kelp$species_code), 
-     ~ extract_models(.x, 
-                      path = "analyses/7habitat/output/refine_pref_habitat/kelp/all_regions/interaction", 
-                      predictor_df = pred_kelp_int))
-
-walk(unique(sp_rock$species_code), 
-     ~ extract_models(.x, 
-                      path = "analyses/7habitat/output/refine_pref_habitat/rock/all_regions/interaction", 
-                      predictor_df = pred_rock_int))
-
-
-extract_models("PCLA", 
-               path = "analyses/7habitat/output/refine_pref_habitat/kelp/all_regions/interaction", 
-               predictor_df = pred_kelp_int)
