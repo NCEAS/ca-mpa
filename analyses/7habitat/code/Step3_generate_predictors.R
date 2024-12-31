@@ -30,7 +30,8 @@ data_rock <- readRDS(file.path(ltm.dir, "combine_tables/ccfrp_combine_table.Rds"
   distinct()
 
 
-# Identify the predictors to retain for each ecosystem
+# Build ----
+# Identify the predictors to retain for each ecosystem 
 # -- Remove predictors that are zero across all of the sites 
 # -- Explore those that are limited in variability within a region (could skew results)
 
@@ -76,12 +77,13 @@ surf_predictors <- data_surf %>%
 #   filter(if_any(everything(), is.na)) %>% # Keep rows with any NA
 #   dplyr::select(site, where(~ any(is.na(.))))          # Keep columns with any
 
-
 # Save the predictor list for subsetting the dataset to only the variables of interest
 saveRDS(kelp_predictors, file.path("analyses/7habitat/intermediate_data", "kelp_predictors.Rds")) # last write 30 Dec 2024
 saveRDS(rock_predictors, file.path("analyses/7habitat/intermediate_data", "rock_predictors.Rds")) # last write 30 Dec 2024
 saveRDS(surf_predictors, file.path("analyses/7habitat/intermediate_data", "surf_predictors.Rds")) # last write 30 Dec 2024
 
+
+## Version 1. Generate Predictor Lists within Scale ----
 
 # Function to generate combinations including interactions for each scale
 generate_combinations <- function(predictors, interaction = "site_type") {
@@ -102,7 +104,6 @@ generate_combinations <- function(predictors, interaction = "site_type") {
                             nchar(predictors) == max(nchar(predictors)) ~ "full",
                             TRUE ~ NA))
 }
-
 
 # Generate combinations by scale
 run_combinations <- function(predictor_list){
@@ -130,9 +131,13 @@ saveRDS(kelp_list_intx, file.path("analyses/7habitat/intermediate_data", "kelp_p
 saveRDS(rock_list_intx, file.path("analyses/7habitat/intermediate_data", "rock_predictors_interactions.Rds")) # no size last write 30 Dec 2024
 saveRDS(surf_list_intx, file.path("analyses/7habitat/intermediate_data", "surf_predictors_interactions.Rds")) # no size last write 30 Dec 2024
 
-# Add depth combinations manually for each predictor combination
+# Add depth combinations for each predictor combination above
+# 1. ... no depth at all
+# 2. ... + depth_mean
+# 3. ... + depth_sd
+# 4. ... + depth_mean * site_type
+# 5. ... + depth_sd * site_type
 
-# Create depth column combinations
 predictors_df <- kelp_predictors
 list_intx <- kelp_list_intx
 
@@ -161,6 +166,8 @@ add_depth <- function(predictors_df, list_intx){
     mutate(model_id = if_else(is.na(depth_predictors),
                               model_id,
                               paste(model_id, depth_id, sep = "+"))) %>% 
+    mutate(type = case_when(type == "base" & !is.na(depth_predictors) ~ "base + depth",
+                            type == "full" & !is.na(depth_predictors) ~ "full + depth", T~type)) %>% 
     select(scale, predictors, type, model_id)
   
   
@@ -175,70 +182,74 @@ saveRDS(kelp_intx_depth, file.path("analyses/7habitat/intermediate_data", "kelp_
 saveRDS(rock_intx_depth, file.path("analyses/7habitat/intermediate_data", "rock_predictors_interactions_depth.Rds")) # no size last write 30 Dec 2024
 saveRDS(surf_intx_depth, file.path("analyses/7habitat/intermediate_data", "surf_predictors_interactions_depth.Rds")) # no size last write 30 Dec 2024
 
+# Version 2. Allow Kelp/Depth Independent of Scale ----
 
-# Generate predictors manually ? -----------------------------------------------------------
-# Old format before dropping the areas where variability was zero in a region:
-# rock_predictors <- data_rock %>% 
-#   dplyr::select(where(~ max(.) > 0), -site) %>%
-#   names() %>% tibble(predictor = .) %>%
-#   mutate(scale = sub("_", "", str_sub(predictor, -3, -1))) %>% 
-#   filter(!str_detect(predictor, "landward")) %>% 
-#   group_by(scale) %>%
-#   summarise(predictors = list(predictor), .groups = "drop") %>% 
-#   deframe()
-# 
-# 
-# habitat_25 <- c("hard_bottom_biotic_0_30m_25", 
-#                 "soft_bottom_biotic_0_30m_25",  
-#                 "hard_bottom_0_30m_25",         
-#                 "soft_bottom_0_30m_25") 
-# 
-# habitat_50  <- c("hard_bottom_biotic_0_30m_50",  # problem with 3 NAs for surf
-#                  "soft_bottom_biotic_0_30m_50",  # problem with 3 NAs for surf
-#                  "hard_bottom_0_30m_50",         # problem with 3 NAs for surf
-#                  "soft_bottom_0_30m_50")         # problem with 3 NAs for surf
-# 
-# habitat_100 <- c("hard_bottom_biotic_0_30m_100", 
-#                  "soft_bottom_biotic_0_30m_100", 
-#                  "hard_bottom_0_30m_100",   
-#                  "soft_bottom_0_30m_100")
-# 
-# habitat_250 <- c("hard_bottom_biotic_0_30m_250", 
-#                  "soft_bottom_biotic_0_30m_250",
-#                  "hard_bottom_0_30m_250",    
-#                  "soft_bottom_0_30m_250",
-#                  "hard_bottom_30_100m_250",    # rm for surf zone
-#                  "soft_bottom_30_100m_250"     # rm for surf zone
-# )   
-# habitat_500 <- c("hard_bottom_biotic_0_30m_500",
-#                  "soft_bottom_biotic_0_30m_500",
-#                  "hard_bottom_0_30m_500", 
-#                  "soft_bottom_0_30m_500",      
-#                  "hard_bottom_30_100m_500",    # rm for surf zone
-#                  "soft_bottom_30_100m_500"     # rm for surf zone
-# )
-# 
-# predictors_list <- NULL
-# get_predictors <- function(habitat_buffer_list) {
-#   predictors <- list()
-#   
-#   for (r in 1:length(habitat_buffer_list)) {
-#     habitat_combinations <- combn(habitat_buffer_list, r, simplify = FALSE)
-#     
-#     for (combo in habitat_combinations) {
-#       predictors <- append(predictors, list(c(combo, base_predictors)))}}
-#   
-#   return(predictors)
-# }
-# 
-# predictors_list <- c(
-#   get_predictors(habitat_25),
-#   get_predictors(habitat_50),
-#   get_predictors(habitat_100),
-#   get_predictors(habitat_250),
-#   get_predictors(habitat_500)
-# )
-# 
-# predictors_list <- unique(predictors_list)
+# Generate combinations independent of scale for the depth and kelp
+run_independent_combos <- function(predictors_df){
+  # Create depth combinations
+  depth_combos <- predictors_df %>%
+    filter(str_detect(predictor, "depth")) %>%
+    mutate(depth_intx = paste0(predictor, " * site_type")) %>%
+    pivot_longer(cols = c(predictor, depth_intx), names_to = NULL, values_to = "depth_predictor") %>%
+    bind_rows(tibble(scale = NA, depth_predictor = NA)) %>% 
+    summarize(depth_predictors = list(c(depth_predictor)), .groups = 'drop')
+  
+  # Create kelp combinations
+  kelp_combos <- predictors_df %>%
+    filter(str_detect(predictor, "kelp")) %>%
+    mutate(kelp_intx = paste0(predictor, " * site_type")) %>%
+    pivot_longer(cols = c(predictor, kelp_intx), names_to = NULL, values_to = "kelp_predictor") %>%
+    bind_rows(tibble(scale = NA, kelp_predictor = NA)) %>% 
+    summarize(kelp_predictors = list(c(kelp_predictor)), .groups = 'drop') 
+  
+  # Create hard/soft combinations
+  list_intx <- predictors_df %>% 
+    mutate(predictor = 
+             str_replace_all(predictor, "0_30m_", "") %>% 
+             str_replace_all("30_100m_", "")) %>% 
+    distinct() %>% 
+    filter(str_detect(predictor, "hard|soft")) %>% 
+    group_by(scale) %>%
+    summarise(predictors = list(generate_combinations(predictor))) %>%
+    unnest(predictors) %>% 
+    distinct(predictors, .keep_all = T) %>% 
+    mutate(scale = case_when(type == "base" ~ NA, T~scale))
+    
+  # Add the kelp and the depth to the hard/soft combos
+  list_intx_add <- list_intx %>%
+    bind_cols(kelp_combos) %>% 
+    unnest(kelp_predictors) %>% 
+    mutate(predictors = if_else(is.na(kelp_predictors),
+                                predictors, 
+                                paste(predictors, kelp_predictors, sep = " + "))) %>% 
+    bind_cols(depth_combos) %>% 
+    unnest(depth_predictors) %>% 
+    mutate(predictors = if_else(is.na(depth_predictors),
+                                predictors, 
+                                paste(predictors, depth_predictors, sep = " + "))) %>% 
+    mutate(model_id = # create shorthand
+             str_replace_all(predictors, "hard_bottom_(\\d+)", "H\\1") %>% 
+             str_replace_all("soft_bottom_(\\d+)", "S\\1") %>% 
+             str_replace_all("kelp_annual_(\\d+)", "K\\1") %>% 
+             str_replace_all("depth_mean_(\\d+)", "DM\\1") %>% 
+             str_replace_all("depth_sd_(\\d+)", "DSD\\1") %>% 
+             str_replace_all("site_type", "ST") %>%
+             str_replace_all("age_at_survey", "A") %>% 
+             str_replace_all("\\s+", "")) %>% 
+    mutate(type = case_when(type == "base" & !is.na(depth_predictors) ~ "base + depth",
+                            type == "full" & !is.na(depth_predictors) ~ "full + depth", T~type)) %>% 
+    select(scale, predictors, type, model_id)
+  
+  
+  return(list_intx_add)
+}
 
+
+kelp_list_add <- run_independent_combos(kelp_predictors)
+rock_list_add <- run_independent_combos(rock_predictors)
+surf_list_add <- run_independent_combos(surf_predictors)
+
+saveRDS(kelp_list_add, file.path("analyses/7habitat/intermediate_data", "kelp_predictors_interactions_add.Rds")) # no size last write 30 Dec 2024
+saveRDS(rock_list_add, file.path("analyses/7habitat/intermediate_data", "rock_predictors_interactions_add.Rds")) # no size last write 30 Dec 2024
+saveRDS(surf_list_add, file.path("analyses/7habitat/intermediate_data", "surf_predictors_interactions_add.Rds")) # no size last write 30 Dec 2024
 
