@@ -30,23 +30,24 @@ library(broom.mixed) # for extracting fit info
 
 clean_terms <- function(df) {df %>%
     mutate(term_revised = str_remove_all(term, "MPA") %>% 
-             str_remove_all("m_250|m_500|m_100|m_25|m_50") %>% 
              str_remove_all("_annual_250|_annual_500|_annual_100|_annual_50|_annual_25") %>% 
+             str_remove_all("_250|_500|_100|_25|_50") %>% 
              if_else(str_detect(., ":site_type"), str_replace(., "^(.*):site_type$", "site_type:\\1"), .) %>% 
              factor(levels = c("(Intercept)",
-                               "site_type:soft_bottom_30_100",
-                               "site_type:hard_bottom_30_100",
-                               "site_type:soft_bottom_0_30",
-                               "site_type:hard_bottom_0_30",  
+                               "site_type:depth_mean",
+                               "site_type:depth_sd",
+                               "site_type:soft_bottom",
+                               "site_type:hard_bottom",
                                "site_type:kelp",
                                "site_type:age_at_survey",
                                "site_type",
                                "age_at_survey",
-                               "soft_bottom_30_100",
-                               "hard_bottom_30_100",
-                               "soft_bottom_0_30",
-                               "hard_bottom_0_30",
+                               "depth_mean",
+                               "depth_sd",
+                               "soft_bottom",
+                               "hard_bottom",
                                "kelp")))}
+
 add_significance <- function(df) {df %>%
     mutate(significance = factor(case_when(p_value < 0.001 ~ "***",
                                            p_value < 0.01 ~ "**",
@@ -56,10 +57,12 @@ add_significance <- function(df) {df %>%
 }
 
 # Analyze Focal Models ---------------------------------------------------------
-
+species <- "ELAT"
+path <- "analyses/7habitat/output/kelp/all_regions/consolidated"
+  
 analyze_models <- function(species, path){
   #Read data containing all the focal models 
-  data <- readRDS(file.path(path, paste0(species, "_subset.rds"))) 
+  data <- readRDS(file.path(path, paste0(species, "_models.rds"))) 
   models_df <- data$models_df
   
   # Process top models: 
@@ -127,14 +130,20 @@ analyze_models <- function(species, path){
 
 # Run Analysis -----------------------------------------------------------------
 
-sp_list <- list.files(path = "analyses/7habitat/output/refine_pref_habitat/kelp/all_regions/interaction") %>% 
-  str_remove_all(., "_models.rds|_subset.rds|_results.rds") %>% unique()
+# sp_list <- list.files(path = "analyses/7habitat/output/kelp/all_regions/interaction") %>% 
+#   str_remove_all(., "_models.rds|_subset.rds|_results.rds") %>% unique()
+sp_list <- list.files(path = "analyses/7habitat/output/kelp/all_regions/consolidated") %>%
+  str_remove_all(., "_models.rds|_results.rds") %>% unique()
 
-walk(sp_list, ~analyze_models(.x, path = "analyses/7habitat/output/refine_pref_habitat/kelp/all_regions/interaction"))
+#walk(sp_list, ~analyze_models(.x, path = "analyses/7habitat/output/kelp/all_regions/interaction"))
+walk(sp_list, ~analyze_models(.x, path = "analyses/7habitat/output/kelp/all_regions/consolidated"))
 
-sp_list <- list.files(path = "analyses/7habitat/output/refine_pref_habitat/rock/all_regions/interaction") %>% 
-  str_remove_all(., "_models.rds|_subset.rds|_results.rds") %>% unique()
+analyze_models(species = "ELAT",
+               path = "analyses/7habitat/output/kelp/all_regions/consolidated")
 
-walk(sp_list, ~analyze_models(.x, path = "analyses/7habitat/output/refine_pref_habitat/rock/all_regions/interaction"))
-
-
+# sp_list <- list.files(path = "analyses/7habitat/output/refine_pref_habitat/rock/all_regions/interaction") %>% 
+#   str_remove_all(., "_models.rds|_subset.rds|_results.rds") %>% unique()
+# 
+# walk(sp_list, ~analyze_models(.x, path = "analyses/7habitat/output/refine_pref_habitat/rock/all_regions/interaction"))
+# 
+# 
