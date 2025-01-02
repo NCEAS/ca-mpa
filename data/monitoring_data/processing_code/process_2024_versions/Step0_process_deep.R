@@ -34,7 +34,7 @@ library(janitor)
 
 # Directories
 datadir <- "/home/shares/ca-mpa/data/sync-data/monitoring/monitoring_deep-reef/ROV_Dataset"
-outdir <-  "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data"
+outdir <-  "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_2024"
 
 # Read deep reef monitoring data ---------------------------------------------
 deep_reef_raw <- read_csv(file.path(datadir, "/ROVLengths2005-2019Merged-2021-02-02SLZ.csv"), 
@@ -330,7 +330,7 @@ nrow(data) - nrow(data2)
 
 ################################################################################
 #export
-
+saveRDS(data3, file.path(outdir, "deep_reef_processed.Rds"))
 write.csv(data3, row.names = F, file.path(outdir,"/deep_reef_processed.csv"))  
 
 # last write 16 Feb 2024
