@@ -57,9 +57,6 @@ add_significance <- function(df) {df %>%
 }
 
 # Analyze Focal Models ---------------------------------------------------------
-species <- "ELAT"
-path <- "analyses/7habitat/output/kelp/all_regions/consolidated"
-  
 analyze_models <- function(species, path){
   #Read data containing all the focal models 
   data <- readRDS(file.path(path, paste0(species, "_models.rds"))) 
@@ -130,16 +127,27 @@ analyze_models <- function(species, path){
 
 # Run Analysis -----------------------------------------------------------------
 
-# sp_list <- list.files(path = "analyses/7habitat/output/kelp/all_regions/interaction") %>% 
-#   str_remove_all(., "_models.rds|_subset.rds|_results.rds") %>% unique()
+# Kelp forest - 8 species
 sp_list <- list.files(path = "analyses/7habitat/output/kelp/all_regions/consolidated") %>%
   str_remove_all(., "_models.rds|_results.rds") %>% unique()
 
-#walk(sp_list, ~analyze_models(.x, path = "analyses/7habitat/output/kelp/all_regions/interaction"))
 walk(sp_list, ~analyze_models(.x, path = "analyses/7habitat/output/kelp/all_regions/consolidated"))
 
-analyze_models(species = "ELAT",
-               path = "analyses/7habitat/output/kelp/all_regions/consolidated")
+# Rocky reef - 4 species
+sp_list <- list.files(path = "analyses/7habitat/output/rock/all_regions/consolidated") %>%
+  str_remove_all(., "_models.rds|_results.rds") %>% unique()
+
+walk(sp_list, ~analyze_models(.x, path = "analyses/7habitat/output/rock/all_regions/consolidated"))
+
+# Rocky reef - 4 species, soft bottom removed
+sp_list <- list.files(path = "analyses/7habitat/output/rock/all_regions/no_soft") %>%
+  str_remove_all(., "_models.rds|_results.rds") %>% unique()
+
+walk(sp_list, ~analyze_models(.x, path = "analyses/7habitat/output/rock/all_regions/no_soft"))
+
+
+
+
 
 # sp_list <- list.files(path = "analyses/7habitat/output/refine_pref_habitat/rock/all_regions/interaction") %>% 
 #   str_remove_all(., "_models.rds|_subset.rds|_results.rds") %>% unique()

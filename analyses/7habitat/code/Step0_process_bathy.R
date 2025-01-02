@@ -49,6 +49,8 @@ depth_df <- do.call(rbind, lapply(regions, function(region_name) {
     # Reproject sites to raster
     sites_proj <- project(sites_buffer, crs(regional_raster))
     
+    # Aggregate raster to 30m resolution
+    
     # Extract values within buffer
     extracted <- terra::extract(regional_raster, sites_proj, df = TRUE) 
     depth_col <- names(extracted[2])
@@ -138,7 +140,22 @@ depth <- depth_all %>%
   arrange(ID, buffer, resolution, prop_na) %>%  # Arrange by ID, buffer, resolution (factor), and prop_na (ascending)
   group_by(ID, buffer) %>%                      # Group by ID and buffer
   slice(1) %>%                                  # Select the first row per group (best resolution and lowest prop_na)
-  ungroup()  %>%           
+  ungroup()  
+
+ggplot(data = depth) +
+  geom_density(aes(x = depth_sd, fill = resolution, color = resolution), alpha = 0.5) +
+  scale_x_continuous(limits = c(0, 10)) +
+  facet_wrap(~buffer)
+
+ggplot(data = depth) +
+  geom_density(aes(x = depth_mean, fill = resolution, color = resolution), alpha = 0.5) +
+  facet_wrap(~buffer)
+
+ggplot(data = depth) +
+  geom_point(aes(x = depth_mean, y = depth_sd, fill = resolution, color = resolution), alpha = 0.5) +
+  facet_wrap(~buffer)
+
+depth2 <- depth %>%           
   dplyr::select(ID, depth_mean, depth_sd, buffer, resolution) %>% 
   pivot_longer(cols = c(depth_mean, depth_sd), names_to = "habitat", values_to = "value_m") %>% 
   mutate(habitat_buffer = paste0(habitat, "_", buffer)) %>% 
