@@ -179,7 +179,13 @@ saveRDS(kelp, file.path(ltm.dir, "combine_tables/kelp_combine_table.Rds"))  # La
 saveRDS(surf, file.path(ltm.dir, "combine_tables/surf_combine_table.Rds"))  # Last write 22 Dec 2024
 saveRDS(rock, file.path(ltm.dir, "combine_tables/ccfrp_combine_table.Rds")) # Last write 22 Dec 2024
 
+<<<<<<< HEAD
 # Explore the sites that need to be reviewed for errors -----------------------------------------------------------
+=======
+saveRDS(kelp, file.path(ltm.dir, "combine_tables/kelp_combine_table.Rds"))  # Last write 16 Dec 2024
+saveRDS(surf, file.path(ltm.dir, "combine_tables/surf_combine_table.Rds"))  # Last write 16 Dec 2024
+saveRDS(rock, file.path(ltm.dir, "combine_tables/ccfrp_combine_table.Rds")) # Last write 16 Dec 2024
+>>>>>>> dedf08b (test rock with new model framework)
 
 <<<<<<< HEAD
 rock_sites_review <- rock_sites %>% 
