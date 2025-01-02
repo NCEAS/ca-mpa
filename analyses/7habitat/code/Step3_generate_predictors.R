@@ -236,8 +236,20 @@ run_independent_combos <- function(predictors_df){
              str_replace_all("site_type", "ST") %>%
              str_replace_all("age_at_survey", "A") %>% 
              str_replace_all("\\s+", "")) %>% 
-    mutate(type = case_when(type == "base" & !is.na(depth_predictors) ~ "base + depth",
-                            type == "full" & !is.na(depth_predictors) ~ "full + depth", T~type)) %>% 
+    mutate(type = case_when(type == "base" & !predictors == "site_type * age_at_survey" ~ NA,
+                            type == "full" & scale == "25"  & !kelp_predictors == "kelp_annual_25 * site_type" ~ NA,
+                            type == "full" & scale == "50"  & !kelp_predictors == "kelp_annual_50 * site_type" ~ NA,
+                            type == "full" & scale == "100" & !kelp_predictors == "kelp_annual_100 * site_type" ~ NA,
+                            type == "full" & scale == "250" & !kelp_predictors == "kelp_annual_250 * site_type" ~ NA,
+                            type == "full" & scale == "500" & !kelp_predictors == "kelp_annual_500 * site_type" ~ NA,
+                            type == "full" & scale == "25"  & !depth_predictors %in% c("depth_sd_25 * site_type", "depth_mean_25 * site_type") ~ NA,
+                            type == "full" & scale == "50"  & !depth_predictors %in% c("depth_sd_50 * site_type", "depth_mean_50 * site_type") ~ NA,
+                            type == "full" & scale == "100" & !depth_predictors %in% c("depth_sd_100 * site_type", "depth_mean_100 * site_type") ~ NA,
+                            type == "full" & scale == "250" & !depth_predictors %in% c("depth_sd_250 * site_type", "depth_mean_250 * site_type") ~ NA,
+                            type == "full" & scale == "500" & !depth_predictors %in% c("depth_sd_500 * site_type", "depth_mean_500 * site_type") ~ NA,
+                            type == "full" & is.na(kelp_predictors) ~ NA,
+                            type == "full" & is.na(depth_predictors) ~ NA,
+                            T~type)) %>% 
     select(scale, predictors, type, model_id)
   
   
@@ -249,7 +261,7 @@ kelp_list_add <- run_independent_combos(kelp_predictors)
 rock_list_add <- run_independent_combos(rock_predictors)
 surf_list_add <- run_independent_combos(surf_predictors)
 
-saveRDS(kelp_list_add, file.path("analyses/7habitat/intermediate_data", "kelp_predictors_interactions_add.Rds")) # no size last write 30 Dec 2024
-saveRDS(rock_list_add, file.path("analyses/7habitat/intermediate_data", "rock_predictors_interactions_add.Rds")) # no size last write 30 Dec 2024
-saveRDS(surf_list_add, file.path("analyses/7habitat/intermediate_data", "surf_predictors_interactions_add.Rds")) # no size last write 30 Dec 2024
+saveRDS(kelp_list_add, file.path("analyses/7habitat/intermediate_data", "kelp_predictors_interactions_add.Rds")) # no size last write 31 Dec 2024
+saveRDS(rock_list_add, file.path("analyses/7habitat/intermediate_data", "rock_predictors_interactions_add.Rds")) # no size last write 31 Dec 2024
+saveRDS(surf_list_add, file.path("analyses/7habitat/intermediate_data", "surf_predictors_interactions_add.Rds")) # no size last write 31 Dec 2024
 
