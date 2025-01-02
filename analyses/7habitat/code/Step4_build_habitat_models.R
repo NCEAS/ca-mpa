@@ -101,6 +101,48 @@ data_rock_subset <- data_rock %>%
          soft_bottom_250 = soft_bottom_0_30m_250 + soft_bottom_30_100m_250,
          soft_bottom_500 = soft_bottom_0_30m_500 + soft_bottom_30_100m_500)
 
+sp_kelp <- data_kelp %>%
+  filter(kg_per_m2 > 0) %>%
+  group_by(species_code, sciname, target_status, bioregion) %>%
+  summarize(total_biomass = sum(kg_per_m2),
+            total_count = sum(count_per_m2),
+            n_obs = n()) %>%
+  filter(n_obs > 40) %>% 
+  pivot_wider(names_from = bioregion, values_from = c(total_biomass, total_count, n_obs)) %>% 
+  filter(!is.na(n_obs_North)) %>% 
+  filter(!is.na(n_obs_South))
+
+data_kelp_subset <- data_kelp %>% 
+  dplyr::select(year:affiliated_mpa, size_km2, age_at_survey,
+                species_code:target_status, assemblage_new, weight_kg:count_per_m2, log_kg_per_m2,
+                all_of(pred_kelp$predictor)) %>% 
+  mutate(hard_bottom_25 = hard_bottom_0_30m_25,
+         hard_bottom_50 = hard_bottom_0_30m_50,
+         hard_bottom_100 = hard_bottom_0_30m_100,
+         hard_bottom_250 = hard_bottom_0_30m_250 + hard_bottom_30_100m_250,
+         hard_bottom_500 = hard_bottom_0_30m_500 + hard_bottom_30_100m_500,
+         soft_bottom_25 = soft_bottom_0_30m_25,
+         soft_bottom_50 = soft_bottom_0_30m_50,
+         soft_bottom_100 = soft_bottom_0_30m_100,
+         soft_bottom_250 = soft_bottom_0_30m_250 + soft_bottom_30_100m_250,
+         soft_bottom_500 = soft_bottom_0_30m_500 + soft_bottom_30_100m_500)
+
+## Rock ------------------------------------------
+# sp_rock <- data_rock %>% 
+#   filter(weight_kg > 0) %>% 
+#   group_by(species_code, sciname, target_status, bioregion) %>%
+#   summarize(total_biomass = sum(weight_kg),
+#             total_count = sum(count),
+#             n_obs = n()) %>% 
+#   pivot_wider(names_from = bioregion, values_from = c(total_biomass, total_count, n_obs)) %>% 
+#   filter(!is.na(n_obs_Central) & !is.na(n_obs_North) & !is.na(n_obs_South)) %>% 
+#   filter(n_obs_South > 100)
+# 
+# data_rock_subset <- data_rock %>% 
+#   dplyr::select(year:affiliated_mpa, size_km2, age_at_survey,
+#                 species_code:target_status, assemblage_new, weight_kg, count, log_bpue_kg,
+#                 all_of(pred_rock$predictor))
+
 
 ## Surf ------------------------------------------
 
@@ -188,7 +230,6 @@ refine_habitat <- function(species, response, predictors_df, random_effects, dat
 
 
 ## Define parameters and run ---------------------------------------------------
-
 # walk(unique(sp_kelp$species_code), function(species) { # Top 8 statewide species
 #   results_df <- refine_habitat(species = species,
 #                                response = "log_kg_per_m2",
@@ -213,7 +254,30 @@ walk(unique(sp_rock$species_code), function(species) { # Top 4 statewide species
   print(head(results_df, 5))
 })
 
+walk(unique(sp_kelp$species_code), function(species) { # Top 8 statewide species
+  results_df <- refine_habitat(species = species,
+                               response = "log_kg_per_m2",
+                               predictors_df = pred_kelp_int, # With interactions 
+                               random_effects = c("year", "bioregion", "affiliated_mpa"), # With MPA RE
+                               data = data_kelp_subset, # Scaled numeric predictors
+                               regions = c("Central", "North", "South"), # All regions
+                               path = "analyses/7habitat/output/kelp/all_regions/consolidated")
+  cat("\nTop 5 models for species:", species, "\n")
+  print(head(results_df, 10))
+})
 
+# walk(unique(sp_rock$species_code), function(species) { # Top 8 statewide species
+#   results_df <- refine_habitat(species = species,
+#                                response = "log_bpue_kg",
+#                                predictors_df = pred_rock_int, # With interactions 
+#                                random_effects = c("year", "bioregion", "affiliated_mpa"), # With MPA RE
+#                                data = data_rock_subset, # Scaled numeric predictors
+#                                regions = c("Central", "North", "South"), # All regions
+#                                path = "analyses/7habitat/output/rock/all_regions/interaction")
+#   cat("\nTop 5 models for species:", species, "\n")
+#   print(head(results_df, 5))
+# })
+# 
 # 
 # 
 # # Extract and save the top models and core models ---------------------------------------------------

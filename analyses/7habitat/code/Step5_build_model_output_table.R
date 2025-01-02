@@ -67,7 +67,7 @@ analyze_models <- function(species, path){
     mutate(scale = case_when(is.na(scale) & model_id == "ST*A" ~ NA,
                              is.na(scale) ~ as.factor(str_extract(predictors, "\\d+")),
                              T~scale)) %>% distinct()
-  
+
   # Process top models: 
   if (sum(models_df$type == "top") > 1) {
     model_avg <- model.avg(data$models[models_df$type == "top"], fit = TRUE)
@@ -132,7 +132,6 @@ analyze_models <- function(species, path){
 
 
 # Run Analysis -----------------------------------------------------------------
-
 # Kelp forest - 8 species
 sp_list <- list.files(path = "analyses/7habitat/output/kelp/all_regions/consolidated") %>%
   str_remove_all(., "_models.rds|_results.rds") %>% unique()
@@ -152,12 +151,3 @@ sp_list <- list.files(path = "analyses/7habitat/output/rock/all_regions/no_soft"
 walk(sp_list, ~analyze_models(.x, path = "analyses/7habitat/output/rock/all_regions/no_soft"))
 
 
-analyze_models("BLU", path = "analyses/7habitat/output/rock/all_regions/no_soft")
-data <- readRDS("analyses/7habitat/output/rock/all_regions/no_soft/BLU_results.rds")
-
-# sp_list <- list.files(path = "analyses/7habitat/output/refine_pref_habitat/rock/all_regions/interaction") %>% 
-#   str_remove_all(., "_models.rds|_subset.rds|_results.rds") %>% unique()
-# 
-# walk(sp_list, ~analyze_models(.x, path = "analyses/7habitat/output/refine_pref_habitat/rock/all_regions/interaction"))
-# 
-# 
