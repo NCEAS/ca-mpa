@@ -40,4 +40,5 @@ analyses/7habitat/figures/sites_1000m_plots/
 analyses/7habitat/archive/
 analyses/7habitat/output/
 analyses/7habitat/figures/archive/
-
+# Incomplete stuff (rm when publishing)
+analyses/7habitat/figures/ 
