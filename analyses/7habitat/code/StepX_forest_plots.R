@@ -21,7 +21,9 @@ species <- "SMEL"
 species <- "SMYS"
 species <- "SCAR"
 
-path <- "analyses/7habitat/output/refine_pref_habitat/kelp/all_regions/interaction"
+path <- "analyses/7habitat/output/kelp/all_regions/interaction"
+path <- "analyses/7habitat/output/kelp/all_regions/w_depth"
+
 
 species <- "BLU"
 species <- "CPR"
@@ -33,8 +35,29 @@ path <- "analyses/7habitat/output/refine_pref_habitat/rock/all_regions/interacti
 # Read the data
 data <- readRDS(file.path(path, paste0(species, "_results.rds")))
 
+data2 <- data %>% 
+  mutate(term_revised = str_remove_all(term, "MPA") %>% 
+           str_remove_all("_annual_250|_annual_500|_annual_100|_annual_50|_annual_25") %>% 
+           str_remove_all("_250|_500|_100|_25|_50") %>% 
+           if_else(str_detect(., ":site_type"), str_replace(., "^(.*):site_type$", "site_type:\\1"), .) %>% 
+           factor(levels = c("(Intercept)",
+                             "site_type:depth_mean",
+                             "site_type:depth_sd",
+                             "site_type:soft_bottom",
+                             "site_type:hard_bottom",
+                             "site_type:kelp",
+                             "site_type:age_at_survey",
+                             "site_type",
+                             "age_at_survey",
+                             "depth_mean",
+                             "depth_sd",
+                             "soft_bottom",
+                             "hard_bottom",
+                             "kelp")))
 
-ggplot(data %>% filter(!term == "(Intercept)"), 
+data_sd <- data2 %>% filter(str_detect(model_id, "DM") | !key == "Full Model")
+
+ggplot(data_sd %>% filter(!term == "(Intercept)"), 
        aes(x = estimate, y = term_revised, color = scale, pch = significance)) +
   geom_vline(aes(xintercept = 0), linetype = "dashed") +
   geom_errorbarh(data = . %>% filter(is.na(importance) | importance > 0.5),
