@@ -39,10 +39,12 @@ pred_rock_int <- readRDS(file.path("analyses/7habitat/intermediate_data/rock_pre
 
 pred_rock_no_soft <- pred_rock_int %>% 
   filter(!str_detect(predictors, "soft") | type == "full") %>% 
-  mutate(predictors = case_when(
-    type == "full" ~ str_replace_all(predictors, "\\+ soft_bottom_500 \\* site_type ", ""), # Escape `+` and ensure spaces match
-    TRUE ~ predictors
-  ))
+  mutate(predictors = case_when(type == "full" ~ str_replace_all(predictors, "\\+\\s*soft_bottom_\\d+\\s*\\*\\s*site_type", ""),  # Replace all `soft_bottom_<scale>`
+                                TRUE ~ predictors)) %>% 
+  mutate(model_id = case_when(type == "full" ~ str_replace_all(model_id, "\\+\\s*S\\d+\\s*\\*\\s*ST", ""),  # Replace all `soft_bottom_<scale>`
+                              TRUE ~ model_id)) %>% 
+  group_by(model_id, predictors) %>% 
+  filter(!(n() > 1 & is.na(type)))
 
 # Build Data  --------------------------------------------------------------------
 

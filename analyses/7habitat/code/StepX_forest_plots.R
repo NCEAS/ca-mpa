@@ -13,25 +13,6 @@ fig.dir <- "analyses/7habitat/figures/forest"
 
 # Begin ------------------------------------------------------------------------
 
-# Set example species and path
-species <- "ELAT"
-species <- "OELO"
-species <- "OPIC"
-species <- "OYT"
-species <- "SCAR"
-species <- "SMIN"
-species <- "SMEL"
-species <- "SMYS"
-
-path <- "analyses/7habitat/output/kelp/all_regions/consolidated"
-
-
-# species <- "BLU"
-# species <- "CPR"
-# species <- "GPR"
-# species <- "VER"
-# path <- "analyses/7habitat/output/refine_pref_habitat/rock/all_regions/interaction"
-
 # Set my theme
 my_theme <- theme(
   plot.title = element_text(size = 10, face = "bold"),
@@ -46,11 +27,7 @@ my_theme <- theme(
   plot.background = element_rect(fill = "white", color = NA)
 )
 
-# Define species list
-sp_list <- list.files(path = "analyses/7habitat/output/kelp/all_regions/consolidated") %>%
-  str_remove_all(., "_models.rds|_results.rds") %>% unique()
-
-lapply(sp_list, function(species){
+make_forest_plots <- function(species, path){
   # Read the data
   data <- readRDS(file.path(path, paste0(species, "_results.rds"))) %>% 
     mutate(scale = case_when(is.na(scale) & model_id == "ST*A" ~ NA,
@@ -113,12 +90,38 @@ lapply(sp_list, function(species){
   
   ggsave(filename = paste0(species, "_forest_depth_mean.png"),
          path = fig.dir, width = 8, height = 5, dpi = 300, units = "in")
-})
+}
+
+# Create and save figures -------------------------------------------------------------
+
+## Kelp ----
+
+kelp_list <- list.files(path = "analyses/7habitat/output/kelp/all_regions/consolidated") %>%
+  str_remove_all(., "_models.rds|_results.rds") %>% unique()
+
+map(kelp_list, make_forest_plots, path = "analyses/7habitat/output/kelp/all_regions/consolidated")
+
+## Rocky reef ----
+rock_list <- list.files(path = "analyses/7habitat/output/rock/all_regions/no_soft") %>%
+  str_remove_all(., "_models.rds|_results.rds") %>% unique()
+
+map(rock_list, make_forest_plots, path = "analyses/7habitat/output/rock/all_regions/no_soft")
 
 
+# Troubleshoot
+make_forest_plots("BLU", path =  "analyses/7habitat/output/rock/all_regions/no_soft")
+
+species <- "BLU"
+path = "analyses/7habitat/output/rock/all_regions/consolidated"
 
 
-
+data <- readRDS(file.path(path, paste0(species, "_results.rds"))) %>% 
+  mutate(scale = case_when(is.na(scale) & model_id == "ST*A" ~ NA,
+                           is.na(scale) ~ as.factor(str_extract(term, "\\d+")),
+                           T~scale)) %>% 
+  mutate(scale = factor(scale, levels = c(25, 50, 100, 250, 500, NA))) %>% 
+  mutate(importance_type = case_when((is.na(importance) | importance > 0.5) ~ "Greater than 0.5",
+                                     (!is.na(importance) & importance < 0.5) ~ "Less than 0.5"))
 
 
 
