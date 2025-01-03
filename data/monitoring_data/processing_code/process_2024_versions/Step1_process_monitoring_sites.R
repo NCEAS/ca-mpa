@@ -53,38 +53,14 @@ surf <- surf_sites %>%
 
 
 ## Deep Reef -------------
-# SKIP IN CASE WE CAN GET LAT LON FROM THE START
-# deep_sites <- read.csv(file.path(data.dir, "monitoring_deep-reef/ROV_Dataset/MidDepth_ROV_Site_Table.csv")) %>% clean_names() %>% 
-#   # There are some duplicates - looks like 256 distinct sites
-#   distinct(mpa_group, type, designation, mpa_name, ca_mpa_name_short, lat, long)
-# 
-# deep_raw <- read.csv(file.path(data.dir, "monitoring_deep-reef/ROV_Dataset/ROVLengths2005-2019Merged-2021-02-02SLZ.csv"), 
-#                           na = c("N/A", "", " ")) %>% clean_names() 
-# 
-# deep_processed <- read_csv(file.path("/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/biomass_processed/deep_reef_fish_biomass_updated.csv")) 
-# 
-# deep_lengths <- readxl::read_excel(file.path(data.dir, "monitoring_deep-reef/ROV_Dataset/MidDepth_ROV_Fish_Size.xlsx")) %>% clean_names() %>% 
-#   distinct(region_mpa)
-# 
-# deep_count <-read_csv(file.path(data_path, "monitoring_deep-reef/ROV_Dataset/MidDepth_ROV_Fish_Count.csv")) %>% clean_names()
-# 
-# test <- deep_lengths %>% 
-#   distinct(region, mpa_group, type, designation, lat, lon)
-# 
-# 
-# 
-# deep_orig <- read_csv(file.path("/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/biomass_processed/deep_reef_fish_biomass_updated.csv")) %>% 
-#   distinct(mpa_group, type, designation, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation)
-# 
-# deep <- deep_reef_raw %>% 
-#   left_join(., deep_sites)
-# 
-# 
-# 
-# deep <- deep_sites %>% 
-#   mutate(ca_mpa_name_short = if_else(designation == "Reference", paste(mpa_group, type), ca_mpa_name_short)) %>% 
-#   mutate(affiliated_mpa = str_to_lower(ca_mpa_name_short)) %>% 
-#   # FYI - some of the names now don't have SMR/SMCA because it is technically a reference for both.
+deep_sites <- readRDS(file.path(data.dir,"processed_data/update_2024/deep_reef_transect_metadata.Rds"))
+
+deep <- deep_sites %>% 
+  mutate(habitat = "deep") %>% 
+  dplyr::select(habitat, site = transect_id_desig, site_type = designation, lat_dd = avg_lat, lon_dd = avg_lon) %>% 
+  distinct() 
+  
+
 #   dplyr::select(affiliated_mpa, site_type = designation, designation = type, lat_dd = lat, lon_dd = long) %>% 
 #   mutate(designation = if_else(str_detect(designation, "/"), "SMR", designation)) %>% 
 #   mutate(designation = if_else(grepl("^\\s*$", designation), "SMR", designation)) %>% 
@@ -98,15 +74,10 @@ surf <- surf_sites %>%
 #          mpa_class=mpa_designation)%>%
 #   select(group, affiliated_mpa=mpa_name, mpa_class,
 #                         mpa_designation, site=marine_site_name, lat=latitude, lon=longitude)
-#                 
 # rocky_process$mpa_designation <- recode_factor(rocky_process$mpa_designation, "NONE"="ref")
-# 
 # rocky_process$mpa_designation <- tolower(rocky_process$mpa_designation)
-# 
 # rocky_process$affiliated_mpa <- tolower(rocky_process$affiliated_mpa)
-# 
 # rocky_process$mpa_class <- tolower(rocky_process$mpa_class)
-# 
 # rocky_data <- rocky_process
 
 
@@ -116,6 +87,7 @@ site_locations <- bind_rows(ccfrp, kelp, surf)
 # Export
 saveRDS(site_locations, file.path("/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_2024", "site_locations.Rds"))
 
-
+# Export deep (process separately)
+saveRDS(deep, file.path("/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_2024", "site_locations_deep.Rds"))
 
 

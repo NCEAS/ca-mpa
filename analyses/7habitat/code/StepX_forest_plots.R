@@ -85,6 +85,7 @@ make_forest_plots <- function(species, path){
          y = NULL, 
          color = "Scale", 
          pch = "Significance", 
+         linetype = "Importance",
          title = paste(species)) +
     my_theme
   

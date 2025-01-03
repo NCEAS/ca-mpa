@@ -57,7 +57,8 @@ add_significance <- function(df) {df %>%
 }
 
 # Analyze Focal Models ---------------------------------------------------------
-species <- "BLU"
+species <- "ELAT"
+path = "analyses/7habitat/output/kelp/all_regions/consolidated"
 path = "analyses/7habitat/output/rock/all_regions/no_soft"
 
 analyze_models <- function(species, path){
@@ -66,7 +67,9 @@ analyze_models <- function(species, path){
   models_df <- data$models_df %>% 
     mutate(scale = case_when(is.na(scale) & model_id == "ST*A" ~ NA,
                              is.na(scale) ~ as.factor(str_extract(predictors, "\\d+")),
-                             T~scale)) %>% distinct()
+                             T~scale)) %>% distinct() %>% 
+    mutate(depth_type = case_when(str_detect(model_id, "DSD") ~ "depth_sd",
+                                  str_detect(model_id, "DM") ~ "depth_mean"))
 
   # Process top models: 
   if (sum(models_df$type == "top") > 1) {
