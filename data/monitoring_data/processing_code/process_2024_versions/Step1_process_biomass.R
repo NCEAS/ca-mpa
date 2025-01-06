@@ -33,6 +33,8 @@
 
 # Updated by Cori Lopazanski July 2024
 # Added the updated Kelp Forest Monitoring Data (from 2020-2024)
+# Added the updated CCFRP Monitoring Data (from 2020-2024)
+# No update to surf or deep reef.
 
 # Setup --------------------------------------------------------------------------------
 rm(list=ls())
@@ -48,9 +50,9 @@ datadir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data"
 
 # Read monitoring data
 surf  <- read_csv(file.path(datadir, "update_2024/surf_zone_processed.csv")) %>% clean_names()
-#deep  <- read_csv(file.path(datadir, "deep_reef_processed.csv")) 
-ccfrp <- read_csv(file.path(datadir, "update_2024/ccfrp_processed.2024.csv")) # updated CL nov 2024
-kelp  <- read_csv(file.path(datadir, "update_2024/kelp_processed.6.csv"))  # updated CL july 2024
+deep  <- read_csv(file.path(datadir, "update_2024/deep_reef_processed.csv")) 
+ccfrp <- read_csv(file.path(datadir, "update_2024/ccfrp_processed.2024.csv")) # updated CL 
+kelp  <- read_csv(file.path(datadir, "update_2024/kelp_processed.6.csv"))  # updated CL
 
 # Read length-weight parameters
 params <- read_csv(file.path(traitsdir, "lw_parameters_fish.csv"))
@@ -104,17 +106,62 @@ bio_fun <- function(params, data) {
 
 ccfrp_biomass <- bio_fun(params, ccfrp)
 
-#deep_biomass <- bio_fun(params, deep)
+deep_biomass <- bio_fun(params, deep)
 
 kelp_biomass <- bio_fun(params, kelp)
 
 surf_biomass <- bio_fun(params, surf)
 
+
+# Drop pelagics species and large 'biomass buster' sharks ----------------------
+
+#see selection criteria here: https://docs.google.com/spreadsheets/d/1SUalEkWFKEgB46bqCcSNLqCzBHGj6FHNfs1iFOiMLww/edit?gid=1028839899#gid=1028839899
+
+ccfrp_biomass1 <- ccfrp_biomass %>%
+  filter(!(sciname %in% c("Alopias vulpinus", 
+                          "Aulorhynchus flavidus", 
+                          "Carcharhinus obscurus", 
+                          "Engraulis mordax", 
+                          "Galeorhinus galeus", 
+                          "Oncorhynchus tshawytscha", 
+                          "Sardinops sagax")))
+
+
+deep_biomass1 <- deep_biomass %>%
+  filter(!(sciname %in% c("Entosphenus tridentatus", 
+                          "Hexanchus griseus", 
+                          "Mola mola",
+                          "Apristurus brunneus")))
+
+
+kelp_biomass1 <- kelp_biomass %>%
+  filter(!(sciname %in% c("Alopias vulpinus", 
+                          "Carcharhinus obscurus", 
+                          "Decapterus macarellus", 
+                          "Engraulis mordax", 
+                          "Galeorhinus galeus", 
+                          "Hexanchus griseus", 
+                          "Mola mola", 
+                          "Notorynchus cepedianus", 
+                          "Prionace glauca", 
+                          "Sarda chiliensis", 
+                          "Sardinops sagax", 
+                          "Scomber japonicus", 
+                          "Thaleichthys pacificus")))
+
+surf_biomass1 <- surf_biomass 
+
+#surf_biomass1 <- surf_biomass %>%
+#                 filter(!(sciname %in% c("Engraulis mordax", "Sardinops sagax")))
+#sardines and anchovies are characteristic of the Central Coast,
+#so we will retain them here. see: https://caseagrant.ucsd.edu/sites/default/files/importedFiles/FinalMPAReportBeachesSurfZonesJan2022.pdf
+
+
 # Write to csv ----------------------------------------------------------------
-write.csv(surf_biomass, row.names = F, file.path(datadir,"/update_2024/surf_zone_fish_biomass_updated.csv"))  #last write 5 Dec 2024
-write.csv(kelp_biomass, row.names = F, file.path(datadir,"/update_2024/kelpforest_fish_biomass_updated.6.csv")) #last write 5 Dec 2024
-write.csv(ccfrp_biomass, row.names = F, file.path(datadir,"/update_2024/ccfrp_fish_biomass_updated.2024.csv")) #last write 5 Dec 2024
-#write.csv(deep_biomass, row.names = F, file.path(datadir,"/biomass_processed/deep_reef_fish_biomass_updated.csv")) #last write 26 July 2024
+write.csv(surf_biomass1, row.names = F,  file.path(datadir,"/update_2024/surf_zone_fish_biomass_updated.csv"))  #last write 6 Jan 2025
+write.csv(kelp_biomass1, row.names = F,  file.path(datadir,"/update_2024/kelpforest_fish_biomass_updated.6.csv")) #last write  6 Jan 2025
+write.csv(ccfrp_biomass1, row.names = F, file.path(datadir,"/update_2024/ccfrp_fish_biomass_updated.2024.csv")) #last write  6 Jan 2025
+write.csv(deep_biomass1, row.names = F,  file.path(datadir,"/update_2024/deep_reef_fish_biomass_updated.csv")) #last write  6 Jan 2025
 
 # IN PROGRESS: Explore everything that's going wrong -----------------------------------
 

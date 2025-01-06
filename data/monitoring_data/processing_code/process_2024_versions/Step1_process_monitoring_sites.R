@@ -6,8 +6,8 @@
 
 rm(list=ls())
 
-require(dplyr)
-require(tidyr)
+library(tidyverse)
+library(janitor)
 
 data.dir <- "/home/shares/ca-mpa/data/sync-data/monitoring"
 
@@ -56,16 +56,10 @@ surf <- surf_sites %>%
 deep_sites <- readRDS(file.path(data.dir,"processed_data/update_2024/deep_reef_transect_metadata.Rds"))
 
 deep <- deep_sites %>% 
-  mutate(habitat = "deep") %>% 
+  mutate(habitat = "Deep reef") %>% 
   dplyr::select(habitat, site = transect_id_desig, site_type = designation, lat_dd = avg_lat, lon_dd = avg_lon) %>% 
   distinct() 
   
-
-#   dplyr::select(affiliated_mpa, site_type = designation, designation = type, lat_dd = lat, lon_dd = long) %>% 
-#   mutate(designation = if_else(str_detect(designation, "/"), "SMR", designation)) %>% 
-#   mutate(designation = if_else(grepl("^\\s*$", designation), "SMR", designation)) %>% 
-#   mutate(habitat = "Deep reef")
-#   
 
 ## Rocky process ------------------------
 # rocky_sites <- read.csv(file.path(data_path,  "/monitoring_rocky-intertidal/CA_MPA_sites_20210907b.csv"))
@@ -82,12 +76,7 @@ deep <- deep_sites %>%
 
 
 # Join --------------------------------------------------------------------
-site_locations <- bind_rows(ccfrp, kelp, surf)
+site_locations <- bind_rows(ccfrp, kelp, surf, deep)
 
 # Export
 saveRDS(site_locations, file.path("/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_2024", "site_locations.Rds"))
-
-# Export deep (process separately)
-saveRDS(deep, file.path("/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_2024", "site_locations_deep.Rds"))
-
-

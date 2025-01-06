@@ -41,7 +41,7 @@ coast <- sf::st_read(file.path("/home/shares/ca-mpa/data/sync-data/gis_data/raw"
 inside_indices <- st_within(sites, state_waters_poly)  
 inside_logical <- lengths(inside_indices) > 0  
 sites_outside <- sites[!inside_logical, ] %>% 
-  filter(!habitat %in% c("Deep reef", "Rocky reef", "Kelp forest")) # these are outside statewaters but still in the water
+  filter(!habitat %in% c("Deep reef", "Rocky reef", "Kelp forest")) # these are outside state waters but still in the actual water
 
 # Create a list to store plots and a dataframe to store corrected points
 plots <- list()
@@ -96,7 +96,7 @@ for (my_site in unique(sites_outside$site)) {
 # Combine all corrected points into a single dataframe
 corrected_points_df <- bind_rows(corrected_points_list)
 
-#wrap_plots(plots, ncol = 5)
+wrap_plots(plots, ncol = 5)
 
 # Merge corrected points back into the original sites dataframe
 sites_updated <- sites %>%

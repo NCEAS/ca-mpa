@@ -92,7 +92,7 @@ kelp_sites <- kelp_sites_raw %>%
   left_join(defacto_smr_kelp) %>% # Add defacto designation
   mutate(mpa_defacto_designation = if_else(mpa_state_designation == "ref", "ref", mpa_defacto_class)) 
 
-test <- kelp_forest_raw %>% # there are three sites that won't match - are in the data but not the site table?
+test <- kelp_forest_raw %>% # there are three sites that won't match (9 obs) - are in the data but not the site table?
   distinct(site, year) %>% 
   filter(!(site %in% kelp_sites$site))
 
@@ -130,7 +130,7 @@ data <- kelp_forest_raw %>%
   rename(level = taxon_group) 
 
 
-# Test taxa match -- four are OK for now (NO ORG, UNID, BAITBALL, CLUP)
+# Test taxa match 
 taxa_match <- data %>% 
   dplyr::select(species_code, sciname:target_status) %>% distinct() %>% 
   filter(is.na(sciname)) 
@@ -167,10 +167,18 @@ recent <- data %>%
   filter(is.na(sciname)) %>% 
   filter(!species_code == "NO_ORG")
 
+# Add the name for help later
+kelp_names <- read.csv(file.path(datadir, "MLPA_kelpforest_taxon_table.6.csv")) %>% 
+  clean_names() %>% 
+  dplyr::select(species_code = classcode, name = species_definition) %>% 
+  distinct()
+  
+data3 <- data2 %>% 
+  left_join(kelp_names)
 
 # Write processed data
-write.csv(data2, file.path(outdir, "kelp_processed.6.csv"), row.names = F)
-# Last write Aug 16 2024
+write.csv(data3, file.path(outdir, "kelp_processed.6.csv"), row.names = F)
+# Last write Jan 6 2025
 
 
 

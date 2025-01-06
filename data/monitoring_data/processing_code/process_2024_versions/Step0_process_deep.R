@@ -38,7 +38,10 @@ outdir <-  "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_
 
 # Read deep reef monitoring data ---------------------------------------------
 deep_reef_raw <- read_csv(file.path(datadir, "/ROVLengths2005-2019Merged-2021-02-02SLZ.csv"), 
-                          na = c("N/A", "", " ")) %>% clean_names() 
+                          col_select = c(1:19),
+                          col_types = c("dcccccccccddccccddc"),
+                          na = c("N/A", "", " ")) %>% clean_names() %>% 
+  mutate(across(where(is.character), str_trim))
 
 # This is their site table from DataOne but it is incomplete given sites in the data
 #deep_reef_sites <- readxl::read_excel(file.path(datadir, "/MidDepth_ROV_Site_Table.xlsx")) %>% clean_names()
@@ -231,7 +234,6 @@ drop_levels <- duplicates %>%
   filter(mpa_defacto_class == "smca") %>%
   dplyr::select(-multiple) # 26 rows to drop in this df
 
-
 # drop duplicates
 data2 <- data %>%
   mutate(transect_id_class = paste0(year,"_",line_id,"_",mpa_defacto_class),
@@ -296,12 +298,66 @@ nrow(data) - nrow(data2)
 nrow(data2) - nrow(data3)
 nrow(data) - nrow(data3)
 
+
+# Attempt to use kelp forest species codes for deep ID
+# Requires doing the kelp forest processing first but here we are
+kelp_codes <- read_csv(file.path("/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_2024/kelpforest_fish_biomass_updated.6.csv")) %>%  # WARNING: THE NA REMOVALS HERE DROPS LOTS OF TRANSECTS (~871)
+  filter(!is.na(affiliated_mpa)) %>% # drops sites with no mpa (yellowbanks, trinidad, etc - see kf processing for details)
+  filter(!is.na(weight_kg)) %>%  # drops fishes unknown or without lengths/conversion params
+  mutate(target_status = if_else(species_code == "NO_ORG", "NO_ORG", target_status)) %>% 
+  dplyr::select(sciname, species_code, name) %>% 
+  distinct() 
+
+deep_codes <- data3 %>% 
+  dplyr::select(sciname, name = scientific_name, target_status) %>% 
+  distinct() %>% 
+  filter(!target_status == "NO_ORG") %>% 
+  # Start by filling in the ones that match both the sciname and the habitat-specific name
+  left_join(kelp_codes)
+
+deep_codes2 <- deep_codes %>% 
+  filter(is.na(species_code)) %>% 
+  filter(!sciname == "Sebastes spp") %>% 
+  dplyr::select(sciname:target_status) %>% 
+  left_join(kelp_codes, by = c("sciname"), suffix = c("", "_kelp")) %>% 
+  dplyr::select(-name_kelp)
+
+deep_codes3 <- deep_codes %>% 
+  filter(!is.na(species_code) | sciname == "Sebastes spp") %>% 
+  bind_rows(deep_codes2) 
+
+deep_codes4 <- deep_codes3 %>% 
+  mutate(species_code = case_when(sciname %in% c("Sebastes serranoides", "Sebastes flavidus") ~ "OYT",
+                                  name == c("Sebastes serranoides or flavidus")  ~ "OYT",
+                                  name %in% c("Unidentified Sebastes sp.", "Schooling (10-15 cm Sebastes sp.)") ~ "SEBSPP",
+                                  name == "Young of year (<10 cm Sebastes sp.)" ~ "RFYOY",
+                                  name == "Sebastes mystinus or diaconus" ~ "SMYS", 
+                                  name == "Sebastes melanops or mystinus or diaconus" ~ "SMELSMYS",
+                                  name == "Sebastes pinniger or miniatus" ~ "SPINSMIN",
+                                  T~species_code)) %>% 
+  mutate(species_code = case_when(is.na(species_code) & str_detect(sciname, "spp") ~ toupper(paste0(str_sub(sciname, 1, 3), "SPP")),
+                                   T~species_code)) %>%
+  mutate(species_code = if_else(
+    is.na(species_code),
+    toupper(paste0(
+      substr(sciname, 1, 1),                      # First letter of sciname
+      substr(gsub("^\\S+\\s*(\\S+).*", "\\1", sciname), 1, 3)  # First 3 chars after the first space
+    )),
+    species_code
+  )) %>% 
+  dplyr::select(scientific_name = name, species_code_new = species_code)
+
+data4 <- data3 %>% 
+  left_join(deep_codes4) %>% 
+  mutate(species_code = coalesce(species_code, species_code_new)) %>% 
+  dplyr::select(-species_code_new)
+
+
 ################################################################################
 #export
-write.csv(data3, row.names = F, file.path(outdir,"/deep_reef_processed.csv"))  
+write.csv(data4, row.names = F, file.path(outdir,"/deep_reef_processed.csv"))  
 
-# last write 16 Feb 2024
-
+# last write 6 Jan 2024
 
 
 
