@@ -246,7 +246,7 @@ drop_levels2 <- dup_transects %>%
 # Remove these rows from the `data2` df
 data3 <- data2 %>%
   mutate(transect_id_desig = paste(year, line_id, mpa_defacto_designation, sep = "_")) %>% 
-  anti_join(rows_to_drop, by = c("transect_id_desig", "affiliated_mpa"))
+  anti_join(drop_levels2, by = c("transect_id_desig", "affiliated_mpa"))
 
 #recheck duplicates
 duplicates3 <- data3 %>% 
@@ -329,7 +329,7 @@ deep_latlon <- deep_sites %>%
 
 # Get the individual transects from the fish data
 deep_transects <- data4 %>% 
-  distinct(year, affiliated_mpa, line_id, dive, line, transect_id, transect_id_desig) %>% 
+  distinct(year, affiliated_mpa, mpa_defacto_designation, line_id, dive, line, transect_id, transect_id_desig) %>% 
   # Add the sites
   left_join(deep_latlon) %>% 
   filter(!is.na(avg_lat)) # 1533 that have data for lat/lon
@@ -350,7 +350,9 @@ deep_transects <- data4 %>%
 
 data5 <- data4 %>% 
   left_join(deep_transects) %>% 
-  dplyr::select(year, bioregion, affiliated_mpa:sl_cm, sciname:avg_lon)
+  dplyr::select(year, bioregion, affiliated_mpa:sl_cm, sciname:avg_lon) %>% 
+  # Drop transects without location data (will be removed from data below)
+  filter(!is.na(avg_lat))
 
 
 ################################################################################

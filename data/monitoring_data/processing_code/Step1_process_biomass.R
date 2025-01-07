@@ -119,7 +119,8 @@ ccfrp_biomass1 <- ccfrp_biomass %>%
                           "Engraulis mordax", 
                           "Galeorhinus galeus", 
                           "Oncorhynchus tshawytscha", 
-                          "Sardinops sagax")))
+                          "Sardinops sagax"))) %>% 
+  filter(!species_code == "BID") # drop bc only 3 fish, unclear if blue or something else
 
 
 deep_biomass1 <- deep_biomass %>%

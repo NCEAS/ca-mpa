@@ -96,7 +96,7 @@ for (my_site in unique(sites_outside$site)) {
 # Combine all corrected points into a single dataframe
 corrected_points_df <- bind_rows(corrected_points_list)
 
-wrap_plots(plots, ncol = 5)
+#wrap_plots(plots, ncol = 5)
 
 # Merge corrected points back into the original sites dataframe
 sites_updated <- sites %>%
@@ -148,7 +148,7 @@ for (my_site in unique(sites_surf$site)) {
   plots[[my_site]] <- plot
 }
 
-wrap_plots(plots, ncol = 2)
+#wrap_plots(plots, ncol = 2)
 
 # Combine all corrected points into a single dataframe
 corrected_surf_df <- bind_rows(corrected_surf_list)

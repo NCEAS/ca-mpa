@@ -124,14 +124,17 @@ ccfrp_biomass1 <- ccfrp_biomass %>%
                           "Engraulis mordax", 
                           "Galeorhinus galeus", 
                           "Oncorhynchus tshawytscha", 
-                          "Sardinops sagax")))
+                          "Sardinops sagax"))) %>% 
+  filter(!species_code == "BID") # drop bc only 3 fish, unclear if blue or something else
+
 
 
 deep_biomass1 <- deep_biomass %>%
   filter(!(sciname %in% c("Entosphenus tridentatus", 
                           "Hexanchus griseus", 
                           "Mola mola",
-                          "Apristurus brunneus")))
+                          "Apristurus brunneus"))) %>% 
+  filter(!species_code == "RFYOY")
 
 
 kelp_biomass1 <- kelp_biomass %>%
@@ -158,10 +161,10 @@ surf_biomass1 <- surf_biomass
 
 
 # Write to csv ----------------------------------------------------------------
-write.csv(surf_biomass1, row.names = F,  file.path(datadir,"/update_2024/surf_zone_fish_biomass_updated.csv"))  #last write 6 Jan 2025
-write.csv(kelp_biomass1, row.names = F,  file.path(datadir,"/update_2024/kelpforest_fish_biomass_updated.6.csv")) #last write  6 Jan 2025
-write.csv(ccfrp_biomass1, row.names = F, file.path(datadir,"/update_2024/ccfrp_fish_biomass_updated.2024.csv")) #last write  6 Jan 2025
-write.csv(deep_biomass1, row.names = F,  file.path(datadir,"/update_2024/deep_reef_fish_biomass_updated.csv")) #last write  6 Jan 2025
+write.csv(surf_biomass1, row.names = F,  file.path(datadir,"/update_2024/surf_zone_fish_biomass_updated.csv"))  #last write 7 Jan 2025
+write.csv(kelp_biomass1, row.names = F,  file.path(datadir,"/update_2024/kelpforest_fish_biomass_updated.6.csv")) #last write  7Jan 2025
+write.csv(ccfrp_biomass1, row.names = F, file.path(datadir,"/update_2024/ccfrp_fish_biomass_updated.2024.csv")) #last write  7 Jan 2025
+write.csv(deep_biomass1, row.names = F,  file.path(datadir,"/update_2024/deep_reef_fish_biomass_updated.csv")) #last write  7 Jan 2025
 
 # IN PROGRESS: Explore everything that's going wrong -----------------------------------
 

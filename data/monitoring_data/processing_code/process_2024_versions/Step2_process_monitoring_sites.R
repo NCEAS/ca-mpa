@@ -57,7 +57,9 @@ deep_sites <- readRDS(file.path(data.dir,"processed_data/update_2024/deep_reef_t
 
 deep <- deep_sites %>% 
   mutate(habitat = "Deep reef") %>% 
-  dplyr::select(habitat, site = transect_id_desig, site_type = designation, lat_dd = avg_lat, lon_dd = avg_lon) %>% 
+  mutate(designation = str_sub(transect_id_desig, -3)) %>% 
+  mutate(site_type = if_else(designation == "ref", "Reference", "MPA")) %>% 
+  dplyr::select(habitat, site = transect_id_desig, site_type, lat_dd = avg_lat, lon_dd = avg_lon) %>% 
   distinct() 
   
 
