@@ -12,9 +12,9 @@ mbes.dir <- "/home/shares/ca-mpa/data/sync-data/habitat_anita/raw/depth_MBES_CA"
 caba.dir <- "/home/shares/ca-mpa/data/sync-data/habitat_anita/raw/CA_Bathy_30m"
 
 # Read the LTM sites (these are ones incldued in the habitat analyses)
-sites_included <- readRDS(file.path(ltm.dir, "combine_tables/kelp_combine_table.Rds")) %>% distinct(site, site_type) %>% 
-  bind_rows(., readRDS(file.path(ltm.dir, "combine_tables/surf_combine_table.Rds")) %>% distinct(site, site_name, site_type)) %>% 
-  bind_rows(., readRDS(file.path(ltm.dir, "combine_tables/ccfrp_combine_table.Rds")) %>% distinct(site, site_type))
+# sites_included <- readRDS(file.path(ltm.dir, "combine_tables/kelp_combine_table.Rds")) %>% distinct(site, site_type) %>% 
+#   bind_rows(., readRDS(file.path(ltm.dir, "combine_tables/surf_combine_table.Rds")) %>% distinct(site, site_name, site_type)) %>% 
+#   bind_rows(., readRDS(file.path(ltm.dir, "combine_tables/ccfrp_combine_table.Rds")) %>% distinct(site, site_type))
 
 sites <- readRDS(file.path("/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_2024", 
                            "site_locations_corrected.Rds")) %>% 
@@ -168,7 +168,7 @@ sites <- readRDS(file.path("/home/shares/ca-mpa/data/sync-data/monitoring/proces
   mutate(ID = row_number()) %>% 
   st_drop_geometry()
 
-sites_depth <- sites %>% left_join(depth) %>% dplyr::select(-ID)
+sites_depth <- sites %>% left_join(depth2) %>% dplyr::select(-ID)
 
 saveRDS(sites_depth, file.path(ltm.dir, "site_depth.Rds"))
 

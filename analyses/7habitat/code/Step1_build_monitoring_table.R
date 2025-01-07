@@ -239,7 +239,7 @@ deep_transects <- readRDS(file.path(ltm.dir, "update_2024/deep_reef_transect_met
 
 deep_effort <- deep_orig %>%
   # Identify distinct transects (1583 but not all match with the lat/long information)
-  distinct(year, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation, line_id, transect_id_desig) %>%
+  distinct(year, bioregion, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation, line_id, transect_id_desig) %>%
   # Add the metadata for each transect (location, distance/area)
   left_join(deep_transects) %>% 
   # Drop transects without location data (will be removed from data below)

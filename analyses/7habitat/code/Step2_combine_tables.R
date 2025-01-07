@@ -174,55 +174,48 @@ surf <- surf_raw %>%
   # Log-transformed biomass
   mutate(log_kg_per_haul = log(kg_per_haul + 1))
 
-# Export 
-saveRDS(kelp, file.path(ltm.dir, "combine_tables/kelp_combine_table.Rds"))  # Last write 22 Dec 2024
-saveRDS(surf, file.path(ltm.dir, "combine_tables/surf_combine_table.Rds"))  # Last write 22 Dec 2024
-saveRDS(rock, file.path(ltm.dir, "combine_tables/ccfrp_combine_table.Rds")) # Last write 22 Dec 2024
+# Deep ----------------------------------------------------------------------------------------------
+deep_raw <- readRDS(file.path(ltm.dir, "deep_biomass_complete.Rds")) 
 
-<<<<<<< HEAD
-# Explore the sites that need to be reviewed for errors -----------------------------------------------------------
-=======
-saveRDS(kelp, file.path(ltm.dir, "combine_tables/kelp_combine_table.Rds"))  # Last write 16 Dec 2024
-saveRDS(surf, file.path(ltm.dir, "combine_tables/surf_combine_table.Rds"))  # Last write 16 Dec 2024
-saveRDS(rock, file.path(ltm.dir, "combine_tables/ccfrp_combine_table.Rds")) # Last write 16 Dec 2024
->>>>>>> dedf08b (test rock with new model framework)
+deep_sites <- deep_raw %>%
+  # Identify distinct site-year combinations
+  distinct(year, site, site_type, bioregion, affiliated_mpa, mpa_defacto_class, implementation_year, size_km2) %>%
+  mutate(before = if_else(year <= implementation_year, 1, 0), # only point lobos visited once before
+         after = if_else(year > implementation_year, 1, 0)) %>%
+  # Count number of years each site was visited before and after the MPA was implemented
+  group_by(site, bioregion, affiliated_mpa,  mpa_defacto_class, implementation_year, size_km2, site_type) %>%
+  summarize(n_before = sum(before),
+            n_after = sum(after),
+            n_total = n_before + n_after, .groups = 'drop') %>%
+  left_join(habitat)
 
-<<<<<<< HEAD
-rock_sites_review <- rock_sites %>% 
-  filter(affiliated_mpa %in% rock_mpas$affiliated_mpa) %>% 
-  filter(if_any(everything(), is.na))
-
-kelp_sites_review <- kelp_sites %>% 
-  filter(affiliated_mpa %in% kelp_mpas$affiliated_mpa) %>% 
-  filter(if_any(everything(), is.na))
-
-surf_sites_review <- surf_sites %>% filter(if_any(everything(), is.na))
-
-sites_review <- bind_rows(kelp_sites_review, rock_sites_review, surf_sites_review)
-
-# Save these to compare with the spatial data to determine issues:
-saveRDS(sites_review, file.path("/home/shares/ca-mpa/data/sync-data/habitat_pmep/processed_v2/review", "sites_review.Rds"))
-
-
-saveRDS(kelp, file.path(ltm.dir, "combine_tables/kelp_combine_table.Rds"))  # Last write 16 Dec 2024
-saveRDS(surf, file.path(ltm.dir, "combine_tables/surf_combine_table.Rds"))  # Last write 16 Dec 2024
-saveRDS(rock, file.path(ltm.dir, "combine_tables/ccfrp_combine_table.Rds")) # Last write 16 Dec 2024
-
-=======
-# rock_sites_review <- rock_sites %>% 
-#   filter(affiliated_mpa %in% rock_mpas$affiliated_mpa) %>% 
-#   filter(if_any(everything(), is.na))
+deep_mpas <- deep_sites %>%
+  group_by(bioregion, affiliated_mpa, mpa_defacto_class, implementation_year, size_km2, site_type) %>%
+  # Total transects per MPA/REF across all years
+  summarize(n_total = sum(n_total), .groups = 'drop') %>%
+  pivot_wider(names_from = site_type, values_from = n_total) %>%
+  filter(!is.na(Reference)) %>%
+  filter(!is.na(MPA)) %>%
+  filter(mpa_defacto_class == "smr")
 # 
-# kelp_sites_review <- kelp_sites %>% 
+# kelp <- kelp_raw %>% 
+#   # Drop observations for dropped sites 
+#   filter(site %in% kelp_sites$site) %>% 
+#   # Drop observations for dropped MPAs
 #   filter(affiliated_mpa %in% kelp_mpas$affiliated_mpa) %>% 
-#   filter(if_any(everything(), is.na))
-# 
-# surf_sites_review <- surf_sites %>% filter(if_any(everything(), is.na))
-# 
-# sites_review <- bind_rows(kelp_sites_review, rock_sites_review, surf_sites_review)
-# 
-# # Save these to compare with the spatial data to determine issues:
-# saveRDS(sites_review, file.path("/home/shares/ca-mpa/data/sync-data/habitat_pmep/processed_v2/review", "sites_review.Rds"))
-# 
-# 
->>>>>>> 9224149 (update pipeline with new habitat)
+#   # Drop before data
+#   filter(age_at_survey >= 0) %>% 
+#   # Join habitat and site visitation information
+#   left_join(kelp_sites) %>% 
+#   # Join annual kelp canopy estimates
+#   left_join(habitat_kelp) %>% 
+#   # Log-transformed biomass
+#   mutate(log_kg_per_m2 = log(kg_per_m2 + 1))
+
+
+# Export 
+#saveRDS(kelp, file.path(ltm.dir, "combine_tables/kelp_combine_table.Rds"))  # Last write 22 Dec 2024
+#saveRDS(surf, file.path(ltm.dir, "combine_tables/surf_combine_table.Rds"))  # Last write 22 Dec 2024
+#saveRDS(rock, file.path(ltm.dir, "combine_tables/ccfrp_combine_table.Rds")) # Last write 22 Dec 2024
+
+
