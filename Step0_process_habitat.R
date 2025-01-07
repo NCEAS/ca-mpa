@@ -3,7 +3,17 @@
 # January 2025
 
 # This script follows the intended processing pipeline to sequentially process
-# all of the habitat variables for each site (e.g. if sites are updated).
+# all of the habitat variables for each site (e.g. if sites are updated). Can
+# comment/uncomment to run pieces as needed. 
+
+# Step 0. Process monitoring data
+# Make sure these have each been properly exported. 
+# source("~/ca-mpa/data/monitoring_data/processing_code/process_2024_versions/Step0_fix_surf_site_names.R")
+# source("~/ca-mpa/data/monitoring_data/processing_code/process_2024_versions/Step0_process_ccfrp.R")
+# source("~/ca-mpa/data/monitoring_data/processing_code/process_2024_versions/Step0_process_deep.R")
+# source("~/ca-mpa/data/monitoring_data/processing_code/process_2024_versions/Step0_process_kelp.R")
+# source("~/ca-mpa/data/monitoring_data/processing_code/process_2024_versions/Step0_process_surf.R")
+# source("~/ca-mpa/data/monitoring_data/processing_code/process_2024_versions/Step1_process_biomass.R")
 
 # Step 1. Process monitoring sites
 # Ensure that the sites are correctly updated from the Step0 processing steps 

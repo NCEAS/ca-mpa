@@ -16,7 +16,8 @@ int.dir <- "~/ca-mpa/analyses/7habitat/intermediate_data"
 kw.dir <- "/home/shares/ca-mpa/data/sync-data/kelpwatch/2024/processed"
 
 # Read Data --------------------------------------------------------------------------------------------------------------------
-habitat <- readRDS(file.path(int.dir, "habitat_buffers_by_site_v2.Rds")) 
+habitat <- readRDS(file.path(int.dir, "habitat_buffers_by_site_v2.Rds")) %>% 
+  dplyr::select(-habitat)
 
 habitat_kelp <- readRDS(file.path(kw.dir, "kelp_site_buffers.Rds"))
 
@@ -177,14 +178,11 @@ deep_raw <- readRDS(file.path(ltm.dir, "deep_biomass_complete.Rds"))
 
 deep_sites <- deep_raw %>%
   # Identify distinct site-year combinations (site is a transect)
-  distinct(year, site, bioregion, affiliated_mpa, mpa_defacto_class, implementation_year, size_km2) %>%
+  distinct(year, site, site_type, bioregion, affiliated_mpa, mpa_defacto_class, implementation_year, size_km2) %>%
   mutate(before = if_else(year < implementation_year, 1, 0), # only point lobos visited once before
          after = if_else(year >= implementation_year, 1, 0),
          total = before + after) %>%
   left_join(habitat)
-
-test <- deep_sites %>% 
-  filter(if_any(everything(), is.na))
 
 deep_mpas <- deep_sites %>%
   group_by(bioregion, affiliated_mpa, mpa_defacto_class, site_type) %>%
@@ -194,7 +192,7 @@ deep_mpas <- deep_sites %>%
   filter(!is.na(Reference)) %>%
   filter(!is.na(MPA)) %>%
   filter(MPA > 5 & Reference > 5) %>% 
-  filter(mpa_defacto_class == "smr")
+  filter(mpa_defacto_class == "smr") # 16 MPAs
 
 deep <- deep_raw %>% 
   # Drop observations for dropped MPAs
@@ -202,19 +200,14 @@ deep <- deep_raw %>%
   # Join habitat and visitation information
   left_join(deep_sites) %>% 
   # Join annual kelp canopy estimates
-  left_join(habitat_kelp)
-
-#   # Join habitat and site visitation information
-#   left_join(kelp_sites) %>% 
-#   # Join annual kelp canopy estimates
-#   left_join(habitat_kelp) %>% 
-#   # Log-transformed biomass
-#   mutate(log_kg_per_m2 = log(kg_per_m2 + 1))
+  left_join(habitat_kelp) %>% 
+  mutate(log_kg_per_m2 = log(kg_per_m2 + 1))
 
 
 # Export 
-#saveRDS(kelp, file.path(ltm.dir, "combine_tables/kelp_combine_table.Rds"))  # Last write 22 Dec 2024
-#saveRDS(surf, file.path(ltm.dir, "combine_tables/surf_combine_table.Rds"))  # Last write 22 Dec 2024
-#saveRDS(rock, file.path(ltm.dir, "combine_tables/ccfrp_combine_table.Rds")) # Last write 22 Dec 2024
+saveRDS(kelp, file.path(ltm.dir, "combine_tables/kelp_combine_table.Rds"))  # Last write 7 Jan 2025
+saveRDS(surf, file.path(ltm.dir, "combine_tables/surf_combine_table.Rds"))  # Last write 7 Jan 2025
+saveRDS(rock, file.path(ltm.dir, "combine_tables/ccfrp_combine_table.Rds")) # Last write 7 Jan 2025
+saveRDS(deep, file.path(ltm.dir, "combine_tables/deep_combine_table.Rds"))  # Last write 7 Jan 2025
 
 
