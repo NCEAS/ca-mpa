@@ -172,4 +172,3 @@ sites_depth <- sites %>% left_join(depth2) %>% dplyr::select(-ID)
 
 saveRDS(sites_depth, file.path(ltm.dir, "site_depth.Rds"))
 
-        

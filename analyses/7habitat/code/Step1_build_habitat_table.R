@@ -17,7 +17,8 @@ ltm.dir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_
 
 habitat <- readRDS(file.path(hab.dir, "buffers", "habitat_buffers_combined.Rds")) 
 
-habitat_bathy <- readRDS(file.path(ltm.dir, "site_depth.Rds"))
+habitat_bathy <- readRDS(file.path(ltm.dir, "site_depth.Rds")) %>% 
+  mutate(site_type = if_else(site_type == "REF", "Reference", site_type))
 
 habitat_depth <- habitat %>% # create identifier matching depth to the habitat_depth combined class
   distinct(habitat_class, habitat_depth, depth_zone)

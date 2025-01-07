@@ -30,7 +30,7 @@ sites <- st_transform(sites, crs = 26910)
 # Create buffer polygons around each point, e.g., 1000 meters radius
 sites <- st_buffer(sites, dist = 500)
 
-# Intersect merged site footprint and substrate --------------------------------
+# Intersect site footprints and substrate --------------------------------
 
 # For substrate:
 intersect_substrate <- function(section){

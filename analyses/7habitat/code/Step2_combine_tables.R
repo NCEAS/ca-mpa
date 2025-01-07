@@ -16,11 +16,9 @@ int.dir <- "~/ca-mpa/analyses/7habitat/intermediate_data"
 kw.dir <- "/home/shares/ca-mpa/data/sync-data/kelpwatch/2024/processed"
 
 # Read Data --------------------------------------------------------------------------------------------------------------------
-habitat <- readRDS(file.path(int.dir, "habitat_buffers_by_site_v2.Rds")) %>% 
-  dplyr::select(-habitat)
+habitat <- readRDS(file.path(int.dir, "habitat_buffers_by_site_v2.Rds")) 
 
 habitat_kelp <- readRDS(file.path(kw.dir, "kelp_site_buffers.Rds"))
-
 
 # Kelp -------------------------------------------------------------------------------------------------------------------
 
@@ -136,7 +134,7 @@ rock_mpas <- rock_sites %>%
   group_by(bioregion, affiliated_mpa, mpa_defacto_class, implementation_year, site_type) %>%
   summarize(n_total = sum(n_total), .groups = 'drop') %>%
   pivot_wider(names_from = site_type, values_from = n_total) %>% 
-  filter(MPA > 10 & Reference > 10) # at least 10 site-years; 15 MPAs total
+  filter(MPA > 10 & Reference > 10) # at least 10 site-years; 13 MPAs
 
 rock <- rock_raw %>% 
   # Drop observations for dropped MPAs
@@ -178,33 +176,34 @@ surf <- surf_raw %>%
 deep_raw <- readRDS(file.path(ltm.dir, "deep_biomass_complete.Rds")) 
 
 deep_sites <- deep_raw %>%
-  # Identify distinct site-year combinations
-  distinct(year, site, site_type, bioregion, affiliated_mpa, mpa_defacto_class, implementation_year, size_km2) %>%
-  mutate(before = if_else(year <= implementation_year, 1, 0), # only point lobos visited once before
-         after = if_else(year > implementation_year, 1, 0)) %>%
-  # Count number of years each site was visited before and after the MPA was implemented
-  group_by(site, bioregion, affiliated_mpa,  mpa_defacto_class, implementation_year, size_km2, site_type) %>%
-  summarize(n_before = sum(before),
-            n_after = sum(after),
-            n_total = n_before + n_after, .groups = 'drop') %>%
+  # Identify distinct site-year combinations (site is a transect)
+  distinct(year, site, bioregion, affiliated_mpa, mpa_defacto_class, implementation_year, size_km2) %>%
+  mutate(before = if_else(year < implementation_year, 1, 0), # only point lobos visited once before
+         after = if_else(year >= implementation_year, 1, 0),
+         total = before + after) %>%
   left_join(habitat)
 
+test <- deep_sites %>% 
+  filter(if_any(everything(), is.na))
+
 deep_mpas <- deep_sites %>%
-  group_by(bioregion, affiliated_mpa, mpa_defacto_class, implementation_year, size_km2, site_type) %>%
+  group_by(bioregion, affiliated_mpa, mpa_defacto_class, site_type) %>%
   # Total transects per MPA/REF across all years
-  summarize(n_total = sum(n_total), .groups = 'drop') %>%
+  summarize(n_total = sum(total)) %>%
   pivot_wider(names_from = site_type, values_from = n_total) %>%
   filter(!is.na(Reference)) %>%
   filter(!is.na(MPA)) %>%
+  filter(MPA > 5 & Reference > 5) %>% 
   filter(mpa_defacto_class == "smr")
-# 
-# kelp <- kelp_raw %>% 
-#   # Drop observations for dropped sites 
-#   filter(site %in% kelp_sites$site) %>% 
-#   # Drop observations for dropped MPAs
-#   filter(affiliated_mpa %in% kelp_mpas$affiliated_mpa) %>% 
-#   # Drop before data
-#   filter(age_at_survey >= 0) %>% 
+
+deep <- deep_raw %>% 
+  # Drop observations for dropped MPAs
+  filter(affiliated_mpa %in% kelp_mpas$affiliated_mpa) %>% 
+  # Join habitat and visitation information
+  left_join(deep_sites) %>% 
+  # Join annual kelp canopy estimates
+  left_join(habitat_kelp)
+
 #   # Join habitat and site visitation information
 #   left_join(kelp_sites) %>% 
 #   # Join annual kelp canopy estimates

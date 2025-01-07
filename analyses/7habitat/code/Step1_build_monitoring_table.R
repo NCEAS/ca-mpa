@@ -92,12 +92,12 @@ kelp_effort <- kelp_orig %>%
 #   filter(total_biomass_kg == 0) # one zero site, only two transects; ok just dropping this info
 
 kelp <- kelp_orig %>% 
-  group_by(year, site, bioregion, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation,
-           species_code, sciname, genus, target_status, name) %>% # , sciname, family, genus, species, target_status, level
+  group_by(year, site, bioregion, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation, species_code, target_status) %>% 
   # Total biomass of each species per site per year
   summarise(weight_kg = sum(weight_kg),
             count = sum(count), .groups = 'drop') %>%
-  filter(!target_status == "NO_ORG")    # drop these bc aren't true zeroes
+  filter(!target_status == "NO_ORG") %>%    # drop these bc aren't true zeroes
+  select(-target_status)
 
 # kelp_missing <- kelp %>%  # 7 sites with no info about inside/outside
 #   filter(is.na(site_type)) %>% 
@@ -109,9 +109,9 @@ kelp_complete <- kelp_effort %>%
   # Create complete grid of all species at all sites and years
   expand_grid(species_code = unique(kelp$species_code)) %>% 
   # Add counts and weights (those that were not seen will be NA)
-  left_join(kelp %>% dplyr::select(!c(sciname, genus, target_status, name))) %>% 
+  left_join(kelp) %>% 
   # Add the scinames to match with species dataframe later
-  left_join(kelp %>% distinct(species_code, sciname, genus, target_status, name)) %>% 
+  left_join(kelp_orig %>% distinct(species_code, sciname, genus, target_status)) %>% 
   # Change NAs to zeroes (those species were not observed in that site-year)
   mutate_at(vars(weight_kg), ~ replace(., is.na(.), 0)) %>% 
   mutate_at(vars(count), ~ replace(., is.na(.), 0)) %>% 
@@ -129,7 +129,7 @@ kelp_complete <- kelp_effort %>%
                                     T~assemblage_new)) %>% 
   dplyr::select(year, site, site_type, 
                 bioregion, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation, implementation_year, size_km2,
-                age_at_survey, n_rep, species_code, sciname, name, genus, target_status, assemblage, assemblage_new,
+                age_at_survey, n_rep, species_code, sciname, genus, target_status, assemblage, assemblage_new,
                 weight_kg, count, kg_per_m2, count_per_m2)
 
 ## Surf ----
@@ -192,10 +192,7 @@ rock_effort <- rock_orig %>%
 
 # Calculated biomass per unit effort (trip-cell)
 rock <- rock_orig %>% 
-  dplyr::select(year, bioregion, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation, grid_cell_id,
-         id_cell_per_trip, species_code, sciname, family, genus, species, target_status,
-         total_angler_hrs_cell, weight_kg, count) %>% 
-  # Calculate biomass per unit effort (trip-cell) for each fish
+  # Calculate biomass per unit effort (trip-cell) for each individual fish
   mutate(bpue_kg = weight_kg/total_angler_hrs_cell) %>% 
   # Update OYT to include both OLV and YTL
   # mutate(species_code = ifelse(species_code %in% c("OLV", "YTL"), "OYT", species_code)) %>%  
@@ -234,41 +231,30 @@ rock_complete <- rock_effort %>%
 
 
 ## Deep ----
-# Read the deep reef transect information for the cleaned transect length (!!!)
-deep_transects <- readRDS(file.path(ltm.dir, "update_2024/deep_reef_transect_metadata.Rds"))
-
 deep_effort <- deep_orig %>%
-  # Identify distinct transects (1583 but not all match with the lat/long information)
-  distinct(year, bioregion, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation, line_id, transect_id_desig) %>%
-  # Add the metadata for each transect (location, distance/area)
-  left_join(deep_transects) %>% 
-  # Drop transects without location data (will be removed from data below)
-  filter(!is.na(avg_lat)) %>% # 1504
+  # Identify distinct transects that have location information - 1532
+  distinct(year, bioregion, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation, dive, transect_id, transect_id_desig, area_m2) %>% 
   # Join MPA metadata (region, implementation year)
   left_join(mpas %>% dplyr::select(affiliated_mpa, implementation_year, size_km2)) 
 
 deep <- deep_orig %>%
-  group_by(year, transect_id_desig, bioregion, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation, sciname, genus, target_status) %>%
+  group_by(year, bioregion, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation,dive, transect_id, transect_id_desig, area_m2, species_code) %>%
   # Biomass and count for each species on each transect
   dplyr::summarize(biomass_kg = sum(weight_kg),
-                   count = sum(count), .groups = 'drop') %>% # 10935
+                   count = sum(count), .groups = 'drop') %>% # 9961
   # Drop NO_ORG (not true zeroes)
-  filter(!target_status == "NO_ORG") %>%  # 10876
-  # Join the area information
-  left_join(deep_transects %>% dplyr::select(year, transect_id_desig, area_m2)) %>% 
-  # Drop transects without location/distance information
-  filter(!is.na(area_m2)) %>%  # 9282
+  filter(!species_code == "NO_ORG") %>%  # 9903
   # Calculate BPUE for each transect
   mutate(kg_per_m2 = biomass_kg/area_m2,
          count_per_m2 = count/area_m2)
 
 deep_complete <- deep_effort %>% 
   # Create complete grid of all species at all sites and years
-  expand_grid(sciname = unique(deep$sciname)) %>% 
+  expand_grid(species_code = unique(deep$species_code)) %>% 
   # Add counts and weights (those that were not seen will be NA)
-  left_join(deep %>% dplyr::select(!c(genus, target_status))) %>% 
+  left_join(deep) %>% 
   # Add the scinames to match with species dataframe later
-  left_join(deep %>% distinct(sciname, genus, target_status)) %>% 
+  left_join(deep_orig %>% distinct(species_code, sciname, genus, target_status)) %>% 
   # Change NAs to zeroes (those species were not observed in that site-year)
   mutate_at(vars(biomass_kg, count, kg_per_m2, count_per_m2), ~ replace(., is.na(.), 0)) %>% 
   mutate(site_type = if_else(mpa_defacto_designation == "ref", "Reference", "MPA")) %>% 
@@ -281,13 +267,10 @@ deep_complete <- deep_effort %>%
                                     sciname == "Sebastes rastrelliger" ~ "Hard Bottom Biotic", 
                                     sciname == "Sebastes miniatus" ~ "Hard Bottom", 
                                     T~assemblage_new)) %>% 
-  mutate(species_code = toupper(paste0(substr(sciname, 1, 1),
-                                       substr(gsub("^\\S+\\s*(\\S+).*", "\\1", sciname), 1, 3)))) %>% 
   dplyr::select(year, site = transect_id_desig, site_type, dive,
                 bioregion, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation, implementation_year, size_km2,
                 age_at_survey, species_code, sciname, genus, target_status, assemblage, assemblage_new,
                 biomass_kg, count, kg_per_m2, count_per_m2)
-
 
 # Export -------------------------------------------------------------------------------------
 #saveRDS(kelp, file.path(ltm.dir, "update_2024/kelp_biomass_site_year.Rds")) # last write Nov 14 2024
@@ -300,10 +283,10 @@ saveRDS(kelp_effort, file.path(ltm.dir, "update_2024/kelp_site_year_effort.Rds")
 saveRDS(rock_effort, file.path(ltm.dir, "update_2024/ccfrp_site_year_effort.Rds"))
 saveRDS(deep_effort, file.path(ltm.dir, "update_2024/deep_site_year_effort.Rds"))
 
-saveRDS(kelp_complete, file.path(ltm.dir, "update_2024/kelp_biomass_complete.Rds")) # last write Dec 5 2024;
-saveRDS(rock_complete, file.path(ltm.dir, "update_2024/rock_biomass_complete.Rds")) # last write Dec 5 2024; w/out update to OYT but updated incorrect cell coding for BH07
-saveRDS(surf_complete, file.path(ltm.dir, "update_2024/surf_biomass_complete.Rds")) # last write Dec 5 2024;
-saveRDS(deep_complete, file.path(ltm.dir, "update_2024/deep_biomass_complete.Rds")) # last write Jan 6 2025
+saveRDS(kelp_complete, file.path(ltm.dir, "update_2024/kelp_biomass_complete.Rds")) # last write Jan 7 2025
+saveRDS(rock_complete, file.path(ltm.dir, "update_2024/rock_biomass_complete.Rds")) # last write Jan 7 2025
+saveRDS(surf_complete, file.path(ltm.dir, "update_2024/surf_biomass_complete.Rds")) # last write Jan 7 2025
+saveRDS(deep_complete, file.path(ltm.dir, "update_2024/deep_biomass_complete.Rds")) # last write Jan 7 2025
 
 
 
