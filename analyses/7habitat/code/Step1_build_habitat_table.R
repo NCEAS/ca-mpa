@@ -46,6 +46,30 @@ habitat3 <- habitat2 %>% # should be 828
 
 # Add bathy
 habitat4 <- habitat3 %>% 
-  left_join(habitat_bathy)
+  left_join(habitat_bathy) %>% 
+  mutate_at(vars(grep("^depth_mean", names(.), value = TRUE)), ~ .x * -1)
 
 saveRDS(habitat4, file.path(int.dir, "habitat_buffers_by_site_v2.Rds"))
+
+# Create version that combines across depth  ----------------------------------------
+
+habitat_combined <- habitat %>% 
+  group_by(habitat, site, site_type, habitat_class, buffer) %>% 
+  summarize(area_m2 = sum(area_m2, na.rm = T), .groups = 'drop') %>% 
+  mutate(habitat_buffer = paste(snakecase::to_snake_case(habitat_class), buffer, sep = "_")) %>% 
+  dplyr::select(-c(habitat_class, buffer)) %>% 
+  pivot_wider(names_from = habitat_buffer, values_from = area_m2) %>% 
+  mutate_at(vars(grep("^(hard|soft|aq|sea)", names(.), value = TRUE)), ~ replace(., is.na(.), 0)) %>% 
+  left_join(habitat_bathy) %>% 
+  mutate_at(vars(grep("^depth_mean", names(.), value = TRUE)), ~ .x * -1)
+
+saveRDS(habitat_combined, file.path(int.dir, "habitat_buffers_by_site_combined.Rds"))
+
+
+
+
+
+
+
+
+
