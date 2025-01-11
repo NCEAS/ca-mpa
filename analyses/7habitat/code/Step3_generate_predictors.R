@@ -78,6 +78,7 @@ surf_predictors <- data_surf %>%
   summarize(sd = sd(value, na.rm = T), .groups = "drop") %>%
   pivot_wider(names_from = "bioregion", values_from = "sd") %>% 
   filter(!str_detect(predictor, "landward")) %>% 
+  filter(!str_detect(predictor, "kelp_annual_50")) %>% 
   dplyr::select(predictor) %>% 
   mutate(scale = sub("_", "", str_sub(predictor, -3, -1)),
          pred_group = case_when(str_detect(predictor, "0_30m|30_100m|100_200m|200m") ~ "depth",
@@ -96,6 +97,8 @@ deep_predictors <- data_deep %>%
   summarize(sd = sd(value), .groups = "drop") %>% 
   pivot_wider(names_from = "bioregion", values_from = "sd") %>% 
   filter(!str_detect(predictor, "landward")) %>% 
+  filter(!str_detect(predictor, "kelp_annual_100")) %>% 
+  filter(!str_detect(predictor, "kelp_annual_250")) %>% 
   filter(!str_detect(predictor, "bottom_200m")) %>% 
   dplyr::select(predictor) %>% 
   mutate(scale = sub("_", "", str_sub(predictor, -3, -1)),
@@ -270,8 +273,8 @@ get_list <- function(predictors_df){
 
 kelp_list <- get_list(kelp_predictors) # 2541
 rock_list <- get_list(rock_predictors) # 2541
-surf_list <- get_list(surf_predictors) # 2079
-deep_list <- get_list(deep_predictors) # 1617
+surf_list <- get_list(surf_predictors) # 1155
+deep_list <- get_list(deep_predictors) # 693
 
 saveRDS(kelp_list, file.path("analyses/7habitat/intermediate_data", "kelp_predictors_interactions.Rds")) 
 saveRDS(rock_list, file.path("analyses/7habitat/intermediate_data", "rock_predictors_interactions.Rds")) 
