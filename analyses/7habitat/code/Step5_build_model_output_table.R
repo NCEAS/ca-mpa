@@ -59,10 +59,12 @@ add_significance <- function(df) {df %>%
 }
 
 # Analyze Focal Models ---------------------------------------------------------
-species <- "AAFF"
+species <- "SMYS"
 path = "analyses/7habitat/output/kelp/all_regions/consolidated"
 path = "analyses/7habitat/output/rock/all_regions/no_soft"
 path = "analyses/7habitat/output/surf/central_south"
+path = "analyses/7habitat/output/deep/all_regions"
+
 
 analyze_models <- function(species, path){
   #Read data containing all the focal models 
@@ -72,9 +74,11 @@ analyze_models <- function(species, path){
                              T ~ as.factor(str_extract(predictors, "\\d+")))) %>% 
     distinct() %>% 
     mutate(depth_type = case_when(str_detect(model_id, "DSD") ~ "depth_sd",
-                                  str_detect(model_id, "DM") ~ "depth_mean"))
+                                  str_detect(model_id, "DM") ~ "depth_mean")) %>% 
+    filter(!is.na(type))
 
-  # Process top models: 
+  # Process top models:
+  # If there are multiple, get the model average. If not, get the results from the top one.
   if (sum(models_df$type == "top") > 1) {
     model_avg <- model.avg(data$models[models_df$type == "top"], fit = TRUE)
     coef_table <- data.frame(coefTable(model_avg)) %>%
@@ -101,6 +105,28 @@ analyze_models <- function(species, path){
            scale = paste(unique(models_df$scale[models_df$type == "top"]), collapse = ", "),           
            key = if_else(num_top_models == 1, "Top Model v. Base Model", "Top Models (Average) v. Base Model")) 
   
+  # Add results for each of the individual top models (without averaging)
+  if (sum(models_df$type == "top") > 1) {
+    top_names <- models_df$model_id[models_df$type %in% c("top")]
+    top_results_full <- lapply(top_names, function(model_id) {
+      if (is.null(data$models[[model_id]])) {
+        return(NULL)  # Skip processing and return NULL
+      }
+      tidy(data$models[[model_id]], conf.int = TRUE, effect = "fixed") %>%
+        janitor::clean_names() %>% 
+        clean_terms() %>%
+        add_significance() %>%
+        mutate(model_id = model_id)
+    }) 
+    
+    top_results_full <- do.call(rbind, top_results_full) %>% 
+      left_join(., models_df %>% dplyr::select(model_id, scale)) %>% 
+      mutate(key = if_else(model_id == "ST*A", NA, "Top Model"))
+    
+  } else {
+    top_results_full <- NULL
+  }
+  
   # Process core models
   core_names <- models_df$model_id[models_df$type %in% c("core", "base")]
   
@@ -121,7 +147,7 @@ analyze_models <- function(species, path){
     mutate(key = if_else(model_id == "ST*A", NA, "Full Model"))
   
   # Combine all results
-  all_results <- bind_rows(top_results, core_results) %>%
+  all_results <- bind_rows(top_results, core_results, top_results_full) %>%
     mutate(species_code = species,
            scale = factor(scale, levels = c(25, 50, 100, 250, 500))) %>% 
     mutate(key = case_when(model_id == "ST*A" & unique(top_results$num_top_models) > 1 ~ "Top Models (Average) v. Base Model",
@@ -156,3 +182,13 @@ sp_list <- list.files(path = "analyses/7habitat/output/surf/central_south") %>%
   str_remove_all(., "_models.rds|_results.rds") %>% unique()
 
 walk(sp_list, ~analyze_models(.x, path = "analyses/7habitat/output/surf/central_south"))
+
+# Deep
+sp_list <- list.files(path = "analyses/7habitat/output/deep/all_regions") %>%
+  str_remove_all(., "_models.rds|_results.rds") %>% unique()
+
+walk(sp_list, ~analyze_models(.x, path = "analyses/7habitat/output/deep/all_regions"))
+
+
+
+

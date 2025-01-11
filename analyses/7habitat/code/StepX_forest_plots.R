@@ -27,7 +27,7 @@ my_theme <- theme(
   plot.background = element_rect(fill = "white", color = NA)
 )
 
-make_forest_plots <- function(species, path){
+make_forest_plots <- function(species, path, habitat){
   # Read the data
   data <- readRDS(file.path(path, paste0(species, "_results.rds"))) %>% 
     mutate(scale = case_when(is.na(scale) & model_id == "ST*A" ~ NA,
@@ -66,7 +66,7 @@ make_forest_plots <- function(species, path){
     my_theme
   
   ggsave(filename = paste0(species, "_forest_depth_sd.png"),
-         path = fig.dir, width = 8, height = 5, dpi = 300, units = "in")
+         path = file.path(fig.dir, habitat), width = 8, height = 5, dpi = 300, units = "in")
   
   ggplot(data_mean %>% filter(!term == "(Intercept)"), 
          aes(x = estimate, y = term_revised, color = scale, pch = significance)) +
@@ -90,7 +90,7 @@ make_forest_plots <- function(species, path){
     my_theme
   
   ggsave(filename = paste0(species, "_forest_depth_mean.png"),
-         path = fig.dir, width = 8, height = 5, dpi = 300, units = "in")
+         path = file.path(fig.dir, habitat), width = 8, height = 5, dpi = 300, units = "in")
 }
 
 # Create and save figures -------------------------------------------------------------
@@ -100,14 +100,25 @@ make_forest_plots <- function(species, path){
 kelp_list <- list.files(path = "analyses/7habitat/output/kelp/all_regions/consolidated") %>%
   str_remove_all(., "_models.rds|_results.rds") %>% unique()
 
-map(kelp_list, make_forest_plots, path = "analyses/7habitat/output/kelp/all_regions/consolidated")
+map(kelp_list, make_forest_plots, path = "analyses/7habitat/output/kelp/all_regions/consolidated", habitat = "kelp")
 
 ## Rocky reef ----
 rock_list <- list.files(path = "analyses/7habitat/output/rock/all_regions/no_soft") %>%
   str_remove_all(., "_models.rds|_results.rds") %>% unique()
 
-map(rock_list, make_forest_plots, path = "analyses/7habitat/output/rock/all_regions/no_soft")
+map(rock_list, make_forest_plots, path = "analyses/7habitat/output/rock/all_regions/no_soft", habitat = "rock")
 
+## Surf ---
+surf_list <- list.files(path = "analyses/7habitat/output/surf/central_south") %>%
+  str_remove_all(., "_models.rds|_results.rds") %>% unique()
+
+map(surf_list, make_forest_plots, path = "analyses/7habitat/output/surf/central_south", habitat = "surf")
+
+## Deep ---
+deep_list <- list.files(path = "analyses/7habitat/output/deep/all_regions") %>%
+  str_remove_all(., "_models.rds|_results.rds") %>% unique()
+
+map(deep_list, make_forest_plots, path = "analyses/7habitat/output/deep/all_regions", habitat = "deep")
 
 # Troubleshoot
 make_forest_plots("BLU", path =  "analyses/7habitat/output/rock/all_regions/no_soft")
