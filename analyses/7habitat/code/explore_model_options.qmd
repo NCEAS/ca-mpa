@@ -48,9 +48,10 @@ library(broom.mixed)
 library(effects)
 
 ltm.dir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_2024"
-pred_kelp <- readRDS(file.path("/home/lopazanski/ca-mpa/analyses/7habitat/intermediate_data/kelp_predictors.Rds"))
+pred_kelp <- readRDS(file.path("/home/lopazanski/ca-mpa/analyses/7habitat/intermediate_data/kelp_predictors.Rds")) %>%
+  filter(pred_group %in% c("all", "combined"))
 
-data_kelp <- readRDS(file.path(ltm.dir, "combine_tables/kelp_combine_table.Rds")) %>% 
+data_kelp <- readRDS(file.path(ltm.dir, "combine_tables/kelp_full.Rds")) %>% 
   mutate(site_type = factor(site_type, levels = c("Reference", "MPA"))) %>% 
   dplyr::select(year:affiliated_mpa, size_km2, age_at_survey,
                 species_code:target_status, assemblage_new, weight_kg:count_per_m2, log_kg_per_m2,
@@ -81,7 +82,7 @@ data_sp <- data_kelp  %>%
   mutate(age_at_survey = as.numeric(scale(age_at_survey)),
          kg_per_m2 = as.numeric(scale(kg_per_m2)),
          log_kg_per_m2 = as.numeric(scale(log_kg_per_m2)),
-         hard_bottom_0_30m_500 =  as.numeric(scale(hard_bottom_0_30m_500))) 
+         hard_bottom_500 =  as.numeric(scale(hard_bottom_500))) 
 ```
 
 ## Functions for Partial Residuals
@@ -122,7 +123,7 @@ my_theme <- theme_minimal() +
 ```{r}
 # Select term columns to join with residuals df
 data_terms <- data_sp %>% 
-  dplyr::select(obs_id, age_at_survey, site_type, hard_bottom_0_30m_500) 
+  dplyr::select(obs_id, age_at_survey, site_type, hard_bottom_500) 
 
 # Create function to extract the residuals and plot with smooths
 plot_partial_residuals <- function(model){
@@ -159,10 +160,10 @@ plot_partial_residuals <- function(model){
     
     # Plot the partial residuals for each habitat term
     habitat <- ggplot(part_resid%>% filter(str_detect(term, "hard"))) +
-      geom_smooth(aes(x = hard_bottom_0_30m_500, 
+      geom_smooth(aes(x = hard_bottom_500, 
                       y = partial_residual, color = site_type),
                   show.legend = F) +
-      labs(x = "Hard bottom 0-30m 500",
+      labs(x = "Hard bottom at 500",
            y = "Partial residual", color = NULL) +
       scale_color_manual(values = c("#7e67f8", "#e5188b")) + 
       my_theme + 
@@ -181,7 +182,7 @@ plot_partial_residuals <- function(model){
 1\. GLMM, no transformation, 2-way interactions
 
 ```{r}
-glm1 <- lmer(kg_per_m2 ~ hard_bottom_0_30m_500 * site_type + site_type * age_at_survey + 
+glm1 <- lmer(kg_per_m2 ~ hard_bottom_500 * site_type + site_type * age_at_survey + 
                (1|bioregion) + (1|affiliated_mpa) + (1|year), data = data_sp, REML = FALSE)
 
 attr(glm1, "name") <- "GLMM: B ~ H*ST + ST*A"
@@ -190,7 +191,7 @@ attr(glm1, "name") <- "GLMM: B ~ H*ST + ST*A"
 2\. GLMM, log-transformed biomass, 2-way interactions
 
 ```{r}
-glm2 <- lmer(log_kg_per_m2 ~ hard_bottom_0_30m_500 * site_type + site_type * age_at_survey +
+glm2 <- lmer(log_kg_per_m2 ~ hard_bottom_500 * site_type + site_type * age_at_survey +
                (1|bioregion) + (1|affiliated_mpa) + (1|year), data = data_sp, REML = FALSE)
 
 attr(glm2, "name") <- "GLMM: logB ~ H*ST + ST*A"
@@ -199,7 +200,7 @@ attr(glm2, "name") <- "GLMM: logB ~ H*ST + ST*A"
 3\. GLMM, no transformation, 3-way interaction
 
 ```{r}
-glm3 <- lmer(kg_per_m2 ~ hard_bottom_0_30m_500 * site_type * age_at_survey + 
+glm3 <- lmer(kg_per_m2 ~ hard_bottom_500 * site_type * age_at_survey + 
                (1|bioregion) + (1|affiliated_mpa) + (1|year), data = data_sp, REML = FALSE)
 
 attr(glm3, "name") <- "GLMM: B ~ H*ST*A"
@@ -208,7 +209,7 @@ attr(glm3, "name") <- "GLMM: B ~ H*ST*A"
 4\. GLMM, log-transformed biomass, 3-way interaction
 
 ```{r}
-glm4 <- lmer(log_kg_per_m2 ~ hard_bottom_0_30m_500 * site_type * age_at_survey + 
+glm4 <- lmer(log_kg_per_m2 ~ hard_bottom_500 * site_type * age_at_survey + 
                (1|bioregion) + (1|affiliated_mpa) + (1|year), data = data_sp, REML = FALSE)
 
 attr(glm4, "name") <- "GLMM: logB ~ H*ST*A"
@@ -291,7 +292,7 @@ plot(predictorEffects(glm1, ~ age_at_survey, partial.residuals = TRUE),
      residuals.pch = 19,   
      residuals.cex = 0.2)
      
-plot(predictorEffects(glm1, ~ hard_bottom_0_30m_500, partial.residuals = TRUE),
+plot(predictorEffects(glm1, ~ hard_bottom_500, partial.residuals = TRUE),
      axes = list(x = list(rotate = 25), y = list(lim = c(-1, 2))), id = list(n = 1),
      residuals.pch = 19,   
      residuals.cex = 0.2)
@@ -310,7 +311,7 @@ plot(predictorEffects(glm2, ~ age_at_survey, partial.residuals = TRUE),
      residuals.pch = 19,   
      residuals.cex = 0.2)
      
-plot(predictorEffects(glm2, ~ hard_bottom_0_30m_500, partial.residuals = TRUE),
+plot(predictorEffects(glm2, ~ hard_bottom_500, partial.residuals = TRUE),
      axes = list(x = list(rotate = 25), y = list(lim = c(-1, 2))), id = list(n = 1),
      residuals.pch = 19,   
      residuals.cex = 0.2)
@@ -329,7 +330,7 @@ plot(predictorEffects(glm3, ~ age_at_survey, partial.residuals = TRUE),
      residuals.pch = 19,   
      residuals.cex = 0.2)
      
-plot(predictorEffects(glm3, ~ hard_bottom_0_30m_500, partial.residuals = TRUE),
+plot(predictorEffects(glm3, ~ hard_bottom_500, partial.residuals = TRUE),
      axes = list(x = list(rotate = 25), y = list(lim = c(-1, 3))), id = list(n = 1),
      residuals.pch = 19,   
      residuals.cex = 0.2)
@@ -348,7 +349,7 @@ plot(predictorEffects(glm4, ~ age_at_survey, partial.residuals = TRUE),
      residuals.pch = 19,   
      residuals.cex = 0.2)
      
-plot(predictorEffects(glm4, ~ hard_bottom_0_30m_500, partial.residuals = TRUE),
+plot(predictorEffects(glm4, ~ hard_bottom_500, partial.residuals = TRUE),
      axes = list(x = list(rotate = 25), y = list(lim = c(-1, 2))), id = list(n = 1),
      residuals.pch = 19,   
      residuals.cex = 0.2)
@@ -366,7 +367,7 @@ plot(predictorEffects(glm4, ~ hard_bottom_0_30m_500, partial.residuals = TRUE),
 1\. Fit Gamma GLM + 2way
 
 ```{r}
-gglm1 <- glmer(kg_per_m2_c ~ hard_bottom_0_30m_500 * site_type + site_type * age_at_survey + 
+gglm1 <- glmer(kg_per_m2_c ~ hard_bottom_500 * site_type + site_type * age_at_survey + 
                  (1|bioregion) + (1|affiliated_mpa) + (1|year),
                family = Gamma(link = "log"), data = data_sp)
 
@@ -377,7 +378,7 @@ attr(gglm1, "name") <- "Gamma: B ~ H*ST + ST*A"
 2\. Fit Gamma GLM + 3way
 
 ```{r}
-gglm2 <- glmer(kg_per_m2_c  ~ hard_bottom_0_30m_500 * site_type * age_at_survey + 
+gglm2 <- glmer(kg_per_m2_c  ~ hard_bottom_500 * site_type * age_at_survey + 
                  (1|bioregion) + (1|affiliated_mpa) + (1|year),
             family = Gamma(link = "log"), data_sp)
 
