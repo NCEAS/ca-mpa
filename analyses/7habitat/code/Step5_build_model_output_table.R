@@ -120,7 +120,7 @@ analyze_models <- function(species, path){
     }) 
     
     top_results_full <- do.call(rbind, top_results_full) %>% 
-      left_join(., models_df %>% dplyr::select(model_id, scale)) %>% 
+      left_join(., models_df %>% dplyr::select(model_id, scale, delta_AICc)) %>% 
       mutate(key = if_else(model_id == "ST*A", NA, "Top Model"))
     
   } else {
