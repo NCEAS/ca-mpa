@@ -1,0 +1,14 @@
+"Ecosystem","MPA type","Allowed take","Target status","Effect size","Standard error","P-value","95% lower","95% upper","No. MPAs","Tau-2","Q"
+"Surf zone","SMCA","Partial-take","Targeted",2.709,2.238,"0.226",-1.677,7.095,2,9.352,14.995
+"Surf zone","SMR","No-take","Targeted",0.486,0.282,"0.085",-0.066,1.038,11,0.653,61.019
+"Surf zone","SMCA","Partial-take","Non-targeted",1.951,1.022,"0.056",-0.052,3.954,2,1.896,10.332
+"Surf zone","SMR","No-take","Non-targeted",0.104,0.251,"0.678",-0.388,0.596,11,0.628,88.295
+"Kelp forest","SMCA","Partial-take","Targeted",0.259,0.282,"0.357",-0.293,0.811,11,0.681,86.582
+"Kelp forest","SMR","No-take","Targeted",0.479,0.164,"0.004",0.157,0.801,35,0.761,663.656
+"Kelp forest","SMCA","Partial-take","Non-targeted",-0.221,0.233,"0.344",-0.678,0.237,10,0.444,498.352
+"Kelp forest","SMR","No-take","Non-targeted",0.139,0.122,"0.255",-0.1,0.377,35,0.424,405.785
+"Shallow reef","SMR","No-take","Targeted",0.833,0.143,"<0.001",0.553,1.114,15,0.272,137.609
+"Deep reef","SMCA","Partial-take","Targeted",0.898,0.415,"0.031",0.084,1.712,2,0.232,2.985
+"Deep reef","SMR","No-take","Targeted",0.185,0.163,"0.254",-0.133,0.504,17,0.296,54.658
+"Deep reef","SMCA","Partial-take","Non-targeted",0.948,0.409,"0.021",0.146,1.749,2,0.333,282.304
+"Deep reef","SMR","No-take","Non-targeted",0.276,0.117,"0.018",0.048,0.505,16,0.162,796.162

@@ -8,16 +8,14 @@ rm(list=ls())
 librarian::shelf(ggplot2, tidyverse, here, metafor)
 
 #set directories
-data_path <- "/home/shares/ca-mpa/data/sync-data/"
-biomass_dat <-  paste0(data_path,"monitoring/processed_data/biomass_processed")
 fig_dir <- here::here("analyses","1performance_eco","figures")
 tab_dir <- here::here("analyses","1performance_eco","tables")
 dat_path <- here::here("analyses","1performance_eco","output")
 
 #read data
-biomass_mod <- readRDS(file.path(dat_path, "biomass_with_moderators_new2.Rds")) 
+biomass_mod <- readRDS(file.path(dat_path, "biomass_with_moderators.Rds")) 
 
-unique(biomass_mod$mpa)
+unique(biomass_mod$mpa) 
 
 ################################################################################
 
@@ -151,7 +149,7 @@ g <- ggplot(pooled_results, aes(x = estimate, y = mpa)) +
   scale_fill_gradientn(colors = c("navyblue", "grey80", "indianred"),
                        values = scales::rescale(c(-1.4, -0.2, 0, 2.4)),
                        name = "Effect size") +
-  scale_size_continuous(name = "No. ecosystems") +
+  scale_size_continuous(name = expression(italic("n") * " ecosystems"))+
   scale_x_continuous(limits = c(-5,6.8))+
   xlab("Effect size \n(log response ratio)") +
   guides(color = guide_colourbar(ticks.colour = "black",
@@ -162,7 +160,7 @@ g <- ggplot(pooled_results, aes(x = estimate, y = mpa)) +
   theme_bw() + my_theme 
 g
 
-ggsave(g, filename=file.path(fig_dir, "Fig3_mpa_effect_size2.png"), bg = "white",
+ggsave(g, filename=file.path(fig_dir, "Fig3_mpa_effect_size.png"), bg = "white",
       width=8, height=10, units="in", dpi=600) 
 
 

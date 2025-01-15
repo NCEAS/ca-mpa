@@ -32,7 +32,7 @@ merged_dat <- biomass %>%
 
 saveRDS(merged_dat, file = file.path(here::here("analyses","1performance_eco","output"),"biomass_richness_diversity2.Rds"))
 
-#last write 16 Oct 2024
+#last write 22 Oct 2024
 
 
 

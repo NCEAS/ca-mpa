@@ -1,0 +1,714 @@
+---
+title: "Model Diagnostic Comparisons"
+format:
+  html:
+    page-layout: full
+    self-contained: true
+editor: visual
+toc: true
+---
+
+## Overview
+
+Diagnostics from initial models demonstrated issues with kurtosis, nonlinearity, and heteroskedasticity. The goal of this comparison is to explore whether other modeling options improve these issues. The focal species is blue rockfish (Sebastes mystinus), a species found statewide that is generally associated with hard bottom and hard bottom biotic (kelp) habitat. The top model for this species from the original approach was:
+
+Log-Transformed Biomass \~ Hard 0-30 at 500m \* Site Type + Site Type \* MPA Age
+
+-   Generalized linear mixed effects models (current approach)
+
+    -   Does log-transforming biomass make a difference in model fit?
+
+    -   Does adding a 3-way interaction with MPA age make a difference in model fit?
+
+-   Gamma-distributed generalized linear mixed effects models
+
+    -   Does adding a gamma distribution make a difference in model fit?
+
+-   Generalized additive models with smoothing term for MPA age
+
+    -   Would a GAM better capture the nonlinear effects?
+
+    -   What specification is most appropriate?
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+
+library(lme4)
+library(MuMIn)
+library(dplyr)
+library(purrr)
+library(tidymodels)
+library(mgcv)
+library(performance)
+library(patchwork)
+library(tidyverse)
+library(broom.mixed)
+library(effects)
+
+ltm.dir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_2024"
+pred_kelp <- readRDS(file.path("/home/lopazanski/ca-mpa/analyses/7habitat/intermediate_data/kelp_predictors.Rds")) %>%
+  filter(pred_group %in% c("all", "combined"))
+
+data_kelp <- readRDS(file.path(ltm.dir, "combine_tables/kelp_full.Rds")) %>% 
+  mutate(site_type = factor(site_type, levels = c("Reference", "MPA"))) %>% 
+  dplyr::select(year:affiliated_mpa, size_km2, age_at_survey,
+                species_code:target_status, assemblage_new, weight_kg:count_per_m2, log_kg_per_m2,
+                all_of(pred_kelp$predictor)) %>% 
+  filter(species_code == "SMYS") %>%  # Focus on SMIN or SMYS
+  mutate(bioregion = factor(bioregion),
+         affiliated_mpa = factor(affiliated_mpa),
+         year = factor(year)) %>% 
+  mutate(obs_id = row_number(.))
+
+```
+
+## Build
+
+### General
+
+-   Gamma GLMs require that the response variable is strictly positive, so will add a small constant that is 10x smaller than the minimum observed biomass value. (Tried without this and verified that this is necessary).
+-   Center and scale the predictor variables to accommodate differences in scales (habitat measured in square meters, age measured in years).
+
+```{r}
+# Define constant 10x smaller than minimum nonzero biomass
+const <- min(data_kelp$kg_per_m2[data_kelp$kg_per_m2 > 0])/10
+
+data_sp <- data_kelp  %>% 
+  # Add small constant for gamma distribution
+  mutate(kg_per_m2_c = kg_per_m2 + const) %>% 
+  # Center and scale all numeric vars except the one with added constant
+  mutate(age_at_survey = as.numeric(scale(age_at_survey)),
+         kg_per_m2 = as.numeric(scale(kg_per_m2)),
+         log_kg_per_m2 = as.numeric(scale(log_kg_per_m2)),
+         hard_bottom_500 =  as.numeric(scale(hard_bottom_500))) 
+```
+
+## Functions for Partial Residuals
+
+Partial residuals represent the response variable adjusted for all other terms in the model, leaving behind the residual signal and the contribution of the term of interest (TOI).
+
+-   Partial Residuals = Response - Predictions (Excluding TOI) + Effect of TOI
+
+-   
+
+    ```         
+      = (Full Residuals) + Effect of TOI
+    ```
+
+The following function will:
+
+-   Extract the residuals, model matrix, and fixed-effects coefficients
+
+-   Multiply the matrix by the corresponding coefficients to get the effect of each TOI
+
+-   Add the residuals to each TOI effect
+
+-   Plot those partial residuals for MPA Age and Hard Bottom 0-30
+
+```{r}
+#| echo: FALSE
+my_theme <- theme_minimal() +
+  theme(plot.title = element_text(size = 8, face = "bold"),  
+        axis.title.x = element_text(size = 8),              
+        axis.title.y = element_text(size = 8),              
+        axis.text = element_text(size = 8),                 
+        legend.text = element_text(size = 8),  
+        legend.position = "top",
+        strip.text = element_text(size = 8, face = "italic")) 
+
+```
+
+```{r}
+# Select term columns to join with residuals df
+data_terms <- data_sp %>% 
+  dplyr::select(obs_id, age_at_survey, site_type, hard_bottom_500) 
+
+# Create function to extract the residuals and plot with smooths
+plot_partial_residuals <- function(model){
+  # Extract residuals, model matrix, and fixed-effects coefficients
+  resid <- residuals(model)
+  model_mat <- model.matrix(model)
+  fixed_coefs <- fixef(model)
+  
+  # Ensure they are aligned
+  if (identical(colnames(model_mat), names(fixed_coefs))){
+    
+    # Multiply each column of the model matrix by its corresponding coefficient
+    # to get the effect of each separate predictor term
+    part_resid <- sweep(model_mat, 2, fixed_coefs, `*`) %>% 
+      as.data.frame() %>% 
+      # Add the residuals to each predictor effect
+      mutate(across(everything(), ~.x + resid)) %>% 
+      mutate(obs_id = row_number(data_sp)) %>% 
+      # Lengthen to make one facet for each term
+      pivot_longer(cols = -obs_id, 
+                   names_to = "term", values_to = "partial_residual") %>% 
+      full_join(., data_terms, by = "obs_id") %>% 
+      filter(term != "(Intercept)") 
+    
+    # Plot the partial residuals for each age term
+    age <- ggplot(part_resid %>% filter(str_detect(term, "age_at_survey"))) +
+      geom_smooth(aes(x = age_at_survey, y = partial_residual, color = site_type)) +
+      labs(title = paste(attr(model, "name")),
+           x = "Age at survey", 
+           y = "Partial residual", color = NULL) +
+      scale_color_manual(values = c("#7e67f8", "#e5188b")) + 
+      my_theme +
+      facet_wrap(~term)
+    
+    # Plot the partial residuals for each habitat term
+    habitat <- ggplot(part_resid%>% filter(str_detect(term, "hard"))) +
+      geom_smooth(aes(x = hard_bottom_500, 
+                      y = partial_residual, color = site_type),
+                  show.legend = F) +
+      labs(x = "Hard bottom at 500",
+           y = "Partial residual", color = NULL) +
+      scale_color_manual(values = c("#7e67f8", "#e5188b")) + 
+      my_theme + 
+      facet_wrap(~term)
+    
+    return(age / habitat)
+  } 
+  else {
+    print("Misaligned.")
+  }
+}
+```
+
+# GLMMs
+
+1\. GLMM, no transformation, 2-way interactions
+
+```{r}
+glm1 <- lmer(kg_per_m2 ~ hard_bottom_500 * site_type + site_type * age_at_survey + 
+               (1|bioregion) + (1|affiliated_mpa) + (1|year), data = data_sp, REML = FALSE)
+
+attr(glm1, "name") <- "GLMM: B ~ H*ST + ST*A"
+```
+
+2\. GLMM, log-transformed biomass, 2-way interactions
+
+```{r}
+glm2 <- lmer(log_kg_per_m2 ~ hard_bottom_500 * site_type + site_type * age_at_survey +
+               (1|bioregion) + (1|affiliated_mpa) + (1|year), data = data_sp, REML = FALSE)
+
+attr(glm2, "name") <- "GLMM: logB ~ H*ST + ST*A"
+```
+
+3\. GLMM, no transformation, 3-way interaction
+
+```{r}
+glm3 <- lmer(kg_per_m2 ~ hard_bottom_500 * site_type * age_at_survey + 
+               (1|bioregion) + (1|affiliated_mpa) + (1|year), data = data_sp, REML = FALSE)
+
+attr(glm3, "name") <- "GLMM: B ~ H*ST*A"
+```
+
+4\. GLMM, log-transformed biomass, 3-way interaction
+
+```{r}
+glm4 <- lmer(log_kg_per_m2 ~ hard_bottom_500 * site_type * age_at_survey + 
+               (1|bioregion) + (1|affiliated_mpa) + (1|year), data = data_sp, REML = FALSE)
+
+attr(glm4, "name") <- "GLMM: logB ~ H*ST*A"
+```
+
+## GLMM Comparison & Diagnostics
+
+Click the tabs below to explore the model comparison and diagnostic plots.
+
+::: {.panel-tabset .nav-pills}
+## Comparison
+
+```{r}
+#| out.width: "100%"
+#| message: FALSE
+
+model_fit <- bind_rows(model_performance(glm1, estimator = "ML") %>% mutate(Model = attr(glm1, "name")),
+                       model_performance(glm2, estimator = "ML") %>% mutate(Model = attr(glm2, "name")),
+                       model_performance(glm3, estimator = "ML") %>% mutate(Model = attr(glm3, "name")),
+                       model_performance(glm4, estimator = "ML") %>% mutate(Model = attr(glm4, "name"))) %>% 
+  mutate(deltaAIC = AIC - min(AIC, na.rm = T)) %>% 
+  dplyr::select(Model, everything()) %>% 
+  arrange(AIC)
+
+print(model_fit)
+```
+
+## Residuals vs Fitted
+
+```{r}
+par(mfrow = c(2, 2)) 
+
+plot(residuals(glm1) ~ fitted(glm1), main = attr(glm1, "name"))
+abline(h = 0, col = "red", lty = 2)
+lines(lowess(fitted(glm1), residuals(glm1)), col = "blue", lwd = 2)
+
+plot(residuals(glm2) ~ fitted(glm2), main = attr(glm2, "name"))
+abline(h = 0, col = "red", lty = 2)
+lines(lowess(fitted(glm2), residuals(glm2)), col = "blue", lwd = 2)
+
+
+plot(residuals(glm3) ~ fitted(glm3), main = attr(glm3, "name"))
+abline(h = 0, col = "red", lty = 2)
+lines(lowess(fitted(glm3), residuals(glm3)), col = "blue", lwd = 2)
+
+
+plot(residuals(glm4) ~ fitted(glm4), main = attr(glm4, "name"))
+abline(h = 0, col = "red", lty = 2)
+lines(lowess(fitted(glm4), residuals(glm4)), col = "blue", lwd = 2)
+
+```
+
+## Normal QQ
+
+```{r}
+par(mfrow = c(2, 2)) 
+
+qqnorm(residuals(glm1), main = paste(attr(glm1, "name"), "QQ Plot")); qqline(residuals(glm1))
+qqnorm(residuals(glm2), main = paste(attr(glm2, "name"), "QQ Plot")); qqline(residuals(glm2))
+qqnorm(residuals(glm3), main = paste(attr(glm3, "name"), "QQ Plot")); qqline(residuals(glm3))
+qqnorm(residuals(glm4), main = paste(attr(glm4, "name"), "QQ Plot")); qqline(residuals(glm4))
+```
+:::
+
+## GLMM Partial Residuals
+
+Note that these plots are zoomed in - the residuals themselves have much wider spread; plots focus on the lines.
+
+::: {.panel-tabset .nav-pills}
+## GLMM: B \~ H \* ST + ST \* A
+
+```{r}
+#| out.width: "100%"
+#| message: FALSE
+#| echo: FALSE
+plot_partial_residuals(glm1)
+
+plot(predictorEffects(glm1, ~ age_at_survey, partial.residuals = TRUE),
+     axes = list(x = list(rotate = 25), y = list(lim = c(0, 2))), id = list(n = 1),
+     residuals.pch = 19,   
+     residuals.cex = 0.2)
+     
+plot(predictorEffects(glm1, ~ hard_bottom_500, partial.residuals = TRUE),
+     axes = list(x = list(rotate = 25), y = list(lim = c(-1, 2))), id = list(n = 1),
+     residuals.pch = 19,   
+     residuals.cex = 0.2)
+```
+
+## GLMM: logB \~ H \* ST + ST \* A
+
+```{r}
+#| out.width: "100%"
+#| message: FALSE
+#| echo: FALSE
+plot_partial_residuals(glm2)
+
+plot(predictorEffects(glm2, ~ age_at_survey, partial.residuals = TRUE),
+     axes = list(x = list(rotate = 25), y = list(lim = c(0, 2))), id = list(n = 1),
+     residuals.pch = 19,   
+     residuals.cex = 0.2)
+     
+plot(predictorEffects(glm2, ~ hard_bottom_500, partial.residuals = TRUE),
+     axes = list(x = list(rotate = 25), y = list(lim = c(-1, 2))), id = list(n = 1),
+     residuals.pch = 19,   
+     residuals.cex = 0.2)
+```
+
+## GLMM: B \~ H \* ST \* A
+
+```{r}
+#| out.width: "100%"
+#| message: FALSE
+#| echo: FALSE
+plot_partial_residuals(glm3)
+
+plot(predictorEffects(glm3, ~ age_at_survey, partial.residuals = TRUE),
+     axes = list(x = list(rotate = 25), y = list(lim = c(-1, 3))), id = list(n = 1),
+     residuals.pch = 19,   
+     residuals.cex = 0.2)
+     
+plot(predictorEffects(glm3, ~ hard_bottom_500, partial.residuals = TRUE),
+     axes = list(x = list(rotate = 25), y = list(lim = c(-1, 3))), id = list(n = 1),
+     residuals.pch = 19,   
+     residuals.cex = 0.2)
+```
+
+## GLMM: logB \~ H \* ST \* A
+
+```{r}
+#| out.width: "100%"
+#| message: FALSE
+#| echo: FALSE
+plot_partial_residuals(glm4)
+
+plot(predictorEffects(glm4, ~ age_at_survey, partial.residuals = TRUE),
+     axes = list(x = list(rotate = 25), y = list(lim = c(-1, 2))), id = list(n = 1),
+     residuals.pch = 19,   
+     residuals.cex = 0.2)
+     
+plot(predictorEffects(glm4, ~ hard_bottom_500, partial.residuals = TRUE),
+     axes = list(x = list(rotate = 25), y = list(lim = c(-1, 2))), id = list(n = 1),
+     residuals.pch = 19,   
+     residuals.cex = 0.2)
+```
+:::
+
+## GLMM Summary
+
+-   The diagnostic plots don't show drastic differences among the four GLMMs
+-   The three-way interactions have the lowest AIC and highest R2 values
+-   Partial residuals show consistent nonlinear relationship with age (?) and potential nonlinear interaction between hard bottom and site type
+
+# Gamma GLMs
+
+1\. Fit Gamma GLM + 2way
+
+```{r}
+gglm1 <- glmer(kg_per_m2_c ~ hard_bottom_500 * site_type + site_type * age_at_survey + 
+                 (1|bioregion) + (1|affiliated_mpa) + (1|year),
+               family = Gamma(link = "log"), data = data_sp)
+
+attr(gglm1, "name") <- "Gamma: B ~ H*ST + ST*A"
+
+```
+
+2\. Fit Gamma GLM + 3way
+
+```{r}
+gglm2 <- glmer(kg_per_m2_c  ~ hard_bottom_500 * site_type * age_at_survey + 
+                 (1|bioregion) + (1|affiliated_mpa) + (1|year),
+            family = Gamma(link = "log"), data_sp)
+
+attr(gglm2, "name") <- "Gamma: B ~ H*ST*A"
+
+```
+
+## Gamma GLM Comparison
+
+Click the tabs below to explore the model comparison and diagnostic plots.
+
+::: {.panel-tabset .nav-pills}
+## Summary
+
+The random effect variance is extremely high (from \<1% to 98% marginal to conditional is concerning)
+
+```{r}
+summary(gglm1)
+summary(gglm2)
+```
+
+## Comparison
+
+```{r}
+#| out.width: "100%"
+#| message: FALSE
+model_fit <- bind_rows(model_performance(gglm1) %>% mutate(Model = attr(gglm1, "name")),
+                       model_performance(gglm2) %>% mutate(Model = attr(gglm2, "name"))) %>% 
+  mutate(deltaAIC = AIC - min(AIC, na.rm = T)) %>% 
+  dplyr::select(Model, everything()) %>% 
+  arrange(AIC)
+
+print(model_fit)
+```
+
+## QQ Deviance
+
+```{r}
+par(mfrow = c(1, 2)) 
+
+qqnorm(residuals(gglm1, type = "deviance"), main = paste(attr(gglm1, "name")))
+qqline(residuals(gglm1, type = "deviance"))
+
+qqnorm(residuals(gglm2, type = "deviance"), main = paste(attr(gglm2, "name")))
+qqline(residuals(gglm2, type = "deviance"))
+```
+:::
+
+## Gamma GLM Partial Residuals
+
+::: {.panel-tabset .nav-pills}
+## Gamma GLMM: B \~ H \* ST + ST \* A
+
+```{r}
+#| out.width: "100%"
+#| message: FALSE
+#| echo: FALSE
+plot_partial_residuals(gglm1)
+
+plot(predictorEffects(gglm1, ~ age_at_survey, partial.residuals = TRUE),
+     axes = list(x = list(rotate = 25), y = list(lim = c(-20, 250))), id = list(n = 1),
+     residuals.pch = 19,   
+     residuals.cex = 0.2)
+
+
+plot(predictorEffects(gglm2, ~ hard_bottom_0_30m_500, partial.residuals = TRUE),
+     axes = list(x = list(rotate = 25), y = list(lim = c(-50, 300))), id = list(n = 1),
+     residuals.pch = 19,   
+     residuals.cex = 0.2)
+
+```
+
+## Gamma GLMM: B \~ H \* ST \* A
+
+```{r}
+#| fig.width: 8
+#| fig.height: 10
+#| out.width: "100%"
+#| message: FALSE
+#| echo: FALSE
+plot_partial_residuals(gglm2)
+
+
+plot(predictorEffects(gglm2, ~ age_at_survey, partial.residuals = TRUE),
+     axes = list(x = list(rotate = 25), y = list(lim = c(-20, 500))), id = list(n = 1),
+     residuals.pch = 19,   
+     residuals.cex = 0.2)
+
+
+plot(predictorEffects(gglm2, ~ hard_bottom_0_30m_500, partial.residuals = TRUE),
+     axes = list(x = list(rotate = 25), y = list(lim = c(-20, 250))), id = list(n = 1),
+     residuals.pch = 19,   
+     residuals.cex = 0.2)
+```
+:::
+
+# GAM
+
+## GAM: Smooth Age Only
+
+```{r}
+gam1 <- gam(kg_per_m2 ~ hard_bottom_0_30m_500 * site_type + s(age_at_survey, by = site_type) +
+            s(year, bs = "re") + s(bioregion, bs = "re") + s(affiliated_mpa, bs = "re"), 
+          data = data_sp, method = "ML")
+
+attr(gam1, "name") <- "GAM: B ~ H*ST + S(A, by = ST)"
+
+```
+
+## GAM: Smooth Age and Habitat
+
+```{r}
+gam2 <- gam(kg_per_m2 ~ s(hard_bottom_0_30m_500, by = site_type) + s(age_at_survey, by = site_type) + site_type +
+            s(year, bs = "re") + s(bioregion, bs = "re") + s(affiliated_mpa, bs = "re"), 
+            data = data_sp, method = "ML")
+
+attr(gam2, "name") <- "GAM: B ~ S(H, by = ST) + S(A, by = ST) + ST"
+```
+
+## GAM: Interactive Smooth
+
+```{r}
+gam3 <- gam(kg_per_m2 ~ ti(hard_bottom_0_30m_500, age_at_survey, by = site_type) + site_type + 
+            s(year, bs = "re") + s(bioregion, bs = "re") + s(affiliated_mpa, bs = "re"), 
+          data = data_sp, method = "ML")
+
+attr(gam3, "name") <- "GAM: B ~ ti(H, A, by = ST)"
+```
+
+Summary:
+
+```{r}
+summary(gam1)
+summary(gam2)
+summary(gam3)
+```
+
+Compare performance
+
+```{r}
+model_fit <- bind_rows(model_performance(gam1, estimator = "ML") %>% mutate(Model = attr(gam1, "name")),
+                       model_performance(gam2, estimator = "ML") %>% mutate(Model = attr(gam2, "name")),
+                       model_performance(gam3, estimator = "ML") %>% mutate(Model = attr(gam3, "name"))) %>% 
+  mutate(deltaAIC = AIC - min(AIC, na.rm = T)) %>% 
+  dplyr::select(Model, everything()) %>% 
+  arrange(AIC)
+print(model_fit)
+
+```
+
+# Compare All
+
+```{r}
+compare_all <- compare_performance(glm1, glm2, glm3, glm4, gglm1, gglm2, gam1, gam2, gam3) %>% 
+  arrange(AIC)
+
+print(compare_all)
+
+
+```
+
+Check the model:
+
+```{r}
+par(mfrow = c(2, 2)) 
+
+gam.check(gam1)
+gam.check(gam2)
+```
+
+Check k:
+
+```{r}
+mgcv::k.check(gam1)
+```
+
+Plot it:
+
+```{r}
+plot(gam1, pages = 1, rug = TRUE, shade = TRUE)
+```
+
+## GAM: Smooth for MPA Age & Smooth for Hard Bottom
+
+```{r}
+gam2 <- gam(kg_per_m2 ~ s(hard_bottom_0_30m_500, by = site_type) + s(age_at_survey, by = site_type) +  
+            s(year, bs = "re") + s(bioregion, bs = "re") + s(affiliated_mpa, bs = "re"), 
+          data = data_kelp, # use unscaled data here
+          method = "REML")
+
+attr(gam2, "name") <- "GAM: B ~ S(H, by = ST) + S(A, by = ST)"
+```
+
+Summary:
+
+```{r}
+summary(gam2)
+```
+
+Check the model:
+
+```{r}
+par(mfrow = c(2, 2)) 
+gam.check(gam2)
+```
+
+Check k-index:
+
+```{r}
+mgcv::k.check(gam2)
+```
+
+Plot it:
+
+```{r}
+plot(gam2, pages = 1, rug = TRUE, shade = TRUE)
+```
+
+## GAM: Interactive H \* ST \* A with Smooth
+
+## GAM: Smooth for MPA Age
+
+```{r}
+gam3 <- gam(kg_per_m2 ~ ti(hard_bottom_0_30m_500, age_at_survey, by = site_type) +
+            s(year, bs = "re") + s(bioregion, bs = "re") + s(affiliated_mpa, bs = "re"), 
+          data = data_kelp, # use unscaled data here
+          method = "REML")
+
+attr(gam3, "name") <- "GAM: B ~ ti(H, A, by = ST)"
+```
+
+Summary:
+
+```{r}
+summary(gam3)
+```
+
+Check the model:
+
+```{r}
+par(mfrow = c(2, 2)) 
+gam.check(gam3)
+```
+
+Check k:
+
+```{r}
+mgcv::k.check(gam3)
+```
+
+Plot it:
+
+```{r}
+vis.gam(gam3, view = c("hard_bottom_0_30m_500", "age_at_survey"),
+        cond = list(site_type = "MPA"),
+        type = "response", plot.type = "contour", color = "topo")
+
+vis.gam(gam3, view = c("hard_bottom_0_30m_500", "age_at_survey"),
+        cond = list(site_type = "Reference"),
+        type = "response", plot.type = "contour", color = "topo")
+```
+
+```{r}
+#| echo: FALSE
+# m8 <- gam(kg_per_m2 ~ ti(hard_bottom_0_30m_500, age_at_survey, by = site_type) + site_type + 
+#             s(bioregion, bs = "re") + s(affiliated_mpa, bs = "re"),
+#   data = data_sp, 
+#   method = "REML")
+# 
+# model <- m8
+# summary(model)
+# 
+# gam.check(model)
+# 
+# par(mfrow = c(2, 2))
+# plot(residuals(model) ~ fitted(model), main = "Residuals vs Fitted")
+# qqnorm(residuals(model), main = "Normal Q-Q")
+# qqline(residuals(model))
+# hist(residuals(model), main = "Residual Histogram", breaks = 20)
+# 
+# plot(model, pages = 1, rug = TRUE, shade = TRUE)
+# 
+# vis.gam(model, view = c("hard_bottom_0_30m_500", "age_at_survey"),
+#         cond = list(site_type = "MPA"),
+#         type = "response", plot.type = "contour", color = "topo")
+# 
+# vis.gam(model, view = c("hard_bottom_0_30m_500", "age_at_survey"),
+#         cond = list(site_type = "Reference"),
+#         type = "response", plot.type = "contour", color = "topo")
+# 
+# plot(model, select = 1)
+
+```
+
+```{r}
+#| echo: FALSE
+
+# m8 <- gam(kg_per_m2 ~ ti(hard_bottom_0_30m_500, age_at_survey, by = site_type) + site_type + 
+#             s(bioregion, bs = "re") + s(affiliated_mpa, bs = "re"),
+#   data = data_kelp,  method = "REML")
+# 
+# model <- m8
+# summary(model)
+# 
+# gam.check(model)
+# 
+# par(mfrow = c(2, 2))
+# plot(residuals(model) ~ fitted(model), main = "Residuals vs Fitted")
+# qqnorm(residuals(model), main = "Normal Q-Q")
+# qqline(residuals(model))
+# hist(residuals(model), main = "Residual Histogram", breaks = 20)
+# 
+# plot(model, pages = 1, rug = TRUE, shade = TRUE)
+# 
+# vis.gam(model, view = c("hard_bottom_0_30m_500", "age_at_survey"),
+#         cond = list(site_type = "MPA"),
+#         type = "response", plot.type = "contour", color = "topo")
+# 
+# vis.gam(model, view = c("hard_bottom_0_30m_500", "age_at_survey"),
+#         cond = list(site_type = "Reference"),
+#         type = "response", plot.type = "contour", color = "topo")
+# 
+# plot(model, select = 1)
+
+```
+
+```{r}
+# Diagnostics
+#check_model(m1, residual_type = "simulated", check = c("ncv", "qq", "normality", "vif"))
+#check_model(m2, residual_type = "simulated", check = c("ncv", "qq", "normality", "vif"))
+#check_model(m3, residual_type = "simulated", check = c("ncv", "qq", "normality", "vif"))
+
+```

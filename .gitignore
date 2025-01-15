@@ -30,10 +30,15 @@ vignettes/*.pdf
 .DS_Store
 pca-kf-new.R
 Rplot.png
-
 # Confidential data
 analyses/2performance_fisheries/analyses/lobster_logbooks/output
 analyses/2performance_fisheries/analyses/dive_logbooks/output
-
 # Large files
 data/habitat_cdfw/old/shiny_app/data
+analyses/7habitat/figures/sites_1000m_plots/
+# Archived stuff
+analyses/7habitat/archive/
+analyses/7habitat/output/
+analyses/7habitat/figures/archive/
+# Incomplete stuff (rm when publishing)
+analyses/7habitat/figures/ 

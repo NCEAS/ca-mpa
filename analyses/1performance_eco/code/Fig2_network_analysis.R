@@ -8,14 +8,12 @@ rm(list=ls())
 librarian::shelf(ggplot2, tidyverse, here, metafor)
 
 #set directories
-data_path <- "/home/shares/ca-mpa/data/sync-data/"
-biomass_dat <-  paste0(data_path,"monitoring/processed_data/biomass_processed")
 fig_dir <- here::here("analyses","1performance_eco","figures")
 tab_dir <- here::here("analyses","1performance_eco","tables")
 dat_path <- here::here("analyses","1performance_eco","output")
 
 #read data
-biomass_mod <- readRDS(file.path(dat_path, "biomass_with_moderators_new2.Rds")) 
+biomass_mod <- readRDS(file.path(dat_path, "biomass_with_moderators.Rds")) 
 
 
 ################################################################################
@@ -50,18 +48,6 @@ habitat_region <- filtered_data %>%
 
 #save results to .rdata to generate summary table
 #saveRDS(habitat_region, file = file.path(dat_path, "habitat_region_meta_results.Rds"))
-
-################################################################################
-# Verify that the group_by and do() call worked using a test
-rma_test_dat <- filtered_data %>% dplyr::filter(habitat == "Kelp forest" &
-                                                  state_region == "North Coast" &
-                                                  target_status == "Targeted")
-
-rma_test_results <- coef(summary(rma(yi, vi, data = rma_test_dat)))
-                   
-pooled_results_filtered <- pooled_results %>% dplyr::filter(habitat == "Kelp forest" &
-                                                              state_region == "North Coast" &
-                                                              target_status == "Targeted")      
 
 ################################################################################
 # Calculate the pooled effects for each habitat and target status
@@ -155,11 +141,19 @@ meta_results$target_status <- factor(meta_results$target_status, levels = c("Tar
 #state_labels <- c(expression(italic("Pooled")), "South Coast", "Central Coast", "North Central Coast", "North Coast")
 
 
-habitat <- meta_results %>% filter(!(habitat %in% c("Region","Network"))) 
+habitat <- meta_results %>% filter(!(habitat %in% c("Region","Network"))) %>%
+  mutate(mpa_defacto_class = str_to_sentence(mpa_defacto_class)) 
+   #        str_replace_all("-", " ") %>%  
+    #       str_to_lower() %>%          
+     #      str_to_sentence())               
+                    
   
-region <- meta_results %>% filter(habitat %in% c('Region','Network')) %>% filter(!(state_region == "Network level")) 
+region <- meta_results %>% filter(habitat %in% c('Region','Network')) %>% filter(!(state_region == "Network level")) %>%
+  mutate(mpa_defacto_class = str_to_sentence(mpa_defacto_class)) 
+
   
-network <- meta_results %>% filter(habitat %in% c('Region','Network')) %>% filter(state_region == "Network level")
+network <- meta_results %>% filter(habitat %in% c('Region','Network')) %>% filter(state_region == "Network level") %>%
+  mutate(mpa_defacto_class = str_to_sentence(mpa_defacto_class)) 
 
 
 # Theme
@@ -186,7 +180,6 @@ my_theme <-  theme(axis.text=element_text(size=9, color = "black"),
 )
 
 
-# Define breaks and labels for the scale
 breaks <- c(10, 20, 30)
 labels <- c("1-10", "11-20", "21-35")
 
@@ -195,9 +188,8 @@ g1 <- ggplot(habitat %>%
                mutate(ci.ub = ifelse(ci.ub > 3, 3, ci.ub)),
              aes(x = estimate, y = state_region, color = target_status)) +
   geom_vline(xintercept = 0, linetype = "dashed", color = "grey") +
-  #add points for mpas
-  geom_point(aes(size = n_mpas), 
-             shape = 15, 
+  #add points for mpas with target_status as shape and color
+  geom_point(aes(size = n_mpas, shape = target_status),  # Shape for target_status, size for n_mpas
              position = position_dodge(width = 0.7)
   ) +
   #add points for pooled effects
@@ -215,15 +207,17 @@ g1 <- ggplot(habitat %>%
                 x = ifelse(estimate > 0, ci.ub + 0.2, ci.lb - 0.2)), 
             position = position_dodge(width = 0.7),
             vjust=0.7,
-            size = 4, show.legend = FALSE)+
+            size = 4, show.legend = FALSE) +
   facet_grid(habitat~mpa_defacto_class, scales = "fixed") +  
   xlab("") +
   ylab("") +
-  scale_color_manual(values = c("#007F00","#663399"),
+  scale_color_manual(values = c("Targeted" = "#007F00", "Non-targeted" = "#663399"),
                      name = "Target status") +  
-  scale_size_continuous(name = "No. MPAs", breaks = breaks, labels = labels,
-                        range = c(1, 3)) +
-  scale_x_continuous(limits= c(-3,3))+
+  scale_shape_manual(values = c("Non-targeted" = 0, "Targeted" = 15), 
+                     name = "Target status") +  # Open square for Non-targeted, solid square for Targeted
+  scale_size_continuous(name = expression(italic(n) ~ "MPAs"), 
+                        range = c(1, 3), guide = guide_legend(override.aes = list(shape = 15))) +  # Square shape in size legend
+  scale_x_continuous(limits= c(-3,3)) +
   theme_minimal() +
   theme(strip.text = element_text(size = 10, face = "bold"),
         strip.background = element_blank(),
@@ -231,10 +225,10 @@ g1 <- ggplot(habitat %>%
         panel.background = element_rect(fill = "white", color = NA)) +
   labs(x= "Effect size \n(log response ratio)",
        title = "Ecosystem performance",
-       tag = "C")+
+       tag = "c") +
   theme_bw() + my_theme + theme(plot.margin = ggplot2::margin(0, 0, 0, 0, "cm"))
+#g1
 
-g1
 
 
 
@@ -243,7 +237,7 @@ g2 <- ggplot(region %>%
                mutate(ci.ub = ifelse(ci.ub > 3, 3, ci.ub)),
              aes(x = estimate, y = state_region, color = target_status)) +
   geom_vline(xintercept = 0, linetype = "dashed", color = "grey") +
-  #add points for mpas
+  #add points for mpas --- dummy legend
   geom_point(aes(size = n_mpas), 
              # shape = ifelse(combined_dat$habitat == "Pooled effect size", 18, 15), 
              shape = 15, 
@@ -251,9 +245,9 @@ g2 <- ggplot(region %>%
   ) +
   #add points for pooled effects
   geom_point(data = subset(region, habitat == 'Region'), 
-             # shape = ifelse(combined_dat$habitat == "Pooled effect size", 18, 15), 
-             shape = 18, 
-             size = 2,
+             shape = ifelse(region$target_status == "Targeted", 18, 23), 
+             #shape = 18, 
+             size = ifelse(region$target_status == "Targeted", 3, 2), 
              position = position_dodge(width = 0.7),
              show.legend=FALSE
   ) +
@@ -272,7 +266,7 @@ g2 <- ggplot(region %>%
   ylab("") +
   scale_color_manual(values = c("#007F00","#663399"),
                      name = "Target status") +  
-  scale_size_continuous(name = "No. MPAs", range = c(1, 3)) +
+  scale_size_continuous(name = expression(italic(n) ~ "MPAs"), range = c(1, 3)) +
   scale_x_continuous(limits= c(-3,3))+
   #guides(color = guide_legend(override.aes = list(shape = c(15, 15))),  # Set the shape to 15 (square) for color legend
   #      size = guide_legend(override.aes = list(shape = c(15, 15)))) +  # Set the shape to 15 (square) for size legend
@@ -282,10 +276,10 @@ g2 <- ggplot(region %>%
         panel.spacing = unit(1, "lines"),
         panel.background = element_rect(fill = "white", color = NA)) +
   labs(title = "Regional performance",
-       tag = "B")+
+       tag = "b")+
   theme_bw() + my_theme + theme(plot.margin = ggplot2::margin(-0.2,0,0,0,"cm"))
 
-g2
+#g2
 
 
 g3 <- ggplot(network %>% 
@@ -301,9 +295,9 @@ g3 <- ggplot(network %>%
   ) +
   #add points for pooled effects
   geom_point(data = subset(network, habitat == 'Network'), 
-             # shape = ifelse(combined_dat$habitat == "Pooled effect size", 18, 15), 
-             shape = 18, 
-             size = 2,
+             shape = ifelse(network$target_status == "Targeted", 18, 23), 
+             #shape = 18, 
+             size = ifelse(network$target_status == "Targeted", 3, 2), 
              position = position_dodge(width = 0.7),
              show.legend=FALSE
   ) +
@@ -320,7 +314,7 @@ g3 <- ggplot(network %>%
   ylab("") +
   scale_color_manual(values = c("#007F00","#663399"),
                      name = "Target status") +  
-  scale_size_continuous(name = "No. MPAs", range = c(1, 3)) +
+  scale_size_continuous(name = expression(italic(n) ~ "MPAs"), range = c(1, 3)) +
   scale_x_continuous(limits= c(-3,3))+
   theme_minimal() +
   theme(strip.text = element_text(size = 10, face = "bold"),
@@ -328,10 +322,10 @@ g3 <- ggplot(network %>%
         panel.spacing = unit(1, "lines"),
         panel.background = element_rect(fill = "white", color = NA))+
   labs(title = "Network performance",
-       tag = "A")+
+       tag = "a")+
   theme_bw() + my_theme + theme(plot.margin = ggplot2::margin(0,0,0,0,"cm"))
 
-g3
+#g3
 
 
 #plot
@@ -342,10 +336,10 @@ g <- ggpubr::ggarrange(g3, g2, g1, heights=c(0.15, 0.2,0.75), ncol=1,
 legend_only <- cowplot::get_legend(g1) 
 
 g_final <- ggpubr::ggarrange(g, legend_only, widths = c(0.8,0.2), ncol=2)
+g_final
 
-
-ggsave(g_final, filename=file.path(fig_dir, "Fig2_network_forestplot.png"), bg = "white",
-       width=6.5, height=10, units="in", dpi=600) 
+#ggsave(g_final, filename=file.path(fig_dir, "Fig2_network_forestplot.png"), bg = "white",
+ #    width=6.5, height=10, units="in", dpi=600) 
 
 
 
@@ -541,7 +535,7 @@ legend_only <- cowplot::get_legend(g1)
 g_final <- ggpubr::ggarrange(g, legend_only, widths = c(0.8,0.2), ncol=2)
 
 
-ggsave(g_final, filename=file.path(fig_dir, "archive/Fig2_network_forestplot_no_take.png"), bg = "white",
-      width=6.5, height=8, units="in", dpi=800) 
+#ggsave(g_final, filename=file.path(fig_dir, "archive/Fig2_network_forestplot_no_take.png"), bg = "white",
+ #     width=6.5, height=8, units="in", dpi=800) 
 
 

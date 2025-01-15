@@ -28,7 +28,7 @@ gisdir <- "/home/shares/ca-mpa/data/sync-data/gis_data/processed"
 plotdir <- here::here("analyses","1performance_eco","figures")
 
 # Read data
-mpa_dat <- readRDS(file.path(basedir, "biomass_richness_diversity2.Rds"))
+mpa_dat <- readRDS(file.path(basedir, "biomass_richness_diversity.Rds"))
 
 unique(mpa_dat$state_name)
 

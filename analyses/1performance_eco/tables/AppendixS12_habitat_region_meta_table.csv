@@ -1,0 +1,43 @@
+"Ecosystem","Region","MPA type","Allowed take","Target status","Effect size","Standard error","P-value","95% lower","95% upper","No. MPAs","Tau-2","Q"
+"Surf zone","North ","SMCA","Partial-take","Targeted",2.709,2.238,"0.226",-1.677,7.095,2,9.352,14.995
+"Surf zone","North ","SMR","No-take","Targeted",0.613,0.087,"<0.001",0.443,0.782,1,0,0
+"Surf zone","North ","SMCA","Partial-take","Non-targeted",1.951,1.022,"0.056",-0.052,3.954,2,1.896,10.332
+"Surf zone","North ","SMR","No-take","Non-targeted",0.785,0.171,"<0.001",0.449,1.121,1,0,0
+"Surf zone","North Central ","SMR","No-take","Targeted",1.053,0.454,"0.02",0.162,1.944,1,0,0
+"Surf zone","North Central ","SMR","No-take","Non-targeted",-0.525,0.216,"0.015",-0.949,-0.101,1,0,0
+"Surf zone","Central ","SMR","No-take","Targeted",-0.143,0.377,"0.704",-0.883,0.596,4,0.295,6.943
+"Surf zone","Central ","SMR","No-take","Non-targeted",-0.057,0.703,"0.935",-1.435,1.32,4,1.897,52.276
+"Surf zone","South ","SMR","No-take","Targeted",0.789,0.486,"0.104",-0.163,1.742,5,0.958,36.967
+"Surf zone","South ","SMR","No-take","Non-targeted",0.173,0.167,"0.3",-0.155,0.502,5,0.082,10.228
+"Kelp forest","North ","SMCA","Partial-take","Targeted",1.199,0.22,"<0.001",0.768,1.631,1,0,0
+"Kelp forest","North ","SMR","No-take","Targeted",-0.429,0.276,"0.12",-0.969,0.112,2,0,0.064
+"Kelp forest","North ","SMCA","Partial-take","Non-targeted",-0.731,0.788,"0.354",-2.275,0.813,1,0,0
+"Kelp forest","North ","SMR","No-take","Non-targeted",0.322,0.018,"<0.001",0.287,0.357,2,0,0.003
+"Kelp forest","North Central ","SMCA","Partial-take","Targeted",-0.32,0.286,"0.263",-0.881,0.241,3,0,1.681
+"Kelp forest","North Central ","SMR","No-take","Targeted",0.687,0.716,"0.338",-0.718,2.091,3,1.359,15.067
+"Kelp forest","North Central ","SMCA","Partial-take","Non-targeted",-0.234,0.485,"0.629",-1.184,0.716,2,0.469,460.733
+"Kelp forest","North Central ","SMR","No-take","Non-targeted",0.357,0.03,"<0.001",0.297,0.416,3,0.002,12.687
+"Kelp forest","Central ","SMCA","Partial-take","Targeted",-0.271,0.331,"0.414",-0.92,0.379,2,0.158,3.432
+"Kelp forest","Central ","SMR","No-take","Targeted",0.433,0.218,"0.048",0.005,0.861,10,0.356,55.411
+"Kelp forest","Central ","SMCA","Partial-take","Non-targeted",-0.087,0.447,"0.845",-0.964,0.79,2,0.352,8.177
+"Kelp forest","Central ","SMR","No-take","Non-targeted",0.202,0.121,"0.094",-0.034,0.439,10,0.092,66.286
+"Kelp forest","South ","SMCA","Partial-take","Targeted",0.376,0.511,"0.462",-0.625,1.378,5,1.149,41.689
+"Kelp forest","South ","SMR","No-take","Targeted",0.571,0.246,"0.02",0.089,1.053,20,0.993,452.604
+"Kelp forest","South ","SMCA","Partial-take","Non-targeted",-0.291,0.534,"0.586",-1.338,0.757,5,1.289,28.022
+"Kelp forest","South ","SMR","No-take","Non-targeted",0.062,0.225,"0.784",-0.38,0.504,20,0.859,203.169
+"Shallow reef","North ","SMR","No-take","Targeted",0.598,0.149,"<0.001",0.305,0.891,2,0,0.034
+"Shallow reef","North Central ","SMR","No-take","Targeted",0.841,0.313,"0.007",0.229,1.454,3,0.251,26.717
+"Shallow reef","Central ","SMR","No-take","Targeted",0.891,0.287,"0.002",0.329,1.454,4,0.3,38.546
+"Shallow reef","South ","SMR","No-take","Targeted",0.858,0.299,"0.004",0.271,1.444,6,0.503,62.858
+"Deep reef","North ","SMCA","Partial-take","Targeted",1.359,0.392,"<0.001",0.592,2.127,1,0,0
+"Deep reef","North ","SMR","No-take","Targeted",-0.152,0.334,"0.648",-0.807,0.502,2,0,0.233
+"Deep reef","North ","SMCA","Partial-take","Non-targeted",1.355,0.003,"<0.001",1.349,1.362,1,0,0
+"Deep reef","North ","SMR","No-take","Non-targeted",-0.412,0.204,"0.043",-0.812,-0.013,2,0.053,1.833
+"Deep reef","North Central ","SMCA","Partial-take","Targeted",0.524,0.283,"0.064",-0.031,1.079,1,0,0
+"Deep reef","North Central ","SMR","No-take","Targeted",-0.133,0.186,"0.477",-0.498,0.233,2,0,0.989
+"Deep reef","North Central ","SMCA","Partial-take","Non-targeted",0.537,0.049,"<0.001",0.442,0.632,1,0,0
+"Deep reef","North Central ","SMR","No-take","Non-targeted",0.478,0.033,"<0.001",0.414,0.542,1,0,0
+"Deep reef","Central ","SMR","No-take","Targeted",0.083,0.344,"0.809",-0.592,0.758,7,0.633,26.229
+"Deep reef","Central ","SMR","No-take","Non-targeted",0.306,0.134,"0.023",0.043,0.568,7,0.093,105.387
+"Deep reef","South ","SMR","No-take","Targeted",0.484,0.23,"0.035",0.035,0.934,6,0.197,14.132
+"Deep reef","South ","SMR","No-take","Non-targeted",0.506,0.179,"0.005",0.154,0.857,6,0.108,17.21

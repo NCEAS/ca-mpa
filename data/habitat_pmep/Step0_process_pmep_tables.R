@@ -313,6 +313,52 @@ pmep_full2 <- pmep_full2 %>%
                          "Platyrhynidae" = "Platyrhinidae")) %>% 
   mutate(genus = sub("([A-Za-z]+).*", "\\1", species))
 
+
+# Fix species codings
+
+hard.cols <- c("rock", "cobble", "boulder")
+soft.cols <- c("mud", "sand", "gravel", "shell")
+biot.cols <- c("algae", "kelp", "seagrass", "sfmi")
+
+pmep_full3 <- pmep_full2 %>%   
+  mutate(across(mud:sfmi, as.numeric)) %>% 
+  mutate(intertidal = as.numeric(if_else(is.na(intertidal), NA, 1)),
+         subtidal = as.numeric(if_else(is.na(subtidal), NA, 1))) %>% 
+  select(-order) %>% 
+  mutate(assemblage_new = case_when(
+    is.na(assemblage) & 
+      rowSums(select(., all_of(hard.cols)) == 1, na.rm = TRUE) > 0 &
+      rowSums(select(., all_of(soft.cols)) == 1, na.rm = TRUE) == 0 &
+      rowSums(select(., all_of(biot.cols)) == 1, na.rm = TRUE) == 0 ~ "Hard Bottom",
+    is.na(assemblage) & 
+      rowSums(select(., all_of(hard.cols)) == 1, na.rm = TRUE) == 0 &
+      rowSums(select(., all_of(soft.cols)) == 1, na.rm = TRUE) > 0 &
+      rowSums(select(., all_of(biot.cols)) == 1, na.rm = TRUE) == 0 ~ "Soft Bottom",
+    is.na(assemblage) & 
+      rowSums(select(., all_of(hard.cols)) == 1, na.rm = TRUE) > 0 &
+      rowSums(select(., all_of(soft.cols)) == 1, na.rm = TRUE) > 0 &
+      rowSums(select(., all_of(biot.cols)) == 1, na.rm = TRUE) == 0 ~ "Soft-hard",
+    is.na(assemblage) & 
+      rowSums(select(., all_of(hard.cols)) == 1, na.rm = TRUE) > 0 &
+      rowSums(select(., all_of(soft.cols)) == 1, na.rm = TRUE) == 0 &
+      rowSums(select(., all_of(biot.cols)) == 1, na.rm = TRUE) > 0 ~ "Hard Bottom Biotic",
+    is.na(assemblage) & 
+      rowSums(select(., all_of(hard.cols)) == 1, na.rm = TRUE) == 0 &
+      rowSums(select(., all_of(soft.cols)) == 1, na.rm = TRUE) > 0 &
+      rowSums(select(., all_of(biot.cols)) == 1, na.rm = TRUE) > 0 ~ "Soft Bottom Biotic",
+    is.na(assemblage) & 
+      rowSums(select(., all_of(hard.cols)) == 1, na.rm = TRUE) > 0 &
+      rowSums(select(., all_of(soft.cols)) == 1, na.rm = TRUE) > 0 &
+      rowSums(select(., all_of(biot.cols)) == 1, na.rm = TRUE) > 0 ~ "Generalist",
+    is.na(assemblage) & 
+      rowSums(!is.na(select(., all_of(hard.cols)))) == 0 &
+      rowSums(!is.na(select(., all_of(soft.cols)))) == 0 &
+      rowSums(!is.na(select(., all_of(biot.cols)))) == 0 &
+      vertical_zonation == "Pelagic" ~ "Pelagic",
+    !is.na(assemblage) ~ assemblage,
+    TRUE ~ NA
+  ))
+
 # Export
-saveRDS(pmep_full2, file.path(out.dir, "pmep_species_processed.Rds"))
-# Last export: July 18 2024
+saveRDS(pmep_full3, file.path(out.dir, "pmep_species_processed.Rds"))
+# Last export: Aug 2 2024

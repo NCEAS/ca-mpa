@@ -27,9 +27,10 @@ library(terra)
 library(gdalUtils)
 
 # Directories
-#gdb.dir <- "/Users/lopazanski/Documents/habitat/PMEP/PMEP_Nearshore_Zones_and_Habitat.gdb" # Local
-gdb.dir <- "/home/shares/ca-mpa/data/sync-data/habitat_pmep/PMEP_Nearshore_Zones_and_Habitat.gdb" # Aurora
+gdb.dir <- "/home/shares/ca-mpa/data/sync-data/habitat_pmep/PMEP_Nearshore_Zones_and_Habitat.gdb" 
 out.dir <- "/home/shares/ca-mpa/data/sync-data/habitat_pmep/processed"
+gdb.dir <-  "/home/shares/ca-mpa/data/sync-data/habitat_pmep/PMEP_Nearshore_Zones_and_Habitat_V2.gdb" # check second version
+out.dir <- "/home/shares/ca-mpa/data/sync-data/habitat_pmep/processed_v2"
 
 # Read Data ----------------------------------------------------------------------------
 # Check layer names
@@ -40,6 +41,7 @@ biotic_full_table <- terra::vect(gdb.dir, layer = 'West_Coast_USA_Nearshore_CMEC
                                  what = "attributes")
 
 saveRDS(biotic_full_table, file.path(out.dir, "biotic", "West_Coast_USA_Nearshore_CMECS_Biotic_Habitat_Attributes.Rds"))
+# Second version is exactly the same as first - so will use original export
 
 
 # Export CA subset -------------------------------------------------------------------
@@ -66,7 +68,6 @@ att_other <- readRDS(file.path("/home/shares/ca-mpa/data/sync-data/habitat_pmep/
 pmep_sections <- unique(att$PMEP_Section[att$State=='CA'])
 
 # Run the following in the command line:
-# ogr2ogr -f "GPKG" /home/shares/ca-mpa/data/sync-data/habitat_pmep/processed/biotic/biotic_ca/sections/biotic_section_23.gpkg /home/shares/ca-mpa/data/sync-data/habitat_pmep/raw/PMEP_Nearshore_Zones_and_Habitat.gdb West_Coast_USA_Nearshore_CMECS_Biotic_Habitat -where "State='CA' AND PMEP_Section='23'" --config OGR_ORGANIZE_POLYGONS CCW_INNER_JUST_AFTER_CW_OUTER
 # ogr2ogr -f "GPKG" /home/shares/ca-mpa/data/sync-data/habitat_pmep/processed/biotic/biotic_ca/sections/biotic_section_52.gpkg /home/shares/ca-mpa/data/sync-data/habitat_pmep/raw/PMEP_Nearshore_Zones_and_Habitat.gdb West_Coast_USA_Nearshore_CMECS_Biotic_Habitat -where "State='CA' AND PMEP_Section='52'" --config OGR_ORGANIZE_POLYGONS CCW_INNER_JUST_AFTER_CW_OUTER
 # ogr2ogr -f "GPKG" /home/shares/ca-mpa/data/sync-data/habitat_pmep/processed/biotic/biotic_ca/sections/biotic_section_30.gpkg /home/shares/ca-mpa/data/sync-data/habitat_pmep/raw/PMEP_Nearshore_Zones_and_Habitat.gdb West_Coast_USA_Nearshore_CMECS_Biotic_Habitat -where "State='CA' AND PMEP_Section='30'" --config OGR_ORGANIZE_POLYGONS CCW_INNER_JUST_AFTER_CW_OUTER
 # ogr2ogr -f "GPKG" /home/shares/ca-mpa/data/sync-data/habitat_pmep/processed/biotic/biotic_ca/sections/biotic_section_31.gpkg /home/shares/ca-mpa/data/sync-data/habitat_pmep/raw/PMEP_Nearshore_Zones_and_Habitat.gdb West_Coast_USA_Nearshore_CMECS_Biotic_Habitat -where "State='CA' AND PMEP_Section='31'" --config OGR_ORGANIZE_POLYGONS CCW_INNER_JUST_AFTER_CW_OUTER
@@ -76,5 +77,6 @@ pmep_sections <- unique(att$PMEP_Section[att$State=='CA'])
 # ogr2ogr -f "GPKG" /home/shares/ca-mpa/data/sync-data/habitat_pmep/processed/biotic/biotic_ca/sections/biotic_section_40.gpkg /home/shares/ca-mpa/data/sync-data/habitat_pmep/raw/PMEP_Nearshore_Zones_and_Habitat.gdb West_Coast_USA_Nearshore_CMECS_Biotic_Habitat -where "State='CA' AND PMEP_Section='40'" --config OGR_ORGANIZE_POLYGONS CCW_INNER_JUST_AFTER_CW_OUTER
 # ogr2ogr -f "GPKG" /home/shares/ca-mpa/data/sync-data/habitat_pmep/processed/biotic/biotic_ca/sections/biotic_section_41.gpkg /home/shares/ca-mpa/data/sync-data/habitat_pmep/raw/PMEP_Nearshore_Zones_and_Habitat.gdb West_Coast_USA_Nearshore_CMECS_Biotic_Habitat -where "State='CA' AND PMEP_Section='41'" --config OGR_ORGANIZE_POLYGONS CCW_INNER_JUST_AFTER_CW_OUTER
 # ogr2ogr -f "GPKG" /home/shares/ca-mpa/data/sync-data/habitat_pmep/processed/biotic/biotic_ca/sections/biotic_section_50.gpkg /home/shares/ca-mpa/data/sync-data/habitat_pmep/raw/PMEP_Nearshore_Zones_and_Habitat.gdb West_Coast_USA_Nearshore_CMECS_Biotic_Habitat -where "State='CA' AND PMEP_Section='50'" --config OGR_ORGANIZE_POLYGONS CCW_INNER_JUST_AFTER_CW_OUTER
+# ogr2ogr -f "GPKG" /home/shares/ca-mpa/data/sync-data/habitat_pmep/processed/biotic/biotic_ca/sections/biotic_section_23.gpkg /home/shares/ca-mpa/data/sync-data/habitat_pmep/raw/PMEP_Nearshore_Zones_and_Habitat.gdb West_Coast_USA_Nearshore_CMECS_Biotic_Habitat -where "PMEP_Section='23'" --config OGR_ORGANIZE_POLYGONS CCW_INNER_JUST_AFTER_CW_OUTER
 
 
