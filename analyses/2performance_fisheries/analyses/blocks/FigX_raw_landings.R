@@ -14,7 +14,7 @@ library(rfishbase)
 # Directories
 basedir <- "/Users/lopazanski/Library/CloudStorage/GoogleDrive-lopazanski@ucsb.edu/Shared drives/NCEAS MPA network assessment/MPA Network Assessment: Working Group Shared Folder/data/sync-data"
 gisdir <- file.path(basedir, "gis_data/processed")
-datadir <- "analyses/2performance_fisheries/analyses/blocks"
+datadir <- "analyses/2performance_fisheries/analyses/blocks/data"
 fishdir <- "/Users/lopazanski/Documents/github/nceas/CDFW-fishing-data"
 
 # Read data
@@ -24,28 +24,43 @@ landings_raw <- readRDS(file.path(fishdir, "CDFW_2000_2020_landings_receipts.Rds
 #sp_key <- readRDS(file.path(fishdir, "CDFW_species_key.Rds"))# This seems incomplete
 sp_key <- read_csv(file.path(fishdir, "CDFW_species_key.csv"))
 
+# Load fishbase taxa info & append to speacies key
+fishbase <- load_taxa(collect = T) 
+sp_key_new <- left_join(sp_key, fishbase, by = c("sci_name" = "Species"))
 
-# Clean up landings data ######################################################
+# Clean landings data ##########################################################
 landings <- landings_raw %>% 
   # remove invalid blocks
   filter(!(block_type %in% c("Invalid"))) 
 
-# Explore random characteristics ###############################################
-
+# Explore ######################################################################
+# Number of unique vessels in entire dataset
 length(unique(landings$vessel_id)) #5938
+
+# Number of unique fishers in entire dataset
 length(unique(landings$fisher_id)) #7906
 
+# Number of different gear specifications
+length(unique(landings$gear)) #76
+length(unique(landings$gear_type)) #12
+
+
+# Number of receipts with unknown/NA vessels in dataset
 vessel_na <- landings %>% 
   filter(vessel_id == -1) #23891
 
+# Total catch by gear type for entire dataset
 gear_catch <- landings %>% 
   group_by(gear_type) %>% 
   summarize(total_lbs = sum(landings_lb, na.rm = T))
 
-# Explore species totals #######################################################
-length(unique(landings$species_id)) 
+# Number of species in landings
+length(unique(landings$species_id)) # 352
+
+# Total landings in entire dataset
 total_lbs <- sum(landings$landings_lb, na.rm = T)         
 
+# Total landings per species with percent of total landings
 species_totals <- landings %>% 
   group_by(species) %>% 
   summarize(total_lb = sum(landings_lb, na.rm = T),
@@ -53,11 +68,6 @@ species_totals <- landings %>%
   arrange(-total_lb) %>% 
   mutate(cum_sum = cumsum(pct))
 
-fishbase <- load_taxa(collect = T) 
-
-sp_key_new <- left_join(sp_key, fishbase, by = c("sci_name" = "Species"))
-
-  
 # Create species groupings #####################################################
 
 ## 1. Coastal Pelagic Species: anchovy, sardine, mackerel ----
@@ -230,6 +240,7 @@ region_lats <- c(42, 39.0, 37.18, 34.5, 32.5) %>% rev()
 # Get land
 usa <- rnaturalearth::ne_states(country="United States of America", returnclass = "sf")
 foreign <- rnaturalearth::ne_countries(country=c("Canada", "Mexico"), returnclass = "sf")
+ca <- usa %>% filter(name == "California")
 
 # Theme
 my_theme <-  theme(axis.text=element_text(size=7),
@@ -250,9 +261,42 @@ my_theme <-  theme(axis.text=element_text(size=7),
 
 # Plot data
 ggplot() +
-  # Bblocks
-  geom_sf(data=blocks, mapping=aes(fill=mlpa_region, alpha=mpa_yn), lwd=0.2) +
-  # Rregion lines
+  # Blocks
+  geom_sf(data=blocks %>% 
+            filter(!(block_type == "Offshore") & block_id < 900), 
+          mapping=aes(alpha=mpa_yn), lwd=0.2) +
+  # MPAS
+  geom_sf(data = mpas,
+          mapping=aes(fill = type), alpha = 0.5) +
+  # Region lines
+  geom_hline(mapping=aes(yintercept=region_lats)) +
+  # Land
+  geom_sf(data=foreign, fill="grey80", color="white", lwd=0.3) +
+  geom_sf(data=usa, fill="grey80", color="white", lwd=0.3) +
+  # Legend
+  scale_fill_discrete(name="MPA type") +
+  scale_alpha_manual(name="Block type", values=c(1, 0.2)) +
+  # Crop
+  coord_sf(xlim = c(-122.75, -121.4), ylim = c(36, 37.2)) +
+  # Theme
+  theme_bw() + my_theme 
+
+
+# Plot data
+
+offshore_blocks <- blocks %>% 
+  filter(block_type == "Offshore") 
+
+test <- st_snap(offshore_blocks, ca)
+  
+  
+ggplot() +
+  # Blocks
+  geom_sf(data=offshore_blocks %>% filter(block_state == "California"), 
+          mapping=aes(fill=mlpa_region), lwd=0.2) +
+  geom_sf(data=blocks %>% filter(block_state == "California"), 
+          mapping=aes(fill=mlpa_region), alpha = 0.8, lwd=0.2) +
+  # Region lines
   geom_hline(mapping=aes(yintercept=region_lats)) +
   # Land
   geom_sf(data=foreign, fill="grey80", color="white", lwd=0.3) +
@@ -261,7 +305,6 @@ ggplot() +
   scale_fill_discrete(name="MLPA region") +
   scale_alpha_manual(name="Block type", values=c(1, 0.2)) +
   # Crop
-  coord_sf(xlim = c(-126, -117), ylim = c(32.5, 42)) +
   # Theme
   theme_bw() + my_theme 
   
@@ -1023,5 +1066,127 @@ ggplot() +
   labs(title = "Pacific pink shrimp (Pandalus jordani)",
        fill = "Thousand lbs.")
 
+# Examine 4-Digit Blocks -------------------------------------------------
 
 
+four <- landings %>% filter(block_type == "Offshore")
+three <- landings %>% filter(!(block_type == "Offshore"))
+
+four_vessels <- data.frame(vessel_id = unique(four$vessel_id))
+three_vessels <- data.frame(vessel_id = unique(three$vessel_id))
+
+only_four_vessels <- landings %>% 
+  filter(vessel_id %in% four_vessels$vessel_id 
+         & !(vessel_id %in% three_vessels$vessel_id)) %>% 
+  distinct(vessel_id)
+# there are 331 vessels that always report 4-digit latitude areas
+
+only_three_vessels <- landings %>% 
+  filter(vessel_id %in% three_vessels$vessel_id 
+         & !(vessel_id %in% four_vessels$vessel_id)) %>% 
+  distinct(vessel_id)
+# there are 3010 vessels that always report 3-digit spatial blocks
+
+both_type_vessels <- landings %>% 
+  filter(vessel_id %in% three_vessels$vessel_id 
+         & vessel_id %in% four_vessels$vessel_id) %>% 
+  distinct(vessel_id)
+# there are 2597 that report in both 3- and 4-digit blocks
+
+## Read created species group key ---------------
+sp_group <- readRDS(file.path(datadir, "species_fishery_group_key.Rds"))
+
+## Join species group key with landings ---------
+landings <- left_join(landings, sp_group, by = c("species_id" = "spp_code_num"))
+
+# Landings not included in current groups
+landings_dropped <- landings %>% 
+  filter(is.na(fishery))
+
+length(landings_dropped$receipt_id)/length(landings$receipt_id) # 12%
+
+vessels_all <- landings %>%
+  group_by(fishery_group) %>% 
+  summarize(n_total = length(unique(vessel_id)))
+
+# Counting unique vessels for 3-digit locations
+vessels_3 <- landings %>% 
+  filter(nchar(as.character(block_id)) == 3) %>% 
+  group_by(fishery_group) %>%
+  summarise(vessels = list(unique(vessel_id)),
+            n_3 = length(unique(vessel_id))) 
+
+# Counting unique vessels for 4-digit locations
+vessels_4 <- landings %>% 
+  filter(nchar(as.character(block_id)) == 4) %>% 
+  group_by(fishery_group) %>%
+  summarise(vessels = list(unique(vessel_id)),
+            n_4 = length(unique(vessel_id)))
+
+# Identifying vessels operating in both 3-digit and 4-digit locations
+vessels_in_both <- vessels_3 %>%
+  inner_join(vessels_4, by = "fishery_group") %>%
+  rowwise() %>%
+  mutate(unique_vessels = list(intersect(vessels.x, vessels.y))) %>%
+  unnest(cols = c(unique_vessels)) %>%
+  group_by(fishery_group) %>%
+  summarise(n_both = n_distinct(unique_vessels))
+
+# Combining results
+vessels <- vessels_3 %>% 
+  select(fishery_group, n_3) %>% 
+  left_join(vessels_4 %>% select(fishery_group, n_4)) %>% 
+  left_join(vessels_in_both) %>% 
+  left_join(vessels_all) %>% 
+  mutate(n_3 = n_3 - n_both,
+         n_4 = n_4 - n_both) # remove doublecount
+
+# Display final results
+final_results
+
+# How many vessels contribute to the catch ? -----
+vessel <- landings %>% 
+  group_by(vessel_id) %>% 
+  summarize(total_catch = sum(landings_lb)) %>% 
+  arrange(desc(total_catch)) %>% 
+  mutate(cum_catch = cumsum(total_catch),
+         cum_percent = cum_catch/total_lbs*100) 
+
+# Display landings by grouping time series
+
+
+fishery_totals <- landings %>% 
+  group_by(fishery_group) %>% 
+  summarize(total_lb = sum(landings_lb, na.rm = T)) %>% 
+  mutate(fishery_group = fct_reorder(fishery_group, -total_lb))
+
+annual_landings <- landings %>% 
+  group_by(fishery_group,year) %>% 
+  summarize(total_lbs = sum(landings_lb, na.rm = T)) %>% 
+  mutate(fishery_group = factor(fishery_group, levels(fishery_totals$fishery_group)))
+
+species_totals <- landings %>% 
+  group_by(species, fishery_group) %>% 
+  summarize(total_lb = sum(landings_lb, na.rm = T),
+            pct = round(total_lb/total_lbs*100,4)) %>% 
+  arrange(-total_lb) %>% 
+  mutate(cum_sum = cumsum(pct))
+
+ggplot(annual_landings %>% drop_na()) +
+  geom_path(aes(x = year, y = total_lbs, 
+                color = fishery_group)) +
+  scale_x_continuous(limits = c(2000,2020), expand = c(0,0))+
+  scale_y_continuous(limits = c(0, 3e8), expand = c(0,0))+
+  labs(x = "Year", y = "Total landings (lbs)", color = NULL) +
+  theme_classic()
+
+groundfish_totals <- landings %>% 
+  filter(fishery_group == "groundfish") %>% 
+  group_by(species, year) %>% 
+  summarize(total_species_lbs = sum(landings_lb, na.rm = T))
+
+ggplot(groundfish_totals) +
+  geom_path(aes(x = year, y = total_species_lbs, color = species))
+
+ggplot(landings %>% 
+         filter())

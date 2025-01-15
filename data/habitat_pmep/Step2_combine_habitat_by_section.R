@@ -123,6 +123,24 @@ biotic <- st_union(biotic)
 
 ## 41 Substrate Only ----
 
+substrate <- readRDS("substrate_sites_section_41.Rds") %>% 
+    rename(geometry = Shape) %>% 
+    filter(!CMECS_SC_Category_Code == "9.9.9.9.9") %>% 
+    group_by(across(all_of(site_columns)), CMECS_SC_Category_Code, CMECS_SC_Category) %>% 
+    summarize(geometry = st_union(geometry), .groups = 'drop') 
+
+biotic <- readRDS("biotic_sites_section_41.Rds") %>% 
+  rename(geometry = Shape) %>% 
+  filter(!CMECS_BC_Category_Code == "9.9.9.9.9") %>% 
+  group_by(across(all_of(site_columns)), CMECS_BC_Category_Code, CMECS_BC_Category,
+           across(all_of(bio_columns))) %>% 
+  summarize(geometry = st_union(geometry), .groups = 'drop') %>% 
+  st_transform(biotic, crs = st_crs(substrate))
+
+substrate <- st_buffer(substrate, 0)
+
+substrate_only <- st_difference(substrate, biotic)
+
 # Saved the first two processed substrate data to save time:
 #saveRDS(substrate, file.path(com.dir, "combined_mlpa_sites_1000m", "temp_substrate_41.Rds"))
 #saveRDS(biotic, file.path(com.dir, "combined_mlpa_sites_1000m", "temp_biotic_union_41.Rds"))
@@ -185,11 +203,16 @@ print("Site intersects complete.")
 sites <- sites[rowSums(site_intersects) > 0, ]
 saveRDS(sites, file.path(com.dir, "temp_sites.Rds"))
 
-substrate_only_sites <- sites %>% 
-  group_by(everything()) %>%
-  group_split() %>%
-  map_dfr(st_intersection)
 
+sites <- readRDS("temp_sites.Rds")
+substrate_only <- readRDS("temp_substrate_only_overlap_zones_41.Rds")
+
+substrate_only <- st_make_valid(substrate_only)
+
+# Apply smmal buffer to try to fix topology issues
+substrate_only <- st_buffer(substrate_only, 0)
+substrate_only_sites <- st_intersection(sites, substrate_only)
+saveRDS(substrate_only_sites, "substrate_only_overlap_sites_41.Rds")
 
 
 substrate <- readRDS(file.path(sub.dir, paste0("substrate_sites_1000m/substrate_sites_section_", section, ".Rds"))) %>% 
