@@ -1,0 +1,503 @@
+---
+title: "Model Diagnostic Comparisons"
+format:
+  html:
+    page-layout: full
+    self-contained: true
+editor: visual
+toc: true
+toc-expand: 3
+---
+
+# Overview
+
+Diagnostics from initial models demonstrated moderate issues with kurtosis, nonlinearity, and heteroskedasticity. The goal of this comparison is to explore whether other modeling options improve these issues. The first focal species is vermillion rockfish (Sebastes miniatus), a species found statewide that is generally associated with hard bottom habitat. This was chosen because it has two int
+
+The original approach was:
+
+Generalized linear mixed effects models with all numeric variables scaled (including dep. variable, first log+1 transformed then scaled to mean = 0 and sd = 1). The variables were scaled to accommodate differences in scales between MPA age and the habitat variables, and the magnitude between the various buffer scales now that multiple scales could be included in the same models (e.g. hard bottom at 500m and kelp at 25m, varying from 10s of sq meters to millions of sq meters).
+
+The top model for this species was:
+
+Log+1-Transformed Biomass \~ Hard Bottom 500m \* Site Type + Kelp Annual 100m \* Site Type + Site Type \* MPA Age
+
+```         
+-   Does log-transforming biomass make a difference in model fit? Is there a difference between using no transformation, log+1, vs. log+c, where c is a very small constant (10x smaller than the smallest nonzero vale)
+
+-   Does scaling the variables (mean = 0 and sd = 1) make a difference in conclusions or model fit?
+
+-   Does adding a 3-way interaction with MPA age make a difference in model fit?
+```
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+
+library(lme4)
+library(MuMIn)
+library(dplyr)
+library(purrr)
+library(tidymodels)
+library(mgcv)
+library(performance)
+library(patchwork)
+library(tidyverse)
+library(broom.mixed)
+library(effects)
+library(lmerTest)
+library(MASS)
+library(sjPlot)
+
+
+ltm.dir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_2024"
+pred_kelp <- readRDS(file.path("/home/lopazanski/ca-mpa/analyses/7habitat/intermediate_data/kelp_predictors.Rds")) %>%
+  filter(pred_group %in% c("all", "combined"))
+
+data_kelp <- readRDS(file.path(ltm.dir, "combine_tables/kelp_full.Rds")) %>% 
+  mutate(site_type = factor(site_type, levels = c("Reference", "MPA"))) %>% 
+  dplyr::select(year:affiliated_mpa, size_km2, age_at_survey,
+                species_code:target_status, assemblage_new, weight_kg:count_per_m2, log_kg_per_m2,
+                all_of(pred_kelp$predictor)) %>% 
+  filter(species_code == "SMIN") %>%  # Focus on SMIN or SMYS
+  mutate(bioregion = factor(bioregion),
+         affiliated_mpa = factor(affiliated_mpa)) %>% 
+  mutate(obs_id = row_number(.))
+
+```
+
+## Build
+
+```{r}
+# Define constant = minimum nonzero biomass
+const <- min(data_kelp$kg_per_m2[data_kelp$kg_per_m2 > 0])
+
+data_sp <- data_kelp  %>% 
+  mutate(
+    # Add small constant 
+    kg_per_m2_c = kg_per_m2 + const,
+    # Log-transform to variable with small constant
+    log_kg_per_m2_c = log(kg_per_m2_c),
+    sqrt_kg_per_m2 = sqrt(kg_per_m2)) %>% 
+  mutate(year = as.factor(year),
+           bioregion = as.factor(bioregion),
+           affiliated_mpa = as.factor(affiliated_mpa)) %>% 
+    # Scale all predictors 
+    mutate_at(vars(grep("^hard|soft|depth|kelp|age_at", names(.), value = TRUE)), scale)
+
+# Box-Cox
+model <- lm(kg_per_m2_c ~ age_at_survey * site_type, data = data_sp)
+bc <- boxcox(model, lambda = seq(-4, 4, 0.1))
+best_lambda <- bc$x[which.max(bc$y)]
+
+# Apply Box-Cox transformation
+data_sp$bc_kg_per_m2 <- if (best_lambda >= -2 && best_lambda <= 2){(data_sp$kg_per_m2_c^best_lambda - 1) / best_lambda} else {NA}
+
+data_sp$lambda <- if (best_lambda >= -2 && best_lambda <= 2) {best_lambda} else {NA}
+   
+# Scale data except the outcome?
+data_sp_scaled <- data_sp %>% 
+  mutate(across(setdiff(names(dplyr::select(., where(is.numeric))), c("log_kg_per_m2_c", "kg_per_m2", "bc_kg_per_m2")), scale))
+```
+
+
+```{r}
+# Set up the formula
+response_logc <- "log_kg_per_m2_c"
+response_boxcox <- "bc_kg_per_m2"
+response_sqrt <- "sqrt_kg_per_m2"
+response_raw <- "kg_per_m2"
+random_effects <- c("year", "affiliated_mpa", "bioregion")
+
+predictor2way <- "hard_bottom_500 * site_type + site_type * age_at_survey"
+predictor3way <- "hard_bottom_500 * site_type * age_at_survey"
+
+form1 <- as.formula(paste(response_logc, "~", predictor2way, "+", paste0("(1 | ", random_effects, ")", collapse = " + ")))
+form2 <- as.formula(paste(response_logc, "~", predictor3way, "+", paste0("(1 | ", random_effects, ")", collapse = " + ")))
+
+name1 <- "log(B+c) ~ 2way"
+name2 <- "log(B+c) ~ 3way"
+
+form3 <- as.formula(paste(response_boxcox, "~", predictor2way, "+", paste0("(1 | ", random_effects, ")", collapse = " + ")))
+form4 <- as.formula(paste(response_boxcox, "~", predictor3way, "+", paste0("(1 | ", random_effects, ")", collapse = " + ")))
+
+name3 <- "BoxCox ~ 2way"
+name4 <- "BoxCox ~ 3way"
+
+form5 <- as.formula(paste(response_raw, "~", predictor2way, "+", paste0("(1 | ", random_effects, ")", collapse = " + ")))
+form6 <- as.formula(paste(response_raw, "~", predictor3way, "+", paste0("(1 | ", random_effects, ")", collapse = " + ")))
+
+name5 <- "Raw ~ 2way"
+name6 <- "Raw ~ 3way"
+
+form7 <- as.formula(paste(response_sqrt, "~", predictor2way, "+", paste0("(1 | ", random_effects, ")", collapse = " + ")))
+form8 <- as.formula(paste(response_sqrt, "~", predictor3way, "+", paste0("(1 | ", random_effects, ")", collapse = " + ")))
+
+name7 <- "SqRt ~ 2way"
+name8 <- "SqRt ~ 3way"
+
+
+
+
+```
+
+
+# Log + Small Constant Transformation
+
+```{r}
+glm1 <- lmer(form1, data = data_sp, REML = FALSE)
+attr(glm1, "name") <- name1
+
+glm2 <- lmer(form2, data = data_sp, REML = FALSE)
+attr(glm2, "name") <- name2
+```
+
+# BoxCox (if lambda isn't close to zero?)
+
+```{r}
+glm3 <- lmer(form3, data = data_sp, REML = FALSE)
+attr(glm3, "name") <- name3
+
+glm4 <- lmer(form4, data = data_sp, REML = FALSE)
+attr(glm4, "name") <- name4
+
+```
+
+# Raw (no transformation)
+
+```{r}
+glm5 <- lmer(form5, data = data_sp, REML = FALSE)
+attr(glm5, "name") <- name5
+
+glm6 <- lmer(form6, data = data_sp, REML = FALSE)
+attr(glm6, "name") <- name6
+
+```
+
+# Square Root
+
+```{r}
+glm7 <- lmer(form7, data = data_sp, REML = FALSE)
+attr(glm7, "name") <- name7
+
+glm8 <- lmer(form8, data = data_sp, REML = FALSE)
+attr(glm8, "name") <- name8
+
+```
+
+
+
+
+# Compare
+
+```{r}
+tab_model(glm1, glm3, glm5, glm7, glm2, glm4, glm6, glm8, digits = 3)
+```
+
+
+# Comparison & Diagnostics
+
+::: {.panel-tabset .nav-pills}
+## Comparison
+
+```{r}
+#| out.width: "100%"
+#| message: FALSE
+
+model_fit <- bind_rows(model_performance(glm1, estimator = "ML") %>% mutate(Model = attr(glm1, "name")),
+                       model_performance(glm2, estimator = "ML") %>% mutate(Model = attr(glm2, "name")),
+                       model_performance(glm3, estimator = "ML") %>% mutate(Model = attr(glm3, "name")),
+                       model_performance(glm4, estimator = "ML") %>% mutate(Model = attr(glm4, "name")),
+                       model_performance(glm5, estimator = "ML") %>% mutate(Model = attr(glm5, "name")),
+                       model_performance(glm6, estimator = "ML") %>% mutate(Model = attr(glm6, "name")),
+                       model_performance(glm7, estimator = "ML") %>% mutate(Model = attr(glm7, "name")),
+                       model_performance(glm8, estimator = "ML") %>% mutate(Model = attr(glm8, "name"))
+                       ) %>% 
+  dplyr::select(Model, everything()) %>% 
+  arrange(AIC)
+
+print(model_fit)
+
+```
+
+## Residuals vs Fitted
+
+```{r}
+#| fig.width: 10
+#| fig.height: 6
+
+par(mfrow = c(2, 4)) 
+
+plot(residuals(glm1) ~ fitted(glm1), main = attr(glm1, "name"))
+abline(h = 0, col = "red", lty = 2)
+lines(lowess(fitted(glm1), residuals(glm1)), col = "blue", lwd = 2)
+
+plot(residuals(glm3) ~ fitted(glm3), main = attr(glm3, "name"))
+abline(h = 0, col = "red", lty = 2)
+lines(lowess(fitted(glm3), residuals(glm3)), col = "blue", lwd = 2)
+
+plot(residuals(glm5) ~ fitted(glm5), main = attr(glm5, "name"))
+abline(h = 0, col = "red", lty = 2)
+lines(lowess(fitted(glm5), residuals(glm5)), col = "blue", lwd = 2)
+
+plot(residuals(glm7) ~ fitted(glm7), main = attr(glm7, "name"))
+abline(h = 0, col = "red", lty = 2)
+lines(lowess(fitted(glm7), residuals(glm7)), col = "blue", lwd = 2)
+
+qqnorm(residuals(glm1), main = paste(attr(glm1, "name")), cex.main = 0.8); qqline(residuals(glm1))
+qqnorm(residuals(glm3), main = paste(attr(glm3, "name")), cex.main = 0.8); qqline(residuals(glm3))
+qqnorm(residuals(glm5), main = paste(attr(glm5, "name")), cex.main = 0.8); qqline(residuals(glm5))
+qqnorm(residuals(glm7), main = paste(attr(glm7, "name")), cex.main = 0.8); qqline(residuals(glm7))
+
+```
+
+
+
+
+## Normal QQ
+
+```{r}
+#| fig.width: 10
+#| fig.height: 6
+
+par(mfrow = c(2, 4)) 
+
+plot(residuals(glm2) ~ fitted(glm2), main = attr(glm2, "name"))
+abline(h = 0, col = "red", lty = 2)
+lines(lowess(fitted(glm2), residuals(glm2)), col = "blue", lwd = 2)
+
+plot(residuals(glm4) ~ fitted(glm4), main = attr(glm4, "name"))
+abline(h = 0, col = "red", lty = 2)
+lines(lowess(fitted(glm4), residuals(glm4)), col = "blue", lwd = 2)
+
+plot(residuals(glm6) ~ fitted(glm6), main = attr(glm6, "name"))
+abline(h = 0, col = "red", lty = 2)
+lines(lowess(fitted(glm6), residuals(glm6)), col = "blue", lwd = 2)
+
+plot(residuals(glm8) ~ fitted(glm8), main = attr(glm8, "name"))
+abline(h = 0, col = "red", lty = 2)
+lines(lowess(fitted(glm8), residuals(glm8)), col = "blue", lwd = 2)
+
+qqnorm(residuals(glm2), main = paste(attr(glm2, "name")), cex.main = 0.8); qqline(residuals(glm2))
+qqnorm(residuals(glm4), main = paste(attr(glm4, "name")), cex.main = 0.8); qqline(residuals(glm4))
+qqnorm(residuals(glm6), main = paste(attr(glm6, "name")), cex.main = 0.8); qqline(residuals(glm6))
+qqnorm(residuals(glm8), main = paste(attr(glm8, "name")), cex.main = 0.8); qqline(residuals(glm8))
+
+```
+
+## Performance
+
+```{r}
+
+```
+
+
+:::
+
+# Partial Residual Plots
+
+```{r}
+
+model <- glm1
+plot(predictorEffects(model, ~ age_at_survey, partial.residuals = TRUE),
+     id = list(n = 1), residuals.pch = 19, residuals.cex = 0.2)
+     
+plot(predictorEffects(model, ~ hard_bottom_25, partial.residuals = TRUE), 
+     id = list(n = 1), residuals.pch = 19, residuals.cex = 0.2)
+
+
+```
+
+```{r}
+#| out.width: "100%"
+#| message: FALSE
+
+model <- glm1
+plot(predictorEffects(model, ~ age_at_survey, partial.residuals = TRUE),
+     id = list(n = 1), residuals.pch = 19, residuals.cex = 0.2)
+     
+plot(predictorEffects(model, ~ hard_bottom_25, partial.residuals = TRUE), 
+     id = list(n = 1), residuals.pch = 19, residuals.cex = 0.2)
+
+```
+
+## log(b+c), 3-way
+
+```{r}
+#| out.width: "100%"
+#| fig.width: 8
+#| fig.height: 4
+
+model <- glm2
+plot(predictorEffects(model, ~ age_at_survey, partial.residuals = TRUE),
+     axes = list(x = list(cex = 0.5), y = list(cex = 0.5)),
+     lattice = list(strip = list(cex = 0.5)),
+     id = list(n = 1), residuals.pch = 19, residuals.cex = 0.2)
+     
+plot(predictorEffects(model, ~ hard_bottom_25, partial.residuals = TRUE), 
+     axes = list(x = list(cex = 0.5), y = list(cex = 0.5)),
+     lattice = list(strip = list(cex = 0.5)),
+     id = list(n = 1), residuals.pch = 19, residuals.cex = 0.2)
+
+```
+
+
+## box-cox, 2-way
+
+```{r}
+#| out.width: "100%"
+#| message: FALSE
+
+model <- glm3
+plot(predictorEffects(model, ~ age_at_survey, partial.residuals = TRUE),
+     id = list(n = 1), residuals.pch = 19, residuals.cex = 0.2)
+     
+plot(predictorEffects(model, ~ hard_bottom_25, partial.residuals = TRUE), 
+     id = list(n = 1), residuals.pch = 19, residuals.cex = 0.2)
+
+```
+
+## box-cox,  3-way
+
+```{r}
+#| out.width: "100%"
+#| fig.width: 8
+#| fig.height: 4
+
+model <- glm4
+plot(predictorEffects(model, ~ age_at_survey, partial.residuals = TRUE),
+     axes = list(x = list(cex = 0.5), y = list(cex = 0.5)),
+     lattice = list(strip = list(cex = 0.5)),
+     id = list(n = 1), residuals.pch = 19, residuals.cex = 0.2)
+     
+plot(predictorEffects(model, ~ hard_bottom_25, partial.residuals = TRUE), 
+     axes = list(x = list(cex = 0.5), y = list(cex = 0.5)),
+     lattice = list(strip = list(cex = 0.5)),
+     id = list(n = 1), residuals.pch = 19, residuals.cex = 0.2)
+
+```
+
+
+# On Scaled Data (for Comparison)
+
+## `log(B+c) ~ H*ST + K*ST + ST*A`
+
+```{r}
+
+glm5<- lmer(log_kg_per_m2_c ~ hard_bottom_25 * site_type + site_type * age_at_survey +
+               (1|bioregion) + (1|affiliated_mpa) + (1|year), data = data_sp_scaled, REML = FALSE)
+
+attr(glm5, "name") <- "log(B+c) ~ H*ST + ST*A"
+
+summary(glm5)
+
+```
+
+
+## `log(B+c) ~ H*ST*A + K*ST*A`
+
+```{r}
+glm6 <- lmer(log_kg_per_m2_c ~ hard_bottom_25 * site_type * age_at_survey +
+               (1|bioregion) + (1|affiliated_mpa) + (1|year), data = data_sp_scaled, REML = FALSE)
+
+attr(glm6, "name") <- "log(B+c) ~ H*ST*A"
+
+summary(glm6)
+```
+
+## `BoxCox ~ H*ST + ST*A`
+```{r}
+glm7 <- lmer(bc_kg_per_m2 ~ hard_bottom_25 * site_type + site_type * age_at_survey +
+               (1|bioregion) + (1|affiliated_mpa) + (1|year), data = data_sp_scaled, REML = FALSE)
+
+attr(glm7, "name") <- "BoxCox ~ H*ST + ST*A"
+
+summary(glm7)
+```
+
+## `BoxCox ~ H*ST*A`
+
+```{r}
+
+glm8 <- lmer(bc_kg_per_m2 ~ hard_bottom_25 * site_type * age_at_survey +
+               (1|bioregion) + (1|affiliated_mpa) + (1|year), data = data_sp_scaled, REML = FALSE)
+
+attr(glm8, "name") <- "BoxCox ~ H*ST*A"
+
+summary(glm8)
+
+```
+
+# Comparison & Diagnostics
+
+::: {.panel-tabset .nav-pills}
+
+## Comparison
+
+```{r}
+model_fit3 <- bind_rows(model_performance(glm5, estimator = "ML") %>% mutate(Model = attr(glm5, "name")),
+                       model_performance(glm6, estimator = "ML") %>% mutate(Model = attr(glm6, "name"))) %>% 
+  mutate(deltaAIC = AIC - min(AIC, na.rm = T)) %>% 
+  dplyr::select(Model, everything()) %>% 
+  arrange(AIC)
+
+print(model_fit3)
+
+model_fit4 <- bind_rows(model_performance(glm7, estimator = "ML") %>% mutate(Model = attr(glm7, "name")),
+                       model_performance(glm8, estimator = "ML") %>% mutate(Model = attr(glm8, "name"))) %>% 
+  mutate(deltaAIC = AIC - min(AIC, na.rm = T)) %>% 
+  dplyr::select(Model, everything()) %>% 
+  arrange(AIC)
+
+print(model_fit4)
+```
+
+## Residuals vs Fitted
+
+```{r}
+par(mfrow = c(2, 2)) 
+
+plot(residuals(glm5) ~ fitted(glm5), main = attr(glm5, "name"))
+abline(h = 0, col = "red", lty = 2)
+lines(lowess(fitted(glm5), residuals(glm5)), col = "blue", lwd = 2)
+
+plot(residuals(glm6) ~ fitted(glm6), main = attr(glm6, "name"))
+abline(h = 0, col = "red", lty = 2)
+lines(lowess(fitted(glm6), residuals(glm6)), col = "blue", lwd = 2)
+
+plot(residuals(glm7) ~ fitted(glm7), main = attr(glm7, "name"))
+abline(h = 0, col = "red", lty = 2)
+lines(lowess(fitted(glm7), residuals(glm7)), col = "blue", lwd = 2)
+
+plot(residuals(glm8) ~ fitted(glm4), main = attr(glm8, "name"))
+abline(h = 0, col = "red", lty = 2)
+lines(lowess(fitted(glm8), residuals(glm8)), col = "blue", lwd = 2)
+```
+
+## Normal QQ
+
+```{r}
+#| fig.width: 5
+#| fig.height: 5
+par(mfrow = c(2, 2)) 
+
+qqnorm(residuals(glm5), main = paste(attr(glm5, "name")), cex.main = 0.8); qqline(residuals(glm5))
+qqnorm(residuals(glm6), main = paste(attr(glm6, "name")), cex.main = 0.8); qqline(residuals(glm6))
+qqnorm(residuals(glm7), main = paste(attr(glm7, "name")), cex.main = 0.8); qqline(residuals(glm7))
+qqnorm(residuals(glm8), main = paste(attr(glm8, "name")), cex.main = 0.8); qqline(residuals(glm8))
+```
+
+:::
+
+## Performance
+
+```{r}
+library(sjPlot)
+
+tab_model(glm1, glm2, glm3, glm4, glm5, glm6, glm7, glm8, digits = 3)
+```
+
+
+
+
+

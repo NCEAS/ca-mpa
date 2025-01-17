@@ -60,7 +60,7 @@ add_significance <- function(df) {df %>%
 
 # Analyze Focal Models ---------------------------------------------------------
 species <- "SMYS"
-path = "analyses/7habitat/output/kelp/all_regions/consolidated"
+path = "analyses/7habitat/output/kelp/all_regions/log_c_scaled"
 path = "analyses/7habitat/output/rock/all_regions/no_soft"
 path = "analyses/7habitat/output/surf/central_south"
 path = "analyses/7habitat/output/deep/all_regions"
@@ -166,10 +166,10 @@ analyze_models <- function(species, path){
 # Run Analysis -----------------------------------------------------------------
 
 # Kelp forest 
-sp_list <- list.files(path = "analyses/7habitat/output/kelp/all_regions/consolidated") %>%
+sp_list <- list.files(path = "analyses/7habitat/output/kelp/all_regions/log_c_unscaled") %>%
   str_remove_all(., "_models.rds|_results.rds") %>% unique()
 
-walk(sp_list, ~analyze_models(.x, path = "analyses/7habitat/output/kelp/all_regions/consolidated"))
+walk(sp_list, ~analyze_models(.x, path = "analyses/7habitat/output/kelp/all_regions/log_c_unscaled"))
 
 # Rocky reef 
 sp_list <- list.files(path = "analyses/7habitat/output/rock/all_regions/no_soft") %>%

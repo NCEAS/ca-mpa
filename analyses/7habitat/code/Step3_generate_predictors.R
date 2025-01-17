@@ -124,85 +124,85 @@ deep <- data_deep %>% dplyr::select(site, site_type, bioregion, all_of(deep_pred
 
 # Plot correlations
 
-plot_site_corr <- function(site_table, predictor_list){
-  sites <- site_table %>% 
-    # Get means across all years for kelp canopy cover
-    group_by(site, site_type, bioregion) %>% 
-    summarize(across(where(is.numeric), mean, na.rm = T), .groups = 'drop') %>% 
-    dplyr::select(!c(site, site_type, bioregion))
-    
-  matrix_depth <- sites %>% 
-    select(any_of(predictor_list %>%
-                    filter(pred_group %in% c("all", "depth")) %>%
-                    pull(predictor))) %>% 
-    correlate() %>% rearrange()
-  
-  p1 <- rplot(matrix_depth %>%  shave()) + 
-    theme(axis.text.x = element_text(angle = 60, hjust = 1))
-  
-  matrix_combined <- sites %>% 
-    select(any_of(predictor_list %>%
-                    filter(pred_group %in% c("all", "combined")) %>%
-                    pull(predictor))) %>% 
-    correlate() %>%   rearrange()
-  
-  p2 <- rplot(matrix_combined %>%  shave()) + 
-    theme(axis.text.x = element_text(angle = 60, hjust = 1))
-  
-  matrix_depth_long <- matrix_depth %>% 
-    stretch() %>%
-    rename(Var1 = x, Var2 = y, value = r) %>% 
-    mutate(buffer1 = sub(".*_", "", Var1),
-           buffer2 = sub(".*_", "", Var2),
-           habitat1 = sub("_[^_]*$", "", Var1),
-           habitat2 = sub("_[^_]*$", "", Var2)) %>% 
-    filter(buffer1 == buffer2) %>%
-    mutate(buffer = as.numeric(buffer1)) %>%
-    filter(as.character(Var1) <= as.character(Var2)) %>%
-    filter(!(Var1 == Var2)) %>% 
-    select(-buffer1, -buffer2) 
-  
-  p3 <- ggplot(data = matrix_depth_long, aes(x = habitat1, y = habitat2, fill = value)) +
-    geom_tile(color = "white") +
-    scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
-                         midpoint = 0, limit = c(-1, 1), space = "Lab", 
-                         name = "Pearson\nCorrelation") +
-    theme_minimal() + 
-    theme(axis.text.x = element_text(angle = 65, vjust = 1,   size = 10, hjust = 1)) +
-    labs(x = NULL, y = NULL) +
-    facet_wrap(~ buffer, scales = "free")
-  
-  matrix_combined_long <- matrix_combined %>% 
-    stretch() %>%
-    rename(Var1 = x, Var2 = y, value = r) %>% 
-    mutate(buffer1 = sub(".*_", "", Var1),
-           buffer2 = sub(".*_", "", Var2),
-           habitat1 = sub("_[^_]*$", "", Var1),
-           habitat2 = sub("_[^_]*$", "", Var2)) %>% 
-    filter(buffer1 == buffer2) %>%
-    mutate(buffer = as.numeric(buffer1)) %>%
-    filter(as.character(Var1) <= as.character(Var2)) %>%
-    filter(!(Var1 == Var2)) %>% 
-    select(-buffer1, -buffer2) 
-  
-  p4 <- ggplot(data = matrix_combined_long, aes(x = habitat1, y = habitat2, fill = value)) +
-    geom_tile(color = "white") +
-    scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
-                         midpoint = 0, limit = c(-1, 1), space = "Lab", 
-                         name = "Pearson\nCorrelation") +
-    theme_minimal() + 
-    theme(axis.text.x = element_text(angle = 65, vjust = 1,   size = 10, hjust = 1)) +
-    labs(x = NULL, y = NULL) +
-    facet_wrap(~ buffer, scales = "free")
-  
-  return( (p1 + p2) / (p3 + p4))
-  
-}
-
-plot_site_corr(site_table = kelp, predictor_list = kelp_predictors)
-plot_site_corr(site_table = deep, predictor_list = deep_predictors)
-plot_site_corr(site_table = surf, predictor_list = surf_predictors)
-plot_site_corr(site_table = rock, predictor_list = rock_predictors)
+# plot_site_corr <- function(site_table, predictor_list){
+#   sites <- site_table %>% 
+#     # Get means across all years for kelp canopy cover
+#     group_by(site, site_type, bioregion) %>% 
+#     summarize(across(where(is.numeric), mean, na.rm = T), .groups = 'drop') %>% 
+#     dplyr::select(!c(site, site_type, bioregion))
+#     
+#   matrix_depth <- sites %>% 
+#     select(any_of(predictor_list %>%
+#                     filter(pred_group %in% c("all", "depth")) %>%
+#                     pull(predictor))) %>% 
+#     correlate() %>% rearrange()
+#   
+#   p1 <- rplot(matrix_depth %>%  shave()) + 
+#     theme(axis.text.x = element_text(angle = 60, hjust = 1))
+#   
+#   matrix_combined <- sites %>% 
+#     select(any_of(predictor_list %>%
+#                     filter(pred_group %in% c("all", "combined")) %>%
+#                     pull(predictor))) %>% 
+#     correlate() %>%   rearrange()
+#   
+#   p2 <- rplot(matrix_combined %>%  shave()) + 
+#     theme(axis.text.x = element_text(angle = 60, hjust = 1))
+#   
+#   matrix_depth_long <- matrix_depth %>% 
+#     stretch() %>%
+#     rename(Var1 = x, Var2 = y, value = r) %>% 
+#     mutate(buffer1 = sub(".*_", "", Var1),
+#            buffer2 = sub(".*_", "", Var2),
+#            habitat1 = sub("_[^_]*$", "", Var1),
+#            habitat2 = sub("_[^_]*$", "", Var2)) %>% 
+#     filter(buffer1 == buffer2) %>%
+#     mutate(buffer = as.numeric(buffer1)) %>%
+#     filter(as.character(Var1) <= as.character(Var2)) %>%
+#     filter(!(Var1 == Var2)) %>% 
+#     select(-buffer1, -buffer2) 
+#   
+#   p3 <- ggplot(data = matrix_depth_long, aes(x = habitat1, y = habitat2, fill = value)) +
+#     geom_tile(color = "white") +
+#     scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
+#                          midpoint = 0, limit = c(-1, 1), space = "Lab", 
+#                          name = "Pearson\nCorrelation") +
+#     theme_minimal() + 
+#     theme(axis.text.x = element_text(angle = 65, vjust = 1,   size = 10, hjust = 1)) +
+#     labs(x = NULL, y = NULL) +
+#     facet_wrap(~ buffer, scales = "free")
+#   
+#   matrix_combined_long <- matrix_combined %>% 
+#     stretch() %>%
+#     rename(Var1 = x, Var2 = y, value = r) %>% 
+#     mutate(buffer1 = sub(".*_", "", Var1),
+#            buffer2 = sub(".*_", "", Var2),
+#            habitat1 = sub("_[^_]*$", "", Var1),
+#            habitat2 = sub("_[^_]*$", "", Var2)) %>% 
+#     filter(buffer1 == buffer2) %>%
+#     mutate(buffer = as.numeric(buffer1)) %>%
+#     filter(as.character(Var1) <= as.character(Var2)) %>%
+#     filter(!(Var1 == Var2)) %>% 
+#     select(-buffer1, -buffer2) 
+#   
+#   p4 <- ggplot(data = matrix_combined_long, aes(x = habitat1, y = habitat2, fill = value)) +
+#     geom_tile(color = "white") +
+#     scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
+#                          midpoint = 0, limit = c(-1, 1), space = "Lab", 
+#                          name = "Pearson\nCorrelation") +
+#     theme_minimal() + 
+#     theme(axis.text.x = element_text(angle = 65, vjust = 1,   size = 10, hjust = 1)) +
+#     labs(x = NULL, y = NULL) +
+#     facet_wrap(~ buffer, scales = "free")
+#   
+#   return( (p1 + p2) / (p3 + p4))
+#   
+# }
+# 
+# plot_site_corr(site_table = kelp, predictor_list = kelp_predictors)
+# plot_site_corr(site_table = deep, predictor_list = deep_predictors)
+# plot_site_corr(site_table = surf, predictor_list = surf_predictors)
+# plot_site_corr(site_table = rock, predictor_list = rock_predictors)
 
 # Take Home:
 # - Each metric is correlated with itself across various scales = use one scale at a time for each metric
@@ -212,22 +212,24 @@ plot_site_corr(site_table = rock, predictor_list = rock_predictors)
 #       Pick one or calculate proportion/ratio?
 # - Probably still okay to cross scales ACROSS habitat metrics (e.g. hard 250 + kelp 100)
   
-# Generate combinations independent of scale for the depth and kelp, using hard only?
+# Generate combinations independent of scale for the depth and kelp, using hard only
 get_list <- function(predictors_df){
   # Create depth combinations
   depth_combos <- predictors_df %>%
     filter(pred_group %in% c("all", "combined")) %>% 
     filter(str_detect(predictor, "depth")) %>%
-    mutate(depth_intx = paste0(predictor, " * site_type")) %>%
-    pivot_longer(cols = c(predictor, depth_intx), names_to = NULL, values_to = "depth_predictor") %>%
+    mutate(intx = paste0(predictor, " * site_type"),
+           intx2 = paste0(predictor, "* site_type * age_at_survey")) %>%
+    pivot_longer(cols = c(predictor, intx, intx2), names_to = NULL, values_to = "depth_predictor") %>%
     bind_rows(tibble(scale = NA, depth_predictor = NA)) %>% 
     summarize(depth_predictor = list(c(depth_predictor)), .groups = 'drop')
   
   # Create kelp combinations
   kelp_combos <- predictors_df %>%
     filter(str_detect(predictor, "kelp")) %>%
-    mutate(kelp_intx = paste0(predictor, " * site_type")) %>%
-    pivot_longer(cols = c(predictor, kelp_intx), names_to = NULL, values_to = "kelp_predictor") %>%
+    mutate(intx = paste0(predictor, " * site_type"),
+           intx2 = paste0(predictor, "* site_type * age_at_survey")) %>%
+    pivot_longer(cols = c(predictor, intx, intx2), names_to = NULL, values_to = "kelp_predictor") %>%
     bind_rows(tibble(scale = NA, kelp_predictor = NA)) %>% 
     summarize(kelp_predictor = list(c(kelp_predictor)), .groups = 'drop') 
   
@@ -235,12 +237,13 @@ get_list <- function(predictors_df){
   hard_combos <- predictors_df %>% 
     filter(pred_group %in% c("all", "combined")) %>% 
     filter(str_detect(predictor, "hard")) %>% 
-    mutate(hard_intx = paste0(predictor, " * site_type")) %>%
-    pivot_longer(cols = c(predictor, hard_intx), names_to = NULL, values_to = "hard_predictor") %>%
+    mutate(intx = paste0(predictor, " * site_type"),
+           intx2 = paste0(predictor, "* site_type * age_at_survey")) %>%
+    pivot_longer(cols = c(predictor, intx, intx2), names_to = NULL, values_to = "hard_predictor") %>%
     bind_rows(tibble(scale = NA, hard_predictor = NA)) 
 
   list_intx <- hard_combos %>% 
-    select(hard_predictor, hard_scale = scale) %>% 
+    dplyr::select(hard_predictor, hard_scale = scale) %>% 
     bind_cols(kelp_combos) %>% 
     unnest(kelp_predictor) %>% 
     bind_cols(depth_combos) %>% 
@@ -250,13 +253,24 @@ get_list <- function(predictors_df){
     mutate(base_predictor = "site_type * age_at_survey") %>% 
     unite("predictors", c(hard_predictor, kelp_predictor, depth_predictor, base_predictor),
           sep = " + ",  na.rm = TRUE, remove = FALSE) %>% 
-    mutate(type = case_when(str_detect(hard_predictor, "site") & 
-                              str_detect(kelp_predictor, "site") &
-                              str_detect(depth_predictor, "site") &
-                              (hard_scale == kelp_scale) &
-                              (kelp_scale == depth_scale) ~ "full",
-                            predictors == "site_type * age_at_survey" ~ "base",
-                            T~NA)) %>% 
+    mutate(type3 = case_when(str_detect(hard_predictor, "age_at_survey") & 
+                               str_detect(kelp_predictor, "age_at_survey") &
+                               str_detect(depth_predictor, "age_at_survey") &
+                               (hard_scale == kelp_scale) &
+                               (kelp_scale == depth_scale) ~ "full",
+                             predictors == "site_type * age_at_survey" ~ "base",
+                             T~NA)) %>% 
+    mutate(type2 = case_when(str_detect(hard_predictor, "site") & 
+                               str_detect(kelp_predictor, "site") &
+                               str_detect(depth_predictor, "site") &
+                               !str_detect(hard_predictor, "age_at_survey") & 
+                               !str_detect(kelp_predictor, "age_at_survey") &
+                               !str_detect(depth_predictor, "age_at_survey") &
+                               (hard_scale == kelp_scale) &
+                               (kelp_scale == depth_scale) &
+                               is.na(type3) ~ "full",
+                             predictors == "site_type * age_at_survey" ~ "base",
+                             T~NA)) %>% 
     mutate(model_id = 
              str_replace_all(predictors, "hard_bottom_(\\d+)", "H\\1") %>% 
              str_replace_all("kelp_annual_(\\d+)", "K\\1") %>% 
@@ -265,16 +279,16 @@ get_list <- function(predictors_df){
              str_replace_all("site_type", "ST") %>%
              str_replace_all("age_at_survey", "A") %>% 
              str_replace_all("\\s+", "")) %>% 
-    select(predictors, type, model_id)
+    dplyr::select(predictors, type = type2, type3, model_id, hard_predictor, kelp_predictor, depth_predictor, hard_scale, kelp_scale, depth_scale)
   
   return(list_intx)
 }
 
 
-kelp_list <- get_list(kelp_predictors) # 2541
-rock_list <- get_list(rock_predictors) # 2541
-surf_list <- get_list(surf_predictors) # 1155
-deep_list <- get_list(deep_predictors) # 693
+kelp_list <- get_list(kelp_predictors) # 2541 now 7936
+rock_list <- get_list(rock_predictors) # 2541 now 7936
+surf_list <- get_list(surf_predictors) # 1155 now 3472
+deep_list <- get_list(deep_predictors) # 693 now 1984
 
 saveRDS(kelp_list, file.path("analyses/7habitat/intermediate_data", "kelp_predictors_interactions.Rds")) 
 saveRDS(rock_list, file.path("analyses/7habitat/intermediate_data", "rock_predictors_interactions.Rds")) 

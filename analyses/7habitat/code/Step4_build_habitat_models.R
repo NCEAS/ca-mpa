@@ -48,7 +48,7 @@ sp_kelp <- data_kelp %>%
   group_by(species_code, sciname, target_status, bioregion) %>%
   summarize(total_biomass = sum(kg_per_m2),
             total_count = sum(count_per_m2),
-            n_obs = n()) %>%
+            n_obs = n(), .groups = 'drop') %>%
   filter(n_obs > 40) %>%
   pivot_wider(names_from = bioregion, values_from = c(total_biomass, total_count, n_obs)) %>%
   filter(!is.na(n_obs_North)) %>%
@@ -65,7 +65,7 @@ sp_rock <- data_rock %>%
   group_by(species_code, sciname, target_status, bioregion) %>%
   summarize(total_biomass = sum(weight_kg),
             total_count = sum(count),
-            n_obs = n()) %>%
+            n_obs = n(), .groups = 'drop') %>%
   pivot_wider(names_from = bioregion, values_from = c(total_biomass, total_count, n_obs)) %>%
   filter(!is.na(n_obs_Central) & !is.na(n_obs_North) & !is.na(n_obs_South)) %>%
   filter(n_obs_South > 100)
@@ -81,7 +81,7 @@ sp_surf <- data_surf %>%
   group_by(species_code, sciname, target_status,bioregion) %>%
   summarize(total_biomass = sum(weight_kg),
             total_count = sum(count),
-            n_obs = n()) %>%
+            n_obs = n(), .groups = 'drop') %>%
   filter(total_count > 10) %>%
   pivot_wider(names_from = bioregion, values_from = c(total_biomass, total_count, n_obs)) %>%
   filter(species_code %in% c("AARG", "AAFF", "HARG", "MMIN")) # in central and South
@@ -97,7 +97,7 @@ sp_deep <- data_deep %>%
   group_by(species_code, sciname, target_status, bioregion) %>%
   summarize(total_biomass = sum(kg_per_m2),
             total_count = sum(count_per_m2),
-            n_obs = n()) %>%
+            n_obs = n(), .groups = 'drop') %>%
   filter(n_obs > 50) %>%
   pivot_wider(names_from = bioregion, values_from = c(total_biomass, total_count, n_obs)) %>%
   filter(!is.na(n_obs_Central) & !is.na(n_obs_North) & !is.na(n_obs_South)) %>%
@@ -109,13 +109,31 @@ data_deep_subset <- data_deep %>%
                 all_of(pred_deep$predictor))
 
 # Fit all habitat combinations --------------------------------------------------------------
+
 refine_habitat <- function(species, response, predictors_df, random_effects, data, regions, path) {
   print(paste("Starting species: ", species))
   data_sp <- data %>% 
-    filter(species_code == species) %>% 
-    filter(bioregion %in% regions) %>% 
-    mutate(across(where(is.numeric), scale)) # scale numeric predictors
+    filter(species_code == species, bioregion %in% regions) %>% 
+    mutate(year = as.factor(year),
+           bioregion = as.factor(bioregion),
+           affiliated_mpa = as.factor(affiliated_mpa)) %>% 
+    # Scale all predictors 
+    mutate_at(vars(grep("^hard|soft|depth|kelp|age_at", names(.), value = TRUE)), scale)
   
+  # Add a small constant, defined as the minimum value for that species 
+  if ("kg_per_m2" %in% colnames(data_sp)) {
+    const <- min(data_sp$kg_per_m2[data_sp$kg_per_m2 > 0], na.rm = TRUE)
+    data_sp <- data_sp %>% mutate(log_c_biomass = log(kg_per_m2 + const))
+  } else if ("weight_kg" %in% colnames(data_sp)) {
+    const <- min(data_sp$weight_kg[data_sp$weight_kg > 0], na.rm = TRUE)
+    data_sp <- data_sp %>% mutate(log_c_biomass = log(weight_kg + const))
+  } else if ("kg_per_haul" %in% colnames(data_sp)) {
+    const <- min(data_sp$kg_per_haul[data_sp$kg_per_haul > 0], na.rm = TRUE)
+    data_sp <- data_sp %>% mutate(log_c_biomass = log(kg_per_haul + const))
+  } else {
+    data_sp <- data_sp %>% mutate(log_c_biomass = NA_real_)
+  }
+    
   models <- list()
   
   models_df <- map_dfr(seq_len(nrow(predictors_df)), function(i) {
@@ -125,30 +143,44 @@ refine_habitat <- function(species, response, predictors_df, random_effects, dat
     model_formula <- as.formula(paste(response, "~", predictors, "+", paste0("(1 | ", random_effects, ")", collapse = " + ")))
     warning_message <- NULL
     message_text <- NULL
+    error_message <- NULL
+    singular_message <- NULL
     singular_status <- "Unknown"
     
     model <- suppressWarnings(
       tryCatch(
         {
-          # Capture both warnings and messages
-          m <- withCallingHandlers(
-            lmer(model_formula, data = data_sp),
+          withCallingHandlers(
+            {
+              m <- lmer(model_formula, data = data_sp)
+              # Check for singular fit if the model is successfully created
+              singular_status <- tryCatch(
+                {
+                  if (isSingular(m)) "Singular fit" else "OK"
+                },
+                error = function(e) {
+                  singular_message <<- paste("Error checking singularity:", conditionMessage(e))
+                  "Unknown (Error in Singular Check)"
+                }
+              )
+              m
+            },
+            warning = function(w) {
+              warning_message <<- conditionMessage(w) # Capture warning message
+              invokeRestart("muffleWarning") # Suppress the warning display
+            },
             message = function(msg) {
-              message_text <<- conditionMessage(msg) # Capture messages
+              message_text <<- conditionMessage(msg) # Capture message
               invokeRestart("muffleMessage") # Suppress message display
             }
           )
-          singular_status <- if (isSingular(m)) "Singular fit" else "OK"
-          m
-        },
-        warning = function(w) {
-          warning_message <<- conditionMessage(w) # Capture warning messages
-          return(NULL) # Return NULL for the model if a warning occurs
         },
         error = function(e) {
-          warning_message <<- conditionMessage(e) # Capture error messages
-          return(NULL) # Return NULL for the model if an error occurs
-        }))
+          error_message <<- conditionMessage(e) # Capture error message
+          return(NULL) # Return NULL for the model on error
+        }
+      )
+    )
     
     models[[model_id]] <<- model
     
@@ -162,6 +194,8 @@ refine_habitat <- function(species, response, predictors_df, random_effects, dat
                n_sites = if (!is.null(model)) n_distinct(data_sp$site) else NA,
                n_mpas = if (!is.null(model)) n_distinct(data_sp$affiliated_mpa) else NA,
                singular_status = singular_status,
+               singular_message = ifelse(is.null(singular_message), "OK", singular_message),
+               errors = ifelse(is.null(error_message), "OK", error_message),
                warnings = ifelse(is.null(warning_message), "OK", warning_message),
                messages = ifelse(is.null(message_text), "OK", message_text))
   }) %>%
@@ -183,9 +217,8 @@ refine_habitat <- function(species, response, predictors_df, random_effects, dat
   # Extract the model objects for the core + top models
   models <- models[unique(c(top_model_names, core_model_names))]
   
-  # Filter for reduced df with top, core, and full models
+  # Define the top, core, and full models (but save entire df for debug)
   models_df <- models_df %>%
- #   filter(model_id %in% c(top_model_names, core_model_names)) %>% 
     mutate(type = case_when(model_id %in% top_model_names ~ "top",
                             predictors == "site_type * age_at_survey" ~ "base",
                             model_id %in% core_model_names ~ "core"))
@@ -201,12 +234,12 @@ refine_habitat <- function(species, response, predictors_df, random_effects, dat
 ## Define parameters and run ---------------------------------------------------
 walk(unique(sp_kelp$species_code), function(species) { # Top 8 statewide species
   results_df <- refine_habitat(species = species,
-                               response = "log_kg_per_m2",
+                               response = "kg_per_m2",
                                predictors_df = pred_kelp_int, # With interactions
                                random_effects = c("year", "bioregion", "affiliated_mpa"), # With MPA RE
                                data = data_kelp_subset, # Scaled numeric predictors
                                regions = c("Central", "North", "South"), # All regions
-                               path = "analyses/7habitat/output/kelp/all_regions/consolidated")
+                               path = "analyses/7habitat/output/kelp/all_regions/raw_scaled")
   cat("\nTop 5 models for species:", species, "\n")
   print(head(results_df, 10))
 })
@@ -235,17 +268,17 @@ walk(unique(sp_kelp$species_code), function(species) { # Top 8 statewide species
 #   print(head(results_df, 10))
 # })
 
-walk(unique(sp_deep$species_code), function(species) { # Top 4 species in South and Central only
-  results_df <- refine_habitat(species = species,
-                               response = "log_kg_per_m2",
-                               predictors_df = pred_deep_int, # With interactions
-                               random_effects = c("year", "bioregion", "affiliated_mpa"), # With MPA RE
-                               data = data_deep_subset, # Scaled numeric predictors
-                               regions = c("Central", "North", "South"),
-                               path = "analyses/7habitat/output/deep/all_regions")
-  cat("\nTop 5 models for species:", species, "\n")
-  print(head(results_df, 10))
-})
+# walk(unique(sp_deep$species_code), function(species) { # Top 4 species in South and Central only
+#   results_df <- refine_habitat(species = species,
+#                                response = "log_kg_per_m2",
+#                                predictors_df = pred_deep_int, # With interactions
+#                                random_effects = c("year", "bioregion", "affiliated_mpa"), # With MPA RE
+#                                data = data_deep_subset, # Scaled numeric predictors
+#                                regions = c("Central", "North", "South"),
+#                                path = "analyses/7habitat/output/deep/all_regions")
+#   cat("\nTop 5 models for species:", species, "\n")
+#   print(head(results_df, 10))
+# })
 
 
 

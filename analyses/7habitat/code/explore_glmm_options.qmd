@@ -6,29 +6,28 @@ format:
     self-contained: true
 editor: visual
 toc: true
+toc-expand: 3
 ---
 
-## Overview
+# Overview
 
-Diagnostics from initial models demonstrated issues with kurtosis, nonlinearity, and heteroskedasticity. The goal of this comparison is to explore whether other modeling options improve these issues. The focal species is blue rockfish (Sebastes mystinus), a species found statewide that is generally associated with hard bottom and hard bottom biotic (kelp) habitat. The top model for this species from the original approach was:
+Diagnostics from initial models demonstrated moderate issues with kurtosis, nonlinearity, and heteroskedasticity. The goal of this comparison is to explore whether other modeling options improve these issues. The first focal species is vermillion rockfish (Sebastes miniatus), a species found statewide that is generally associated with hard bottom habitat. This was chosen because it has two int
 
-Log-Transformed Biomass \~ Hard 0-30 at 500m \* Site Type + Site Type \* MPA Age
+The original approach was:
 
--   Generalized linear mixed effects models (current approach)
+Generalized linear mixed effects models with all numeric variables scaled (including dep. variable, first log+1 transformed then scaled to mean = 0 and sd = 1). The variables were scaled to accommodate differences in scales between MPA age and the habitat variables, and the magnitude between the various buffer scales now that multiple scales could be included in the same models (e.g. hard bottom at 500m and kelp at 25m, varying from 10s of sq meters to millions of sq meters).
 
-    -   Does log-transforming biomass make a difference in model fit?
+The top model for this species was:
 
-    -   Does adding a 3-way interaction with MPA age make a difference in model fit?
+Log+1-Transformed Biomass \~ Hard Bottom 500m \* Site Type + Kelp Annual 100m \* Site Type + Site Type \* MPA Age
 
--   Gamma-distributed generalized linear mixed effects models
+```         
+-   Does log-transforming biomass make a difference in model fit? Is there a difference between using no transformation, log+1, vs. log+c, where c is a very small constant (10x smaller than the smallest nonzero vale)
 
-    -   Does adding a gamma distribution make a difference in model fit?
+-   Does scaling the variables (mean = 0 and sd = 1) make a difference in conclusions or model fit?
 
--   Generalized additive models with smoothing term for MPA age
-
-    -   Would a GAM better capture the nonlinear effects?
-
-    -   What specification is most appropriate?
+-   Does adding a 3-way interaction with MPA age make a difference in model fit?
+```
 
 ```{r}
 #| echo: false
@@ -46,6 +45,7 @@ library(patchwork)
 library(tidyverse)
 library(broom.mixed)
 library(effects)
+library(lmerTest)
 
 ltm.dir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_2024"
 pred_kelp <- readRDS(file.path("/home/lopazanski/ca-mpa/analyses/7habitat/intermediate_data/kelp_predictors.Rds")) %>%
@@ -65,11 +65,6 @@ data_kelp <- readRDS(file.path(ltm.dir, "combine_tables/kelp_full.Rds")) %>%
 
 ## Build
 
-### General
-
--   Gamma GLMs require that the response variable is strictly positive, so will add a small constant that is 10x smaller than the minimum observed biomass value. (Tried without this and verified that this is necessary).
--   Center and scale the predictor variables to accommodate differences in scales (habitat measured in square meters, age measured in years).
-
 ```{r}
 # Define constant 10x smaller than minimum nonzero biomass
 const <- min(data_kelp$kg_per_m2[data_kelp$kg_per_m2 > 0])/10
@@ -81,22 +76,6 @@ data_sp <- data_kelp  %>%
     # Log-transform to variable with small constant
     log_kg_per_m2_c = log(kg_per_m2_c))
 
-```
-
-```{r}
-#| echo: FALSE
-my_theme <- theme_minimal() +
-  theme(plot.title = element_text(size = 8, face = "bold"),  
-        axis.title.x = element_text(size = 8),              
-        axis.title.y = element_text(size = 8),              
-        axis.text = element_text(size = 8),                 
-        legend.text = element_text(size = 8),  
-        legend.position = "top",
-        strip.text = element_text(size = 8, face = "italic")) 
-
-```
-
-```{r}
 # Select term columns to join with residuals df
 data_terms <- data_sp %>% 
   dplyr::select(obs_id, age_at_survey, site_type, 
@@ -105,70 +84,18 @@ data_terms <- data_sp %>%
 data_sp_scaled <- data_sp %>% 
   mutate(across(where(is.numeric), ~ scale(.) %>% as.vector()))
 
-# Create function to extract the residuals and plot with smooths
-plot_partial_residuals <- function(model){
-  # Extract residuals, model matrix, and fixed-effects coefficients
-  resid <- residuals(model)
-  model_mat <- model.matrix(model)
-  fixed_coefs <- fixef(model)
-  
-  # Ensure they are aligned
-  if (identical(colnames(model_mat), names(fixed_coefs))){
-    
-    # Multiply each column of the model matrix by its corresponding coefficient
-    # to get the effect of each separate predictor term
-    part_resid <- sweep(model_mat, 2, fixed_coefs, `*`) %>% 
-      as.data.frame() %>% 
-      # Add the residuals to each predictor effect
-      mutate(across(everything(), ~.x + resid)) %>% 
-      mutate(obs_id = row_number(data_sp)) %>% 
-      # Lengthen to make one facet for each term
-      pivot_longer(cols = -obs_id, 
-                   names_to = "term", values_to = "partial_residual") %>% 
-      full_join(., data_terms, by = "obs_id") %>% 
-      filter(term != "(Intercept)") 
-    
-    # Plot the partial residuals for each age term
-    age <- ggplot(part_resid %>% filter(str_detect(term, "age_at_survey"))) +
-      geom_smooth(aes(x = age_at_survey, y = partial_residual, color = site_type)) +
-      labs(title = paste(attr(model, "name")),
-           x = "Age at survey", 
-           y = "Partial residual", color = NULL) +
-      scale_color_manual(values = c("#7e67f8", "#e5188b")) + 
-      my_theme +
-      facet_wrap(~term)
-    
-    # Plot the partial residuals for each habitat term
-    habitat <- ggplot(part_resid%>% filter(str_detect(term, "hard"))) +
-      geom_smooth(aes(x = hard_bottom_500, 
-                      y = partial_residual, color = site_type),
-                  show.legend = F) +
-      labs(x = "Hard bottom at 500",
-           y = "Partial residual", color = NULL) +
-      scale_color_manual(values = c("#7e67f8", "#e5188b")) + 
-      my_theme + 
-      facet_wrap(~term)
-    
-    return(age / habitat)
-  } 
-  else {
-    print("Misaligned.")
-  }
-}
 ```
 
-# GLMMs
 
-# A. Raw dependent variable, with and without scaling, 2 vs. 3-way interaction
+# Untransformed
 
-1\. `GLMM: B ~ H*ST + K*ST + ST*A (Not Scaled)`
+## `B ~ H*ST + K*ST + ST*A (Not Scaled)`
 
--   Year has zero variance (singular fit)
--   Significant: `H*ST, ST*A, ST`
--   Not Significant: `K*ST`
+-   Removed year as it had zero variance (singular fit)
+-   Significant: `H*ST, K*ST, ST*A, ST`
 
 ```{r}
-glm1 <- lmer(kg_per_m2 ~ hard_bottom_500 * site_type + kelp_annual_500 * site_type + site_type * age_at_survey +
+glm1 <- lmer(kg_per_m2 ~ hard_bottom_500 * site_type + kelp_annual_100 * site_type + site_type * age_at_survey +
                (1|bioregion) + (1|affiliated_mpa), data = data_sp, REML = FALSE)
 
 attr(glm1, "name") <- "GLMM: B ~ H*ST + K*ST + ST*A (Not Scaled)"
@@ -177,14 +104,14 @@ summary(glm1)
 
 ```
 
-2\. `GLMM: B ~ H*ST + K*ST + ST*A (Scaled)`
+## `B ~ H*ST + K*ST + ST*A (Scaled)`
 
--   Year has zero variance (singular fit)
--   Significant: `H*ST, ST*A, ST`
--   Not Significant: `K*ST`
+-   Removed year as it had zero variance (singular fit)
+-   Significant: `H*ST, K*ST, ST*A, ST`
+-   Same as nonscaled version (#1)
 
 ```{r}
-glm2 <- lmer(kg_per_m2 ~ hard_bottom_500 * site_type + kelp_annual_500 * site_type + site_type * age_at_survey +
+glm2 <- lmer(kg_per_m2 ~ hard_bottom_500 * site_type + kelp_annual_100 * site_type + site_type * age_at_survey +
                (1|bioregion) + (1|affiliated_mpa), data = data_sp_scaled, REML = FALSE)
 
 attr(glm2, "name") <- "GLMM: B ~ H*ST + K*ST + ST*A (Scaled)"
@@ -192,14 +119,14 @@ attr(glm2, "name") <- "GLMM: B ~ H*ST + K*ST + ST*A (Scaled)"
 summary(glm2)
 ```
 
-3\. `GLMM: B ~ H*ST*A + K*ST*A (Not Scaled)`
+## `B ~ H*ST*A + K*ST*A (Not Scaled)`
 
--   Year has zero variance (singular fit)
--   Significant: `H*ST*A, ST*A`
--   Not Significant: `K*ST*A`
+-   Removed year as it had zero variance (singular fit)
+-   Significant: `H*ST*A, K*ST, ST*A`
+-   Almost significant: `H, ST`
 
 ```{r}
-glm3 <- lmer(kg_per_m2 ~ hard_bottom_500 * site_type * age_at_survey + kelp_annual_500 * site_type * age_at_survey + 
+glm3 <- lmer(kg_per_m2 ~ hard_bottom_500 * site_type * age_at_survey + kelp_annual_100 * site_type * age_at_survey + 
                (1|bioregion) + (1|affiliated_mpa), data = data_sp, REML = FALSE)
 
 attr(glm3, "name") <- "GLMM: B ~ H*ST*A + K*ST*A (Not Scaled)"
@@ -207,14 +134,15 @@ attr(glm3, "name") <- "GLMM: B ~ H*ST*A + K*ST*A (Not Scaled)"
 summary(glm3)
 ```
 
-4\. `GLMM: B ~ H*ST*A + K*ST*A (Scaled)`
+## `B ~ H*ST*A + K*ST*A (Scaled)`
 
--   Year has zero variance (singular fit)
--   Significant: `H*ST*A, H*ST, ST*A, ST; nearly K*ST`
--   Not Significant: `K*ST*A`
+-   Removed year as it had zero variance (singular fit)
+-   Significant: `H*ST*A, H*ST, K*ST, ST*A, ST`
+-   Almost significant: `H`
+-   Similar to non-scaled version except site type is now highly significant on its own
 
 ```{r}
-glm4 <- lmer(kg_per_m2 ~ hard_bottom_500 * site_type * age_at_survey + kelp_annual_500 * site_type * age_at_survey + 
+glm4 <- lmer(kg_per_m2 ~ hard_bottom_500 * site_type * age_at_survey + kelp_annual_100 * site_type * age_at_survey + 
                (1|bioregion) + (1|affiliated_mpa), data = data_sp_scaled, REML = FALSE)
 
 attr(glm4, "name") <- "GLMM: B ~ H*ST*A + K*ST*A (Scaled)"
@@ -222,18 +150,17 @@ attr(glm4, "name") <- "GLMM: B ~ H*ST*A + K*ST*A (Scaled)"
 summary(glm4)
 ```
 
+## Log+1 Transformed DV
 
-# B. Log+1 Transformed DV
+## `log(B+1) ~ H*ST + K*ST + ST*A (No Scaling)`
 
-5\. `GLMM: log(B+1) ~ H*ST + K*ST + ST*A (No Scaling)`
-
--   Year has zero variance (singular fit)
--   Significant: `H*ST, ST*A, ST`
--   Not Significant: `K*ST`
--   Same conclusions as version without log-transformation (e.g. vs. glm1)
+-   Removed year as it had zero variance (singular fit)
+-   Significant: `H*ST, K*ST, ST*A, ST`
+-   Almost significant: `ST`
+-   Same conclusions as version without log-transformation (e.g. vs. glm1) except ST is almost significant now
 
 ```{r}
-glm5 <- lmer(log_kg_per_m2 ~ hard_bottom_500 * site_type + kelp_annual_500 * site_type + site_type * age_at_survey +
+glm5 <- lmer(log_kg_per_m2 ~ hard_bottom_500 * site_type + kelp_annual_100 * site_type + site_type * age_at_survey +
                (1|bioregion) + (1|affiliated_mpa), data = data_sp, REML = FALSE)
 
 attr(glm5, "name") <- "GLMM: log(B+1) ~ H*ST + K*ST + ST*A (Not Scaled)"
@@ -242,15 +169,15 @@ summary(glm5)
 
 ```
 
-6\. `GLMM: log(B+1) ~ H*ST + K*ST + ST*A (Scaled)`
+## `log(B+1) ~ H*ST + K*ST + ST*A (Scaled)`
 
 -   Year has zero variance (singular fit)
--   Significant: `H*ST, ST*A, ST`
--   Not Significant: `K*ST`
--   Same conclusions as version without log-transformation (e.g. vs. glm2)
+-   Significant: `H*ST, K*ST, ST*A`
+-   Almost significant: ST
+-   Same conclusions as version without log-transformation (e.g. vs. glm2) and same conclusions as non-scaled (e.g. vs. glm5)
 
 ```{r}
-glm6 <- lmer(log_kg_per_m2 ~ hard_bottom_500 * site_type + kelp_annual_500 * site_type + site_type * age_at_survey +
+glm6 <- lmer(log_kg_per_m2 ~ hard_bottom_500 * site_type + kelp_annual_100 * site_type + site_type * age_at_survey +
                (1|bioregion) + (1|affiliated_mpa), data = data_sp_scaled, REML = FALSE)
 
 attr(glm6, "name") <- "GLMM: log(B+1) ~ H*ST + K*ST + ST*A (Scaled)"
@@ -258,15 +185,15 @@ attr(glm6, "name") <- "GLMM: log(B+1) ~ H*ST + K*ST + ST*A (Scaled)"
 summary(glm6)
 ```
 
-7\. `GLMM: log(B+1) ~ H*ST*A + K*ST*A (Not Scaled)`
+## `log(B+1) ~ H*ST*A + K*ST*A (Not Scaled)`
 
--   Year has zero variance (singular fit)
--   Significant: `H*ST*A, ST*A`
--   Not Significant: `K*ST*A`
+-   Removed year as it had zero variance (singular fit)
+-   Significant: `H*ST*A, K*ST, ST*A`
+-   Almost significant: `H, ST`
 -   Same conclusions as version without log-transformation (e.g. vs. glm3)
 
 ```{r}
-glm7 <- lmer(log_kg_per_m2 ~ hard_bottom_500 * site_type * age_at_survey + kelp_annual_500 * site_type * age_at_survey + 
+glm7 <- lmer(log_kg_per_m2 ~ hard_bottom_500 * site_type * age_at_survey + kelp_annual_100 * site_type * age_at_survey + 
                (1|bioregion) + (1|affiliated_mpa), data = data_sp, REML = FALSE)
 
 attr(glm7, "name") <- "GLMM: log(B+1) ~ H*ST*A + K*ST*A (Not Scaled)"
@@ -274,33 +201,32 @@ attr(glm7, "name") <- "GLMM: log(B+1) ~ H*ST*A + K*ST*A (Not Scaled)"
 summary(glm7)
 ```
 
-8\. `GLMM: log(B+1) ~ H*ST*A + K*ST*A (Scaled)`
+## `log(B+1) ~ H*ST*A + K*ST*A (Scaled)`
 
--   Year has zero variance (singular fit)
--   Significant: `H*ST*A, H*ST, ST*A, ST; nearly K*ST`
--   Not Significant: `K*ST*A`
--   Same conclusions as version without log-transformation (e.g. vs. glm4)
+-   Removed year as it had zero variance (singular fit)
+-   Significant: `H*ST*A, H*ST, K*ST, ST*A, ST`
+-   Same conclusions as version without log-transformation (e.g. vs. glm4) but different from non-scaled version b/c ST now highly significant on its own, and H\*ST is significant on its own, hard bottom on its own is nearly significant
 
 ```{r}
-glm8 <- lmer(log_kg_per_m2 ~ hard_bottom_500 * site_type * age_at_survey + kelp_annual_500 * site_type * age_at_survey + 
+glm8 <- lmer(log_kg_per_m2 ~ hard_bottom_500 * site_type * age_at_survey + kelp_annual_100 * site_type * age_at_survey + 
                (1|bioregion) + (1|affiliated_mpa), data = data_sp_scaled, REML = FALSE)
 
 attr(glm8, "name") <- "GLMM: log(B+1) ~ H*ST*A + K*ST*A (Scaled)"
 
 summary(glm8)
 ```
-# C: Log + Small Constant Transformation
 
-9\. `GLMM: log(B+c) ~ H*ST + K*ST + ST*A (No Scaling)`
+# Log + Small Constant Transformation
+
+## `log(B+c) ~ H*ST + K*ST + ST*A (No Scaling)`
 
 -   Now there is nonzero variance for year
--   `H*ST` is still significant but `ST*A` is not anymore
+-   `H*ST and K*ST` is still significant but `ST*A` is not anymore
 -   Now intercept is significant, H alone is significant, Age alone is significant
 -   Changes compared to the non-transformed and log+1 transformation!
 
-
 ```{r}
-glm9 <- lmer(log_kg_per_m2_c ~ hard_bottom_500 * site_type + kelp_annual_500 * site_type + site_type * age_at_survey +
+glm9 <- lmer(log_kg_per_m2_c ~ hard_bottom_500 * site_type + kelp_annual_100 * site_type + site_type * age_at_survey +
                (1|bioregion) + (1|affiliated_mpa) + (1|year), data = data_sp, REML = FALSE)
 
 attr(glm9, "name") <- "GLMM: log(B+c) ~ H*ST + K*ST + ST*A (Not Scaled)"
@@ -309,15 +235,15 @@ summary(glm9)
 
 ```
 
-10\. `GLMM: log(B+c) ~ H*ST + K*ST + ST*A (Scaled)`
+## `log(B+c) ~ H*ST + K*ST + ST*A (Scaled)`
 
 -   Now there is nonzero variance for year
--   `H*ST` is still significant but `ST*A` is not anymore
--   Now H alone is significant, Age alone is significant
--   Changes compared to the non-transformed and log+1 transformation!
+-   `H*ST and K*ST` is still significant but `ST*A` is not anymore
+-   Now H alone is significant, Age alone is significant, ST is significant
+-   Changes compared to the non-transformed and log+1 transformation, similar to the non-scaled log+c version (e.g. glmm #9) except intercept is not significant in this version
 
 ```{r}
-glm10 <- lmer(log_kg_per_m2_c ~ hard_bottom_500 * site_type + kelp_annual_500 * site_type + site_type * age_at_survey +
+glm10 <- lmer(log_kg_per_m2_c ~ hard_bottom_500 * site_type + kelp_annual_100 * site_type + site_type * age_at_survey +
                (1|bioregion) + (1|affiliated_mpa) + (1|year), data = data_sp_scaled, REML = FALSE)
 
 attr(glm10, "name") <- "GLMM: log(B+c) ~ H*ST + K*ST + ST*A (Scaled)"
@@ -325,16 +251,16 @@ attr(glm10, "name") <- "GLMM: log(B+c) ~ H*ST + K*ST + ST*A (Scaled)"
 summary(glm10)
 ```
 
-11\. `GLMM: log(B+c) ~ H*ST*A + K*ST*A (Not Scaled)`
+## `log(B+c) ~ H*ST*A + K*ST*A (Not Scaled)`
 
 -   Now there is nonzero variance for year
--   `H*ST*A` is still significant but barely; `ST*A` is significant
--   Intercept, H alone are now significant
--   Now significant: `H*A, K*ST`
--   Changes compared to the non-transformed and log+1 transformation!
+-   `H*ST*A` is still significant but less so; `ST*A and K*ST` is significant
+-   Intercept, H alone are now both highly significant; ST no longer significant
+-   Now significant: `H*A`
+-   Changes compared to the non-transformed and log+1 transformation.
 
 ```{r}
-glm11 <- lmer(log_kg_per_m2_c ~ hard_bottom_500 * site_type * age_at_survey + kelp_annual_500 * site_type * age_at_survey + 
+glm11 <- lmer(log_kg_per_m2_c ~ hard_bottom_500 * site_type * age_at_survey + kelp_annual_100 * site_type * age_at_survey + 
                (1|bioregion) + (1|affiliated_mpa) + (1|year), data = data_sp, REML = FALSE)
 
 attr(glm11, "name") <- "GLMM: log(B+c) ~ H*ST*A + K*ST*A (Not Scaled)"
@@ -342,16 +268,14 @@ attr(glm11, "name") <- "GLMM: log(B+c) ~ H*ST*A + K*ST*A (Not Scaled)"
 summary(glm11)
 ```
 
-12\. `GLMM: log(B+c) ~ H*ST*A + K*ST*A (Scaled)`
+## `log(B+c) ~ H*ST*A + K*ST*A (Scaled)`
 
 -   Now there is nonzero variance for year
--   `H*ST*A` is still significant but `ST*A` is not anymore
--   H, ST, and A are all significant on their own
--   `H*ST` is significant
--   Changes compared to the non-transformed and log+1 transformation!
+-   Significant: `H*ST*A (but less so), H*ST, K*ST; now: H, ST, A, H*A`
+-   Changes compared to the non-transformed and log+1 transformation. `ST*A` no longer significant, and `H, ST, A, H*A` are now significant on their own.
 
 ```{r}
-glm12 <- lmer(log_kg_per_m2_c ~ hard_bottom_500 * site_type * age_at_survey + kelp_annual_500 * site_type * age_at_survey + 
+glm12 <- lmer(log_kg_per_m2_c ~ hard_bottom_500 * site_type * age_at_survey + kelp_annual_100 * site_type * age_at_survey + 
                (1|bioregion) + (1|affiliated_mpa) + (1|year), data = data_sp_scaled, REML = FALSE)
 
 attr(glm12, "name") <- "GLMM: log(B+c) ~ H*ST*A + K*ST*A (Scaled)"
@@ -359,10 +283,14 @@ attr(glm12, "name") <- "GLMM: log(B+c) ~ H*ST*A + K*ST*A (Scaled)"
 summary(glm12)
 ```
 
+## Quick overview:
 
-## GLMM Comparison & Diagnostics
+-   Not much difference between scaled and non-scaled versions in terms of conclusions
+-   Not much difference between non-transformed and log+1 transformed versions in terms of conclusions
+-   Clear differences in the log+c transformed versions compared to the other two.
+-   Next: Need to see whether scaling or the transformations yields better fit.
 
-Click the tabs below to explore the model comparison and diagnostic plots.
+# Comparison & Diagnostics
 
 ::: {.panel-tabset .nav-pills}
 ## Comparison
@@ -426,6 +354,7 @@ abline(h = 0, col = "red", lty = 2)
 lines(lowess(fitted(glm4), residuals(glm4)), col = "blue", lwd = 2)
 
 ```
+
 ```{r}
 par(mfrow = c(2, 2)) 
 
@@ -502,95 +431,115 @@ qqnorm(residuals(glm12), main = paste(attr(glm12, "name"), "QQ Plot")); qqline(r
 ```
 :::
 
-## GLMM Partial Residuals
+# Partial Residual Plots
 
-Note that these plots are zoomed in - the residuals themselves have much wider spread; plots focus on the lines.
-
-::: {.panel-tabset .nav-pills}
-## GLMM: `B ~ H*ST + K*ST + ST*A (Not Scaled)`
+## `B ~ H*ST + K*ST + ST*A (Not Scaled)`
 
 ```{r}
 #| out.width: "100%"
 #| message: FALSE
-#| echo: FALSE
 
 plot(predictorEffects(glm1, ~ age_at_survey, partial.residuals = TRUE),
-     axes = list(x = list(rotate = 25), y = list(lim = c(0, 0.015))), id = list(n = 1),
-     residuals.pch = 19,   
-     residuals.cex = 0.2)
+     id = list(n = 1), residuals.pch = 19, residuals.cex = 0.2)
      
-plot(predictorEffects(glm1, ~ hard_bottom_500, partial.residuals = TRUE),
-     axes = list(x = list(rotate = 25)), id = list(n = 1),
-     residuals.pch = 19,   
-     residuals.cex = 0.2)
+plot(predictorEffects(glm1, ~ hard_bottom_500, partial.residuals = TRUE), 
+     id = list(n = 1), residuals.pch = 19, residuals.cex = 0.2)
+
+plot(predictorEffects(glm1, ~ kelp_annual_100, partial.residuals = TRUE),
+     axes = list(x = list(rotate = 25)), 
+     id = list(n = 1), residuals.pch = 19, residuals.cex = 0.2)
 
 # Error likely means that the extremes in the hard bottom value are causing challenges?
+# Looks like large number of low values in kelp canopy cover .... interesting.
 
 ```
 
-## GLMM: `B ~ H*ST + K*ST + ST*A (Scaled)`
+## `B ~ H*ST + K*ST + ST*A (Scaled)`
 
 ```{r}
 #| out.width: "100%"
 #| message: FALSE
-#| echo: FALSE
 
 plot(predictorEffects(glm2, ~ age_at_survey, partial.residuals = TRUE),
-     axes = list(x = list(rotate = 25), y = list(lim = c(0, 2))), id = list(n = 1),
-     residuals.pch = 19,   
-     residuals.cex = 0.2)
+     id = list(n = 1), residuals.pch = 19, residuals.cex = 0.2)
      
 plot(predictorEffects(glm2, ~ hard_bottom_500, partial.residuals = TRUE),
-     axes = list(x = list(rotate = 25), y = list(lim = c(-1, 2))), id = list(n = 1),
+     id = list(n = 1),
      residuals.pch = 19,   
      residuals.cex = 0.2)
+
+plot(predictorEffects(glm2, ~ kelp_annual_100, partial.residuals = TRUE), 
+     id = list(n = 1),
+     residuals.pch = 19,   
+     residuals.cex = 0.2)
+
 ```
 
-## GLMM: `B ~ H*ST*A + K*ST*A (Not Scaled)`
+## `B ~ H*ST*A + K*ST*A (Not Scaled)`
 
 ```{r}
 #| out.width: "100%"
+#| fig.width: 6
+#| fig.height: 12
 #| message: FALSE
-#| echo: FALSE
 
 plot(predictorEffects(glm3, ~ age_at_survey, partial.residuals = TRUE),
-     axes = list(x = list(rotate = 25)), id = list(n = 1),
-     residuals.pch = 19,   
-     residuals.cex = 0.2)
+     axes = list(x = list(cex = 0.8), y = list(cex = 0.8, lim = c(-0.001, 0.02))),
+     lattice = list(strip = list(cex = 0.5)),
+     id = list(n = 1, cex = 0.5), residuals.pch = 19, residuals.cex = 0.2)
      
+```
+
+```{r}
 plot(predictorEffects(glm3, ~ hard_bottom_500, partial.residuals = TRUE),
      axes = list(x = list(rotate = 25)), id = list(n = 1),
      residuals.pch = 19,   
      residuals.cex = 0.2)
+
+plot(predictorEffects(glm3, ~ kelp_annual_100, partial.residuals = TRUE),
+     axes = list(x = list(rotate = 35)), id = list(n = 1),
+     residuals.pch = 19,   
+     residuals.cex = 0.2)
 ```
 
-## GLMM:`B ~ H*ST*A + K*ST*A (Scaled)`
+## `B ~ H*ST*A + K*ST*A (Scaled)`
 
 ```{r}
 #| out.width: "100%"
+#| fig.width: 6
+#| fig.height: 12
 #| message: FALSE
-#| echo: FALSE
 
 plot(predictorEffects(glm4, ~ age_at_survey, partial.residuals = TRUE),
-     axes = list(x = list(rotate = 25), y = list(lim = c(-1, 2))), id = list(n = 1),
-     residuals.pch = 19,   
-     residuals.cex = 0.2)
-     
-plot(predictorEffects(glm4, ~ hard_bottom_500, partial.residuals = TRUE),
-     axes = list(x = list(rotate = 25), y = list(lim = c(-1, 2))), id = list(n = 1),
-     residuals.pch = 19,   
-     residuals.cex = 0.2)
+     axes = list( x = list(rotate = 25, cex = 0.8), y = list(cex = 0.8)),
+     lattice = list(strip = list(cex = 0.5)),
+     id = list(n = 1, cex = 0.5), residuals.pch = 19, residuals.cex = 0.2)
+    
 ```
-
-## GLMM: `log(B+1) ~ H*ST + K*ST + ST*A (Not Scaled)`
 
 ```{r}
 #| out.width: "100%"
 #| message: FALSE
-#| echo: FALSE
+
+plot(predictorEffects(glm4, ~ hard_bottom_500, partial.residuals = TRUE),
+     axes = list(x = list(rotate = 25), y = list(lim = c(-1, 5))), id = list(n = 1),
+     residuals.pch = 19,   
+     residuals.cex = 0.2)
+
+plot(predictorEffects(glm4, ~ kelp_annual_100, partial.residuals = TRUE),
+     axes = list(x = list(rotate = 25), y = list(lim = c(-1, 5))), id = list(n = 1),
+     residuals.pch = 19,   
+     residuals.cex = 0.2)
+```
+
+## `log(B+1) ~ H*ST + K*ST + ST*A (Not Scaled)`
+
+```{r}
+#| out.width: "100%"
+#| message: FALSE
 
 plot(predictorEffects(glm5, ~ age_at_survey, partial.residuals = TRUE),
-     axes = list(x = list(rotate = 25), y = list(lim = c(0, 0.015))), id = list(n = 1),
+     id = list(n = 1),
      residuals.pch = 19,   
      residuals.cex = 0.2)
      
@@ -599,73 +548,97 @@ plot(predictorEffects(glm5, ~ hard_bottom_500, partial.residuals = TRUE),
      residuals.pch = 19,   
      residuals.cex = 0.2)
 
+plot(predictorEffects(glm5, ~ kelp_annual_100, partial.residuals = TRUE),
+     axes = list(x = list(rotate = 25)), id = list(n = 1),
+     residuals.pch = 19,   
+     residuals.cex = 0.2)
+
 # Error likely means that the extremes in the hard bottom value are causing challenges?
 
 ```
 
-## GLMM: `log(B+1) ~ H*ST + K*ST + ST*A (Scaled)`
+## `log(B+1) ~ H*ST + K*ST + ST*A (Scaled)`
 
 ```{r}
 #| out.width: "100%"
 #| message: FALSE
-#| echo: FALSE
 
-plot(predictorEffects(glm6, ~ age_at_survey, partial.residuals = TRUE),
-     axes = list(x = list(rotate = 25), y = list(lim = c(0, 2))), id = list(n = 1),
+plot(predictorEffects(glm6, ~ age_at_survey, partial.residuals = TRUE), 
+     id = list(n = 1),
      residuals.pch = 19,   
      residuals.cex = 0.2)
      
-plot(predictorEffects(glm6, ~ hard_bottom_500, partial.residuals = TRUE),
-     axes = list(x = list(rotate = 25), y = list(lim = c(-1, 2))), id = list(n = 1),
+plot(predictorEffects(glm6, ~ hard_bottom_500, partial.residuals = TRUE), id = list(n = 1),
+     residuals.pch = 19,   
+     residuals.cex = 0.2)
+
+plot(predictorEffects(glm6, ~ kelp_annual_100, partial.residuals = TRUE), id = list(n = 1),
      residuals.pch = 19,   
      residuals.cex = 0.2)
 ```
 
-## GLMM: `log(B+1) ~ H*ST*A + K*ST*A (Not Scaled)`
+## `log(B+1) ~ H*ST*A + K*ST*A (Not Scaled)`
 
 ```{r}
 #| out.width: "100%"
+#| fig.width: 6
+#| fig.height: 12
 #| message: FALSE
-#| echo: FALSE
 
 plot(predictorEffects(glm7, ~ age_at_survey, partial.residuals = TRUE),
-     axes = list(x = list(rotate = 25)), id = list(n = 1),
-     residuals.pch = 19,   
-     residuals.cex = 0.2)
-     
+     axes = list( x = list(cex = 0.8), y = list(cex = 0.8)),
+     lattice = list(strip = list(cex = 0.5)),
+     id = list(n = 1, cex = 0.5), residuals.pch = 19, residuals.cex = 0.2)
+
+```
+
+```{r}
 plot(predictorEffects(glm7, ~ hard_bottom_500, partial.residuals = TRUE),
      axes = list(x = list(rotate = 25)), id = list(n = 1),
      residuals.pch = 19,   
      residuals.cex = 0.2)
+
+plot(predictorEffects(glm7, ~ kelp_annual_100, partial.residuals = TRUE),
+     axes = list(x = list(rotate = 25)), id = list(n = 1),
+     residuals.pch = 19,   
+     residuals.cex = 0.2)
 ```
 
-## GLMM:`log(B+1) ~ H*ST*A + K*ST*A (Scaled)`
+## `log(B+1) ~ H*ST*A + K*ST*A (Scaled)`
 
 ```{r}
 #| out.width: "100%"
+#| fig.width: 6
+#| fig.height: 12
 #| message: FALSE
-#| echo: FALSE
 
 plot(predictorEffects(glm8, ~ age_at_survey, partial.residuals = TRUE),
-     axes = list(x = list(rotate = 25), y = list(lim = c(-1, 2))), id = list(n = 1),
+     axes = list( x = list(rotate = 25, cex = 0.8), y = list(cex = 0.8)),
+     lattice = list(strip = list(cex = 0.5)),
+     id = list(n = 1, cex = 0.5), residuals.pch = 19, residuals.cex = 0.2)
+
+```
+
+```{r}
+plot(predictorEffects(glm8, ~ hard_bottom_500, partial.residuals = TRUE),
+     axes = list(x = list(rotate = 25)), id = list(n = 1),
      residuals.pch = 19,   
      residuals.cex = 0.2)
-     
-plot(predictorEffects(glm8, ~ hard_bottom_500, partial.residuals = TRUE),
-     axes = list(x = list(rotate = 25), y = list(lim = c(-1, 2))), id = list(n = 1),
+
+plot(predictorEffects(glm8, ~ kelp_annual_100, partial.residuals = TRUE),
+     axes = list(x = list(rotate = 25)), id = list(n = 1),
      residuals.pch = 19,   
      residuals.cex = 0.2)
 ```
 
-## GLMM: `log(B+c) ~ H*ST + K*ST + ST*A (Not Scaled)`
+## `log(B+c) ~ H*ST + K*ST + ST*A (Not Scaled)`
 
 ```{r}
 #| out.width: "100%"
 #| message: FALSE
-#| echo: FALSE
 
 plot(predictorEffects(glm9, ~ age_at_survey, partial.residuals = TRUE),
-     axes = list(x = list(rotate = 25), y = list(lim = c(0, 0.015))), id = list(n = 1),
+     axes = list(x = list(rotate = 25)), id = list(n = 1),
      residuals.pch = 19,   
      residuals.cex = 0.2)
      
@@ -674,95 +647,104 @@ plot(predictorEffects(glm9, ~ hard_bottom_500, partial.residuals = TRUE),
      residuals.pch = 19,   
      residuals.cex = 0.2)
 
-```
-
-## GLMM: `log(B+c) ~ H*ST + K*ST + ST*A (Scaled)`
-
-```{r}
-#| out.width: "100%"
-#| message: FALSE
-#| echo: FALSE
-
-plot(predictorEffects(glm10, ~ age_at_survey, partial.residuals = TRUE),
-     axes = list(x = list(rotate = 25), y = list(lim = c(0, 2))), id = list(n = 1),
-     residuals.pch = 19,   
-     residuals.cex = 0.2)
-     
-plot(predictorEffects(glm10, ~ hard_bottom_500, partial.residuals = TRUE),
-     axes = list(x = list(rotate = 25), y = list(lim = c(-1, 2))), id = list(n = 1),
-     residuals.pch = 19,   
-     residuals.cex = 0.2)
-```
-
-## GLMM: `log(B+c) ~ H*ST*A + K*ST*A (Not Scaled)`
-
-```{r}
-#| out.width: "100%"
-#| message: FALSE
-#| echo: FALSE
-
-plot(predictorEffects(glm11, ~ age_at_survey, partial.residuals = TRUE),
+plot(predictorEffects(glm9, ~ kelp_annual_100, partial.residuals = TRUE),
      axes = list(x = list(rotate = 25)), id = list(n = 1),
      residuals.pch = 19,   
      residuals.cex = 0.2)
+```
+
+## `log(B+c) ~ H*ST + K*ST + ST*A (Scaled)`
+
+```{r}
+#| out.width: "100%"
+#| message: FALSE
+
+plot(predictorEffects(glm10, ~ age_at_survey, partial.residuals = TRUE),
+     id = list(n = 1),
+     residuals.pch = 19,   
+     residuals.cex = 0.2)
      
+plot(predictorEffects(glm10, ~ hard_bottom_500, partial.residuals = TRUE), 
+     id = list(n = 1),
+     residuals.pch = 19,   
+     residuals.cex = 0.2)
+
+plot(predictorEffects(glm10, ~ kelp_annual_100, partial.residuals = TRUE), id = list(n = 1),
+     residuals.pch = 19,   
+     residuals.cex = 0.2)
+```
+
+## `log(B+c) ~ H*ST*A + K*ST*A (Not Scaled)`
+
+```{r}
+#| out.width: "100%"
+#| fig.width: 6
+#| fig.height: 12
+#| message: FALSE
+
+plot(predictorEffects(glm11, ~ age_at_survey, partial.residuals = TRUE),
+     axes = list( x = list(cex = 0.8), y = list(cex = 0.8)),
+     lattice = list(strip = list(cex = 0.5)),
+     id = list(n = 1, cex = 0.5), residuals.pch = 19, residuals.cex = 0.2)
+
+```
+
+```{r}
+
 plot(predictorEffects(glm11, ~ hard_bottom_500, partial.residuals = TRUE),
      axes = list(x = list(rotate = 25)), id = list(n = 1),
      residuals.pch = 19,   
      residuals.cex = 0.2)
+
+plot(predictorEffects(glm11, ~ kelp_annual_100, partial.residuals = TRUE),
+     axes = list(x = list(rotate = 25)), id = list(n = 1),
+     residuals.pch = 19,   
+     residuals.cex = 0.2)
 ```
 
-## GLMM:`log(B+c) ~ H*ST*A + K*ST*A (Scaled)`
+## `log(B+c) ~ H*ST*A + K*ST*A (Scaled)`
 
 ```{r}
 #| out.width: "100%"
+#| fig.width: 6
+#| fig.height: 12
 #| message: FALSE
-#| echo: FALSE
-plot_partial_residuals(glm4)
 
 plot(predictorEffects(glm12, ~ age_at_survey, partial.residuals = TRUE),
-     axes = list(x = list(rotate = 25), y = list(lim = c(-1, 2))), id = list(n = 1),
-     residuals.pch = 19,   
-     residuals.cex = 0.2)
+      axes = list( x = list(cex = 0.8), y = list(cex = 0.8)),
+     lattice = list(strip = list(cex = 0.5)),
+     id = list(n = 1, cex = 0.5), residuals.pch = 19, residuals.cex = 0.2)
      
+
+```
+
+```{r}
 plot(predictorEffects(glm12, ~ hard_bottom_500, partial.residuals = TRUE),
      axes = list(x = list(rotate = 25), y = list(lim = c(-1, 2))), id = list(n = 1),
      residuals.pch = 19,   
      residuals.cex = 0.2)
+
+plot(predictorEffects(glm12, ~ kelp_annual_100, partial.residuals = TRUE),
+     axes = list(x = list(rotate = 25), y = list(lim = c(-1, 2))), id = list(n = 1),
+     residuals.pch = 19,   
+     residuals.cex = 0.2)
 ```
 
+# GLMM Summary
 
-:::
-
-
-## GLMM Summary
-
--   The diagnostic plots don't show drastic differences among the four GLMMs
--   The three-way interactions have the lowest AIC and highest R2 values
--   Partial residuals show consistent nonlinear relationship with age (?) and potential nonlinear interaction between hard bottom and site type
+-   The diagnostic plots don't show drastic differences among the non-transformed vs. log+1 transformed. Within those two, the non-scaled, 3-way interaction tends to have the lowest AIC.
+-   The log+c transformation causes challenges because the zeroes become negative values (log of a value less than 1 is negative).
+-   Scaling the kelp canopy cover may be creating challenges (scaled values go from -0.5 to 6... suggests lots of zeroes and some very high values). This could be because kelp is scaled across all years, rather than within each year?
 
 # Gamma GLMs
 
 1\. Fit Gamma GLM + 2way
 
 ```{r}
-gglm1 <- glmer(kg_per_m2_c ~ hard_bottom_500 * site_type + kelp_annual_500 * site_type + site_type * age_at_survey + 
-                 (1|bioregion) + (1|affiliated_mpa) + (1|year),
-               family = Gamma(link = "log"), data = data_sp)
-
-attr(gglm1, "name") <- "Gamma: B ~ H*ST + ST*A"
+# gglm1 <- glmer(kg_per_m2_c ~ hard_bottom_500 * site_type + kelp_annual_100 * site_type + site_type * age_at_survey + 
+#                  (1|bioregion) + (1|affiliated_mpa) + (1|year),
+#                family = Gamma(link = "log"), data = data_sp)
 
 # does not fit
-
-```
-
-2\. Fit Gamma GLM + 3way
-
-```{r}
-gglm2 <- glmer(kg_per_m2_c  ~ hard_bottom_500 * site_type * age_at_survey + kelp_annual_500 * site_type * age_at_survey + 
-                 (1|bioregion) + (1|affiliated_mpa) + (1|year),
-            family = Gamma(link = "log"), data_sp)
-
-attr(gglm2, "name") <- "Gamma: B ~ H*ST*A"
 
 ```
