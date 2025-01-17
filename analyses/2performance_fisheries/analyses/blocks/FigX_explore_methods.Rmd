@@ -1,5 +1,5 @@
 ---
-title: "Testing with Rockfish"
+title: "Exploring Methods: Spatial Distribution of Catch"
 author: "Cori Lopazanski"
 date: "2023-08-01"
 output: 
@@ -27,7 +27,7 @@ library(rfishbase)
 # Directories
 basedir <- "/Users/lopazanski/Library/CloudStorage/GoogleDrive-lopazanski@ucsb.edu/Shared drives/NCEAS MPA network assessment/MPA Network Assessment: Working Group Shared Folder/data/sync-data"
 gisdir <- file.path(basedir, "gis_data/processed")
-datadir <- "analyses/2performance_fisheries/analyses/blocks"
+datadir <- "analyses/2performance_fisheries/analyses/blocks/data"
 fishdir <- "/Users/lopazanski/Documents/github/nceas/CDFW-fishing-data"
 
 ```
@@ -36,94 +36,159 @@ fishdir <- "/Users/lopazanski/Documents/github/nceas/CDFW-fishing-data"
 
 ```{r}
 mpas <- readRDS(file.path(gisdir, "CA_MPA_polygons.Rds"))
+mpa_meta <- readRDS(file.path(basedir, "mpa_traits", "processed", "mpa_attributes_general.Rds"))
+mpa_defacto <- readRDS("data/mpa_traits/mpa_defacto.Rds") %>% 
+  pivot_wider(names_from = group, values_from = mpa_class) %>% 
+  mutate(defacto = if_else(if_any(c(kelp, rocky, beach, ccfrp, deep_reef, surf), ~.x == "SMCA"), "SMCA", "SMR"))
+
 blocks <- readRDS(file.path(datadir, "blocks_by_mlpa_region_w_mpa_stats.Rds"))
 landings_raw <- readRDS(file.path(fishdir, "CDFW_2000_2020_landings_receipts.Rds"))
-#sp_key <- readRDS(file.path(fishdir, "CDFW_species_key.Rds"))# This seems incomplete
-sp_key <- read_csv(file.path(fishdir, "CDFW_species_key.csv"))
+fisheries <- readRDS(file.path(datadir, "species_fishery_group_key.Rds")) %>% 
+  rename(species_id = spp_code_num)
+
+contours <- read_sf("/Users/lopazanski/Documents/github/nceas/CDFW-fishing-data/contours_5m")
 
 ```
 
 # Clean Data
 
-## Create rockfish species list
-
-```{r}
-gf_rock <- sp_key %>% filter(grepl("rockfish", comm_name))
-```
-
 ## Clean up landings data
 
 ```{r}
 landings <- landings_raw %>% 
-  # remove invalid blocks
+  # Drop invalid blocks
   filter(!(block_type %in% c("Invalid"))) %>% 
-  # filter only rockfish species
-  filter(species_id %in% gf_rock$spp_code_num)
+  # Drop missing weights (6 obs) 
+  filter(!is.na(landings_lb)) %>% 
+  left_join(fisheries)
+
+# Inspect missing values
+colSums(is.na(landings))
+
+# Key:
+# Missing permits: ~ 2.4 million obs
+# Missing price/value: 773 obs.
+# Not included in current fishery groupings: 239,304 obs.
+
 ```
 
-## Create simple blocks dataframe
+## Create simple blocks dataframe with MPA info
 
 ```{r}
+patterns <- c("SMRMA", "SMR", "SMCA \\(No-Take\\)", "FMR", "SMP", "SMCA")
+
 blocks_simple <- blocks %>% 
-  sf::st_drop_geometry() %>% 
-  select(block_id, mlpa_region, mpa_yn)
+  select(block_id, mlpa_region:mpa_km2, geometry) %>% 
+  mutate(mpa_types = str_extract_all(mpas, paste(patterns, collapse = "|"))) %>% 
+  unnest(mpa_types) %>% 
+  pivot_wider(names_from = "mpa_types", values_from = "mpa_types", values_fn = first) %>% clean_names() %>% 
+  select(block_id:mpa_km2, smr, smca_no_take, FMR, smca, smrma, smp, geometry) %>% 
+  mutate(highly = if_else(smr > 0 | smca_no_take > 0 | FMR > 0, "Contains defacto SMR", NA),
+         highly = if_else(is.na(highly) & mpa_n > 0, "SMCA or lower", highly)) %>% 
+  unite("mpa_types", smr:smp, sep = ", ", na.rm = T) %>% 
+  mutate(mpa_types = if_else(mpa_types == "", NA, mpa_types))
+
+
 ```
+
+### Plot
+```{r}
+# CA/OR, Alder Creek, Pigeon Point, Point Conception, CA/MEX 
+region_lats <- c(42, 39.0, 37.18, 34.5, 32.5) %>% rev()
+
+# Get land
+usa <- rnaturalearth::ne_states(country="United States of America", returnclass = "sf")
+foreign <- rnaturalearth::ne_countries(country=c("Canada", "Mexico"), returnclass = "sf")
+
+# Theme
+my_theme <-  theme(axis.text=element_text(size=7),
+                   axis.text.y = element_text(angle = 90, hjust = 0.5),
+                   axis.title=element_blank(),
+                   legend.text=element_text(size=8),
+                   legend.title=element_text(size=9),
+                   # Gridlines
+                   panel.grid.major = element_blank(), 
+                   panel.grid.minor = element_blank(),
+                   panel.background = element_blank(), 
+                   axis.line = element_line(colour = "black"),
+                   # Legend
+                   legend.key.size = unit(0.4, "cm"),
+                   legend.key = element_rect(fill=alpha('blue', 0)),
+                   legend.background = element_rect(fill=alpha('blue', 0)))
+
+
+# Plot data - MPA status based on regulation
+g <- ggplot() +
+  # Plot blocks
+  geom_sf(data=blocks_simple %>% 
+            filter(mlpa_region == "South Coast"), mapping=aes(geometry=geometry, fill=highly, alpha=mpa_yn), lwd=0.2) +
+  # Plot region lines
+  geom_hline(mapping=aes(yintercept=region_lats)) +
+  # Plot land
+  geom_sf(data=foreign, fill="grey80", color="white", lwd=0.3) +
+  geom_sf(data=usa, fill="grey80", color="white", lwd=0.3) +
+  # MPAs
+  geom_sf(data = mpas, fill = "grey", alpha = 0.5, lwd = 0.2) +
+  # Legend
+  scale_fill_discrete(name="Regulation", na.translate = F) +
+  scale_alpha_manual(name="Block type", values=c(0.9, 0.2)) +
+  # Crop
+  coord_sf(xlim = c(-121, -117), ylim = c(32.5, 34.45)) +
+  # Theme
+  theme_bw() + my_theme
+g
+
+
+```
+
+
+```{r}
+# Plot data - MPA status based on regulation
+g <- ggplot() +
+  # Plot blocks
+  geom_sf(data=blocks_simple %>% 
+            filter(mlpa_region == "South Coast") %>% 
+            mutate(highly = if_else(mpa_km2 < 0.5, "MPA < 0.5 km2", highly)), 
+          mapping=aes(geometry=geometry, fill=highly, alpha=mpa_yn), lwd=0.2) +
+  # Plot region lines
+  geom_hline(mapping=aes(yintercept=region_lats)) +
+  # Plot land
+  geom_sf(data=foreign, fill="grey80", color="white", lwd=0.3) +
+  geom_sf(data=usa, fill="grey80", color="white", lwd=0.3) +
+  # MPAs
+  geom_sf(data = mpas, fill = "grey", alpha = 0.5, lwd = 0.2) +
+  # Legend
+  scale_fill_discrete(name="Regulation", na.translate = F) +
+  scale_alpha_manual(name="Block type", values=c(0.9, 0.2)) +
+  # Crop
+  coord_sf(xlim = c(-121, -117), ylim = c(32.5, 34.45)) +
+  # Theme
+  theme_bw() + my_theme
+g
+
+```
+
 
 # Build Data
 
-We define CPUE as in Richerson et al. 2020 (<https://www.sciencedirect.com/science/article/pii/S016578362030045X>). CPUE is weight per [species or species group] per trip, where a trip is the total landings of the [species or species group] landed by a single vessel on the same date in the same port.
+## Calculate CPUE
 
-Calculate aggregate catch for each individual vessel (i) in each block (j) using a specific gear (k) on a particular day (t):
+We define CPUE as in Richerson et al. 2020 (<https://www.sciencedirect.com/science/article/pii/S016578362030045X>). CPUE is weight per [species or species group] per trip, where a trip is the total landings of the [species or species group] landed by a single vessel from a specific block on the same date in the same port.
+
+1. Calculate total landings of each species (s) landed by an individual vessel (v) in a single block (b) using a specific gear (g) on a particular day (t), and landed in a particular port (p),
+2. Create dummy variables for whether or not there is an MPA in the region on a particular day (t),
+3. Create dummy variable for whether or not there is an MPA in the block on a particular day (t)
 
 ```{r}
 data <- landings %>% 
-  # Vessel - Block - Gear - Day
-  group_by(vessel_id, block_id, gear_type, gear_id, gear, year, month, date) %>% 
-  # Calculate total landings for each
+  # Vessel - Block - Gear - Day - Species
+  group_by(vessel_id, species_id, species, block_id, 
+           gear_type, gear_id, gear, 
+           port_complex, port_id, port,
+           year, month, date) %>% 
+  # Calculate total landings for each "trip"
   summarize(total_lbs = sum(landings_lb, na.rm = T)) %>% 
-  ungroup() 
-
-test_multiple_blocks <- data %>% 
-  group_by(vessel_id, gear_id, gear, year, month, date) %>% 
-  summarize(total_lbs = sum(total_lbs, na.rm = T),
-            n_blocks = n())
-
-length(test_multiple_blocks$n_blocks[test_multiple_blocks$n_blocks>1]) # 1743 obs > 1 block
-1743/132700
-
-test_multiple_gears <- data %>% 
-  group_by(vessel_id, year, month, date) %>% 
-  summarize(n_gears = length(unique(gear_id)))
-
-length(unique(data$gear_id)) # 48 different gear configurations
-
-length(test_multiple_gears$n_gears[test_multiple_gears$n_gears>1]) #1436 gears > 1 on single date
-1436/131253
-
-# Examine most common gear types
-gear_types <- data %>% 
-  group_by(gear_type, gear_id, gear) %>% 
-  summarize(receipts = n(), 
-            landings = sum(total_lbs, na.rm = T),
-            vessels = length(unique(vessel_id)))
-
-# Plot common gears by year
-gear_landings <- data %>% 
-  group_by(gear_type, year) %>% 
-  summarize(landings = sum(total_lbs, na.rm = T)) 
-
-ggplot(data = gear_landings) + 
-  geom_line(aes(x = year, y = landings, color = fct_reorder(gear_type, desc(landings)))) +
-  labs(color = NULL, 
-       x = "Year", y = "Total rockfish catch (lbs) per major gear type") +
-  theme_minimal()
-
-```
-
-Create dummy variables for whether or not there is an MPA in the region on a particular day (t):
-
-```{r}
-data <- data %>% 
+  ungroup() %>% 
   # Join the MLPA region and MPA status
   left_join(., blocks_simple) %>% 
   # Create dummy for whether or not there is an MPA in the region for each block
@@ -132,16 +197,55 @@ data <- data %>%
                                  date < '2012-12-01' & mlpa_region == "North Coast" ~ 0,
                                  date < '2012-01-01' & mlpa_region == "South Coast" ~ 0,
                                  mlpa_region == "San Francicso Bay" ~ 0,
-                                 TRUE ~ 1))
-```
-
-Create dummy variable for whether or not there is an MPA in the block on a particular day (t):
-
-```{r}
-data <- data %>% 
+                                 TRUE ~ 1)) %>% 
   # Create dummy for whether or not there is an MPA (implemented) in the block
   mutate(mpa_in_block = case_when(mpa_yn == "MPA" & mpa_in_region == 1 ~ 1,
-                                  TRUE ~ 0))
+                                  TRUE ~ 0)) 
+```
+
+
+```{r}
+## Explore Rockfish - Not Currently Seeming Correct
+# data_rockfish <- data %>% 
+#   filter(species_id %in% fisheries$species_id[fisheries$fishery == "rockfish"]) %>% 
+#   group_by(vessel_id, block_id, gear, port_complex, port, year, month, date) %>% 
+#   # Summarize across all rockfish species for a given trip-block
+#   summarize(total_lbs = sum(total_lbs))
+# 
+# test_multiple_blocks <- data_rockfish %>% 
+#   group_by(vessel_id, gear, port_complex, port, year, month, date) %>% 
+#   summarize(total_lbs = sum(total_lbs, na.rm = T),
+#             n_blocks = n()) 
+# 
+# length(test_multiple_blocks$n_blocks[test_multiple_blocks$n_blocks>1])
+# 1683/134529
+# 
+# test_multiple_gears <- data_rockfish %>% 
+#   group_by(vessel_id, year, month, date) %>% 
+#   summarize(n_gears = length(unique(gear)))
+# 
+# length(unique(data$gear_id)) # 76 different gear configurations
+# 
+# length(test_multiple_gears$n_gears[test_multiple_gears$n_gears>1]) #1436 gears > 1 on single date
+# 1436/131253
+# 
+# # Examine most common gear types
+# gear_types <- data %>% 
+#   group_by(gear_type, gear_id, gear) %>% 
+#   summarize(receipts = n(), 
+#             landings = sum(total_lbs, na.rm = T),
+#             vessels = length(unique(vessel_id)))
+# 
+# # Plot common gears by year
+# gear_landings <- data %>% 
+#   group_by(gear_type, year) %>% 
+#   summarize(landings = sum(total_lbs, na.rm = T)) 
+# 
+# ggplot(data = gear_landings) + 
+#   geom_line(aes(x = year, y = landings, color = fct_reorder(gear_type, desc(landings)))) +
+#   labs(color = NULL, 
+#        x = "Year", y = "Total rockfish catch (lbs) per major gear type") +
+#   theme_minimal()
 ```
 
 ## Calculate Standardized CPUE
@@ -154,8 +258,28 @@ Since the network was implemented regionally, which pre-implementation mean do w
 # Start with calculating pre-implementation mean based on zero MLPA MPAs implemented
 # e.g. prior to first region implemented (before 09-01-2007; Central)
 # which is technically after Channel Islands MPAs and some other MPAs...
-data_pre <- data  %>% 
-  filter(date < '2007-09-01')
+data_std <- data  %>% 
+  filter(!(vessel_id %in% c(-1, 0))) %>% 
+  # Calculate mean landings for each species for each vessel for each gear
+  # in each block in a given year (across all trips)
+  group_by(vessel_id, species, species_id, gear_type,
+           block_id, mlpa_region, mpa_yn, mpa_in_region) %>% 
+  summarize(mean_lbs = mean(total_lbs)) %>% 
+  arrange(-vessel_id, block_id) %>% 
+  pivot_wider(names_from = mpa_in_region, values_from = mean_lbs) %>% 
+  rename(mean_lbs_pre = `0`, mean_lbs_post = `1`) %>% 
+  filter(!(is.na(mean_lbs_pre) | is.na(mean_lbs_post))) %>%  # 225925 > 19476
+  mutate(logRR = log(mean_lbs_post/mean_lbs_pre)) %>% 
+  mutate(block_ord = fct_reorder(factor(block_id), logRR)) %>% 
+  left_join(fisheries)
+
+ggplot(data = data_std) +
+  geom_point(aes(x = block_id, y = logRR, color = fishery))
+
+
+mutate(pre_post = case_when(date < '2007-09-01' ~ "pre",
+                              date >= '2007-09-01' ~ "post")) %>% 
+
 
 # Calculate mean and standard deviation
 data_pre.mean <- mean(data_pre$total_lbs)
@@ -170,15 +294,30 @@ data$cpue_std <- (data$total_lbs - data_pre.mean)/data_pre.sd
 
 ```{r}
 # Calculate the total standardized CPUE for each block pre-implementation
+annual_cpue <- data %>% 
+  group_by(block_id, mpa_yn, year) %>% 
+  summarize(total_lbs = sum(total_lbs),
+            annual_cpue = mean(cpue_std)) %>% 
+  ungroup() %>% 
+  group_by(block_id)
+
+ggplot(data = annual_cpue) +
+  geom_path(aes(x = year, y = total_lbs, group = block_id, color = mpa_yn))+
+  scale_y_continuous(limits = c(0, 200000))
+
 plot_pre <- data %>% 
   filter(date < '2007-09-01') %>% 
+  group_by(block_id, year) %>% 
+  summarize(annual_cpue = sum(cpue_std)) %>% 
   group_by(block_id) %>% 
-  summarize(pre_cpue = sum(cpue_std))
+  summarize(pre_cpue = mean(annual_cpue))
 
 plot_post <- data %>% 
   filter(date > '2007-09-01') %>% 
+  group_by(block_id, year) %>% 
+  summarize(annual_cpue = sum(cpue_std)) %>% 
   group_by(block_id) %>% 
-  summarize(post_cpue = sum(cpue_std))
+  summarize(post_cpue = mean(annual_cpue))
 
 plot <- full_join(plot_pre, plot_post) 
 
@@ -222,9 +361,12 @@ plot_inshore <- full_join(inshore_pre, inshore_post)
 
 plot_inshore$diff <- plot_inshore$post_cpue-plot_inshore$pre_cpue
 
+plot_inshore2 <- plot_inshore %>% 
+  mutate(test = scales::rescale(diff, to = c(-1, 1))) %>% 
+
 ```
 
-# Plots
+m# Plots
 
 ## Theme Setup
 
@@ -250,8 +392,7 @@ my_theme <-  theme(axis.text=element_text(size=7),
                    # Legend
                    legend.key.size = unit(0.4, "cm"),
                    legend.key = element_rect(fill=alpha('blue', 0)),
-                   legend.background = element_rect(fill=alpha('blue', 0)),
-                   legend.position = c(0.7,0.8))
+                   legend.background = element_rect(fill=alpha('blue', 0)))
 ```
 
 ## All Blocks
@@ -271,14 +412,14 @@ ggplot() +
   geom_sf(data=foreign, fill="grey80", color="white", lwd=0.3) +
   geom_sf(data=usa, fill="grey80", color="white", lwd=0.3) +
   # Crop
-  coord_sf(xlim = c(-126, -117), ylim = c(32.5, 42)) +
+  coord_sf(xlim = c(-124, -120), ylim = c(34.5, 37.2)) +
   # Color
   scale_fill_gradient2(midpoint = 0) +
   theme_bw() + my_theme + 
   labs(title = "Rockfish (Sebastes spp.)",
        fill = "Difference in std. CPUE")
 
-ggsave("rockfish_all_diff.png", width = 4, height = 6, units = c("in"), dpi = 150)
+#ggsave("rockfish_central.png", width = 4, height = 6, units = c("in"), dpi = 150)
 ```
 
 ## Inshore Blocks
@@ -288,8 +429,8 @@ ggplot() +
   # Blocks
   geom_sf(data = blocks, lwd = 0.2) +
   # Landings 
-  geom_sf(data = plot_inshore %>% 
-            left_join(., blocks), aes(fill = diff, geometry = geometry)) +
+  geom_sf(data = plot_inshore2 %>% 
+            left_join(., blocks), aes(fill = test, geometry = geometry)) +
    # MPAs
   geom_sf(data = mpas, color = "black", lwd = 0.2) +
   # Region lines
@@ -298,7 +439,7 @@ ggplot() +
   geom_sf(data=foreign, fill="grey80", color="white", lwd=0.3) +
   geom_sf(data=usa, fill="grey80", color="white", lwd=0.3) +
   # Crop
-  coord_sf(xlim = c(-126, -117), ylim = c(32.5, 42)) +
+  coord_sf(xlim = c(-123, -120), ylim = c(34.5, 37.2)) +
   # Color
   scale_fill_gradient2(midpoint = 0) +
   theme_bw() + my_theme + 
@@ -306,3 +447,33 @@ ggplot() +
        fill = "Standardized difference post-MPA")
 
 ```
+
+
+```{r}
+contours_500 <- contours %>% 
+  filter(CONTOUR %in% c(-500, -100))
+
+ggplot() +
+  # Blocks
+  geom_sf(data=blocks %>% 
+            filter(!(block_type == "Offshore") & block_id < 900), 
+          mapping=aes(alpha=mpa_yn), lwd=0.2) +
+  # Contours
+  geom_sf(data = contours_500, lwd = 0.2) +
+  # MPAS
+  geom_sf(data = mpas,
+          mapping=aes(fill = type), alpha = 0.5) +
+  # Region lines
+  geom_hline(mapping=aes(yintercept=region_lats)) +
+  # Land
+  geom_sf(data=foreign, fill="grey80", color="white", lwd=0.3) +
+  geom_sf(data=usa, fill="grey80", color="white", lwd=0.3) +
+  # Legend
+  scale_fill_discrete(name="MPA type") +
+  scale_alpha_manual(name="Block type", values=c(1, 0.2)) +
+  # Crop
+  coord_sf(xlim = c(-122.75, -121.4), ylim = c(36, 37.2)) +
+  # Theme
+  theme_bw() + my_theme 
+```
+

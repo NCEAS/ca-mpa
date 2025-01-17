@@ -54,7 +54,9 @@ my_theme <-  theme(axis.text=element_text(size=7),
 # Plot data
 ggplot() +
   # Bblocks
-  geom_sf(data=blocks, mapping=aes(fill=mlpa_region, alpha=mpa_yn), lwd=0.2) +
+  geom_sf(data=blocks %>% 
+            filter(!mlpa_region %in% c("South of state", "North of state")), 
+          mapping=aes(fill=mlpa_region, alpha=mpa_yn), lwd=0.2) +
   # Rregion lines
   geom_hline(mapping=aes(yintercept=region_lats)) +
   # Land
@@ -66,8 +68,12 @@ ggplot() +
   # Crop
   coord_sf(xlim = c(-126, -117), ylim = c(32.5, 42)) +
   # Theme
-  theme_bw() + my_theme 
+  theme_bw() + my_theme +
+  theme(legend.position = c(0.75, 0.75),
+        legend.key.size = unit(0.3, "cm"),
+        legend.background = element_rect(fill=alpha("white", 1)))
 
+ggsave(filename=file.path(figdir, "CA_blocks_test.png"))
 
 # Zoom by region ##############################################################
 
@@ -77,11 +83,11 @@ s <- ggplot() +
   geom_sf(data=blocks, mapping=aes(alpha=mpa_yn), lwd=0.2) +
   # Region lines
   geom_hline(mapping=aes(yintercept=region_lats)) +
-  # MPAs
-  geom_sf(data=mpas, fill = "red", alpha = 0.5)+
   # Land
   geom_sf(data=foreign, fill="grey80", color="white", lwd=0.3) +
   geom_sf(data=usa, fill="grey80", color="white", lwd=0.3) +
+  # MPAs
+  geom_sf(data=mpas, fill = "red", alpha = 0.5)+
   # Legend
   scale_fill_discrete(name="MLPA region") +
   scale_alpha_manual(name="Block type", values=c(1, 0.2)) +
@@ -99,11 +105,12 @@ c <- ggplot() +
   geom_sf(data=blocks, mapping=aes(alpha=mpa_yn), lwd=0.2) +
   # Region lines
   geom_hline(mapping=aes(yintercept=region_lats)) +
-  # MPAs
-  geom_sf(data=mpas, fill = "red", alpha = 0.5)+
+  
   # Land
   geom_sf(data=foreign, fill="grey80", color="white", lwd=0.3) +
   geom_sf(data=usa, fill="grey80", color="white", lwd=0.3) +
+  # MPAs
+  geom_sf(data=mpas, fill = "red", alpha = 0.5)+
   # Legend
   scale_fill_discrete(name="MLPA region") +
   scale_alpha_manual(name="Block type", values=c(1, 0.2)) +
@@ -122,11 +129,12 @@ nc <- ggplot() +
   geom_sf(data=blocks, mapping=aes(alpha=mpa_yn), lwd=0.2) +
   # Region lines
   geom_hline(mapping=aes(yintercept=region_lats)) +
-  # MPAs
-  geom_sf(data=mpas, fill = "red", alpha = 0.5)+
+  
   # Land
   geom_sf(data=foreign, fill="grey80", color="white", lwd=0.3) +
   geom_sf(data=usa, fill="grey80", color="white", lwd=0.3) +
+  # MPAs
+  geom_sf(data=mpas, fill = "red", alpha = 0.5)+
   # Legend
   scale_fill_discrete(name="MLPA region") +
   scale_alpha_manual(name="Block type", values=c(1, 0.2)) +
@@ -144,11 +152,11 @@ n <- ggplot() +
   geom_sf(data=blocks, mapping=aes(alpha=mpa_yn), lwd=0.2) +
   # Region lines
   geom_hline(mapping=aes(yintercept=region_lats)) +
-  # MPAs
-  geom_sf(data=mpas, fill = "red", alpha = 0.5)+
   # Land
   geom_sf(data=foreign, fill="grey80", color="white", lwd=0.3) +
   geom_sf(data=usa, fill="grey80", color="white", lwd=0.3) +
+  # MPAs
+  geom_sf(data=mpas, fill = "red", alpha = 0.5)+
   # Legend
   scale_fill_discrete(name="MLPA region") +
   scale_alpha_manual(name="Block type", values=c(1, 0.2)) +
