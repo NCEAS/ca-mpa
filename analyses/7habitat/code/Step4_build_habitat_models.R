@@ -232,29 +232,29 @@ refine_habitat <- function(species, response, predictors_df, random_effects, dat
 
 
 ## Define parameters and run ---------------------------------------------------
-walk(unique(sp_kelp$species_code), function(species) { # Top 8 statewide species
-  results_df <- refine_habitat(species = species,
-                               response = "kg_per_m2",
-                               predictors_df = pred_kelp_int, # With interactions
-                               random_effects = c("year", "bioregion", "affiliated_mpa"), # With MPA RE
-                               data = data_kelp_subset, # Scaled numeric predictors
-                               regions = c("Central", "North", "South"), # All regions
-                               path = "analyses/7habitat/output/kelp/all_regions/raw_scaled")
-  cat("\nTop 5 models for species:", species, "\n")
-  print(head(results_df, 10))
-})
-
-# walk(unique(sp_rock$species_code), function(species) { # Top 4 statewide species
+# walk(unique(sp_kelp$species_code), function(species) { # Top 8 statewide species
 #   results_df <- refine_habitat(species = species,
-#                                response = "log_bpue_kg",
-#                                predictors_df = pred_rock_int, # With interactions
+#                                response = "kg_per_m2",
+#                                predictors_df = pred_kelp_int, # With interactions
 #                                random_effects = c("year", "bioregion", "affiliated_mpa"), # With MPA RE
-#                                data = data_rock_subset, # Scaled numeric predictors
+#                                data = data_kelp_subset, # Scaled numeric predictors
 #                                regions = c("Central", "North", "South"), # All regions
-#                                path = "analyses/7habitat/output/rock/all_regions/no_soft")
+#                                path = "analyses/7habitat/output/kelp/all_regions/raw_scaled")
 #   cat("\nTop 5 models for species:", species, "\n")
-#   print(head(results_df, 5))
+#   print(head(results_df, 10))
 # })
+
+walk(unique(sp_rock$species_code), function(species) { # Top 4 statewide species
+  results_df <- refine_habitat(species = species,
+                               response = "log_c_biomass",
+                               predictors_df = pred_rock_int, # With interactions
+                               random_effects = c("year", "bioregion", "affiliated_mpa"), # With MPA RE
+                               data = data_rock_subset, # Scaled numeric predictors
+                               regions = c("Central", "North", "South"), # All regions
+                               path = "analyses/7habitat/output/rock/all_regions/log_c_scaled")
+  cat("\nTop 5 models for species:", species, "\n")
+  print(head(results_df, 5))
+})
 
 # walk(unique(sp_surf$species_code), function(species) { # Top 4 species in South and Central only
 #   results_df <- refine_habitat(species = species,

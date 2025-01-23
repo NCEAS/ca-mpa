@@ -9,7 +9,7 @@ library(tidyverse)
 rm(list = ls())
 gc()
 
-fig.dir <- "analyses/7habitat/figures/forest"
+fig.dir <- "analses/7habitat/figures/forest"
 
 # Begin ------------------------------------------------------------------------
 
@@ -32,8 +32,8 @@ kelp_list <- list.files(path = "analyses/7habitat/output/kelp/all_regions/log_c_
 
 pred_kelp_int <- readRDS(file.path("analyses/7habitat/intermediate_data/kelp_predictors_interactions.Rds"))
 
-species <- "SMIN"
-path <- "analyses/7habitat/output/kelp/all_regions/log_c_unscaled"
+species <- "ELAT"
+path <- "analyses/7habitat/output/kelp/all_regions/log_c_scaled"
 habitat <- "kelp"
 
 make_forest_plots <- function(species, path, habitat){
@@ -98,7 +98,7 @@ make_forest_plots <- function(species, path, habitat){
     ) +
     facet_wrap(~key) +
     theme_minimal() +
-    labs(x = "Estimate (UNscaled)", 
+    labs(x = "Estimate (scaled)", 
          y = NULL, 
          color = "Scale", 
          pch = "Significance", 
@@ -144,10 +144,10 @@ kelp_list <- list.files(path = "analyses/7habitat/output/kelp/all_regions/log_c_
 map(kelp_list, make_forest_plots, path = "analyses/7habitat/output/kelp/all_regions/log_c_scaled", habitat = "kelp")
 
 ## Rocky reef ----
-rock_list <- list.files(path = "analyses/7habitat/output/rock/all_regions/no_soft") %>%
+rock_list <- list.files(path = "analyses/7habitat/output/rock/all_regions/log_c_scaled") %>%
   str_remove_all(., "_models.rds|_results.rds") %>% unique()
 
-map(rock_list, make_forest_plots, path = "analyses/7habitat/output/rock/all_regions/no_soft", habitat = "rock")
+map(rock_list, make_forest_plots, path = "analyses/7habitat/output/rock/all_regions/log_c_scaled", habitat = "rock")
 
 ## Surf ---
 surf_list <- list.files(path = "analyses/7habitat/output/surf/central_south") %>%
