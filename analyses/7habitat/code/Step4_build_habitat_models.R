@@ -24,6 +24,7 @@ gc()
 
 # Read Data --------------------------------------------------------------------
 ltm.dir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_2024"
+ltm.dir <- "/Users/lopazanski/Desktop/ltm/update_2024"
 
 data_kelp <- readRDS(file.path(ltm.dir, "combine_tables/kelp_full.Rds")) %>% mutate(site_type = factor(site_type, levels = c("Reference", "MPA")))
 data_surf <- readRDS(file.path(ltm.dir, "combine_tables/surf_full.Rds")) %>% mutate(site_type = factor(site_type, levels = c("Reference", "MPA")))
