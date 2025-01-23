@@ -39,6 +39,8 @@ ltm.dir <- "/Users/lopazanski/Desktop/ltm/update_2024"
 
 # Read Data
 pred_kelp <- readRDS(file.path(int.dir, "kelp_predictors.Rds")) %>%
+
+pred_kelp <- readRDS(file.path("/home/lopazanski/ca-mpa/analyses/7habitat/intermediate_data/kelp_predictors.Rds")) %>%
   filter(pred_group %in% c("all", "combined"))
 
 data_kelp <- readRDS(file.path(ltm.dir, "combine_tables/kelp_full.Rds")) %>% 
@@ -86,8 +88,9 @@ best_lambda <- bc$x[which.max(bc$y)]
 data_sp$bc_kg_per_m2 <- if (best_lambda >= -2 && best_lambda <= 2){(data_sp$kg_per_m2_c^best_lambda - 1) / best_lambda} else {NA}
 
 data_sp$lambda <- if (best_lambda >= -2 && best_lambda <= 2) {best_lambda} else {NA}
-   
+
 ```
+
 ```{r}
 # Examine the full models
 response_logc <- "log_kg_per_m2_c"
@@ -103,9 +106,12 @@ attr(m1, "name") <- name1
 
 
 
+## Define Models
 
 ```{r}
 # Set up the formula
+response_c <- "kg_per_m2_c"
+response_log <- "log_kg_per_m2"
 response_logc <- "log_kg_per_m2_c"
 response_boxcox <- "bc_kg_per_m2"
 response_sqrt <- "sqrt_kg_per_m2"
@@ -139,8 +145,30 @@ form8 <- as.formula(paste(response_sqrt, "~", predictor3way, "+", paste0("(1 | "
 name7 <- "SqRt ~ 2way"
 name8 <- "SqRt ~ 3way"
 
+form9 <- as.formula(paste(response_c, "~", predictor2way, "+", paste0("(1 | ", random_effects, ")", collapse = " + ")))
+form10 <- as.formula(paste(response_c, "~", predictor3way, "+", paste0("(1 | ", random_effects, ")", collapse = " + ")))
+
+name9 <- "Gamma ~ 2way"
+name10 <- "Gamma ~ 3way"
+
+form11 <- as.formula(paste(response_raw, "~", predictor2way, "+", paste0("(1 | ", random_effects, ")", collapse = " + ")))
+form12 <- as.formula(paste(response_raw, "~", predictor3way, "+", paste0("(1 | ", random_effects, ")", collapse = " + ")))
+
+name11 <- "Positive Raw ~ 2way"
+name12 <- "Positive Raw ~ 3way"
+
+form13 <- as.formula(paste(response_log, "~", predictor2way, "+", paste0("(1 | ", random_effects, ")", collapse = " + ")))
+form14 <- as.formula(paste(response_log, "~", predictor3way, "+", paste0("(1 | ", random_effects, ")", collapse = " + ")))
+
+name13 <- "Positive Log ~ 2way"
+name14 <- "Positive Log ~ 3way"
 
 
+form15 <- as.formula(paste(response_log, "~", predictor2way, "+", paste0("(1 | ", random_effects, ")", collapse = " + ")))
+form16 <- as.formula(paste(response_log, "~", predictor3way, "+", paste0("(1 | ", random_effects, ")", collapse = " + ")))
+
+name15 <- "Positive Log g per m2 ~ 2way"
+name16 <- "Positive Log g per m2 ~ 3way"
 
 ```
 
@@ -187,10 +215,46 @@ attr(m8, "name") <- name8
 
 ```
 
+# Gamma
+
+```{r}
+m9 <- glmer(form9, family = Gamma(link = "log"), data = data_sp)
+attr(m9, "name") <- name9
+
+m10 <- glmer(form10, family = Gamma(link = "log"), data = data_sp)
+attr(m10, "name") <- name10
+```
+
+# Positive Raw
+
+```{r}
+data_positive <- data_sp %>% 
+  filter(kg_per_m2 > 0) %>% 
+  mutate(log_kg_per_m2 = log(kg_per_m2))
+
+m11 <- lmer(form11, data = data_positive, REML = FALSE)
+attr(m11, "name") <- name11
+
+m12 <- lmer(form12, data = data_positive, REML = FALSE)
+attr(m12, "name") <- name12
+
+```
+
+# Positive Log
+
+```{r}
+m13 <- lmer(form13, data = data_positive, REML = FALSE)
+attr(m13, "name") <- name13
+
+m14 <- lmer(form14, data = data_positive, REML = FALSE)
+attr(m14, "name") <- name14
+
+```
+
 # Compare
 
 ```{r}
-tab_model(m1, m3, m5, m7, m2, m4, m6, m8, digits = 3)
+tab_model(m1, m3, m5, m7, m9, m11, m13, m2, m4, m6, m8, m10, m12, m14, digits = 3)
 ```
 
 # Comparison & Diagnostics
@@ -210,7 +274,12 @@ model_fit <- bind_rows(model_performance(m1, estimator = "ML") %>% mutate(Model 
                        model_performance(m6, estimator = "ML") %>% mutate(Model = attr(m6, "name")),
                        model_performance(m7, estimator = "ML") %>% mutate(Model = attr(m7, "name")),
                        model_performance(m8, estimator = "ML") %>% mutate(Model = attr(m8, "name"))
-                       ) %>% 
+                    model_performance(m9, estimator = "ML") %>% mutate(Model = attr(m9, "name")),
+                       model_performance(m10, estimator = "ML") %>% mutate(Model = attr(m10, "name")),
+                       model_performance(m11, estimator = "ML") %>% mutate(Model = attr(m11, "name")),
+                       model_performance(m12, estimator = "ML") %>% mutate(Model = attr(m12, "name")),
+                       model_performance(m13, estimator = "ML") %>% mutate(Model = attr(m13, "name")),
+                       model_performance(m14, estimator = "ML") %>% mutate(Model = attr(m14, "name"))) %>% 
   dplyr::select(Model, everything()) %>% 
   arrange(AIC)
 
@@ -221,10 +290,10 @@ print(model_fit)
 ## Residuals vs Fitted
 
 ```{r}
-#| fig.width: 10
+#| fig.width: 14
 #| fig.height: 6
 
-par(mfrow = c(2, 4)) 
+par(mfrow = c(2, 7)) 
 
 plot(residuals(m1) ~ fitted(m1), main = attr(m1, "name"))
 abline(h = 0, col = "red", lty = 2)
@@ -280,24 +349,54 @@ qqnorm(residuals(m8), main = paste(attr(m8, "name")), cex.main = 0.8); qqline(re
 
 ```
 
-## Performance
 
 ```{r}
+plot(residuals(m1) ~ fitted(m1), main = attr(m1, "name"), cex.main = 0.8)
+abline(h = 0, col = "red", lty = 2)
+lines(lowess(fitted(m1), residuals(m1)), col = "blue", lwd = 2)
+
+plot(residuals(m3) ~ fitted(m3), main = attr(m3, "name"), cex.main = 0.8)
+abline(h = 0, col = "red", lty = 2)
+lines(lowess(fitted(m3), residuals(m3)), col = "blue", lwd = 2)
+
+plot(residuals(m5) ~ fitted(m5), main = attr(m5, "name"), cex.main = 0.8)
+abline(h = 0, col = "red", lty = 2)
+lines(lowess(fitted(m5), residuals(m5)), col = "blue", lwd = 2)
+
+plot(residuals(m7) ~ fitted(m7), main = attr(m7, "name"), cex.main = 0.8)
+abline(h = 0, col = "red", lty = 2)
+lines(lowess(fitted(m7), residuals(m7)), col = "blue", lwd = 2)
+
+plot(residuals(m9) ~ fitted(m9), main = attr(m9, "name"), cex.main = 0.8)
+abline(h = 0, col = "red", lty = 2)
+lines(lowess(fitted(m9), residuals(m9)), col = "blue", lwd = 2)
+
+plot(residuals(m11) ~ fitted(m11), main = attr(m11, "name"), cex.main = 0.8)
+abline(h = 0, col = "red", lty = 2)
+lines(lowess(fitted(m11), residuals(m11)), col = "blue", lwd = 2)
+
+plot(residuals(m13) ~ fitted(m13), main = attr(m13, "name"), cex.main = 0.8)
+abline(h = 0, col = "red", lty = 2)
+lines(lowess(fitted(m13), residuals(m13)), col = "blue", lwd = 2)
+
+qqnorm(residuals(m1), main = paste(attr(m1, "name")), cex.main = 0.8); qqline(residuals(m1))
+qqnorm(residuals(m3), main = paste(attr(m3, "name")), cex.main = 0.8); qqline(residuals(m3))
+qqnorm(residuals(m5), main = paste(attr(m5, "name")), cex.main = 0.8); qqline(residuals(m5))
+qqnorm(residuals(m7), main = paste(attr(m7, "name")), cex.main = 0.8); qqline(residuals(m7))
+qqnorm(residuals(m9), main = paste(attr(m9, "name")), cex.main = 0.8); qqline(residuals(m9))
+qqnorm(residuals(m11), main = paste(attr(m11, "name")), cex.main = 0.8); qqline(residuals(m11))
+qqnorm(residuals(m13), main = paste(attr(m13, "name")), cex.main = 0.8); qqline(residuals(m13))
 
 ```
-:::
+
 
 # Partial Residual Plots
 
 ```{r}
-
 model <- m1
-plot(predictorEffects(model, ~ age_at_survey, partial.residuals = TRUE),
+    
+plot(predictorEffects(model, ~ hard_bottom_500 + age_at_survey, partial.residuals = TRUE), 
      id = list(n = 1), residuals.pch = 19, residuals.cex = 0.2)
-     
-plot(predictorEffects(model, ~ hard_bottom_25, partial.residuals = TRUE), 
-     id = list(n = 1), residuals.pch = 19, residuals.cex = 0.2)
-
 
 ```
 

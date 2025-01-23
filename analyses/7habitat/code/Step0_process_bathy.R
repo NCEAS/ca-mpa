@@ -140,7 +140,10 @@ depth <- depth_all %>%
   arrange(ID, buffer, resolution, prop_na) %>%  # Arrange by ID, buffer, resolution (factor), and prop_na (ascending)
   group_by(ID, buffer) %>%                      # Group by ID and buffer
   slice(1) %>%                                  # Select the first row per group (best resolution and lowest prop_na)
-  ungroup()  
+  ungroup() %>% 
+  mutate(depth_cv = (depth_sd/depth_mean)*100) %>% 
+  mutate(depth_cv = if_else(is.na(depth_cv), 0, depth_cv))
+  
 
 ggplot(data = depth) +
   geom_density(aes(x = depth_sd, fill = resolution, color = resolution), alpha = 0.5) +
@@ -156,8 +159,8 @@ ggplot(data = depth) +
   facet_wrap(~buffer)
 
 depth2 <- depth %>%           
-  dplyr::select(ID, depth_mean, depth_sd, buffer, resolution) %>% 
-  pivot_longer(cols = c(depth_mean, depth_sd), names_to = "habitat", values_to = "value_m") %>% 
+  dplyr::select(ID, depth_mean, depth_sd, depth_cv, buffer, resolution) %>% 
+  pivot_longer(cols = c(depth_mean, depth_sd, depth_cv), names_to = "habitat", values_to = "value_m") %>% 
   mutate(habitat_buffer = paste0(habitat, "_", buffer)) %>% 
   dplyr::select(ID, habitat_buffer, value_m) %>% 
   pivot_wider(names_from = "habitat_buffer", values_from = "value_m")
