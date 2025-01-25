@@ -117,7 +117,7 @@ refine_habitat <- function(species, response, predictors_df, random_effects, dat
   
   # Extract the base model and full models for each scale
   core_model_names <- predictors_df %>%
-    filter(type %in% c("base", "full", "core_2way", "core_3way")) %>%
+    filter(type %in% c("base", "core_2way", "core_3way")) %>%
     pull(model_id)
   
   # Extract the top models within deltaAICc of 4
@@ -132,7 +132,7 @@ refine_habitat <- function(species, response, predictors_df, random_effects, dat
   models_df <- models_df %>%
     mutate(type = case_when(model_id %in% top_model_names ~ "top",
                             predictors == "site_type * age_at_survey" ~ "base",
-                            model_id %in% core_model_names ~ "core"))
+                            model_id %in% core_model_names ~ type))
   
   # Save the subset
   saveRDS(list(models_df = models_df, models = models, data_sp = data_sp), 

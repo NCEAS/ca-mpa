@@ -254,14 +254,14 @@ get_list <- function(predictors_df){
     mutate(base_predictor = "site_type * age_at_survey") %>% 
     unite("predictors", c(hard_predictor, kelp_predictor, depth_predictor, base_predictor),
           sep = " + ",  na.rm = TRUE, remove = FALSE) %>% 
-    mutate(type3 = case_when(str_detect(hard_predictor, "age_at_survey") & 
+    mutate(type = case_when(str_detect(hard_predictor, "age_at_survey") & 
                                str_detect(kelp_predictor, "age_at_survey") &
                                str_detect(depth_predictor, "age_at_survey") &
                                (hard_scale == kelp_scale) &
-                               (kelp_scale == depth_scale) ~ "full",
+                               (kelp_scale == depth_scale) ~ "core_3way",
                              predictors == "site_type * age_at_survey" ~ "base",
                              T~NA)) %>% 
-    mutate(type2 = case_when(str_detect(hard_predictor, "site") & 
+    mutate(type = case_when(str_detect(hard_predictor, "site") & 
                                str_detect(kelp_predictor, "site") &
                                str_detect(depth_predictor, "site") &
                                !str_detect(hard_predictor, "age_at_survey") & 
@@ -269,9 +269,9 @@ get_list <- function(predictors_df){
                                !str_detect(depth_predictor, "age_at_survey") &
                                (hard_scale == kelp_scale) &
                                (kelp_scale == depth_scale) &
-                               is.na(type3) ~ "full",
+                               is.na(type) ~ "core_2way",
                              predictors == "site_type * age_at_survey" ~ "base",
-                             T~NA)) %>% 
+                             T~type)) %>% 
     mutate(model_id = 
              str_replace_all(predictors, "hard_bottom_(\\d+)", "H\\1") %>% 
              str_replace_all("kelp_annual_(\\d+)", "K\\1") %>% 
@@ -281,7 +281,7 @@ get_list <- function(predictors_df){
              str_replace_all("site_type", "ST") %>%
              str_replace_all("age_at_survey", "A") %>% 
              str_replace_all("\\s+", "")) %>% 
-    dplyr::select(predictors, type = type2, type3, model_id, hard_predictor, kelp_predictor, depth_predictor, hard_scale, kelp_scale, depth_scale)
+    dplyr::select(predictors, type, model_id, hard_predictor, kelp_predictor, depth_predictor, hard_scale, kelp_scale, depth_scale)
   
   return(list_intx)
 }

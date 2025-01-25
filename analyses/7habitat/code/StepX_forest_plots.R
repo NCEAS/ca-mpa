@@ -28,10 +28,10 @@ my_theme <- theme(
 )
 
 
-species <- "BLU"
-habitat <- "rock"
-path <- "analyses/7habitat/output/rock/all_regions/log_c_scaled"
-path <- "/Users/lopazanski/Desktop/output/rock/all_regions/log_c_scaled_cv"
+species <- "ELAT"
+habitat <- "kelp"
+path <- "analyses/7habitat/output/rock/all_regions"
+path <- "/Users/lopazanski/Desktop/output/kelp/all_regions"
 
 
 make_forest_plots <- function(species, path, habitat){
