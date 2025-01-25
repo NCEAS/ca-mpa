@@ -18,6 +18,101 @@
 # library(tidymodels)
 # library(lmerTest)
 
+<<<<<<< HEAD
+=======
+rm(list = ls())
+gc()
+
+
+# Read Data --------------------------------------------------------------------
+ltm.dir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_2024"
+ltm.dir <- "/Users/lopazanski/Desktop/ltm/update_2024"
+
+data_kelp <- readRDS(file.path(ltm.dir, "combine_tables/kelp_full.Rds")) %>% mutate(site_type = factor(site_type, levels = c("Reference", "MPA")))
+data_surf <- readRDS(file.path(ltm.dir, "combine_tables/surf_full.Rds")) %>% mutate(site_type = factor(site_type, levels = c("Reference", "MPA")))
+data_rock <- readRDS(file.path(ltm.dir, "combine_tables/ccfrp_full.Rds")) %>% mutate(site_type = factor(site_type, levels = c("Reference", "MPA")))
+data_deep <- readRDS(file.path(ltm.dir, "combine_tables/deep_full.Rds")) %>% mutate(site_type = factor(site_type, levels = c("Reference", "MPA")))
+
+pred_kelp <- readRDS(file.path("analyses/7habitat/intermediate_data/kelp_predictors.Rds")) %>% filter(pred_group %in% c("all", "combined"))
+pred_surf <- readRDS(file.path("analyses/7habitat/intermediate_data/surf_predictors.Rds")) %>% filter(pred_group %in% c("all", "combined"))
+pred_rock <- readRDS(file.path("analyses/7habitat/intermediate_data/rock_predictors.Rds")) %>% filter(pred_group %in% c("all", "combined"))
+pred_deep <- readRDS(file.path("analyses/7habitat/intermediate_data/deep_predictors.Rds")) %>% filter(pred_group %in% c("all", "combined"))
+
+pred_kelp_int <- readRDS(file.path("analyses/7habitat/intermediate_data/kelp_predictors_interactions.Rds"))
+pred_rock_int <- readRDS(file.path("analyses/7habitat/intermediate_data/rock_predictors_interactions.Rds"))
+pred_surf_int <- readRDS(file.path("analyses/7habitat/intermediate_data/surf_predictors_interactions.Rds"))
+pred_deep_int <- readRDS(file.path("analyses/7habitat/intermediate_data/deep_predictors_interactions.Rds"))
+
+# Build Data  --------------------------------------------------------------------
+
+## Kelp ------------------------------------------
+sp_kelp <- data_kelp %>%
+  filter(kg_per_m2 > 0) %>%
+  group_by(species_code, sciname, target_status, bioregion) %>%
+  summarize(total_biomass = sum(kg_per_m2),
+            total_count = sum(count_per_m2),
+            n_obs = n(), .groups = 'drop') %>%
+  filter(n_obs > 40) %>%
+  pivot_wider(names_from = bioregion, values_from = c(total_biomass, total_count, n_obs)) %>%
+  filter(!is.na(n_obs_North)) %>%
+  filter(!is.na(n_obs_South))
+
+data_kelp_subset <- data_kelp %>%
+  dplyr::select(year:affiliated_mpa, size_km2, age_at_survey,
+                species_code:target_status, assemblage_new, weight_kg:count_per_m2, log_kg_per_m2,
+                all_of(pred_kelp$predictor))
+
+## Rock ------------------------------------------
+sp_rock <- data_rock %>%
+  filter(weight_kg > 0) %>%
+  group_by(species_code, sciname, target_status, bioregion) %>%
+  summarize(total_biomass = sum(weight_kg),
+            total_count = sum(count),
+            n_obs = n(), .groups = 'drop') %>%
+  pivot_wider(names_from = bioregion, values_from = c(total_biomass, total_count, n_obs)) %>%
+  filter(!is.na(n_obs_Central) & !is.na(n_obs_North) & !is.na(n_obs_South)) %>%
+  filter(n_obs_South > 100)
+
+data_rock_subset <- data_rock %>%
+  dplyr::select(year:affiliated_mpa, size_km2, age_at_survey,
+                species_code:target_status, assemblage_new, weight_kg, count, log_bpue_kg,
+                all_of(pred_rock$predictor))
+
+## Surf ------------------------------------------
+sp_surf <- data_surf %>%
+  filter(weight_kg > 0) %>%
+  group_by(species_code, sciname, target_status,bioregion) %>%
+  summarize(total_biomass = sum(weight_kg),
+            total_count = sum(count),
+            n_obs = n(), .groups = 'drop') %>%
+  filter(total_count > 10) %>%
+  pivot_wider(names_from = bioregion, values_from = c(total_biomass, total_count, n_obs)) %>%
+  filter(species_code %in% c("AARG", "AAFF", "HARG", "MMIN")) # in central and South
+
+data_surf_subset <- data_surf %>%
+  dplyr::select(year:affiliated_mpa, size_km2, age_at_survey,
+                 species_code:target_status, assemblage_new, weight_kg, count, kg_per_haul, count_per_haul, log_kg_per_haul,
+                 all_of(pred_surf$predictor))
+
+## Deep ------------------------------------------
+sp_deep <- data_deep %>%
+  filter(kg_per_m2 > 0) %>%
+  group_by(species_code, sciname, target_status, bioregion) %>%
+  summarize(total_biomass = sum(kg_per_m2),
+            total_count = sum(count_per_m2),
+            n_obs = n(), .groups = 'drop') %>%
+  filter(n_obs > 50) %>%
+  pivot_wider(names_from = bioregion, values_from = c(total_biomass, total_count, n_obs)) %>%
+  filter(!is.na(n_obs_Central) & !is.na(n_obs_North) & !is.na(n_obs_South)) %>%
+  filter(!species_code %in% c("SEBSPP", "PLEU"))
+
+data_deep_subset <- data_deep %>%
+  dplyr::select(year:affiliated_mpa, size_km2, age_at_survey,
+                species_code:target_status, assemblage_new, biomass_kg, count, kg_per_m2, count_per_m2, log_kg_per_m2,
+                all_of(pred_deep$predictor))
+
+# Fit all habitat combinations --------------------------------------------------------------
+>>>>>>> c423226447caf5572edb464f6d1a3ecc73b8bb07
 
 refine_habitat <- function(species, response, predictors_df, random_effects, data, regions, path) {
   print(paste("Starting species: ", species))
