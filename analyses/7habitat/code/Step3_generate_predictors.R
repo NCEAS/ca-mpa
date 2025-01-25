@@ -21,6 +21,7 @@ gc()
 
 # Load the data to examine the habitat characteristics across sites for each ecosystem
 ltm.dir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_2024"
+ltm.dir <- "/Users/lopazanski/Desktop/ltm/update_2024"
 
 # This selecting excludes the biotic habitats from PMEP (kelp only from kelpwatch)
 data_kelp <- readRDS(file.path(ltm.dir, "combine_tables/kelp_full.Rds")) %>% # 148 sites

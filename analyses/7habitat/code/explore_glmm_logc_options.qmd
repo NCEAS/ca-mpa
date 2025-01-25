@@ -15,20 +15,21 @@ toc-expand: 3
 #| message: false
 #| warning: false
 
+library(tidyverse)
+library(MASS)
+library(sjPlot)
+
 # library(lme4)
-library(MuMIn)
+# library(MuMIn)
 # library(dplyr)
 # library(purrr)
 # library(tidymodels)
-library(mgcv)
+# library(mgcv)
 # library(performance)
 # library(patchwork)
-# library(tidyverse)
 # library(broom.mixed)
 # library(effects)
 # library(lmerTest)
-library(MASS)
-# library(sjPlot)
 
 # Server directories
 ltm.dir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_2024"
@@ -39,21 +40,19 @@ ltm.dir <- "/Users/lopazanski/Desktop/ltm/update_2024"
 
 # Read Data
 pred_kelp <- readRDS(file.path(int.dir, "kelp_predictors.Rds")) %>%
-
-pred_kelp <- readRDS(file.path("/home/lopazanski/ca-mpa/analyses/7habitat/intermediate_data/kelp_predictors.Rds")) %>%
   filter(pred_group %in% c("all", "combined"))
 
 data_kelp <- readRDS(file.path(ltm.dir, "combine_tables/kelp_full.Rds")) %>% 
   mutate(site_type = factor(site_type, levels = c("Reference", "MPA"))) %>% 
   dplyr::select(year:affiliated_mpa, size_km2, age_at_survey,
                 species_code:target_status, assemblage_new, weight_kg:count_per_m2, log_kg_per_m2,
-                all_of(pred_kelp$predictor)) %>% 
+                any_of(pred_kelp$predictor)) %>% 
   mutate(depth_cv_25  = depth_sd_25/depth_mean_25*100,
          depth_cv_50  = depth_sd_50/depth_mean_50*100,
          depth_cv_100 = depth_sd_100/depth_mean_100*100,
          depth_cv_250 = depth_sd_250/depth_mean_250*100,
          depth_cv_500 = depth_sd_500/depth_mean_500*100) %>% 
-  filter(species_code == "SMIN") %>%  # Focus on SMIN or SMYS
+  filter(species_code == "ELAT") %>%  # Focus on SMIN or SMYS
   mutate(bioregion = factor(bioregion),
          affiliated_mpa = factor(affiliated_mpa)) %>% 
   mutate(obs_id = row_number(.))
@@ -96,12 +95,54 @@ data_sp$lambda <- if (best_lambda >= -2 && best_lambda <= 2) {best_lambda} else 
 response_logc <- "log_kg_per_m2_c"
 random_effects <- c("year", "affiliated_mpa", "bioregion")
 
-p1 <-  "hard_bottom_500 * site_type + kelp_annual_500 * site_type + depth_cv_500 * site_type + site_type * age_at_survey"
-f1 <- as.formula(paste(response_logc, "~", p1, "+", paste0("(1 | ", random_effects, ")", collapse = " + ")))
+p500 <-  "hard_bottom_500 * site_type + kelp_annual_500 * site_type + depth_cv_500 * site_type + depth_mean_500 * site_type + site_type * age_at_survey"
+p250 <-  "hard_bottom_250 * site_type + kelp_annual_250 * site_type + depth_cv_250 * site_type + depth_mean_250 * site_type + site_type * age_at_survey"
+p100 <-  "hard_bottom_100 * site_type + kelp_annual_100 * site_type + depth_cv_100 * site_type + depth_mean_100 * site_type + site_type * age_at_survey"
+p50 <-  "hard_bottom_50 * site_type + kelp_annual_50 * site_type + depth_cv_50 * site_type + depth_mean_50 * site_type + site_type * age_at_survey"
+p25 <-  "hard_bottom_25 * site_type + kelp_annual_25 * site_type + depth_cv_25 * site_type + depth_mean_25 * site_type + site_type * age_at_survey"
 
 
-m1 <- lmerTest::lmer(f1, data = data_sp, REML = FALSE)
-attr(m1, "name") <- name1
+f500 <- as.formula(paste(response_logc, "~", p500, "+", paste0("(1 | ", random_effects, ")", collapse = " + ")))
+f250 <- as.formula(paste(response_logc, "~", p250, "+", paste0("(1 | ", random_effects, ")", collapse = " + ")))
+f100 <- as.formula(paste(response_logc, "~", p100, "+", paste0("(1 | ", random_effects, ")", collapse = " + ")))
+f50 <- as.formula(paste(response_logc, "~", p50, "+", paste0("(1 | ", random_effects, ")", collapse = " + ")))
+f25 <- as.formula(paste(response_logc, "~", p25, "+", paste0("(1 | ", random_effects, ")", collapse = " + ")))
+
+name500 <- "H500*ST + K500*ST + DCV500*ST + DM500*ST"
+name250 <- "H250*ST + K250*ST + DCV250*ST + DM250*ST"
+name100 <- "H100*ST + K100*ST + DCV100*ST + DM100*ST"
+name50 <- "H50*ST + K50*ST + DCV50*ST + DM50*ST"
+name25 <- "H25*ST + K25*ST + DCV25*ST + DM25*ST"
+
+m500 <- lmerTest::lmer(f500, data = data_sp, REML = FALSE)
+attr(m500, "name") <- name500
+summary(m500)
+
+m250 <- lmerTest::lmer(f250, data = data_sp, REML = FALSE)
+attr(m250, "name") <- name250
+summary(m250)
+
+m100 <- lmerTest::lmer(f100, data = data_sp, REML = FALSE)
+attr(m100, "name") <- name100
+summary(m100)
+
+m50 <- lmerTest::lmer(f50, data = data_sp, REML = FALSE)
+attr(m50, "name") <- name50
+summary(m50)
+
+m25 <- lmerTest::lmer(f25, data = data_sp, REML = FALSE)
+attr(m25, "name") <- name25
+summary(m25)
+
+tab_model(m500, m250, m100, m50, m25)
+
+
+
+
+
+
+
+
 ```
 
 

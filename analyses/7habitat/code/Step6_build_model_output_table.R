@@ -34,10 +34,23 @@ clean_terms <- function(df) {df %>%
     mutate(term_revised = str_remove_all(term, "MPA") %>% 
              str_remove_all("_annual_250|_annual_500|_annual_100|_annual_50|_annual_25") %>% 
              str_remove_all("_250|_500|_100|_25|_50") %>% 
-             if_else(str_detect(., ":site_type"), str_replace(., "^(.*):site_type$", "site_type:\\1"), .) %>% 
+             if_else(str_detect(., ":age_at_survey$"), str_replace(., "^(.*):age_at_survey$", "age_at_survey:\\1"), .) %>% 
+             if_else(str_detect(., ":site_type$"), str_replace(., "^(.*):site_type$", "site_type:\\1"), .) %>% 
+             if_else(str_detect(., ":site_type:"), str_replace(., "^(.*?):(site_type):(.*?)$", "\\2:\\3:\\1"), .) %>% 
              factor(levels = c("(Intercept)",
+                               "site_type:age_at_survey:depth_mean",
+                               "site_type:age_at_survey:depth_sd",
+                               "site_type:age_at_survey:depth_cv",
+                               "site_type:age_at_survey:kelp",
+                               "site_type:age_at_survey:hard_bottom",
+                               "age_at_survey:depth_mean",
+                               "age_at_survey:depth_sd",
+                               "age_at_survey:depth_cv",
+                               "age_at_survey:hard_bottom",
+                               "age_at_survey:kelp",
                                "site_type:depth_mean",
                                "site_type:depth_sd",
+                               "site_type:depth_cv",
                                "site_type:soft_bottom",
                                "site_type:hard_bottom",
                                "site_type:kelp",
@@ -46,6 +59,7 @@ clean_terms <- function(df) {df %>%
                                "age_at_survey",
                                "depth_mean",
                                "depth_sd",
+                               "depth_cv",
                                "soft_bottom",
                                "hard_bottom",
                                "kelp")))}
@@ -60,8 +74,7 @@ add_significance <- function(df) {df %>%
 
 # Analyze Focal Models ---------------------------------------------------------
 species <- "SMYS"
-path = "analyses/7habitat/output/kelp/all_regions/log_c_scaled"
-path <- "/Users/lopazanski/Desktop/output/kelp/all_regions/log_c_scaled"
+path <- "/Users/lopazanski/Desktop/output/kelp/all_regions/log_c_scaled_cv"
 
 analyze_models <- function(species, path){
   #Read data containing all the focal models 
@@ -69,9 +82,9 @@ analyze_models <- function(species, path){
   models_df <- data$models_df %>% 
     mutate(scale = case_when(model_id == "ST*A" ~ NA,
                              T ~ as.factor(str_extract(predictors, "\\d+")))) %>% 
-    distinct() %>% 
     mutate(depth_type = case_when(str_detect(model_id, "DSD") ~ "depth_sd",
-                                  str_detect(model_id, "DM") ~ "depth_mean")) %>% 
+                                  str_detect(model_id, "DM") ~ "depth_mean",
+                                  str_detect(model_id, "DCV") ~ "depth_cv")) %>% 
     filter(!is.na(type))
 
   # Process top models:
@@ -125,7 +138,7 @@ analyze_models <- function(species, path){
   }
   
   # Process core models
-  core_names <- models_df$model_id[models_df$type %in% c("core", "base")]
+  core_names <- models_df$model_id[models_df$type %in% c("core_2way", "core_3way", "base")]
   
   core_results <- lapply(core_names, function(model_id) {
     if (is.null(data$models[[model_id]])) {
@@ -151,7 +164,8 @@ analyze_models <- function(species, path){
                            model_id == "ST*A" & unique(top_results$num_top_models) ~ "Top Model v. Base Model",
                            T~key),
            model_id = if_else(is.na(model_id) & num_top_models > 1, "Model Average", model_id)) %>% 
-    dplyr::select(species_code, model_id, key, scale, term, term_revised, everything(), -effect)
+    dplyr::select(species_code, model_id, key, scale, term, term_revised, everything(), -effect) %>% 
+    left_join(., models_df %>% dplyr::select(model_id, n_sites, n_mpas, type, depth_type))
   
   # Export 
   saveRDS(all_results, file = file.path(path, paste0(species, "_results.rds")))
@@ -163,28 +177,35 @@ analyze_models <- function(species, path){
 # Run Analysis -----------------------------------------------------------------
 
 # Kelp forest 
-sp_list <- list.files(path = "analyses/7habitat/output/kelp/all_regions/log_c_unscaled") %>%
-  str_remove_all(., "_models.rds|_results.rds") %>% unique()
+path <- "analyses/7habitat/output/kelp/all_regions/log_c_scaled"
+path <- "/Users/lopazanski/Desktop/output/kelp/all_regions/log_c_scaled_cv"
 
-walk(sp_list, ~analyze_models(.x, path = "analyses/7habitat/output/kelp/all_regions/log_c_unscaled"))
+list.files(path = path) %>%
+  str_remove_all(., "_models.rds|_results.rds") %>% 
+  unique() %>% 
+  walk(., ~analyze_models(.x, path = path))
 
 # Rocky reef 
-sp_list <- list.files(path = "analyses/7habitat/output/rock/all_regions/log_c_scaled") %>%
-  str_remove_all(., "_models.rds|_results.rds") %>% unique()
+path <- "analyses/7habitat/output/kelp/all_regions/log_c_scaled"
+path <- "/Users/lopazanski/Desktop/output/rock/all_regions/log_c_scaled_cv"
 
-walk(sp_list, ~analyze_models(.x, path = "analyses/7habitat/output/rock/all_regions/log_c_scaled"))
+list.files(path = path) %>%
+  str_remove_all(., "_models.rds|_results.rds") %>% 
+  unique() %>% 
+  walk(., ~analyze_models(.x, path = path))
 
-# Surf 
-sp_list <- list.files(path = "analyses/7habitat/output/surf/central_south") %>%
-  str_remove_all(., "_models.rds|_results.rds") %>% unique()
 
-walk(sp_list, ~analyze_models(.x, path = "analyses/7habitat/output/surf/central_south"))
-
-# Deep
-sp_list <- list.files(path = "analyses/7habitat/output/deep/all_regions") %>%
-  str_remove_all(., "_models.rds|_results.rds") %>% unique()
-
-walk(sp_list, ~analyze_models(.x, path = "analyses/7habitat/output/deep/all_regions"))
+## Surf 
+# sp_list <- list.files(path = "analyses/7habitat/output/surf/central_south") %>%
+#   str_remove_all(., "_models.rds|_results.rds") %>% unique()
+# 
+# walk(sp_list, ~analyze_models(.x, path = "analyses/7habitat/output/surf/central_south"))
+# 
+## Deep
+# sp_list <- list.files(path = "analyses/7habitat/output/deep/all_regions") %>%
+#   str_remove_all(., "_models.rds|_results.rds") %>% unique()
+# 
+# walk(sp_list, ~analyze_models(.x, path = "analyses/7habitat/output/deep/all_regions"))
 
 
 
