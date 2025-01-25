@@ -50,13 +50,14 @@ rock_sc  <- sp_rock %>% filter(south == 1 & central == 1 & north == 0) %>% pull(
 rock_nc  <- sp_rock %>% filter(south == 0 & central == 1 & north == 1) %>% pull(species_code)
 
 
-# Define subset for modeling (reduced number of columns)
+# Define subset for modeling (reduced number of columns) 
 data_rock_subset <- data_rock %>%
   dplyr::select(year:affiliated_mpa, size_km2, age_at_survey,
                 species_code:target_status, assemblage_new, weight_kg, count, log_bpue_kg,
                 all_of(pred_rock$predictor))
 
-# Fit models for each species list
+
+# Fit models for each species list -----------------------------------------------------
 
 walk(rock_all, function(species) {
   results_df <- refine_habitat(species = species,

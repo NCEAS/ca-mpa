@@ -18,6 +18,7 @@
 # library(tidymodels)
 # library(lmerTest)
 
+# Fit all habitat combinations --------------------------------------------------------------
 
 refine_habitat <- function(species, response, predictors_df, random_effects, data, regions, path) {
   print(paste("Starting species: ", species))
@@ -42,13 +43,13 @@ refine_habitat <- function(species, response, predictors_df, random_effects, dat
   } else {
     data_sp <- data_sp %>% mutate(log_c_biomass = NA_real_)
   }
-    
+  
   models <- list()
   
   models_df <- map_dfr(seq_len(nrow(predictors_df)), function(i) {
     predictors <- predictors_df$predictors[i]
     model_id <- predictors_df$model_id[i]
-
+    
     model_formula <- as.formula(paste(response, "~", predictors, "+", paste0("(1 | ", random_effects, ")", collapse = " + ")))
     warning_message <- NULL
     message_text <- NULL
@@ -95,6 +96,7 @@ refine_habitat <- function(species, response, predictors_df, random_effects, dat
     
     data.frame(model_id = model_id,
                predictors = gsub("\\s*\\+\\s*", ", ", predictors),
+               response = response,
                regions = paste(regions, collapse = ", "),
                random_effects = paste(random_effects, collapse = ", "),
                AICc = if (!is.null(model)) AICc(model) else NA,
@@ -115,7 +117,7 @@ refine_habitat <- function(species, response, predictors_df, random_effects, dat
   
   # Extract the base model and full models for each scale
   core_model_names <- predictors_df %>%
-    filter(type %in% c("base", "full")) %>%
+    filter(type %in% c("base", "full", "core_2way", "core_3way")) %>%
     pull(model_id)
   
   # Extract the top models within deltaAICc of 4

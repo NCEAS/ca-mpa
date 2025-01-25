@@ -20,15 +20,14 @@ source("analyses/7habitat/code/Step4_build_habitat_models.R")  # Load the functi
 
 # Read Data --------------------------------------------------------------------
 ltm.dir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_2024"
-ltm.dir <- "/Users/lopazanski/Desktop/ltm/update_2024"
+#ltm.dir <- "/Users/lopazanski/Desktop/ltm/update_2024"
 
 data_kelp <- readRDS(file.path(ltm.dir, "combine_tables/kelp_full.Rds")) %>% mutate(site_type = factor(site_type, levels = c("Reference", "MPA")))
 pred_kelp <- readRDS(file.path("analyses/7habitat/intermediate_data/kelp_predictors.Rds")) %>% filter(pred_group %in% c("all", "combined"))
 pred_kelp_int <- readRDS(file.path("analyses/7habitat/intermediate_data/kelp_predictors_interactions.Rds"))
 
 
-
-## Define Kelp Species Lists ------------------------------------------
+# Define Kelp Species Lists --------------------------------------------------------------------------
 sp_kelp <- data_kelp %>%
   filter(kg_per_m2 > 0) %>%
   group_by(species_code, sciname, target_status, bioregion) %>%
@@ -56,8 +55,9 @@ data_kelp_subset <- data_kelp %>%
                 species_code:target_status, assemblage_new, weight_kg:count_per_m2, log_kg_per_m2,
                 all_of(pred_kelp$predictor))
 
-# Fit models for each species list
+# Fit models for each species list --------------------------------------------------------------------
 
+## All -------------
 walk(kelp_all, function(species) {
   results_df <- refine_habitat(species = species,
                                response = "log_c_biomass",
@@ -70,6 +70,7 @@ walk(kelp_all, function(species) {
   print(head(results_df, 10))
 })
 
+## South -------------
 walk(kelp_s, function(species) {
   results_df <- refine_habitat(species = species,
                                response = "log_c_biomass",
@@ -82,6 +83,7 @@ walk(kelp_s, function(species) {
   print(head(results_df, 10))
 })
 
+## Central -------------
 walk(kelp_c, function(species) {
   results_df <- refine_habitat(species = species,
                                response = "log_c_biomass",
@@ -94,6 +96,7 @@ walk(kelp_c, function(species) {
   print(head(results_df, 10))
 })
 
+## North -------------
 walk(kelp_n, function(species) {
   results_df <- refine_habitat(species = species,
                                response = "log_c_biomass",
@@ -106,6 +109,8 @@ walk(kelp_n, function(species) {
   print(head(results_df, 10))
 })
 
+
+## North Central -------------
 walk(kelp_nc, function(species) {
   results_df <- refine_habitat(species = species,
                                response = "log_c_biomass",
@@ -118,6 +123,8 @@ walk(kelp_nc, function(species) {
   print(head(results_df, 10))
 })
 
+
+## South Central -------------
 walk(kelp_sc, function(species) {
   results_df <- refine_habitat(species = species,
                                response = "log_c_biomass",
