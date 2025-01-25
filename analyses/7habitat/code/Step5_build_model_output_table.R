@@ -59,12 +59,11 @@ add_significance <- function(df) {df %>%
 }
 
 # Analyze Focal Models ---------------------------------------------------------
-species <- "SMYS"
+species <- "OPIC"
 path = "analyses/7habitat/output/kelp/all_regions/log_c_scaled"
 path = "analyses/7habitat/output/rock/all_regions/no_soft"
 path = "analyses/7habitat/output/surf/central_south"
 path = "analyses/7habitat/output/deep/all_regions"
-
 
 analyze_models <- function(species, path){
   #Read data containing all the focal models 
@@ -74,7 +73,8 @@ analyze_models <- function(species, path){
                              T ~ as.factor(str_extract(predictors, "\\d+")))) %>% 
     distinct() %>% 
     mutate(depth_type = case_when(str_detect(model_id, "DSD") ~ "depth_sd",
-                                  str_detect(model_id, "DM") ~ "depth_mean")) %>% 
+                                  str_detect(model_id, "DM") ~ "depth_mean",
+                                  str_detect(model_id, "DCV") ~ "depth_cv")) %>% 
     filter(!is.na(type))
 
   # Process top models:
@@ -128,7 +128,7 @@ analyze_models <- function(species, path){
   }
   
   # Process core models
-  core_names <- models_df$model_id[models_df$type %in% c("core", "base")]
+  core_names <- models_df$model_id[models_df$type %in% c("core_2way", "core_3way", "base")]
   
   core_results <- lapply(core_names, function(model_id) {
     if (is.null(data$models[[model_id]])) {
@@ -166,10 +166,10 @@ analyze_models <- function(species, path){
 # Run Analysis -----------------------------------------------------------------
 
 # Kelp forest 
-sp_list <- list.files(path = "analyses/7habitat/output/kelp/all_regions/log_c_unscaled") %>%
+sp_list <- list.files(path = "analyses/7habitat/output/kelp/all_regions/log_c_scaled") %>%
   str_remove_all(., "_models.rds|_results.rds") %>% unique()
 
-walk(sp_list, ~analyze_models(.x, path = "analyses/7habitat/output/kelp/all_regions/log_c_unscaled"))
+walk(sp_list, ~analyze_models(.x, path = "analyses/7habitat/output/kelp/all_regions/log_c_scaled"))
 
 # Rocky reef 
 sp_list <- list.files(path = "analyses/7habitat/output/rock/all_regions/log_c_scaled") %>%
