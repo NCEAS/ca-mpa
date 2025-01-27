@@ -73,17 +73,15 @@ add_significance <- function(df) {df %>%
 }
 
 # Analyze Focal Models ---------------------------------------------------------
-species <- "SMYS"
-path <- "/Users/lopazanski/Desktop/output/kelp/all_regions/log_c_scaled_cv"
-species <- "OPIC"
-path = "analyses/7habitat/output/kelp/all_regions/log_c_scaled"
-path = "analyses/7habitat/output/rock/all_regions/no_soft"
-path = "analyses/7habitat/output/surf/central_south"
-path = "analyses/7habitat/output/deep/all_regions"
-path <- "/Users/lopazanski/Desktop/output/kelp/all_regions/log_c_scaled"
+species <- "BLU"
+path <- "/Users/lopazanski/Desktop/output/rock/all_regions"
+habitat <- "rock"
 
-analyze_models <- function(species, path){
-  #Read data containing all the focal models 
+analyze_models <- function(species, path, habitat){
+  pred_int <- readRDS(file.path(paste0("analyses/7habitat/intermediate_data/", habitat, "_predictors_interactions.Rds"))) %>% 
+    rename(type_orig = type)
+  
+  # Read focal models 
   data <- readRDS(file.path(path, paste0(species, "_models.rds"))) 
   models_df <- data$models_df %>% 
     mutate(scale = case_when(model_id == "ST*A" ~ NA,
@@ -91,7 +89,13 @@ analyze_models <- function(species, path){
     mutate(depth_type = case_when(str_detect(model_id, "DSD") ~ "depth_sd",
                                   str_detect(model_id, "DM") ~ "depth_mean",
                                   str_detect(model_id, "DCV") ~ "depth_cv")) %>% 
+    left_join(., pred_int %>% dplyr::select(model_id, type_orig)) %>% 
+    mutate(type = coalesce(type, type_orig)) %>% 
     filter(!is.na(type))
+  
+  model_errors <- data$models_df %>% 
+    filter(singular_status != "OK" | singular_message != "OK" | errors != "OK" | warnings != "OK" |messages != "OK")
+  
 
   # Process top models:
   # If there are multiple, get the model average. If not, get the results from the top one.
@@ -120,6 +124,7 @@ analyze_models <- function(species, path){
     mutate(num_top_models = sum(models_df$type == "top"),
            scale = paste(unique(models_df$scale[models_df$type == "top"]), collapse = ", "),           
            key = if_else(num_top_models == 1, "Top Model v. Base Model", "Top Models (Average) v. Base Model")) 
+  
   
   # Add results for each of the individual top models (without averaging)
   if (sum(models_df$type == "top") > 1) {
@@ -183,22 +188,20 @@ analyze_models <- function(species, path){
 # Run Analysis -----------------------------------------------------------------
 
 # Kelp forest 
-path <- "analyses/7habitat/output/kelp/all_regions/log_c_scaled"
-path <- "/Users/lopazanski/Desktop/output/kelp/all_regions/log_c_scaled_cv"
+path <- "/Users/lopazanski/Desktop/output/kelp/south_central"
 
-list.files(path = path) %>%
+list.files(path = path, pattern = ".rds") %>%
   str_remove_all(., "_models.rds|_results.rds") %>% 
   unique() %>% 
-  walk(., ~analyze_models(.x, path = path))
+  walk(., ~analyze_models(.x, path = path, habitat = "kelp"))
 
 # Rocky reef 
-path <- "analyses/7habitat/output/kelp/all_regions/log_c_scaled"
-path <- "/Users/lopazanski/Desktop/output/rock/all_regions/log_c_scaled_cv"
+path <- "/Users/lopazanski/Desktop/output/rock/south"
 
-list.files(path = path) %>%
+list.files(path = path, pattern = ".rds") %>% 
   str_remove_all(., "_models.rds|_results.rds") %>% 
   unique() %>% 
-  walk(., ~analyze_models(.x, path = path))
+  walk(., ~analyze_models(.x, path = path, habitat = "rock"))
 
 
 ## Surf 

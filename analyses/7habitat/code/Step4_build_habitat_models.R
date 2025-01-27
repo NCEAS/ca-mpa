@@ -62,7 +62,8 @@ refine_habitat <- function(species, response, predictors_df, random_effects, dat
         {
           withCallingHandlers(
             {
-              m <- lmer(model_formula, data = data_sp)
+              m <- lmer(model_formula, data = data_sp,
+                        control = lmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 1e7)))
               # Check for singular fit if the model is successfully created
               singular_status <- tryCatch(
                 {
@@ -132,7 +133,7 @@ refine_habitat <- function(species, response, predictors_df, random_effects, dat
   models_df <- models_df %>%
     mutate(type = case_when(model_id %in% top_model_names ~ "top",
                             predictors == "site_type * age_at_survey" ~ "base",
-                            model_id %in% core_model_names ~ type))
+                            model_id %in% core_model_names ~ NA))
   
   # Save the subset
   saveRDS(list(models_df = models_df, models = models, data_sp = data_sp), 

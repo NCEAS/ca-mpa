@@ -28,10 +28,9 @@ my_theme <- theme(
 )
 
 
-species <- "ELAT"
-habitat <- "kelp"
-path <- "analyses/7habitat/output/rock/all_regions"
-path <- "/Users/lopazanski/Desktop/output/kelp/all_regions"
+species <- "VER"
+habitat <- "rock"
+path <- "/Users/lopazanski/Desktop/output/rock/all_regions"
 
 
 make_forest_plots <- function(species, path, habitat){
@@ -136,8 +135,7 @@ make_forest_plots <- function(species, path, habitat){
 # Create and save figures -------------------------------------------------------------
 
 ## Kelp ----
-path <- "analyses/7habitat/output/kelp/all_regions/log_c_scaled"
-path <- "/Users/lopazanski/Desktop/output/kelp/all_regions/log_c_scaled_cv"
+path <- "/Users/lopazanski/Desktop/output/kelp/south_central"
 
 kelp_list <- list.files(path = path) %>%
   str_remove_all(., "_models.rds|_results.rds") %>% unique()
@@ -145,8 +143,7 @@ kelp_list <- list.files(path = path) %>%
 map(kelp_list, make_forest_plots, path = path, habitat = "kelp")
 
 ## Rocky reef ----
-path <- "analyses/7habitat/output/rock/all_regions/log_c_scaled"
-path <- "/Users/lopazanski/Desktop/output/rock/all_regions/log_c_scaled_cv"
+path <- "/Users/lopazanski/Desktop/output/rock/south"
 
 list.files(path = path) %>%
   str_remove_all(., "_models.rds|_results.rds") %>% 
