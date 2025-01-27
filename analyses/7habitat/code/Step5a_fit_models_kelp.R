@@ -58,81 +58,82 @@ data_kelp_subset <- data_kelp %>%
 # Fit models for each species list --------------------------------------------------------------------
 
 ## All -------------
-walk(kelp_all, function(species) {
-  results_df <- refine_habitat(species = species,
-                               response = "log_c_biomass",
-                               predictors_df = pred_kelp_int, 
-                               random_effects = c("year", "bioregion", "affiliated_mpa"), 
-                               data = data_kelp_subset, 
-                               regions = c("Central", "North", "South"),
-                               path = "analyses/7habitat/output/kelp/all_regions")
-  cat("\nTop 5 models for species:", species, "\n")
-  print(head(results_df, 10))
-})
+# walk(kelp_all, function(species) {
+#   results_df <- refine_habitat(species = species,
+#                                response = "log_c_biomass",
+#                                predictors_df = pred_kelp_int,
+#                                random_effects = c("year", "bioregion", "affiliated_mpa"),
+#                                data = data_kelp_subset,
+#                                regions = c("Central", "North", "South"),
+#                                path = "analyses/7habitat/output/kelp")
+#   cat("\nTop 5 models for species:", species, "\n")
+#   print(head(results_df, 10))
+# })
 
 ## South -------------
 # walk(kelp_s, function(species) {
 #   results_df <- refine_habitat(species = species,
 #                                response = "log_c_biomass",
-#                                predictors_df = pred_kelp_int, 
+#                                predictors_df = pred_kelp_int,
 #                                random_effects = c("year", "affiliated_mpa"),
 #                                data = data_kelp_subset,
-#                                regions = c("South"), 
-#                                path = "analyses/7habitat/output/kelp/south")
+#                                regions = c("South"),
+#                                path = "analyses/7habitat/output/kelp")
 #   cat("\nTop 5 models for species:", species, "\n")
 #   print(head(results_df, 10))
 # })
-# 
-# ## Central -------------
+
+## Central -------------
 # walk(kelp_c, function(species) {
 #   results_df <- refine_habitat(species = species,
 #                                response = "log_c_biomass",
-#                                predictors_df = pred_kelp_int, 
+#                                predictors_df = pred_kelp_int,
 #                                random_effects = c("year", "affiliated_mpa"),
 #                                data = data_kelp_subset,
-#                                regions = c("Central"), 
-#                                path = "analyses/7habitat/output/kelp/central")
+#                                regions = c("Central"),
+#                                path = "analyses/7habitat/output/kelp")
 #   cat("\nTop 5 models for species:", species, "\n")
 #   print(head(results_df, 10))
 # })
-# 
-# ## North -------------
+
+## North -------------
 # walk(kelp_n, function(species) {
 #   results_df <- refine_habitat(species = species,
 #                                response = "log_c_biomass",
-#                                predictors_df = pred_kelp_int, 
+#                                predictors_df = pred_kelp_int,
 #                                random_effects = c("year", "affiliated_mpa"),
 #                                data = data_kelp_subset,
-#                                regions = c("North"), 
-#                                path = "analyses/7habitat/output/kelp/north")
+#                                regions = c("North"),
+#                                path = "analyses/7habitat/output/kelp")
 #   cat("\nTop 5 models for species:", species, "\n")
 #   print(head(results_df, 10))
 # })
-# 
-# 
-# ## North Central -------------
+
+
+## North Central -------------
 # walk(kelp_nc, function(species) {
 #   results_df <- refine_habitat(species = species,
 #                                response = "log_c_biomass",
-#                                predictors_df = pred_kelp_int, 
+#                                predictors_df = pred_kelp_int,
 #                                random_effects = c("year", "bioregion", "affiliated_mpa"),
 #                                data = data_kelp_subset,
-#                                regions = c("North", "Central"), 
-#                                path = "analyses/7habitat/output/kelp/north_central")
+#                                regions = c("North", "Central"),
+#                                path = "analyses/7habitat/output/kelp")
 #   cat("\nTop 5 models for species:", species, "\n")
 #   print(head(results_df, 10))
 # })
-# 
-# 
-# ## South Central -------------
-# walk(kelp_sc, function(species) {
-#   results_df <- refine_habitat(species = species,
-#                                response = "log_c_biomass",
-#                                predictors_df = pred_kelp_int, 
-#                                random_effects = c("year", "bioregion", "affiliated_mpa"),
-#                                data = data_kelp_subset,
-#                                regions = c("South", "Central"), 
-#                                path = "analyses/7habitat/output/kelp/south_central")
-#   cat("\nTop 5 models for species:", species, "\n")
-#   print(head(results_df, 10))
-# })
+
+
+## South Central -------------
+walk(kelp_sc, function(species) {
+  results_df <- refine_habitat(species = species,
+                               response = "log_c_biomass",
+                               predictors_df = pred_kelp_int,
+                               random_effects = c("year", "bioregion", "affiliated_mpa"),
+                               data = data_kelp_subset,
+                               regions = c("South", "Central"),
+                               path = "analyses/7habitat/output/kelp")
+  cat("\nTop 5 models for species:", species, "\n")
+  print(head(results_df, 10))
+})
+
