@@ -20,7 +20,7 @@ source("analyses/7habitat/code/Step4_build_habitat_models.R")  # Load the functi
 
 # Read Data --------------------------------------------------------------------
 ltm.dir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_2024"
-ltm.dir <- "/Users/lopazanski/Desktop/ltm/update_2024"
+#ltm.dir <- "/Users/lopazanski/Desktop/ltm/update_2024"
 
 data_rock <- readRDS(file.path(ltm.dir, "combine_tables/ccfrp_full.Rds")) %>% mutate(site_type = factor(site_type, levels = c("Reference", "MPA")))
 pred_rock <- readRDS(file.path("analyses/7habitat/intermediate_data/rock_predictors.Rds")) %>% filter(pred_group %in% c("all", "combined"))
@@ -59,91 +59,86 @@ data_rock_subset <- data_rock %>%
 
 # Fit models for each species list -----------------------------------------------------
 
-walk(rock_all, function(species) {
-  results_df <- refine_habitat(species = species,
-                               response = "log_c_biomass",
-                               predictors_df = pred_rock_int, 
-                               random_effects = c("year", "bioregion", "affiliated_mpa"), 
-                               data = data_rock_subset, 
-                               regions = c("Central", "North", "South"),
-                               path = "analyses/7habitat/output/rock/all_regions")
-  cat("\nTop 5 models for species:", species, "\n")
-  print(head(results_df, 10))
-})
-
-walk(rock_s, function(species) {
-  results_df <- refine_habitat(species = species,
-                               response = "log_c_biomass",
-                               predictors_df = pred_rock_int, 
-                               random_effects = c("year", "affiliated_mpa"),
-                               data = data_rock_subset,
-                               regions = c("South"), 
-                               path = "analyses/7habitat/output/rock/south")
-  cat("\nTop 5 models for species:", species, "\n")
-  print(head(results_df, 10))
-})
-
-walk(rock_c, function(species) {
-  results_df <- refine_habitat(species = species,
-                               response = "log_c_biomass",
-                               predictors_df = pred_rock_int, 
-                               random_effects = c("year", "affiliated_mpa"),
-                               data = data_rock_subset,
-                               regions = c("Central"), 
-                               path = "analyses/7habitat/output/rock/central")
-  cat("\nTop 5 models for species:", species, "\n")
-  print(head(results_df, 10))
-})
-
-walk(rock_n, function(species) {
-  results_df <- refine_habitat(species = species,
-                               response = "log_c_biomass",
-                               predictors_df = pred_rock_int, 
-                               random_effects = c("year", "affiliated_mpa"),
-                               data = data_rock_subset,
-                               regions = c("North"), 
-                               path = "analyses/7habitat/output/rock/north")
-  cat("\nTop 5 models for species:", species, "\n")
-  print(head(results_df, 10))
-})
-
-walk(rock_nc, function(species) {
-  results_df <- refine_habitat(species = species,
-                               response = "log_c_biomass",
-                               predictors_df = pred_rock_int, 
-                               random_effects = c("year", "bioregion", "affiliated_mpa"),
-                               data = data_rock_subset,
-                               regions = c("North", "Central"), 
-                               path = "analyses/7habitat/output/rock/north_central")
-  cat("\nTop 5 models for species:", species, "\n")
-  print(head(results_df, 10))
-})
-
-walk(rock_sc, function(species) {
-  results_df <- refine_habitat(species = species,
-                               response = "log_c_biomass",
-                               predictors_df = pred_rock_int, 
-                               random_effects = c("year", "bioregion", "affiliated_mpa"),
-                               data = data_rock_subset,
-                               regions = c("South", "Central"), 
-                               path = "analyses/7habitat/output/rock/south_central")
-  cat("\nTop 5 models for species:", species, "\n")
-  print(head(results_df, 10))
-})
-
-# walk(unique(sp_rock$species_code), function(species) { # Top 8 statewide species
+## All Regions -----------
+# walk(rock_all, function(species) {
 #   results_df <- refine_habitat(species = species,
-#                                response = "kg_per_m2",
-#                                predictors_df = pred_rock_int, # With interactions
-#                                random_effects = c("year", "bioregion", "affiliated_mpa"), # With MPA RE
-#                                data = data_rock_subset, # Scaled numeric predictors
-#                                regions = c("Central", "North", "South"), # All regions
-#                                path = "analyses/7habitat/output/rock/all_regions/raw_scaled")
+#                                response = "log_c_biomass",
+#                                predictors_df = pred_rock_int,
+#                                random_effects = c("year", "bioregion", "affiliated_mpa"),
+#                                data = data_rock_subset,
+#                                regions = c("Central", "North", "South"),
+#                                path = "analyses/7habitat/output/rock")
+#   cat("\nTop 5 models for species:", species, "\n")
+#   print(head(results_df, 10))
+# })
+
+## South -----
+# walk(rock_s, function(species) {
+#   results_df <- refine_habitat(species = species,
+#                                response = "log_c_biomass",
+#                                predictors_df = pred_rock_int,
+#                                random_effects = c("year", "affiliated_mpa"),
+#                                data = data_rock_subset,
+#                                regions = c("South"),
+#                                path = "analyses/7habitat/output/rock")
+#   cat("\nTop 5 models for species:", species, "\n")
+#   print(head(results_df, 10))
+# })
+
+## Central ----------
+# walk(rock_c, function(species) {
+#   results_df <- refine_habitat(species = species,
+#                                response = "log_c_biomass",
+#                                predictors_df = pred_rock_int,
+#                                random_effects = c("year", "affiliated_mpa"),
+#                                data = data_rock_subset,
+#                                regions = c("Central"),
+#                                path = "analyses/7habitat/output/rock")
+#   cat("\nTop 5 models for species:", species, "\n")
+#   print(head(results_df, 10))
+# })
+
+# North ----
+# walk(rock_n, function(species) {
+#   results_df <- refine_habitat(species = species,
+#                                response = "log_c_biomass",
+#                                predictors_df = pred_rock_int,
+#                                random_effects = c("year", "affiliated_mpa"),
+#                                data = data_rock_subset,
+#                                regions = c("North"),
+#                                path = "analyses/7habitat/output/rock")
 #   cat("\nTop 5 models for species:", species, "\n")
 #   print(head(results_df, 10))
 # })
 
 
+## North Central -------
+# walk(rock_nc, function(species) {
+#   results_df <- refine_habitat(species = species,
+#                                response = "log_c_biomass",
+#                                predictors_df = pred_rock_int,
+#                                random_effects = c("year", "bioregion", "affiliated_mpa"),
+#                                data = data_rock_subset,
+#                                regions = c("North", "Central"),
+#                                path = "analyses/7habitat/output/rock")
+#   cat("\nTop 5 models for species:", species, "\n")
+#   print(head(results_df, 10))
+# })
+
+## South Central ----
+walk(rock_sc, function(species) {
+  results_df <- refine_habitat(species = species,
+                               response = "log_c_biomass",
+                               predictors_df = pred_rock_int,
+                               random_effects = c("year", "bioregion", "affiliated_mpa"),
+                               data = data_rock_subset,
+                               regions = c("South", "Central"),
+                               path = "analyses/7habitat/output/rock")
+  cat("\nTop 5 models for species:", species, "\n")
+  print(head(results_df, 10))
+})
+
+# Hold
 # data_surf <- readRDS(file.path(ltm.dir, "combine_tables/surf_full.Rds")) %>% mutate(site_type = factor(site_type, levels = c("Reference", "MPA")))
 # data_rock <- readRDS(file.path(ltm.dir, "combine_tables/ccfrp_full.Rds")) %>% mutate(site_type = factor(site_type, levels = c("Reference", "MPA")))
 # data_deep <- readRDS(file.path(ltm.dir, "combine_tables/deep_full.Rds")) %>% mutate(site_type = factor(site_type, levels = c("Reference", "MPA")))

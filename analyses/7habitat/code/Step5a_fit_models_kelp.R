@@ -65,7 +65,7 @@ data_kelp_subset <- data_kelp %>%
 #                                random_effects = c("year", "bioregion", "affiliated_mpa"),
 #                                data = data_kelp_subset,
 #                                regions = c("Central", "North", "South"),
-#                                path = "analyses/7habitat/output/kelp/all_regions")
+#                                path = "analyses/7habitat/output/kelp")
 #   cat("\nTop 5 models for species:", species, "\n")
 #   print(head(results_df, 10))
 # })
@@ -78,7 +78,7 @@ data_kelp_subset <- data_kelp %>%
 #                                random_effects = c("year", "affiliated_mpa"),
 #                                data = data_kelp_subset,
 #                                regions = c("South"),
-#                                path = "analyses/7habitat/output/kelp/south")
+#                                path = "analyses/7habitat/output/kelp")
 #   cat("\nTop 5 models for species:", species, "\n")
 #   print(head(results_df, 10))
 # })
@@ -91,7 +91,7 @@ data_kelp_subset <- data_kelp %>%
 #                                random_effects = c("year", "affiliated_mpa"),
 #                                data = data_kelp_subset,
 #                                regions = c("Central"),
-#                                path = "analyses/7habitat/output/kelp/central")
+#                                path = "analyses/7habitat/output/kelp")
 #   cat("\nTop 5 models for species:", species, "\n")
 #   print(head(results_df, 10))
 # })
@@ -104,7 +104,7 @@ data_kelp_subset <- data_kelp %>%
 #                                random_effects = c("year", "affiliated_mpa"),
 #                                data = data_kelp_subset,
 #                                regions = c("North"),
-#                                path = "analyses/7habitat/output/kelp/north")
+#                                path = "analyses/7habitat/output/kelp")
 #   cat("\nTop 5 models for species:", species, "\n")
 #   print(head(results_df, 10))
 # })
@@ -118,7 +118,7 @@ data_kelp_subset <- data_kelp %>%
 #                                random_effects = c("year", "bioregion", "affiliated_mpa"),
 #                                data = data_kelp_subset,
 #                                regions = c("North", "Central"),
-#                                path = "analyses/7habitat/output/kelp/north_central")
+#                                path = "analyses/7habitat/output/kelp")
 #   cat("\nTop 5 models for species:", species, "\n")
 #   print(head(results_df, 10))
 # })
@@ -132,7 +132,7 @@ walk(kelp_sc, function(species) {
                                random_effects = c("year", "bioregion", "affiliated_mpa"),
                                data = data_kelp_subset,
                                regions = c("South", "Central"),
-                               path = "analyses/7habitat/output/kelp/south_central")
+                               path = "analyses/7habitat/output/kelp")
   cat("\nTop 5 models for species:", species, "\n")
   print(head(results_df, 10))
 })
