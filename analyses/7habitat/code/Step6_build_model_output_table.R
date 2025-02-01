@@ -72,17 +72,20 @@ add_significance <- function(df) {df %>%
                                            TRUE ~ "NS"), levels = c("***", "**", "*", "NS", "NA")))
 }
 
+
+
+
+
 # Analyze Focal Models ---------------------------------------------------------
-species <- "BLU"
-path <- "/Users/lopazanski/Desktop/output/rock/all_regions"
-habitat <- "rock"
 
 analyze_models <- function(species, path, habitat){
+  print(paste("Species:", species))
   pred_int <- readRDS(file.path(paste0("analyses/7habitat/intermediate_data/", habitat, "_predictors_interactions.Rds"))) %>% 
     rename(type_orig = type)
   
   # Read focal models 
   data <- readRDS(file.path(path, paste0(species, "_models.rds"))) 
+  
   models_df <- data$models_df %>% 
     mutate(scale = case_when(model_id == "ST*A" ~ NA,
                              T ~ as.factor(str_extract(predictors, "\\d+")))) %>% 
@@ -90,12 +93,9 @@ analyze_models <- function(species, path, habitat){
                                   str_detect(model_id, "DM") ~ "depth_mean",
                                   str_detect(model_id, "DCV") ~ "depth_cv")) %>% 
     left_join(., pred_int %>% dplyr::select(model_id, type_orig)) %>% 
+    mutate(type = if_else(type == "core", NA_character_, type)) %>% 
     mutate(type = coalesce(type, type_orig)) %>% 
     filter(!is.na(type))
-  
-  model_errors <- data$models_df %>% 
-    filter(singular_status != "OK" | singular_message != "OK" | errors != "OK" | warnings != "OK" |messages != "OK")
-  
 
   # Process top models:
   # If there are multiple, get the model average. If not, get the results from the top one.
@@ -149,7 +149,7 @@ analyze_models <- function(species, path, habitat){
   }
   
   # Process core models
-  core_names <- models_df$model_id[models_df$type %in% c("core_2way", "core_3way", "base")]
+  core_names <- models_df$model_id[models_df$type %in% c("core_2way", "core_3way", "base", "no_depth_2way", "no_depth_3way")]
   
   core_results <- lapply(core_names, function(model_id) {
     if (is.null(data$models[[model_id]])) {
@@ -164,7 +164,7 @@ analyze_models <- function(species, path, habitat){
   
   # Combine core model results
   core_results <- do.call(rbind, core_results) %>% 
-    left_join(., models_df %>% dplyr::select(model_id, scale)) %>% 
+    left_join(., models_df %>% dplyr::select(model_id, scale, type)) %>% 
     mutate(key = if_else(model_id == "ST*A", NA, "Full Model"))
   
   # Combine all results
@@ -174,9 +174,13 @@ analyze_models <- function(species, path, habitat){
     mutate(key = case_when(model_id == "ST*A" & unique(top_results$num_top_models) > 1 ~ "Top Models (Average) v. Base Model",
                            model_id == "ST*A" & unique(top_results$num_top_models) ~ "Top Model v. Base Model",
                            T~key),
-           model_id = if_else(is.na(model_id) & num_top_models > 1, "Model Average", model_id)) %>% 
+           model_id = case_when(is.na(model_id) & num_top_models > 1 ~ "Model Average",
+                                is.na(model_id) & num_top_models == 1 ~ "Top Model",
+                                T~model_id)) %>% 
     dplyr::select(species_code, model_id, key, scale, term, term_revised, everything(), -effect) %>% 
-    left_join(., models_df %>% dplyr::select(model_id, n_sites, n_mpas, type, depth_type))
+    left_join(., models_df %>% dplyr::select(model_id, n_sites, n_mpas, type, depth_type)) %>% 
+    left_join(., data$data_sp %>% 
+                distinct(species_code, sciname, genus, target_status, assemblage_new))
   
   # Export 
   saveRDS(all_results, file = file.path(path, paste0(species, "_results.rds")))
@@ -188,15 +192,18 @@ analyze_models <- function(species, path, habitat){
 # Run Analysis -----------------------------------------------------------------
 
 # Kelp forest 
-path <- "/Users/lopazanski/Desktop/output/kelp/south_central"
-
-list.files(path = path, pattern = ".rds") %>%
-  str_remove_all(., "_models.rds|_results.rds") %>% 
-  unique() %>% 
-  walk(., ~analyze_models(.x, path = path, habitat = "kelp"))
+# path <- "/Users/lopazanski/Desktop/output/kelp"
+# 
+# list.files(path = path, pattern = ".rds") %>%
+#   str_remove_all(., "_models.rds|_results.rds") %>% 
+#   as.data.frame() %>%
+#   filter(!(. %in% c("GBY", "HFRA", "PFUR", "SGUT", "SNEB", "TSYM"))) %>% # needs review
+#   pull(.) %>% 
+#   unique() %>% 
+#   walk(., ~analyze_models(.x, path = path, habitat = "kelp"))
 
 # Rocky reef 
-path <- "/Users/lopazanski/Desktop/output/rock/south"
+path <- "/Users/lopazanski/Desktop/output/rock"
 
 list.files(path = path, pattern = ".rds") %>% 
   str_remove_all(., "_models.rds|_results.rds") %>% 
