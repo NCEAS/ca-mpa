@@ -200,10 +200,10 @@ plot_site_corr <- function(site_table, predictor_list){
 
 }
 
-plot_site_corr(site_table = kelp, predictor_list = kelp_predictors)
-plot_site_corr(site_table = deep, predictor_list = deep_predictors)
-plot_site_corr(site_table = surf, predictor_list = surf_predictors)
-plot_site_corr(site_table = rock, predictor_list = rock_predictors)
+#plot_site_corr(site_table = kelp, predictor_list = kelp_predictors)
+#plot_site_corr(site_table = deep, predictor_list = deep_predictors)
+#plot_site_corr(site_table = surf, predictor_list = surf_predictors)
+#plot_site_corr(site_table = rock, predictor_list = rock_predictors)
 
 # Take Home:
 # - Each metric is correlated with itself across various scales = use one scale at a time for each metric
