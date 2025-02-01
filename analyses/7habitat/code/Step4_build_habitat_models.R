@@ -61,7 +61,7 @@ refine_habitat <- function(species, response, predictors_df, random_effects, dat
         {
           withCallingHandlers(
             { m <- lmer(model_formula, data = data_sp, 
-                        control = lmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 1e7)))
+                        control = lmerControl(optCtrl = list(maxfun = 1e6)))
               # Check for singular fit if the model is successfully created
               singular_status <- tryCatch(
                 {

@@ -56,8 +56,52 @@ data_rock_subset <- data_rock %>%
                 species_code:target_status, assemblage_new, weight_kg, count, log_bpue_kg,
                 all_of(pred_rock$predictor))
 
+# Fit models for each species --------------------------------------------------------------------
+library(furrr)
+library(parallel)
 
-# Fit models for each species list -----------------------------------------------------
+# Combine all species into a single list
+species_list <- c(rock_all, rock_s, rock_c, rock_n, rock_sc, rock_nc)
+
+# Define a function to process a single species
+run_model <- function(species) {
+  # Determine the region
+  region <- 
+    if (species %in% rock_all) c("Central", "North", "South") else
+      if (species %in% rock_s) c("South") else
+        if (species %in% rock_c) c("Central") else
+          if (species %in% rock_n) c("North") else
+            if (species %in% rock_sc) c("South", "Central") else
+              if (species %in% rock_nc) c("North", "Central") else
+                stop("Species not found in any region group")
+  
+  # Run the habitat model
+  results_df <- refine_habitat(
+    species = species,
+    response = "log_c_biomass",
+    predictors_df = pred_rock_int,
+    random_effects = ifelse(length(region) > 1, 
+                            c("year", "bioregion", "affiliated_mpa"), 
+                            c("year", "affiliated_mpa")),
+    data = data_rock_subset,
+    regions = region,
+    path = "analyses/7habitat/output/rock"
+  )
+  
+  return(results_df)
+}
+
+# Plan for parallel execution
+num_cores <- min(length(species_list), detectCores()/3)  
+plan(multisession, workers = num_cores)
+
+# Run models in parallel
+future_walk(species_list, run_model)
+
+
+
+
+
 
 ## All Regions -----------
 # walk(rock_all, function(species) {
