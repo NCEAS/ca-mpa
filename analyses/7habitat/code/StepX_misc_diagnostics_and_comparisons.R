@@ -259,21 +259,6 @@ path <- "analyses/7habitat/output/refine_pref_habitat/kelp/all_regions/interacti
 data <- readRDS(file.path(path, paste0(species, "_models.rds")))
 regions <- c("North", "Central", "South")
 
-data_kelp_means <- data_kelp_subset %>% 
-  filter(species_code == species) %>% 
-  filter(bioregion %in% regions) %>% 
-  mutate(pref_habitat = rowSums(across(all_of(preferred_habitat)), na.rm = TRUE)) %>% 
-  dplyr::select(age_at_survey, pref_habitat, log_kg_per_m2) %>% 
-  summarise(across(everything(), list(mean = mean, sd = sd)))
-
-
-
-length(unique(data$data_sp$affiliated_mpa))
-length(unique(data$data_sp$site))
-length(unique(data$data_sp$year))
-mean(data$data_sp$age_at_survey)
-unique(data$data_sp$age_at_survey)
-
 
 mod_comp <- as.data.frame(data$model_comparison) %>% 
   mutate(delta_AICc = AICc - min(AICc)) %>% 
