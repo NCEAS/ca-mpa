@@ -56,152 +56,46 @@ data_rock_subset <- data_rock %>%
                 species_code:target_status, assemblage_new, weight_kg, count, log_bpue_kg,
                 all_of(pred_rock$predictor))
 
+# Fit models for each species --------------------------------------------------------------------
+library(furrr)
+library(parallel)
 
-# Fit models for each species list -----------------------------------------------------
+# Combine all species into a single list
+species_list <- c(rock_all, rock_s, rock_c, rock_n, rock_sc, rock_nc)
 
-## All Regions -----------
-# walk(rock_all, function(species) {
-#   results_df <- refine_habitat(species = species,
-#                                response = "log_c_biomass",
-#                                predictors_df = pred_rock_int,
-#                                random_effects = c("year", "bioregion", "affiliated_mpa"),
-#                                data = data_rock_subset,
-#                                regions = c("Central", "North", "South"),
-#                                path = "analyses/7habitat/output/rock")
-#   cat("\nTop 5 models for species:", species, "\n")
-#   print(head(results_df, 10))
-# })
+# Define a function to process a single species
+run_model <- function(species) {
+  # Determine the region
+  region <- 
+    if (species %in% rock_all) c("Central", "North", "South") else
+      if (species %in% rock_s) c("South") else
+        if (species %in% rock_c) c("Central") else
+          if (species %in% rock_n) c("North") else
+            if (species %in% rock_sc) c("South", "Central") else
+              if (species %in% rock_nc) c("North", "Central") else
+                stop("Species not found in any region group")
+  
+  # Run the habitat model
+  results_df <- refine_habitat(
+    species = species,
+    response = "log_c_biomass",
+    predictors_df = pred_rock_int,
+    random_effects = ifelse(length(region) > 1, 
+                            c("year", "bioregion", "affiliated_mpa"), 
+                            c("year", "affiliated_mpa")),
+    data = data_rock_subset,
+    regions = region,
+    path = "analyses/7habitat/output/rock"
+  )
+  
+  return(results_df)
+}
 
-## South -----
-# walk(rock_s, function(species) {
-#   results_df <- refine_habitat(species = species,
-#                                response = "log_c_biomass",
-#                                predictors_df = pred_rock_int,
-#                                random_effects = c("year", "affiliated_mpa"),
-#                                data = data_rock_subset,
-#                                regions = c("South"),
-#                                path = "analyses/7habitat/output/rock")
-#   cat("\nTop 5 models for species:", species, "\n")
-#   print(head(results_df, 10))
-# })
+# Plan for parallel execution
+num_cores <- min(length(species_list), detectCores()/3)  
+plan(multisession, workers = num_cores)
 
-## Central ----------
-# walk(rock_c, function(species) {
-#   results_df <- refine_habitat(species = species,
-#                                response = "log_c_biomass",
-#                                predictors_df = pred_rock_int,
-#                                random_effects = c("year", "affiliated_mpa"),
-#                                data = data_rock_subset,
-#                                regions = c("Central"),
-#                                path = "analyses/7habitat/output/rock")
-#   cat("\nTop 5 models for species:", species, "\n")
-#   print(head(results_df, 10))
-# })
-
-# North ----
-# walk(rock_n, function(species) {
-#   results_df <- refine_habitat(species = species,
-#                                response = "log_c_biomass",
-#                                predictors_df = pred_rock_int,
-#                                random_effects = c("year", "affiliated_mpa"),
-#                                data = data_rock_subset,
-#                                regions = c("North"),
-#                                path = "analyses/7habitat/output/rock")
-#   cat("\nTop 5 models for species:", species, "\n")
-#   print(head(results_df, 10))
-# })
+# Run models in parallel
+future_walk(species_list, run_model)
 
 
-## North Central -------
-# walk(rock_nc, function(species) {
-#   results_df <- refine_habitat(species = species,
-#                                response = "log_c_biomass",
-#                                predictors_df = pred_rock_int,
-#                                random_effects = c("year", "bioregion", "affiliated_mpa"),
-#                                data = data_rock_subset,
-#                                regions = c("North", "Central"),
-#                                path = "analyses/7habitat/output/rock")
-#   cat("\nTop 5 models for species:", species, "\n")
-#   print(head(results_df, 10))
-# })
-
-## South Central ----
-walk(rock_sc, function(species) {
-  results_df <- refine_habitat(species = species,
-                               response = "log_c_biomass",
-                               predictors_df = pred_rock_int,
-                               random_effects = c("year", "bioregion", "affiliated_mpa"),
-                               data = data_rock_subset,
-                               regions = c("South", "Central"),
-                               path = "analyses/7habitat/output/rock")
-  cat("\nTop 5 models for species:", species, "\n")
-  print(head(results_df, 10))
-})
-
-# Hold
-# data_surf <- readRDS(file.path(ltm.dir, "combine_tables/surf_full.Rds")) %>% mutate(site_type = factor(site_type, levels = c("Reference", "MPA")))
-# data_rock <- readRDS(file.path(ltm.dir, "combine_tables/ccfrp_full.Rds")) %>% mutate(site_type = factor(site_type, levels = c("Reference", "MPA")))
-# data_deep <- readRDS(file.path(ltm.dir, "combine_tables/deep_full.Rds")) %>% mutate(site_type = factor(site_type, levels = c("Reference", "MPA")))
-# 
-# pred_surf <- readRDS(file.path("analyses/7habitat/intermediate_data/surf_predictors.Rds")) %>% filter(pred_group %in% c("all", "combined"))
-# pred_rock <- readRDS(file.path("analyses/7habitat/intermediate_data/rock_predictors.Rds")) %>% filter(pred_group %in% c("all", "combined"))
-# pred_deep <- readRDS(file.path("analyses/7habitat/intermediate_data/deep_predictors.Rds")) %>% filter(pred_group %in% c("all", "combined"))
-# 
-# pred_rock_int <- readRDS(file.path("analyses/7habitat/intermediate_data/rock_predictors_interactions.Rds"))
-# pred_surf_int <- readRDS(file.path("analyses/7habitat/intermediate_data/surf_predictors_interactions.Rds"))
-# pred_deep_int <- readRDS(file.path("analyses/7habitat/intermediate_data/deep_predictors_interactions.Rds"))
-# 
-# # Build Data  --------------------------------------------------------------------
-# 
-# 
-# ## Rock ------------------------------------------
-# sp_rock <- data_rock %>%
-#   filter(weight_kg > 0) %>%
-#   group_by(species_code, sciname, target_status, bioregion) %>%
-#   summarize(total_biomass = sum(weight_kg),
-#             total_count = sum(count),
-#             n_obs = n(), .groups = 'drop') %>%
-#   pivot_wider(names_from = bioregion, values_from = c(total_biomass, total_count, n_obs)) %>%
-#   filter(!is.na(n_obs_Central) & !is.na(n_obs_North) & !is.na(n_obs_South)) %>%
-#   filter(n_obs_South > 100)
-# 
-# data_rock_subset <- data_rock %>%
-#   dplyr::select(year:affiliated_mpa, size_km2, age_at_survey,
-#                 species_code:target_status, assemblage_new, weight_kg, count, log_bpue_kg,
-#                 all_of(pred_rock$predictor))
-# 
-# ## Surf ------------------------------------------
-# sp_surf <- data_surf %>%
-#   filter(weight_kg > 0) %>%
-#   group_by(species_code, sciname, target_status,bioregion) %>%
-#   summarize(total_biomass = sum(weight_kg),
-#             total_count = sum(count),
-#             n_obs = n(), .groups = 'drop') %>%
-#   filter(total_count > 10) %>%
-#   pivot_wider(names_from = bioregion, values_from = c(total_biomass, total_count, n_obs)) %>%
-#   filter(species_code %in% c("AARG", "AAFF", "HARG", "MMIN")) # in central and South
-# 
-# data_surf_subset <- data_surf %>%
-#   dplyr::select(year:affiliated_mpa, size_km2, age_at_survey,
-#                 species_code:target_status, assemblage_new, weight_kg, count, kg_per_haul, count_per_haul, log_kg_per_haul,
-#                 all_of(pred_surf$predictor))
-# 
-# ## Deep ------------------------------------------
-# sp_deep <- data_deep %>%
-#   filter(kg_per_m2 > 0) %>%
-#   group_by(species_code, sciname, target_status, bioregion) %>%
-#   summarize(total_biomass = sum(kg_per_m2),
-#             total_count = sum(count_per_m2),
-#             n_obs = n(), .groups = 'drop') %>%
-#   filter(n_obs > 50) %>%
-#   pivot_wider(names_from = bioregion, values_from = c(total_biomass, total_count, n_obs)) %>%
-#   filter(!is.na(n_obs_Central) & !is.na(n_obs_North) & !is.na(n_obs_South)) %>%
-#   filter(!species_code %in% c("SEBSPP", "PLEU"))
-# 
-# data_deep_subset <- data_deep %>%
-#   dplyr::select(year:affiliated_mpa, size_km2, age_at_survey,
-#                 species_code:target_status, assemblage_new, biomass_kg, count, kg_per_m2, count_per_m2, log_kg_per_m2,
-#                 all_of(pred_deep$predictor))
-# 
-# 
-# 
