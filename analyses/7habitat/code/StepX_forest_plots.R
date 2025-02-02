@@ -27,13 +27,12 @@ my_theme <- theme(
   plot.background = element_rect(fill = "white", color = NA)
 )
 
-
-species <- "VER"
-habitat <- "rock"
-path <- "/Users/lopazanski/Desktop/output/rock/all_regions"
-
+species <- "BRAY"
+habitat <- "kelp"
+path <- "/Users/lopazanski/Desktop/output/kelp"
 
 make_forest_plots <- function(species, path, habitat){
+  print(paste("Species:", species))
   # Read the data
   data <- readRDS(file.path(path, paste0(species, "_results.rds"))) %>% 
     mutate(scale = case_when(is.na(scale) & model_id == "ST*A" ~ NA,
@@ -43,32 +42,55 @@ make_forest_plots <- function(species, path, habitat){
     mutate(importance_type = case_when((is.na(importance) | importance > 0.5) ~ "Greater than 0.5",
                                        (!is.na(importance) & importance < 0.5) ~ "Less than 0.5")) %>% 
     filter(!term == "(Intercept)") %>% 
-    mutate(type = case_when(model_id == "Model Average" ~ "average", T~type))
+    mutate(type = case_when(model_id == "Model Average" ~ "average", 
+                            model_id == "Top Model" ~ "top",
+                            T~type)) %>% 
+    mutate(assemblage_new = str_to_sentence(assemblage_new))
   
-  # 1. Plot 3-way interaction models
-  data_sd <- data %>% 
-    filter(type != "core_2way") %>% # Drop the 2-way full models
-    filter(!(type == "core_3way" & depth_type %in% c("depth_mean", "depth_cv")))
+  # Extract species info
+  sciname <- unique(data$sciname)
+  assemblage <- unique(data$assemblage_new)
+  target_status <- unique(data$target_status)
+  
+  # Determine top model type
+  top <- data %>% 
+    filter(key %in% c("Top Model v. Base Model", "Top Models (Average) v. Base Model")) %>% 
+    filter(importance >= 0.5) %>% 
+    mutate(intx_type = if_else(str_detect(term_revised,  ".*:.*:.*"), "3way", "2way")) %>% 
+    mutate(top_depth = case_when(str_detect(term_revised, "_cv") ~ "depth_cv",
+                                  str_detect(term_revised, "_sd") ~ "depth_sd",
+                                  str_detect(term_revised, "_mean") ~ "depth_mean",
+                                  T~NA)) %>% 
+    dplyr::select(species_code, term_revised, intx_type, top_depth)
+  
+  top_depth <- unique(top$top_depth[!is.na(top$top_depth)])
+  core_type <- case_when(
+    length(top_depth) > 0 & sum(top$intx_type == "3way") > 0 ~ "core_3way",
+    length(top_depth) > 0 & sum(top$intx_type == "3way") == 0 ~ "core_2way",
+    length(top_depth) == 0 & sum(top$intx_type == "3way") > 0 ~ "no_depth_3way",
+    length(top_depth) == 0 & sum(top$intx_type == "3way") == 0 ~ "no_depth_2way")
+  
+  # Plot models
+  if (length(top_depth) > 0) {
+    data_plot <- data %>% 
+      filter(type %in% c("average", "top", "base", core_type)) %>% 
+      filter(!(!type == core_type) & (depth_type == top_depth) | is.na(depth_type))
+  } else {
+    data_plot <- data %>% 
+      filter(type %in% c("average", "top", "base", core_type))
+    
+    print("No depth.")
+  }
 
-  data_mean <- data %>% 
-    filter(type != "core_2way") %>% # Drop the 2-way full models
-    filter(!(type == "core_3way" & depth_type %in% c("depth_sd", "depth_cv")))
-  
-  data_cv <- data %>% 
-    filter(type != "core_2way") %>% # Drop the 2-way full models
-    filter(!(type == "core_3way" & depth_type %in% c("depth_mean", "depth_sd")))
-  
-  ggplot(data_cv %>% filter(!type == "top"),
+  ggplot(data_plot, 
          aes(x = estimate, y = term_revised, color = scale, pch = significance)) +
     geom_vline(aes(xintercept = 0), linetype = "dashed") +
     geom_errorbarh(aes(xmin = conf_low, xmax = conf_high, linetype = importance_type, color = scale),
                    height = 0.4, position = position_dodge(width = 0.8))+
     geom_point(position = position_dodge(width = 0.8), size = 2) +  
     scale_shape_manual(values = c("***" = 16, "**" = 17, "*" = 15, "NA" = NA, "NS" = 3)) +
-    scale_color_manual(
-      values = c("#440154", "#3b528b", "#21908d", "#5dc863", "#D7C51B"), # Adjusted manually
-      guide = guide_legend(order = 1)
-    ) +
+    scale_color_manual(values = c("#440154", "#3b528b", "#21908d", "#5dc863", "#D7C51B"), # Adjusted manually
+                       guide = guide_legend(order = 1)) +
     facet_wrap(~key) +
     theme_minimal() +
     labs(x = "Estimate (scaled)", 
@@ -76,91 +98,44 @@ make_forest_plots <- function(species, path, habitat){
          color = "Scale", 
          pch = "Significance", 
          linetype = "Importance",
-         title = paste(species)) +
+         title = paste0(sciname, "\n", target_status, "\n", assemblage)) +
     my_theme
   
-  ggsave(filename = paste0(species, "_forest_depth_cv.png"),
+  ggsave(filename = paste0(species, "_forest.png"),
          path = file.path(fig.dir, habitat), width = 8, height = 5, dpi = 300, units = "in")
-  
-  ggplot(data_mean %>% filter(!type == "top"),
-         aes(x = estimate, y = term_revised, color = scale, pch = significance)) +
-    geom_vline(aes(xintercept = 0), linetype = "dashed") +
-    geom_errorbarh(aes(xmin = conf_low, xmax = conf_high, linetype = importance_type, color = scale),
-                   height = 0.4, position = position_dodge(width = 0.8))+
-    geom_point(position = position_dodge(width = 0.8), size = 2) +  
-    scale_shape_manual(values = c("***" = 16, "**" = 17, "*" = 15, "NA" = NA, "NS" = 3)) +
-    scale_color_manual(
-      values = c("#440154", "#3b528b", "#21908d", "#5dc863", "#D7C51B"), # Adjusted manually
-      guide = guide_legend(order = 1)
-    ) +
-    facet_wrap(~key) +
-    theme_minimal() +
-    labs(x = "Estimate (Scaled)", 
-         y = NULL, 
-         color = "Scale", 
-         pch = "Significance", 
-         linetype = "Importance",
-         title = paste(species)) +
-    my_theme
-  
-  ggsave(filename = paste0(species, "_forest_depth_mean.png"),
-         path = file.path(fig.dir, habitat), width = 8, height = 5, dpi = 300, units = "in")
-  
-  ggplot(data_sd %>% filter(!type == "top"),
-         aes(x = estimate, y = term_revised, color = scale, pch = significance)) +
-    geom_vline(aes(xintercept = 0), linetype = "dashed") +
-    geom_errorbarh(aes(xmin = conf_low, xmax = conf_high, linetype = importance_type, color = scale),
-                   height = 0.4, position = position_dodge(width = 0.8))+
-    geom_point(position = position_dodge(width = 0.8), size = 2) +  
-    scale_shape_manual(values = c("***" = 16, "**" = 17, "*" = 15, "NA" = NA, "NS" = 3)) +
-    scale_color_manual(
-      values = c("#440154", "#3b528b", "#21908d", "#5dc863", "#D7C51B"), # Adjusted manually
-      guide = guide_legend(order = 1)
-    ) +
-    facet_wrap(~key) +
-    theme_minimal() +
-    labs(x = "Estimate (Scaled)", 
-         y = NULL, 
-         color = "Scale", 
-         pch = "Significance", 
-         linetype = "Importance",
-         title = paste(species)) +
-    my_theme
-  
-  ggsave(filename = paste0(species, "_forest_depth_sd.png"),
-         path = file.path(fig.dir, habitat), width = 8, height = 5, dpi = 300, units = "in")
-
 }
 
 # Create and save figures -------------------------------------------------------------
 
 ## Kelp ----
-path <- "/Users/lopazanski/Desktop/output/kelp/south_central"
+path <- "/Users/lopazanski/Desktop/output/kelp"
 
-kelp_list <- list.files(path = path) %>%
-  str_remove_all(., "_models.rds|_results.rds") %>% unique()
-
-map(kelp_list, make_forest_plots, path = path, habitat = "kelp")
+list.files(path = path, pattern = "_results.rds") %>%
+  str_remove_all(., "_models.rds|_results.rds") %>% 
+  unique() %>% 
+  map(., make_forest_plots, path = path, habitat = "kelp")
 
 ## Rocky reef ----
-path <- "/Users/lopazanski/Desktop/output/rock/south"
+path <- "/Users/lopazanski/Desktop/output/rock"
 
-list.files(path = path) %>%
+list.files(path = path, pattern = "_results.rds") %>%
   str_remove_all(., "_models.rds|_results.rds") %>% 
   unique() %>% 
   map(., make_forest_plots, path = path, habitat = "rock")
 
 
 ## Surf ---
-surf_list <- list.files(path = "analyses/7habitat/output/surf/central_south") %>%
-  str_remove_all(., "_models.rds|_results.rds") %>% unique()
+path <- "/Users/lopazanski/Desktop/output/surf"
 
-map(surf_list, make_forest_plots, path = "analyses/7habitat/output/surf/central_south", habitat = "surf")
+list.files(path = path, pattern = "_results.rds") %>%
+  str_remove_all(., "_models.rds|_results.rds") %>% 
+  unique() %>% 
+  map(., make_forest_plots, path = path, habitat = "surf")
 
 ## Deep ---
-deep_list <- list.files(path = "analyses/7habitat/output/deep/all_regions") %>%
-  str_remove_all(., "_models.rds|_results.rds") %>% unique()
+path <- "/Users/lopazanski/Desktop/output/deep"
 
-map(deep_list, make_forest_plots, path = "analyses/7habitat/output/deep/all_regions", habitat = "deep")
-
-
+list.files(path = path, pattern = "_results.rds") %>%
+  str_remove_all(., "_models.rds|_results.rds") %>% 
+  unique() %>% 
+  map(., make_forest_plots, path = path, habitat = "deep")
