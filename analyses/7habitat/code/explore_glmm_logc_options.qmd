@@ -9,7 +9,6 @@ toc: true
 toc-expand: 3
 ---
 
-
 ```{r}
 #| echo: false
 #| message: false
@@ -52,7 +51,7 @@ data_kelp <- readRDS(file.path(ltm.dir, "combine_tables/kelp_full.Rds")) %>%
          depth_cv_100 = depth_sd_100/depth_mean_100*100,
          depth_cv_250 = depth_sd_250/depth_mean_250*100,
          depth_cv_500 = depth_sd_500/depth_mean_500*100) %>% 
-  filter(species_code == "ELAT") %>%  # Focus on SMIN or SMYS
+  filter(species_code == "SMIN") %>%  # Focus on SMIN or SMYS
   mutate(bioregion = factor(bioregion),
          affiliated_mpa = factor(affiliated_mpa)) %>% 
   mutate(obs_id = row_number(.))
@@ -136,16 +135,17 @@ summary(m25)
 
 tab_model(m500, m250, m100, m50, m25)
 
+f1 <- as.formula(paste(response_logc, "~", "hard_bottom_250 * site_type * age_at_survey + kelp_annual_50 * site_type + depth_mean_250 * site_type * age_at_survey + site_type * age_at_survey", "+", paste0("(1 | ", random_effects, ")", collapse = " + ")))
+n1 <- "H250*ST*A+K50*ST+DM250*ST*A+ST*A"
 
-
+m1 <- lmerTest::lmer(f1, data = data_sp, REML = FALSE)
+summary(m1)
 
 
 
 
 
 ```
-
-
 
 ## Define Models
 
@@ -390,7 +390,6 @@ qqnorm(residuals(m8), main = paste(attr(m8, "name")), cex.main = 0.8); qqline(re
 
 ```
 
-
 ```{r}
 plot(residuals(m1) ~ fitted(m1), main = attr(m1, "name"), cex.main = 0.8)
 abline(h = 0, col = "red", lty = 2)
@@ -429,7 +428,6 @@ qqnorm(residuals(m11), main = paste(attr(m11, "name")), cex.main = 0.8); qqline(
 qqnorm(residuals(m13), main = paste(attr(m13, "name")), cex.main = 0.8); qqline(residuals(m13))
 
 ```
-
 
 # Partial Residual Plots
 
@@ -508,3 +506,4 @@ plot(predictorEffects(model, ~ hard_bottom_25, partial.residuals = TRUE),
      id = list(n = 1), residuals.pch = 19, residuals.cex = 0.2)
 
 ```
+:::

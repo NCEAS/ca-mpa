@@ -192,37 +192,42 @@ analyze_models <- function(species, path, habitat){
 # Run Analysis -----------------------------------------------------------------
 
 # Kelp forest 
-# path <- "/Users/lopazanski/Desktop/output/kelp"
-# 
-# list.files(path = path, pattern = ".rds") %>%
-#   str_remove_all(., "_models.rds|_results.rds") %>% 
-#   as.data.frame() %>%
-#   filter(!(. %in% c("GBY", "HFRA", "PFUR", "SGUT", "SNEB", "TSYM"))) %>% # needs review
-#   pull(.) %>% 
-#   unique() %>% 
-#   walk(., ~analyze_models(.x, path = path, habitat = "kelp"))
+path <- "/Users/lopazanski/Desktop/output/kelp"
+
+list.files(path = path, pattern = ".rds") %>%
+  str_remove_all(., "_models.rds|_results.rds") %>%
+  as.data.frame() %>%
+  filter(!(. %in% c("GBY", "HFRA", "PFUR", "SGUT", "SNEB", "TSYM"))) %>% # needs review
+  pull(.) %>%
+  unique() %>%
+  walk(., ~analyze_models(.x, path = path, habitat = "kelp"))
 
 # Rocky reef 
 path <- "/Users/lopazanski/Desktop/output/rock"
 
-list.files(path = path, pattern = ".rds") %>% 
-  str_remove_all(., "_models.rds|_results.rds") %>% 
-  unique() %>% 
+list.files(path = path, pattern = ".rds") %>%
+  str_remove_all(., "_models.rds|_results.rds") %>%
+  unique() %>%
   walk(., ~analyze_models(.x, path = path, habitat = "rock"))
 
 
 ## Surf 
-# sp_list <- list.files(path = "analyses/7habitat/output/surf/central_south") %>%
-#   str_remove_all(., "_models.rds|_results.rds") %>% unique()
-# 
-# walk(sp_list, ~analyze_models(.x, path = "analyses/7habitat/output/surf/central_south"))
-# 
+path <- "/Users/lopazanski/Desktop/output/surf"
+
+list.files(path = path, pattern = ".rds") %>%
+  str_remove_all(., "_models.rds|_results.rds") %>%
+  as.data.frame() %>%
+  filter(!(. %in% c("LARM"))) %>% # needs review
+  pull(.) %>%
+  unique() %>%
+  walk(., ~analyze_models(.x, path = path, habitat = "surf"))
+
 ## Deep
-# sp_list <- list.files(path = "analyses/7habitat/output/deep/all_regions") %>%
-#   str_remove_all(., "_models.rds|_results.rds") %>% unique()
-# 
-# walk(sp_list, ~analyze_models(.x, path = "analyses/7habitat/output/deep/all_regions"))
+path <- "/Users/lopazanski/Desktop/output/deep"
 
-
+list.files(path = path, pattern = ".rds") %>%
+  str_remove_all(., "_models.rds|_results.rds") %>%
+  unique() %>%
+  walk(., ~analyze_models(.x, path = path, habitat = "surf"))
 
 
