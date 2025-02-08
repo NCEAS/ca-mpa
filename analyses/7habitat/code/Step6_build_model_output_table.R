@@ -37,6 +37,7 @@ clean_terms <- function(df) {df %>%
              if_else(str_detect(., ":age_at_survey$"), str_replace(., "^(.*):age_at_survey$", "age_at_survey:\\1"), .) %>% 
              if_else(str_detect(., ":site_type$"), str_replace(., "^(.*):site_type$", "site_type:\\1"), .) %>% 
              if_else(str_detect(., ":site_type:"), str_replace(., "^(.*?):(site_type):(.*?)$", "\\2:\\3:\\1"), .) %>% 
+             str_replace_all("site_type:(.*?):age_at_survey", "site_type:age_at_survey:\\1") %>% 
              factor(levels = c("(Intercept)",
                                "site_type:age_at_survey:depth_mean",
                                "site_type:age_at_survey:depth_sd",
@@ -75,11 +76,15 @@ add_significance <- function(df) {df %>%
 
 
 
-
 # Analyze Focal Models ---------------------------------------------------------
+
+species <- "EJAC"
+habitat <- "kelp"
+path <- "analyses/7habitat/output/kelp"
 
 analyze_models <- function(species, path, habitat){
   print(paste("Species:", species))
+  # Read predictor list (for the new types)
   pred_int <- readRDS(file.path(paste0("analyses/7habitat/intermediate_data/", habitat, "_predictors_interactions.Rds"))) %>% 
     rename(type_orig = type)
   
@@ -92,15 +97,70 @@ analyze_models <- function(species, path, habitat){
     mutate(depth_type = case_when(str_detect(model_id, "DSD") ~ "depth_sd",
                                   str_detect(model_id, "DM") ~ "depth_mean",
                                   str_detect(model_id, "DCV") ~ "depth_cv")) %>% 
-    left_join(., pred_int %>% dplyr::select(model_id, type_orig)) %>% 
+    left_join(., pred_int %>% dplyr::select(model_id, type_orig), by = "model_id") %>% 
     mutate(type = if_else(type == "core", NA_character_, type)) %>% 
     mutate(type = coalesce(type, type_orig)) %>% 
     filter(!is.na(type))
+  
+  print(paste("  Messages:", unique(models_df$messages)))
 
   # Process top models:
-  # If there are multiple, get the model average. If not, get the results from the top one.
+  # 1) Extract results from all top models 
+  print(paste("  Top models:", sum(models_df$type == "top")))
+  
+  # Examine results for each of the individual top models (without averaging)
   if (sum(models_df$type == "top") > 1) {
-    model_avg <- model.avg(data$models[models_df$type == "top"], fit = TRUE)
+    top_names <- models_df$model_id[models_df$type %in% c("top")]
+    top_results_full <- lapply(top_names, function(model_id) {
+      if (is.null(data$models[[model_id]])) { return(NULL) }
+      tidy(data$models[[model_id]], conf.int = TRUE, effect = "fixed") %>%
+        janitor::clean_names() %>% 
+        clean_terms() %>%
+        add_significance() %>%
+        mutate(model_id = model_id)}) 
+    
+    top_results_full <- do.call(rbind, top_results_full) %>% 
+      left_join(., models_df %>% dplyr::select(model_id, scale, delta_AICc), by = "model_id") %>% 
+      mutate(key = if_else(model_id == "ST*A", NA, "Top Model"))
+    
+    # Examine interactions 
+    if (any(str_count(top_results_full$term_revised, ":") == 2)) {
+      if (all(top_results_full$significance[str_count(top_results_full$term_revised, ":") == 2] == "NS")) {
+        print(" All 3-way interactions are non-significant.")
+        top_names <- top_names[!grepl("\\*ST\\*A", top_names)]
+      } else {
+        print("  Some 3-way interactions are significant. Checking individual models.")
+        
+        # Identify models that contain only NS 3-way interactions
+        models_to_remove <- top_results_full %>%
+          filter(str_count(term_revised, ":") == 2) %>%
+          group_by(model_id) %>%
+          summarize(all_ns = all(significance == "NS"), .groups = "drop") %>%
+          filter(all_ns) %>%
+          pull(model_id)
+        
+        # Remove those models from top_names
+        top_names <- setdiff(top_names, models_to_remove)
+        
+        if (length(models_to_remove) > 0) {
+          print("  Removed models with only non-significant 3-way interactions: ", paste(models_to_remove, collapse = ", "))
+        } else {
+          print("  No models removed; at least one 3-way interaction is significant in each model.")
+        }
+      }
+    } else {
+      print("  No 3-way interactions detected in term_revised.")
+    }
+    
+  } else {
+    top_names <- models_df$model_id[models_df$type %in% c("top")]
+    top_results_full <- NULL
+  }
+  
+  
+  # If there are multiple, get the model average. If not, get the results from the top one.
+  if (length(top_names) > 1) {
+    model_avg <- model.avg(data$models[models_df$model_id %in% top_names], fit = TRUE)
     coef_table <- data.frame(coefTable(model_avg)) %>%
       rownames_to_column("term") %>% 
       janitor::clean_names() %>% 
@@ -121,33 +181,12 @@ analyze_models <- function(species, path, habitat){
   top_results <- coef_table %>%
     clean_terms() %>%
     add_significance() %>%
-    mutate(num_top_models = sum(models_df$type == "top"),
+    mutate(num_top_models = length(top_names),
            scale = paste(unique(models_df$scale[models_df$type == "top"]), collapse = ", "),           
            key = if_else(num_top_models == 1, "Top Model v. Base Model", "Top Models (Average) v. Base Model")) 
+  print(paste("  Top models:", unique(top_results$num_top_models)))
   
-  
-  # Add results for each of the individual top models (without averaging)
-  if (sum(models_df$type == "top") > 1) {
-    top_names <- models_df$model_id[models_df$type %in% c("top")]
-    top_results_full <- lapply(top_names, function(model_id) {
-      if (is.null(data$models[[model_id]])) {
-        return(NULL)  # Skip processing and return NULL
-      }
-      tidy(data$models[[model_id]], conf.int = TRUE, effect = "fixed") %>%
-        janitor::clean_names() %>% 
-        clean_terms() %>%
-        add_significance() %>%
-        mutate(model_id = model_id)
-    }) 
-    
-    top_results_full <- do.call(rbind, top_results_full) %>% 
-      left_join(., models_df %>% dplyr::select(model_id, scale, delta_AICc)) %>% 
-      mutate(key = if_else(model_id == "ST*A", NA, "Top Model"))
-    
-  } else {
-    top_results_full <- NULL
-  }
-  
+   
   # Process core models
   core_names <- models_df$model_id[models_df$type %in% c("core_2way", "core_3way", "base", "no_depth_2way", "no_depth_3way")]
   
@@ -164,7 +203,7 @@ analyze_models <- function(species, path, habitat){
   
   # Combine core model results
   core_results <- do.call(rbind, core_results) %>% 
-    left_join(., models_df %>% dplyr::select(model_id, scale, type)) %>% 
+    left_join(., models_df %>% dplyr::select(model_id, scale, type), by = "model_id") %>% 
     mutate(key = if_else(model_id == "ST*A", NA, "Full Model"))
   
   # Combine all results
@@ -178,9 +217,9 @@ analyze_models <- function(species, path, habitat){
                                 is.na(model_id) & num_top_models == 1 ~ "Top Model",
                                 T~model_id)) %>% 
     dplyr::select(species_code, model_id, key, scale, term, term_revised, everything(), -effect) %>% 
-    left_join(., models_df %>% dplyr::select(model_id, n_sites, n_mpas, type, depth_type)) %>% 
+    left_join(., models_df %>% dplyr::select(model_id, n_sites, n_mpas, type, depth_type), by = c("model_id", "type")) %>% 
     left_join(., data$data_sp %>% 
-                distinct(species_code, sciname, genus, target_status, assemblage_new))
+                distinct(species_code, sciname, genus, target_status, assemblage_new), by = "species_code")
   
   # Export 
   saveRDS(all_results, file = file.path(path, paste0(species, "_results.rds")))
@@ -192,18 +231,20 @@ analyze_models <- function(species, path, habitat){
 # Run Analysis -----------------------------------------------------------------
 
 # Kelp forest 
-path <- "/Users/lopazanski/Desktop/output/kelp"
+species <- "SNEB"
+habitat <- "kelp"
+path <- "analyses/7habitat/output/kelp"
+analyze_models(species = "SMIN", habitat = "kelp", path = "analyses/7habitat/output/kelp")
 
 list.files(path = path, pattern = ".rds") %>%
   str_remove_all(., "_models.rds|_results.rds") %>%
-  as.data.frame() %>%
-  filter(!(. %in% c("GBY", "HFRA", "PFUR", "SGUT", "SNEB", "TSYM"))) %>% # needs review
+  as.data.frame() %>% unique() %>% 
+  filter(!(. %in% c("SNEB"))) %>%  # errors
   pull(.) %>%
-  unique() %>%
   walk(., ~analyze_models(.x, path = path, habitat = "kelp"))
 
 # Rocky reef 
-path <- "/Users/lopazanski/Desktop/output/rock"
+path <- "analyses/7habitat/output/rock"
 
 list.files(path = path, pattern = ".rds") %>%
   str_remove_all(., "_models.rds|_results.rds") %>%
@@ -212,7 +253,7 @@ list.files(path = path, pattern = ".rds") %>%
 
 
 ## Surf 
-path <- "/Users/lopazanski/Desktop/output/surf"
+path <- "analyses/7habitat/output/surf"
 
 list.files(path = path, pattern = ".rds") %>%
   str_remove_all(., "_models.rds|_results.rds") %>%
@@ -223,7 +264,7 @@ list.files(path = path, pattern = ".rds") %>%
   walk(., ~analyze_models(.x, path = path, habitat = "surf"))
 
 ## Deep
-path <- "/Users/lopazanski/Desktop/output/deep"
+path <- "analyses/7habitat/output/deep"
 
 list.files(path = path, pattern = ".rds") %>%
   str_remove_all(., "_models.rds|_results.rds") %>%
