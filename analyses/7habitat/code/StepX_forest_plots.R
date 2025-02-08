@@ -27,17 +27,15 @@ my_theme <- theme(
   plot.background = element_rect(fill = "white", color = NA)
 )
 
-species <- "BRAY"
+species <- "CPRI"
 habitat <- "kelp"
-path <- "/Users/lopazanski/Desktop/output/kelp"
+path <- "analyses/7habitat/output/kelp"
 
 make_forest_plots <- function(species, path, habitat){
   print(paste("Species:", species))
   # Read the data
   data <- readRDS(file.path(path, paste0(species, "_results.rds"))) %>% 
-    mutate(scale = case_when(is.na(scale) & model_id == "ST*A" ~ NA,
-                             is.na(scale) ~ as.factor(str_extract(term, "\\d+")),
-                             T~scale)) %>% 
+    mutate(scale = if_else(model_id != "Full Model", as.factor(str_extract(term, "\\d+")), as.factor(scale))) %>% 
     mutate(scale = factor(scale, levels = c(25, 50, 100, 250, 500, NA))) %>% 
     mutate(importance_type = case_when((is.na(importance) | importance > 0.5) ~ "Greater than 0.5",
                                        (!is.na(importance) & importance < 0.5) ~ "Less than 0.5")) %>% 
@@ -103,6 +101,31 @@ make_forest_plots <- function(species, path, habitat){
   
   ggsave(filename = paste0(species, "_forest.png"),
          path = file.path(fig.dir, habitat), width = 8, height = 5, dpi = 300, units = "in")
+  
+  # Create table to export
+  data_plot %>% 
+    filter(model_id == "Top Model") %>% 
+    dplyr::select(term_revised, scale, estimate, std_error, statistic, df, p_value, significance) %>% 
+    mutate(p_value = case_when(p_value < 0.001 ~ "< 0.001", T~as.character(round(p_value, 3)))) %>% 
+    mutate(significance = if_else(significance == "NS", NA_character_, significance)) %>% 
+    gt() %>%
+    tab_header(title = html(paste0("<b><i>", sciname, "</i></b>", "<br>", target_status, "<br>", assemblage))) %>% 
+    cols_label(term_revised = "Term",
+               scale = "Scale",
+               estimate = "Estimate",
+               std_error = "Std. Error",
+               statistic = "Statistic",
+               df = "df",
+               p_value = "p-value",
+               significance = "") %>%
+    fmt_number(columns = c(estimate, std_error, statistic),
+               decimals = 3) %>%
+    sub_missing(columns = everything(), missing_text = "") %>%
+    tab_options(heading.align = "left") %>% 
+    cols_align(align = "center", columns = everything()) %>%
+    tab_style(style = cell_text(weight = "bold"),
+              locations = cells_body(columns = c(p_value, significance), rows = significance %in% c("***", "**", "*") )) %>%
+    tab_options(table.font.size = "small", table.width = pct(100))
 }
 
 # Create and save figures -------------------------------------------------------------
