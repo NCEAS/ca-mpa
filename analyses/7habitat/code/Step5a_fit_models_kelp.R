@@ -54,7 +54,8 @@ kelp_nc  <- sp_kelp %>% filter(south == 0 & central == 1 & north == 1) %>% pull(
 data_kelp_subset <- data_kelp %>%
   dplyr::select(year:affiliated_mpa, size_km2, age_at_survey,
                 species_code:target_status, assemblage_new, weight_kg:count_per_m2, log_kg_per_m2,
-                all_of(pred_kelp$predictor))
+                all_of(pred_kelp$predictor)) %>% 
+  filter(kg_per_m2 > 0)
 
 # Fit models for each species --------------------------------------------------------------------
 library(furrr)
@@ -63,7 +64,7 @@ library(parallel)
 # Combine all species into a single list
 species_list <- c(kelp_all, kelp_s, kelp_c, kelp_n, kelp_sc, kelp_nc)
 
-# Define a function to process a single species
+# Define a function to process a single species - the 2-way version
 run_model <- function(species) {
   # Determine the region
   region <- 
@@ -79,13 +80,13 @@ run_model <- function(species) {
   results_df <- refine_habitat(
     species = species,
     response = "log_c_biomass",
-    predictors_df = pred_kelp_int,
+    predictors_df = pred_kelp_2way, # change for the different model sets
     random_effects = ifelse(length(region) > 1, 
                             c("year", "bioregion", "affiliated_mpa"), 
                             c("year", "affiliated_mpa")),
     data = data_kelp_subset,
     regions = region,
-    path = "analyses/7habitat/output/kelp"
+    path = "analyses/7habitat/output/positive-2way/kelp"
   )
   
   return(results_df)

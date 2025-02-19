@@ -358,91 +358,10 @@ get_3way_list <- function(predictors_df){
   return(pred_list)
 }
 
-
-# # Include 3-way interactions  ----
-# get_3way_list <- function(predictors_df){
-#   # Create depth combinations
-#   depth_combos <- predictors_df %>%
-#     filter(pred_group %in% c("all", "combined")) %>% 
-#     filter(str_detect(predictor, "depth")) %>%
-#     mutate(intx = paste0(predictor, " * site_type"),
-#            intx2 = paste0(predictor, "* site_type * age_at_survey")) %>%
-#     pivot_longer(cols = c(predictor, intx, intx2), names_to = NULL, values_to = "depth_predictor") %>%
-#     bind_rows(tibble(scale = NA, depth_predictor = NA)) %>% 
-#     summarize(depth_predictor = list(c(depth_predictor)), .groups = 'drop')
-#   
-#   # Create kelp combinations
-#   kelp_combos <- predictors_df %>%
-#     filter(str_detect(predictor, "kelp")) %>%
-#     mutate(intx = paste0(predictor, " * site_type"),
-#            intx2 = paste0(predictor, "* site_type * age_at_survey")) %>%
-#     pivot_longer(cols = c(predictor, intx, intx2), names_to = NULL, values_to = "kelp_predictor") %>%
-#     bind_rows(tibble(scale = NA, kelp_predictor = NA)) %>% 
-#     summarize(kelp_predictor = list(c(kelp_predictor)), .groups = 'drop') 
-#   
-#   # Create hard combinations
-#   hard_combos <- predictors_df %>% 
-#     filter(pred_group %in% c("all", "combined")) %>% 
-#     filter(str_detect(predictor, "hard")) %>% 
-#     mutate(intx = paste0(predictor, " * site_type"),
-#            intx2 = paste0(predictor, "* site_type * age_at_survey")) %>%
-#     pivot_longer(cols = c(predictor, intx, intx2), names_to = NULL, values_to = "hard_predictor") %>%
-#     bind_rows(tibble(scale = NA, hard_predictor = NA)) 
-# 
-#   list_intx <- hard_combos %>% 
-#     dplyr::select(hard_predictor, hard_scale = scale) %>% 
-#     bind_cols(kelp_combos) %>% 
-#     unnest(kelp_predictor) %>% 
-#     bind_cols(depth_combos) %>% 
-#     unnest(depth_predictor) %>% 
-#     mutate(kelp_scale = str_extract(kelp_predictor, "\\d+"),
-#            depth_scale = str_extract(depth_predictor, "\\d+")) %>% 
-#     mutate(base_predictor = "site_type * age_at_survey") %>% 
-#     unite("predictors", c(hard_predictor, kelp_predictor, depth_predictor, base_predictor),
-#           sep = " + ",  na.rm = TRUE, remove = FALSE) %>% 
-#     mutate(type = case_when(str_detect(hard_predictor, "age_at_survey") & 
-#                                str_detect(kelp_predictor, "age_at_survey") &
-#                                str_detect(depth_predictor, "age_at_survey") &
-#                                (hard_scale == kelp_scale) &
-#                                (kelp_scale == depth_scale) ~ "core_3way",
-#                             str_detect(hard_predictor, "age_at_survey") & 
-#                               str_detect(kelp_predictor, "age_at_survey") &
-#                               is.na(depth_predictor) &
-#                               (hard_scale == kelp_scale) ~ "no_depth_3way",
-#                             str_detect(hard_predictor, "site") & 
-#                                str_detect(kelp_predictor, "site") &
-#                                str_detect(depth_predictor, "site") &
-#                                !str_detect(hard_predictor, "age_at_survey") & 
-#                                !str_detect(kelp_predictor, "age_at_survey") &
-#                                !str_detect(depth_predictor, "age_at_survey") &
-#                                (hard_scale == kelp_scale) &
-#                                (kelp_scale == depth_scale) ~ "core_2way",
-#                             str_detect(hard_predictor, "site") & 
-#                               str_detect(kelp_predictor, "site") &
-#                               is.na(depth_predictor) &
-#                               !str_detect(hard_predictor, "age_at_survey") & 
-#                               !str_detect(kelp_predictor, "age_at_survey") &
-#                               (hard_scale == kelp_scale) ~ "no_depth_2way",
-#                              predictors == "site_type * age_at_survey" ~ "base",
-#                              T~NA)) %>% 
-#     mutate(model_id = 
-#              str_replace_all(predictors, "hard_bottom_(\\d+)", "H\\1") %>% 
-#              str_replace_all("kelp_annual_(\\d+)", "K\\1") %>% 
-#              str_replace_all("depth_mean_(\\d+)", "DM\\1") %>% 
-#              str_replace_all("depth_sd_(\\d+)", "DSD\\1") %>% 
-#              str_replace_all("depth_cv_(\\d+)", "DCV\\1") %>% 
-#              str_replace_all("site_type", "ST") %>%
-#              str_replace_all("age_at_survey", "A") %>% 
-#              str_replace_all("\\s+", "")) %>% 
-#     dplyr::select(predictors, type, model_id, hard_predictor, kelp_predictor, depth_predictor, hard_scale, kelp_scale, depth_scale)
-#   
-#   return(list_intx)
-# }
-
-kelp_list <- get_3way_list(kelp_predictors) # 2541 now 7936 now 11776
-rock_list <- get_3way_list(rock_predictors) # 2541 now 7936 now 11776
-surf_list <- get_3way_list(surf_predictors) # 1155 now 3472 now 5152
-deep_list <- get_3way_list(deep_predictors) # 693 now 1984 now 2944
+kelp_list <- get_3way_list(kelp_predictors) # 
+rock_list <- get_3way_list(rock_predictors) # 
+surf_list <- get_3way_list(surf_predictors) # 
+deep_list <- get_3way_list(deep_predictors) #
 
 saveRDS(kelp_list, file.path("analyses/7habitat/intermediate_data", "kelp_predictors_interactions.Rds")) 
 saveRDS(rock_list, file.path("analyses/7habitat/intermediate_data", "rock_predictors_interactions.Rds")) 
@@ -460,6 +379,13 @@ get_2way_list <- function(predictors_df){
   hard_vars <- predictors_df %>% filter(str_detect(predictor, "hard")) %>% pull(predictor)
   kelp_vars <- predictors_df %>% filter(str_detect(predictor, "kelp")) %>% pull(predictor)
   depth_vars <- predictors_df %>% filter(str_detect(predictor, "depth")) %>% pull(predictor)
+  # depth_comb <- predictors_df %>% filter(str_detect(predictor, "depth")) %>% 
+  #   group_by(scale) %>% 
+  #   summarize(d1 = paste(predictor, collapse = " + "),
+  #             d2 = paste(predictor2, collapse = " + "),
+  #             d3 = paste(predictor[1], predictor2[2], sep = " + ", collapse = " + "),
+  #             d4 = paste(predictor[2], predictor2[1], sep = " + ", collapse = " + ")) %>% 
+  #   pivot_longer(cols = d1:d4, values_to = "predictor")
   
   hard_intx <- predictors_df %>% filter(str_detect(predictor, "hard")) %>% pull(predictor2)
   kelp_intx <- predictors_df %>% filter(str_detect(predictor, "kelp")) %>% pull(predictor2)
@@ -482,6 +408,7 @@ get_2way_list <- function(predictors_df){
                             T~NA)) %>% 
     mutate(model_id = 
              str_replace_all(predictors, "hard_bottom_(\\d+)", "H\\1") %>% 
+             str_replace_all("soft_bottom_(\\d+)", "S\\1") %>% 
              str_replace_all("kelp_annual_(\\d+)", "K\\1") %>% 
              str_replace_all("depth_mean_(\\d+)", "DM\\1") %>% 
              str_replace_all("depth_sd_(\\d+)", "DSD\\1") %>% 
@@ -494,15 +421,17 @@ get_2way_list <- function(predictors_df){
   return(pred_list)
 }
 
-kelp_list <- get_2way_list(kelp_predictors) # 2541 now 7936 now 11776
-rock_list <- get_2way_list(rock_predictors) # 2541 now 7936 now 11776
-surf_list <- get_2way_list(surf_predictors) # 1155 now 3472 now 5152
-deep_list <- get_2way_list(deep_predictors) # 693 now 1984 now 2944
+kelp_list <- get_2way_list(kelp_predictors) # 2541 
+rock_list <- get_2way_list(rock_predictors) # 2541 
+surf_list <- get_2way_list(surf_predictors) # 1155 
+deep_list <- get_2way_list(deep_predictors) # 693 
 
-saveRDS(kelp_list, file.path("analyses/7habitat/intermediate_data", "kelp_predictors_2way.Rds")) 
+saveRDS(kelp_list, file.path("analyses/7habitat/intermediate_data", "kelp_predictors_2way.Rds"))  
 saveRDS(rock_list, file.path("analyses/7habitat/intermediate_data", "rock_predictors_2way.Rds")) 
 saveRDS(surf_list, file.path("analyses/7habitat/intermediate_data", "surf_predictors_2way.Rds")) 
 saveRDS(deep_list, file.path("analyses/7habitat/intermediate_data", "deep_predictors_2way.Rds")) 
 
-
+# Test adding "|soft" (Feb 19) to see if made more sense to have either hard or soft bottom as 
+# the substrate predictor, but made more confusing when interpreting output because some still
+# don't map as expected or have multiple in the top model because they are so correlated. 
 

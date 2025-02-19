@@ -79,13 +79,13 @@ run_model <- function(species) {
   results_df <- refine_habitat(
     species = species,
     response = "log_c_biomass",
-    predictors_df = pred_rock_int,
+    predictors_df = pred_rock_2way,
     random_effects = ifelse(length(region) > 1, 
                             c("year", "bioregion", "affiliated_mpa"), 
                             c("year", "affiliated_mpa")),
     data = data_rock_subset,
     regions = region,
-    path = "analyses/7habitat/output/rock"
+    path = "analyses/7habitat/output/2way/rock"
   )
   
   return(results_df)

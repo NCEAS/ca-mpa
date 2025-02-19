@@ -4,7 +4,7 @@
 # Dec 2024
 
 # Analyze the focal models that were fit and extracted in the previous step.
-# The extracted species_subset.Rds contains:
+# The extracted species_models.Rds contains:
 #   -- models_df: dataframe with summary of model results, including model_id, 
 #         predictor string and other specifications used in model fitting, AICc
 #         and other fit results (singular status, warnings), and the "type" of the
@@ -84,9 +84,9 @@ path <- "analyses/7habitat/output/kelp"
 
 analyze_models_3way <- function(species, path, habitat){
   print(paste("Species:", species))
-  # Read predictor list (for the new types)
-  pred_int <- readRDS(file.path(paste0("analyses/7habitat/intermediate_data/", habitat, "_predictors_interactions.Rds"))) %>% 
-    rename(type_orig = type)
+  # Read predictor list (for the new 3w types)
+  pred_int <- readRDS(file.path(paste0("analyses/7habitat/intermediate_data/", habitat, "_predictors_interactions.Rds"))) %>%
+   rename(type_orig = type)
   
   # Read focal models 
   data <- readRDS(file.path(path, paste0(species, "_models.rds"))) 
@@ -96,10 +96,10 @@ analyze_models_3way <- function(species, path, habitat){
                              T ~ as.factor(str_extract(predictors, "\\d+")))) %>% 
     mutate(depth_type = case_when(str_detect(model_id, "DSD") ~ "depth_sd",
                                   str_detect(model_id, "DM") ~ "depth_mean",
-                                  str_detect(model_id, "DCV") ~ "depth_cv")) %>% 
-    left_join(., pred_int %>% dplyr::select(model_id, type_orig), by = "model_id") %>% 
-    mutate(type = if_else(type == "core", NA_character_, type)) %>% 
-    mutate(type = coalesce(type, type_orig)) %>% 
+                                  str_detect(model_id, "DCV") ~ "depth_cv"))  %>% 
+    left_join(., pred_int %>% dplyr::select(model_id, type_orig), by = "model_id") %>%
+    mutate(type = if_else(type == "core", NA_character_, type)) %>%
+    mutate(type = coalesce(type, type_orig)) %>%
     filter(!is.na(type))
   
   if (sum(!is.na(unique(models_df$messages))) > 0){
@@ -110,10 +110,10 @@ analyze_models_3way <- function(species, path, habitat){
 
   # Process top models:
   # Extract results from all top models 
-  print(paste("  Top models:", sum(models_df$type == "top")))
+  print(paste("  Top models:", sum(models_df$type == "top", na.rm = T)))
   
   # Examine results for each of the individual top models (without averaging)
-  if (sum(models_df$type == "top") > 1) {
+  if (sum(models_df$type == "top", na.rm = T) > 1) {
     top_names <- models_df$model_id[models_df$type %in% c("top")]
     top_results_full <- lapply(top_names, function(model_id) {
       if (is.null(data$models[[model_id]])) { return(NULL) }
@@ -234,9 +234,9 @@ analyze_models_3way <- function(species, path, habitat){
 
 # Analyze Focal Models: 2-way version -------------------------------------------
 
-species <- "ADAV"
+species <- "CAGG"
 habitat <- "kelp"
-path <- "analyses/7habitat/output/2way/kelp"
+path <- "analyses/7habitat/output/2way-hard-or-soft/kelp"
 
 analyze_models_2way <- function(species, path, habitat){
   print(paste("Species:", species))
@@ -253,15 +253,12 @@ analyze_models_2way <- function(species, path, habitat){
     mutate(depth_type = case_when(str_detect(model_id, "DSD") ~ "depth_sd",
                                   str_detect(model_id, "DM") ~ "depth_mean",
                                   str_detect(model_id, "DCV") ~ "depth_cv")) %>% 
-    left_join(., pred %>% dplyr::select(model_id, type_orig), by = "model_id") %>% 
-    mutate(type = if_else(type == "core", NA_character_, type)) %>% 
-    mutate(type = coalesce(type, type_orig)) %>% 
     filter(!is.na(type))
   
   if (sum(!is.na(unique(models_df$messages))) > 0){
     print(paste("  Messages:", unique(models_df$messages)))
   } else {
-    print("No messages.")
+    print("  No messages.")
   }
   
   # Process top models:
@@ -287,7 +284,6 @@ analyze_models_2way <- function(species, path, habitat){
     top_names <- models_df$model_id[models_df$type %in% c("top")]
     top_results_full <- NULL
   }
-  
   
   # If there are multiple, get the model average. If not, get the results from the top one.
   if (length(top_names) > 1) {
@@ -315,8 +311,7 @@ analyze_models_2way <- function(species, path, habitat){
     mutate(num_top_models = length(top_names),
            scale = paste(unique(models_df$scale[models_df$type == "top"]), collapse = ", "),           
            key = if_else(num_top_models == 1, "Top Model v. Base Model", "Top Models (Average) v. Base Model")) 
-  print(paste("  Top models:", unique(top_results$num_top_models)))
-  
+
   # Fit the model with the predictors > 0.5
   if (length(top_names) > 1) {
     predictors <- top_results %>% 
@@ -341,13 +336,25 @@ analyze_models_2way <- function(species, path, habitat){
       add_significance() %>%
       mutate(num_top_models = length(top_names),
              scale = paste(unique(models_df$scale[models_df$type == "top"]), collapse = ", "),           
-             key = if_else(num_top_models == 1, "Top Model v. Base Model", "Top Models (Average) v. Base Model")) 
+             key = "Refit Top Model (Importance > 0.5)")
     
+    # Create df with the results from the top models
+    refit_results <- coef_table %>%
+      clean_terms() %>%
+      add_significance() 
     
+    # Add the refitted model to the models output
+    models <- list(base = data$models$`ST*A`, top = m)
+    print(paste("  Predictors:", predictors))
+    
+  } else {
+    refit_results <- NULL
+    models <- list(base = data$models$`ST*A`, top = data$models[[models_df$model_id[models_df$type == "top"]]])
+    print(paste(" Predictors:", models_df$model_id[models_df$type == "top"]))
   }
   
   # Process core models
-  core_names <- models_df$model_id[models_df$type %in% c("core_2way", "core_3way", "base", "no_depth_2way", "no_depth_3way")]
+  core_names <- models_df$model_id[models_df$type %in% c("core", "base")]
   
   core_results <- lapply(core_names, function(model_id) {
     if (is.null(data$models[[model_id]])) {
@@ -366,7 +373,7 @@ analyze_models_2way <- function(species, path, habitat){
     mutate(key = if_else(model_id == "ST*A", NA, "Full Model"))
   
   # Combine all results
-  all_results <- bind_rows(top_results, core_results, top_results_full) %>%
+  all_results <- bind_rows(top_results, core_results, top_results_full, refit_results) %>%
     mutate(species_code = species,
            scale = factor(scale, levels = c(25, 50, 100, 250, 500))) %>% 
     mutate(key = case_when(model_id == "ST*A" & unique(top_results$num_top_models) > 1 ~ "Top Models (Average) v. Base Model",
@@ -382,7 +389,7 @@ analyze_models_2way <- function(species, path, habitat){
   
   # Export 
   saveRDS(all_results, file = file.path(path, paste0(species, "_results.rds")))
-  
+  saveRDS(models, file = file.path(path, paste0(species, "_top.rds")))
   
 }
 
@@ -390,17 +397,17 @@ analyze_models_2way <- function(species, path, habitat){
 # Run Analysis -----------------------------------------------------------------
 
 # Kelp forest 
-species <- "SNEB"
+species <- "GBY"
 habitat <- "kelp"
-path <- "analyses/7habitat/output/kelp"
-analyze_models(species = "SMIN", habitat = "kelp", path = "analyses/7habitat/output/kelp")
+path <- "analyses/7habitat/output/2way-hard-or-soft/kelp"
+#analyze_models(species = "SMIN", habitat = "kelp", path = "analyses/7habitat/output/kelp")
 
 list.files(path = path, pattern = ".rds") %>%
-  str_remove_all(., "_models.rds|_results.rds") %>%
+  str_remove_all(., "_models.rds|_results.rds|_top.rds") %>%
   as.data.frame() %>% unique() %>% 
   filter(!(. %in% c("SNEB"))) %>%  # errors
   pull(.) %>%
-  walk(., ~analyze_models(.x, path = path, habitat = "kelp"))
+  walk(., ~analyze_models_2way(.x, path = path, habitat = "kelp"))
 
 # Rocky reef 
 path <- "analyses/7habitat/output/rock"
