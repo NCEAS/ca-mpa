@@ -236,7 +236,7 @@ analyze_models_3way <- function(species, path, habitat){
 
 species <- "CAGG"
 habitat <- "kelp"
-path <- "analyses/7habitat/output/2way-hard-or-soft/kelp"
+path <- "analyses/7habitat/output/2way/kelp"
 
 analyze_models_2way <- function(species, path, habitat){
   print(paste("Species:", species))
@@ -388,9 +388,9 @@ analyze_models_2way <- function(species, path, habitat){
                 distinct(species_code, sciname, genus, target_status, assemblage_new), by = "species_code")
   
   # Export 
-  saveRDS(all_results, file = file.path(path, paste0(species, "_results.rds")))
-  saveRDS(models, file = file.path(path, paste0(species, "_top.rds")))
-  
+  saveRDS(list(results = all_results, models = models), 
+          file = file.path(path, paste0(species, "_results.rds")))
+
 }
 
 
@@ -399,8 +399,8 @@ analyze_models_2way <- function(species, path, habitat){
 # Kelp forest 
 species <- "GBY"
 habitat <- "kelp"
-path <- "analyses/7habitat/output/2way-hard-or-soft/kelp"
-#analyze_models(species = "SMIN", habitat = "kelp", path = "analyses/7habitat/output/kelp")
+path <- "analyses/7habitat/output/2way/kelp"
+analyze_models_2way(species = "SMIN", habitat = "kelp", path = "analyses/7habitat/output/2way/kelp")
 
 list.files(path = path, pattern = ".rds") %>%
   str_remove_all(., "_models.rds|_results.rds|_top.rds") %>%

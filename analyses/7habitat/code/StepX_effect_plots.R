@@ -113,32 +113,59 @@ list.files(path = path, pattern = "_results.rds") %>%
   walk(., make_effects_plots, path = path, habitat = "kelp")
 
 # Test out other predictor effects plots
+ggplot(data_sp) + 
+  geom_point(aes(x = age_at_survey, y = kelp_annual_100, color = site_type)) +
+  geom_smooth(aes(x = age_at_survey, y = kelp_annual_100, color = site_type)) +
+  scale_color_manual(values = c("#7e67f8", "#e5188b")) +
+  scale_fill_manual(values = c("#7e67f8", "#e5188b")) +
+  theme_minimal() 
 
+ggplot(data_sp) + 
+  geom_point(aes(x = year, y = kg_per_m2, color = site_type)) +
+  geom_smooth(aes(x = year, y = kg_per_m2, color = site_type)) +
+  scale_color_manual(values = c("#7e67f8", "#e5188b")) +
+  scale_fill_manual(values = c("#7e67f8", "#e5188b")) +
+  theme_minimal()
 
-# models <- readRDS(file.path(path, paste0(species, "_top.rds")))
-# data <- readRDS(file.path(path, paste0(species, "_models.rds"))) 
-# data_sp <- data$data_sp
-# const <- min(data_sp$kg_per_m2[data_sp$kg_per_m2 > 0], na.rm = TRUE)
-# intx_types <- data_plot %>% 
-#   filter(key == "Refit Top Model (Predictor Importance > 0.5)" | model_id == "Top Model") %>% 
-#   mutate(term = str_remove_all(term, ":site_type|site_type:")) %>% 
-#   filter(!term == "site_type") %>% 
-#   pull(term) %>% unique()
-# 
-# pred_effects <- predictorEffects(models$top, as.formula(paste("~", paste(intx_types, collapse = " + "))), partial.residuals = T)
-# 
-# plot(pred_effects,
-#      lattice = list(key.args = list(cex.title = 0)),
-#      axes = list(grid = TRUE, y = list(transform = function(x) exp(x) - const, lab = "Biomass (kg/m2)")),
-#      lines = list(multiline = TRUE), 
-#      confint = list(style = "auto"), 
-#      main = NULL, rows = 1, cols = length(intx_types))
-# 
-# plot(pred_effects,
-#      lattice = list(key.args = list(cex.title = 0)),
-#      axes = list(grid = TRUE),
-#      confint = list(style = "auto"), 
-#      main = FALSE)
+ggplot(data_sp) + 
+  geom_point(aes(x = depth_cv_100, y = kg_per_m2, color = site_type)) +
+  geom_smooth(aes(x = depth_cv_100, y = kg_per_m2, color = site_type)) +
+  scale_color_manual(values = c("#7e67f8", "#e5188b")) +
+  scale_fill_manual(values = c("#7e67f8", "#e5188b")) +
+  theme_minimal()
+
+# kelp_annual_500
+# depth_cv_100
+models <- readRDS(file.path(path, paste0(species, "_top.rds")))
+data <- readRDS(file.path(path, paste0(species, "_models.rds")))
+data_sp <- data$data_sp
+const <- min(data_sp$kg_per_m2[data_sp$kg_per_m2 > 0], na.rm = TRUE)
+
+intx_types <- data_plot %>%
+  filter(key == "Refit Top Model (Predictor Importance > 0.5)" | model_id == "Top Model") %>%
+  mutate(term = str_remove_all(term, ":site_type|site_type:")) %>%
+  filter(!term == "site_type") %>%
+  pull(term) %>% unique()
+
+predictors <- data.frame(term = names(fixef(top_models$top))) %>% 
+  mutate(term = str_remove_all(term, ":site_type|site_type:")) %>%
+  filter(!term %in% c("(Intercept)", "site_type"))
+
+pred_effects <- predictorEffects(models$top, as.formula(paste("~", paste(intx_types, collapse = " + "))), partial.residuals = T)
+pred_effects <- predictorEffects(top_models$top, partial.residuals = T)
+
+plot(pred_effects,
+     lattice = list(key.args = list(cex.title = 0)),
+     axes = list(grid = TRUE, y = list(transform = function(x) exp(x) - const, lab = "Biomass (kg/m2)")),
+     lines = list(multiline = TRUE),
+     confint = list(style = "auto"),
+     main = NULL, rows = 1)
+
+plot(pred_effects,
+     lattice = list(key.args = list(cex.title = 0)),
+     axes = list(grid = TRUE),
+     confint = list(style = "auto"),
+     main = FALSE)
 
 
 
