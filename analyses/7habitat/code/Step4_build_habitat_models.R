@@ -22,17 +22,21 @@
 
 refine_habitat <- function(species, response, predictors_df, random_effects, data, regions, path) {
   print(paste("Starting species: ", species))
+  
   data_sp <- data %>%
-    filter(species_code == species, bioregion %in% regions) %>%
-    mutate(bioregion = as.factor(bioregion),
-           affiliated_mpa = as.factor(affiliated_mpa)) %>%
+    filter(species_code == species) %>% 
+    filter(region4 %in% regions) %>% 
+    mutate(year = as.factor(year),
+           bioregion = as.factor(bioregion),
+           region4 = as.factor(region4),
+           affiliated_mpa = as.factor(affiliated_mpa)) %>% 
     # Scale all predictors
-    mutate_at(vars(grep("^hard|soft|depth|kelp|age_at", names(.), value = TRUE)), scale)
+    mutate_at(vars(grep("^hard|soft|kelp|depth|age_at", names(.), value = TRUE)), scale)
 
   # Add a small constant, defined as the minimum value for that species
   if ("kg_per_m2" %in% colnames(data_sp)) {
     const <- min(data_sp$kg_per_m2[data_sp$kg_per_m2 > 0], na.rm = TRUE)
-    data_sp <- data_sp %>% mutate(log_c_biomass = log(kg_per_m2 + const))
+    data_sp <- data_sp %>% mutate(log_c_biomass = log(kg_per_m2*100 + const*100))
   } else if ("weight_kg" %in% colnames(data_sp)) {
     const <- min(data_sp$weight_kg[data_sp$weight_kg > 0], na.rm = TRUE)
     data_sp <- data_sp %>% mutate(log_c_biomass = log(weight_kg + const))
@@ -61,8 +65,7 @@ refine_habitat <- function(species, response, predictors_df, random_effects, dat
         {
           withCallingHandlers(
             { m <- lmer(model_formula, data = data_sp,
-                        control = lmerControl(optCtrl = list(maxfun = 1e6)))
-              # Check for singular fit if the model is successfully created
+                        control = lmerControl(optCtrl = list(maxfun = 1e7)))
               singular_status <- tryCatch(
                 {
                   if (isSingular(m)) "Singular fit" else "OK"
@@ -141,14 +144,5 @@ refine_habitat <- function(species, response, predictors_df, random_effects, dat
 
   models_df
 }
-
-# # Test species info
-# species = "ELAT"
-# response = "log_c_biomass"
-# predictors_df = pred_kelp_2way %>% arrange(type) %>% head(., 10)
-# random_effects = c("year", "bioregion", "affiliated_mpa")
-# data = data_kelp_subset
-# regions = c("North", "Central", "South")
-# path = "analyses/7habitat/output"
 
 
