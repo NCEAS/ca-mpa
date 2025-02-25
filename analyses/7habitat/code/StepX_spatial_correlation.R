@@ -1,5 +1,5 @@
-species <- "PCLA"
-path <- "analyses/7habitat/output/2way/kelp"
+species <- "SPUL"
+path <- "analyses/7habitat/output/2way-4region-with-depth-comb/kelp"
 
 library(sf)
 library(sp)
@@ -11,7 +11,7 @@ library(ggplot2)
 
 # Load site locations and model results
 sites <- readRDS(file.path("/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_2024", "site_locations_corrected.Rds"))
-top_models <- readRDS(file.path(path, paste0(species, "_top.rds")))
+top_models <- readRDS(file.path(path, paste0(species, "_results.rds")))$models
 
 # Load and merge data; data_sp must include spatial (geometry) and temporal (year) info
 data_sp <- readRDS(file.path(path, paste0(species, "_models.rds")))$data_sp %>% 

@@ -13,7 +13,7 @@ library(effects)
 rm(list = ls())
 gc()
 
-fig.dir <- "analyses/7habitat/figures"
+fig.dir <- "analyses/7habitat/output/2way-4region-with-depth-comb"
 
 # Begin ------------------------------------------------------------------------
 
@@ -31,28 +31,27 @@ my_theme <- theme(
   plot.background = element_rect(fill = "white", color = NA)
 )
 
-species <- "ELAT"
+species <- "SPUL"
 habitat <- "kelp"
-path <- "analyses/7habitat/output/2way/kelp"
+path <- "analyses/7habitat/output/2way-4region-with-depth-comb/kelp"
+
+species <- "CPR"
+habitat <- "rock"
+path <- "analyses/7habitat/output/2way/rock"
 
 make_forest_plots <- function(species, path, habitat){
   print(paste("Species:", species))
   # Read the data
   data <- readRDS(file.path(path, paste0(species, "_results.rds")))$results %>% 
-    filter(term != "(Intercept)") %>%  # Move filter earlier to reduce operations
+    filter(term != "(Intercept)") %>%  
     mutate(scale = if_else(key != "Full Model", as.factor(str_extract(term, "\\d+")), as.factor(scale)),
            importance_type = case_when(is.na(importance) | importance > 0.5 ~ "Greater than 0.5",
                                        !is.na(importance) & importance < 0.5 ~ "Less than 0.5"),
            type = case_when(model_id == "Model Average" ~ "average", 
                             model_id == "Top Model" ~ "top",
                             TRUE ~ type),
-           assemblage_new = str_to_sentence(assemblage_new),
-           sub_type = case_when(str_detect(model_id, "H\\d+") ~ "hard_bottom",
-                                str_detect(model_id, "S\\d+") ~ "soft_bottom")) %>% 
-    mutate(key = case_when(key %in% c("Full Model", "Top Model v. Base Model") ~ key,
-                           type == "base" ~ "Top Model v. Base Model",
-                           key == "Top Models (Average) v. Base Model" ~ "Top Models (Average)",
-                           key == "Refit Top Model (Importance > 0.5)" ~ "Top Model v. Base Model") %>% 
+           assemblage_new = str_to_sentence(assemblage_new)) %>% 
+    mutate(key = case_when(type == "base" ~ "Top Model v. Base Model",  T~key) %>% 
              factor(levels = c( "Full Model", "Top Models (Average)", "Top Model v. Base Model"))) %>% 
     mutate(scale = case_when(type == "base" ~ "Base",
                              is.na(scale) ~ "None",
@@ -68,7 +67,7 @@ make_forest_plots <- function(species, path, habitat){
   # Determine top model type
   top <- data %>% 
     filter(key %in% c("Top Model v. Base Model", "Top Models (Average)")) %>% 
-    filter(importance >= 0.5) %>% 
+    #filter(importance >= 0.5) %>% 
     mutate(top_depth = case_when(str_detect(term_revised, "_cv") ~ "depth_cv",
                                  str_detect(term_revised, "_mean") ~ "depth_mean",
                                  T~NA_character_)) %>% 
@@ -78,31 +77,15 @@ make_forest_plots <- function(species, path, habitat){
     dplyr::select(species_code, term_revised, top_depth, top_sub)
   
   top_depth <- unique(top$top_depth[!is.na(top$top_depth)])
-  top_sub <- unique(top$top_sub[!is.na(top$top_sub)])
   
+  top_depth_intx <- top %>% 
+    filter(str_detect(term_revised, ":") & !is.na(top_depth)) %>% 
+    distinct(top_depth) %>% 
+    pull(top_depth)
   
   # Plot models
-  if (length(top_depth) > 0 & length(top_sub > 0)) {
-    data_plot <- data %>% 
-      filter(type %in% c("average", "top", "base", "core")) %>% 
-      filter(!(type == "core" & depth_type != top_depth)) %>% 
-      filter(!(type == "core" & sub_type != top_sub))
-  } else if (length(top_depth) > 0) {
-    data_plot <- data %>% 
-      filter(type %in% c("average", "top", "base", "core")) %>% 
-      filter(!(type == "core" & depth_type != top_depth))
-    print("  No substrate.")
-  } else if (length(top_sub) > 0) {
-    data_plot <- data %>% 
-      filter(type %in% c("average", "top", "base", "core")) %>% 
-      filter(!(type == "core" & sub_type != top_sub))
-    print("  No depth.")
-  } else {
-    data_plot <- data %>% 
-      filter(type %in% c("average", "top", "base", "core"))
-    
-    print("  No depth or substrate.")
-  }
+  data_plot <- data %>% 
+    filter(type %in% c("average", "top", "base", "core")) 
   
   forest <- ggplot(data_plot, 
                    aes(x = estimate, y = term_revised, color = scale, pch = significance)) +
@@ -122,7 +105,8 @@ make_forest_plots <- function(species, path, habitat){
          linetype = "Importance",
          title = paste0(sciname, "\n", target_status, "\n", assemblage)) +
     my_theme
-    
+    forest
+  
   ggsave(forest, 
          filename = paste0(species, "_forest.png"),
          path = file.path(fig.dir, habitat), width = 10, height = 5, dpi = 300, units = "in")
@@ -164,17 +148,16 @@ make_forest_plots <- function(species, path, habitat){
 # Create and save figures -------------------------------------------------------------
 
 ## Kelp ----
-path <- "analyses/7habitat/output/2way/kelp"
-make_forest_plots(species = "SMIN", path = path, habitat = "kelp")
+path <- "analyses/7habitat/output/2way-4region-with-depth-comb/kelp"
 
 list.files(path = path, pattern = "_results.rds") %>%
-  str_remove_all("_models.rds|_results.rds|_top.rds") %>% 
+  str_remove_all("_models.rds|_results.rds") %>% 
   unique() %>% 
   walk(., make_forest_plots, path = path, habitat = "kelp")
 
 
 ## Rocky reef ----
-path <- "/Users/lopazanski/Desktop/output/rock"
+path <- "analyses/7habitat/output/2way/rock"
 
 list.files(path = path, pattern = "_results.rds") %>%
   str_remove_all(., "_models.rds|_results.rds") %>% 
