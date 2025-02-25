@@ -379,31 +379,41 @@ get_2way_list <- function(predictors_df){
   hard_vars <- predictors_df %>% filter(str_detect(predictor, "hard")) %>% pull(predictor)
   kelp_vars <- predictors_df %>% filter(str_detect(predictor, "kelp")) %>% pull(predictor)
   depth_vars <- predictors_df %>% filter(str_detect(predictor, "depth")) %>% pull(predictor)
-  # depth_comb <- predictors_df %>% filter(str_detect(predictor, "depth")) %>% 
-  #   group_by(scale) %>% 
-  #   summarize(d1 = paste(predictor, collapse = " + "),
-  #             d2 = paste(predictor2, collapse = " + "),
-  #             d3 = paste(predictor[1], predictor2[2], sep = " + ", collapse = " + "),
-  #             d4 = paste(predictor[2], predictor2[1], sep = " + ", collapse = " + ")) %>% 
-  #   pivot_longer(cols = d1:d4, values_to = "predictor")
-  
+
   hard_intx <- predictors_df %>% filter(str_detect(predictor, "hard")) %>% pull(predictor2)
   kelp_intx <- predictors_df %>% filter(str_detect(predictor, "kelp")) %>% pull(predictor2)
   depth_intx <- predictors_df %>% filter(str_detect(predictor, "depth")) %>% pull(predictor2)
+  
+  # Version with both depths matching scales
+  # depth_comb <- predictors_df %>% filter(str_detect(predictor, "depth")) %>% 
+  #   group_by(scale) %>%
+  #   summarize(d1 = paste(predictor, collapse = " + "),
+  #             d2 = paste(predictor2, collapse = " + "),
+  #             d3 = paste(predictor[1], predictor2[2], sep = " + ", collapse = " + "),
+  #             d4 = paste(predictor2[1], predictor[2], sep = " + ", collapse = " + ")) %>%
+  #   pivot_longer(cols = d1:d4, values_to = "predictor") %>% pull(predictor)
+  
+  # Version with both depths all scales
+  # depth_comb <- expand.grid(depth_mean = c(depth_vars[str_detect(depth_vars, "depth_mean")], depth_intx[str_detect(depth_intx, "depth_mean")]),
+  #                           depth_cv = c(depth_vars[str_detect(depth_vars, "depth_cv")], depth_intx[str_detect(depth_intx, "depth_cv")])) %>%
+  #   unite("predictors", c(depth_mean, depth_cv), sep = " + ") %>% pull(predictors)
+
 
   # Generate all models (all combinations of H, K, and D at any scale)
   pred_list <- 
     expand.grid(hard  = c(NA, hard_vars, hard_intx),
                 kelp  = c(NA, kelp_vars, kelp_intx),
-                depth = c(NA, depth_vars, depth_intx),
+                depth = c(NA, depth_vars, depth_intx), # add depth_comb here if multiple depths
                 stringsAsFactors = FALSE) %>% 
     mutate(hard_scale  = str_extract(hard, "\\d+"),
            kelp_scale  = str_extract(kelp, "\\d+"),
-           depth_scale = str_extract(depth, "\\d+")) %>% 
+           depth_scale = str_extract(depth, "\\d+") #,
+          # depth_scale2 = str_extract_all(depth, "\\d+") %>% map_chr(~ .x[2] %||% NA)
+          ) %>% 
     mutate(base_terms = "site_type * age_at_survey") %>% 
     unite("predictors", c(hard, kelp, depth, base_terms), sep = " + ", na.rm = TRUE, remove = FALSE) %>% 
     mutate(type = case_when(hard_scale == kelp_scale & kelp_scale == depth_scale & 
-                              str_detect(hard, "site") & str_detect(kelp, "site") & str_detect(depth, "site") ~ "core",
+                              str_detect(hard, "site") & str_detect(kelp, "site") & str_count(depth, "site") == 1 ~ "core",
                             predictors == "site_type * age_at_survey" ~ "base",
                             T~NA)) %>% 
     mutate(model_id = 
@@ -433,5 +443,17 @@ saveRDS(deep_list, file.path("analyses/7habitat/intermediate_data", "deep_predic
 
 # Test adding "|soft" (Feb 19) to see if made more sense to have either hard or soft bottom as 
 # the substrate predictor, but made more confusing when interpreting output because some still
-# don't map as expected or have multiple in the top model because they are so correlated. 
+# don't map as expected or have multiple in the top model because they are so correlated. So 
+# will keep just hard and use the direction to interpret the preference. Maybe rename to "substrate"?
 
+# Now that CV is a depth option, remove SD. Reasoning: SD tends to have more outliers relative to 
+# the other depth characteristics, and CV is more likely to be showing the actual structural var.
+# for the site (how variable is it relative to its average). There is also correlation between
+# depth_mean and depth_sd, and depth_sd and depth_cv. So eliminating SD likely makes sense?
+
+# Test adding both depths (mean and cv, either at matching scale or across scales) as potential 
+# predictors, since they are not highly correlated. But - outputs from models makes it harder to 
+# interpret depth independently when both are in the model, and makes depth factors more dominant 
+# in the models themselves. Opt out for now?
+# Challenge remains that there are more candidate models for different depths, so in the model averaging
+# this can get confusing about which remain the most important if both are not options. 
