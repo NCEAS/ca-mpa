@@ -78,9 +78,9 @@ rm(mpas_orig)
 kelp_effort <- kelp_orig %>% 
   # Identify distinct transects - 35251 (after the NA dropped above)
   distinct(year, month, day, site, zone, transect, 
-           bioregion, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation) %>% 
+           bioregion, region4, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation) %>% 
   # Calculate effort as total n transects per site, per year
-  group_by(year, site, bioregion, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation) %>% 
+  group_by(year, site, bioregion, region4, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation) %>% 
   summarize(n_rep = n()) %>%  # 3131 site-year combos
   # Join MPA metadata (region, implementation year)
   left_join(mpas %>% dplyr::select(affiliated_mpa, implementation_year, size_km2)) 
@@ -92,7 +92,7 @@ kelp_effort <- kelp_orig %>%
 #   filter(total_biomass_kg == 0) # one zero site, only two transects; ok just dropping this info
 
 kelp <- kelp_orig %>% 
-  group_by(year, site, bioregion, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation, species_code, target_status) %>% 
+  group_by(year, site, bioregion, region4, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation, species_code, target_status) %>% 
   # Total biomass of each species per site per year
   summarise(weight_kg = sum(weight_kg),
             count = sum(count), .groups = 'drop') %>%
@@ -128,7 +128,7 @@ kelp_complete <- kelp_effort %>%
                                     sciname == "Sebastes miniatus" ~ "Hard Bottom", 
                                     T~assemblage_new)) %>% 
   dplyr::select(year, site, site_type, 
-                bioregion, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation, implementation_year, size_km2,
+                bioregion, region4, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation, implementation_year, size_km2,
                 age_at_survey, n_rep, species_code, sciname, genus, target_status, assemblage, assemblage_new,
                 weight_kg, count, kg_per_m2, count_per_m2)
 
@@ -138,16 +138,16 @@ surf_sites <- readRDS("/home/shares/ca-mpa/data/sync-data/monitoring/site_tables
 
 surf_effort <- surf_orig %>% 
   # Identify distinct hauls - 857 (after NA droped above)
-  distinct(year, month, day, bioregion, affiliated_mpa,  mpa_defacto_class, mpa_defacto_designation, ref_is_mpa, site_name, haul_number) %>% 
+  distinct(year, month, day, bioregion, region4, affiliated_mpa,  mpa_defacto_class, mpa_defacto_designation, ref_is_mpa, site_name, haul_number) %>% 
   # Caclulate effort as total n hauls per site (mpa/ref) per year
-  group_by(year, bioregion, site_name, affiliated_mpa,  mpa_defacto_class,  mpa_defacto_designation, ref_is_mpa) %>% 
+  group_by(year, bioregion, region4, site_name, affiliated_mpa,  mpa_defacto_class,  mpa_defacto_designation, ref_is_mpa) %>% 
   summarize(n_rep = n()) %>% 
   # Join MPA metadata (region, implementation year)
   left_join(mpas %>% dplyr::select(affiliated_mpa, implementation_year, size_km2)) %>% 
   left_join(surf_sites) 
 
 surf <- surf_orig %>%
-  group_by(year, site_name, bioregion, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation,
+  group_by(year, site_name, bioregion, region4, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation,
            species_code, sciname, genus, target_status) %>%
   summarize(weight_kg = sum(weight_kg),
             count = sum(count), .groups = 'drop') %>% 
@@ -176,7 +176,7 @@ surf_complete <- surf_effort %>%
                                     sciname == "Sebastes miniatus" ~ "Hard Bottom", 
                                     T~assemblage_new)) %>% 
   dplyr::select(year, site, site_name, site_type, 
-                bioregion, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation, implementation_year, size_km2,
+                bioregion, region4, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation, implementation_year, size_km2,
                 age_at_survey, n_rep, species_code, sciname, genus, target_status, assemblage, assemblage_new,
                 weight_kg, count, kg_per_haul, count_per_haul)
 
@@ -184,8 +184,8 @@ surf_complete <- surf_effort %>%
 rock_effort <- rock_orig %>% 
   # Identify distinct cell-trips (2 dropped above bc missing data; trinidad dropped)
   distinct(year, grid_cell_id, id_cell_per_trip, 
-           bioregion, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation) %>% 
-  group_by(year, bioregion, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation, grid_cell_id) %>% 
+           bioregion, region4, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation) %>% 
+  group_by(year, bioregion, region4, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation, grid_cell_id) %>% 
   # Caculate number of cell-trips per site per year
   summarize(n_rep = n()) %>% ungroup() %>% 
   left_join(mpas %>% dplyr::select(affiliated_mpa, implementation_year, size_km2))
@@ -197,7 +197,7 @@ rock <- rock_orig %>%
   # Update OYT to include both OLV and YTL
   # mutate(species_code = ifelse(species_code %in% c("OLV", "YTL"), "OYT", species_code)) %>%  
   # Total BPUE for each species in each site (grid cell) and year
-  group_by(year, bioregion, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation, grid_cell_id,
+  group_by(year, bioregion, region4, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation, grid_cell_id,
            species_code, sciname, genus, target_status) %>% 
   summarize(bpue_kg = sum(bpue_kg),
             count = sum(count)) %>% ungroup() %>% 
@@ -225,7 +225,7 @@ rock_complete <- rock_effort %>%
                                     sciname == "Sebastes miniatus" ~ "Hard Bottom", 
                                     T~assemblage_new)) %>% 
   dplyr::select(year, site = grid_cell_id, site_type, 
-                bioregion, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation, implementation_year, size_km2,
+                bioregion, region4, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation, implementation_year, size_km2,
                 age_at_survey, n_rep, species_code, sciname, genus, target_status, assemblage, assemblage_new,
                 weight_kg = bpue_kg, count)
 
@@ -283,20 +283,20 @@ saveRDS(kelp_effort, file.path(ltm.dir, "update_2024/kelp_site_year_effort.Rds")
 saveRDS(rock_effort, file.path(ltm.dir, "update_2024/ccfrp_site_year_effort.Rds"))
 saveRDS(deep_effort, file.path(ltm.dir, "update_2024/deep_site_year_effort.Rds"))
 
-saveRDS(kelp_complete, file.path(ltm.dir, "update_2024/kelp_biomass_complete.Rds")) # last write Jan 7 2025
-saveRDS(rock_complete, file.path(ltm.dir, "update_2024/rock_biomass_complete.Rds")) # last write Jan 7 2025
-saveRDS(surf_complete, file.path(ltm.dir, "update_2024/surf_biomass_complete.Rds")) # last write Jan 7 2025
-saveRDS(deep_complete, file.path(ltm.dir, "update_2024/deep_biomass_complete.Rds")) # last write Jan 7 2025
+saveRDS(kelp_complete, file.path(ltm.dir, "update_2024/kelp_biomass_complete.Rds")) # last write Feb 21 2025
+saveRDS(rock_complete, file.path(ltm.dir, "update_2024/rock_biomass_complete.Rds")) # last write Feb 21 2025
+saveRDS(surf_complete, file.path(ltm.dir, "update_2024/surf_biomass_complete.Rds")) # last write Feb 21 2025
+saveRDS(deep_complete, file.path(ltm.dir, "update_2024/deep_biomass_complete.Rds")) # last write Feb 21 2025
 
 # Clean Subsets -----------------------------------------------------------------------------
 
 kelp_sites <- kelp_complete %>% 
   # Identify distinct site-year combinations
-  distinct(year, site, site_type, bioregion, affiliated_mpa, mpa_defacto_class, implementation_year, size_km2) %>% 
+  distinct(year, site, site_type, bioregion, region4, affiliated_mpa, mpa_defacto_class, implementation_year, size_km2) %>% 
   mutate(before = if_else(year <= implementation_year, 1, 0),
          after = if_else(year > implementation_year, 1, 0)) %>% 
   # Count number of years each site was visited before and after the MPA was implemented
-  group_by(site, bioregion, affiliated_mpa,  mpa_defacto_class, implementation_year, size_km2, site_type) %>% 
+  group_by(site, bioregion, region4, affiliated_mpa,  mpa_defacto_class, implementation_year, size_km2, site_type) %>% 
   summarize(n_before = sum(before),
             n_after = sum(after),
             n_total = n_before + n_after, .groups = 'drop') %>% 
@@ -306,7 +306,7 @@ kelp_sites <- kelp_complete %>%
   filter(n_after >= 5) 
 
 kelp_mpas <- kelp_sites %>%
-  group_by(bioregion, affiliated_mpa, mpa_defacto_class, implementation_year, size_km2, site_type) %>%
+  group_by(bioregion, region4, affiliated_mpa, mpa_defacto_class, implementation_year, size_km2, site_type) %>%
   summarize(n_total = sum(n_total), .groups = 'drop') %>%
   pivot_wider(names_from = site_type, values_from = n_total) %>% 
   filter(!is.na(Reference)) %>% 
@@ -379,17 +379,17 @@ kelp_subset <- kelp_complete %>%
 
 rock_sites <- rock_complete %>% 
   # Identify distinct site-year combinations
-  distinct(year, site, site_type, bioregion, affiliated_mpa, mpa_defacto_class, implementation_year) %>% 
+  distinct(year, site, site_type, bioregion, region4, affiliated_mpa, mpa_defacto_class, implementation_year) %>% 
   mutate(before = if_else(year <= implementation_year, 1, 0),
          after = if_else(year > implementation_year, 1, 0)) %>% 
   # Count number of years each site was visited before and after the MPA was implemented
-  group_by(site, bioregion, affiliated_mpa, mpa_defacto_class, implementation_year, site_type) %>% 
+  group_by(site, bioregion, region4, affiliated_mpa, mpa_defacto_class, implementation_year, site_type) %>% 
   summarize(n_before = sum(before),
             n_after = sum(after), # max visited is 16; most visited <5 times
             n_total = n_before + n_after, .groups = 'drop') 
 
 rock_mpas <- rock_sites %>%
-  group_by(bioregion, affiliated_mpa, mpa_defacto_class, implementation_year, site_type) %>%
+  group_by(bioregion, region4, affiliated_mpa, mpa_defacto_class, implementation_year, site_type) %>%
   summarize(n_total = sum(n_total), .groups = 'drop') %>%
   pivot_wider(names_from = site_type, values_from = n_total) %>% 
   filter(MPA > 10 & Reference > 10) # at least 10 site-years; 13 MPAs
@@ -408,9 +408,9 @@ rock_subset <- rock_complete %>%
 
 surf_sites <- surf_complete %>% 
   # Identify distinct site-year combinations
-  distinct(year, site, site_name, site_type, bioregion, affiliated_mpa, mpa_defacto_class, implementation_year) %>% 
+  distinct(year, site, site_name, site_type, bioregion, region4, affiliated_mpa, mpa_defacto_class, implementation_year) %>% 
   # Count number of years each site was visited before and after the MPA was implemented
-  group_by(site, site_name, bioregion, affiliated_mpa, mpa_defacto_class, implementation_year, site_type) %>% 
+  group_by(site, site_name, bioregion, region4, affiliated_mpa, mpa_defacto_class, implementation_year, site_type) %>% 
   summarize(n_total = n(), .groups = 'drop') %>%  # Started in 2019 so no need to do breakdown
   mutate(site = paste(site_name, site_type))
 
@@ -449,10 +449,10 @@ deep_subset <- deep_complete %>%
 
 
 
-saveRDS(kelp_subset, file.path(ltm.dir, "update_2024/kelp_biomass_subset.Rds")) # last write Jan 7 2025
-saveRDS(rock_subset, file.path(ltm.dir, "update_2024/rock_biomass_subset.Rds")) # last write Jan 7 2025
-saveRDS(surf_subset, file.path(ltm.dir, "update_2024/surf_biomass_subset.Rds")) # last write Jan 7 2025
-saveRDS(deep_subset, file.path(ltm.dir, "update_2024/deep_biomass_subset.Rds")) # last write Jan 7 2025
+saveRDS(kelp_subset, file.path(ltm.dir, "update_2024/kelp_biomass_subset.Rds")) # last write Feb 21 2025
+saveRDS(rock_subset, file.path(ltm.dir, "update_2024/rock_biomass_subset.Rds")) # last write Feb 21 2025
+saveRDS(surf_subset, file.path(ltm.dir, "update_2024/surf_biomass_subset.Rds")) # last write Feb 21 2025
+saveRDS(deep_subset, file.path(ltm.dir, "update_2024/deep_biomass_subset.Rds")) # last write Feb 21 2025
 
 
 
