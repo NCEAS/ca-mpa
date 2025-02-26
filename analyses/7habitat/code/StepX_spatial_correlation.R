@@ -1,5 +1,5 @@
 species <- "SPUL"
-path <- "analyses/7habitat/output/2way-4region-with-depth-comb/kelp"
+path <- "analyses/7habitat/output/2way-4region-rmre/kelp-reduced"
 
 library(sf)
 library(sp)
@@ -32,16 +32,16 @@ data_site <- data_sf %>%
             geometry = st_union(geometry)) %>%
   st_as_sf()
 
-# Convert to SpatialPointsDataFrame for gstat functions
-data_site_sp <- as(data_site, "Spatial")
-
-# Compute the semivariogram for aggregated residuals
-variog_site <- variogram(avg_resid ~ 1, data = data_site_sp, cutoff = 10000, width = 500)
-plot(variog_site, main = "Semivariogram of Aggregated Residuals")
-
-# Fit a variogram model (spherical model as an example)
-vgm_model <- fit.variogram(variog_site, model = vgm(psill = 1, model = "Sph", range = 1500, nugget = 0))
-print(vgm_model)
+# # Convert to SpatialPointsDataFrame for gstat functions
+# data_site_sp <- as(data_site, "Spatial")
+# 
+# # Compute the semivariogram for aggregated residuals
+# variog_site <- variogram(avg_resid ~ 1, data = data_site_sp, cutoff = 10000, width = 500)
+# plot(variog_site, main = "Semivariogram of Aggregated Residuals")
+# 
+# # Fit a variogram model (spherical model as an example)
+# vgm_model <- fit.variogram(variog_site, model = vgm(psill = 1, model = "Sph", range = 1500, nugget = 0))
+# print(vgm_model)
 
 
 unique_sites <- data_sf %>% 
@@ -98,7 +98,15 @@ spline_cor <- spline.correlog(x = coords[,1], y = coords[,2], z = data_site$avg_
 plot(spline_cor, main = "Spline Correlogram of Model Residuals",
      xlab = "Distance (m)", ylab = "Spatial Correlation")
 
+max.dist <- max(dist(coords)) / 2
+spline_cor <- spline.correlog(x = coords[,1],
+                              y = coords[,2],
+                              z = data_site$avg_resid,
+                              resamp = 100,
+                              xmax = max.dist)
 
+plot(spline_cor, main = "Spline Correlogram of Model Residuals",
+     xlab = "Distance (m)", ylab = "Spatial Correlation")
 
 
 

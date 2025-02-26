@@ -31,62 +31,15 @@ library(lmerTest)
 library(effects)
 library(performance)
 
-# Helper Functions -------------------------------------------------------------
+source("analyses/7habitat/code/Step0_helper_functions.R")  # Load the function from the file
 
-clean_terms <- function(df) {df %>%
-    mutate(term_revised = str_remove_all(term, "MPA") %>% 
-             str_remove_all("_annual_250|_annual_500|_annual_100|_annual_50|_annual_25") %>% 
-             str_remove_all("_250|_500|_100|_25|_50") %>% 
-             if_else(str_detect(., ":age_at_survey$"), str_replace(., "^(.*):age_at_survey$", "age_at_survey:\\1"), .) %>% 
-             if_else(str_detect(., ":site_type$"), str_replace(., "^(.*):site_type$", "site_type:\\1"), .) %>% 
-             if_else(str_detect(., ":site_type:"), str_replace(., "^(.*?):(site_type):(.*?)$", "\\2:\\3:\\1"), .) %>% 
-             str_replace_all("site_type:(.*?):age_at_survey", "site_type:age_at_survey:\\1") %>% 
-             factor(levels = c("(Intercept)",
-                               "site_type:age_at_survey:depth_mean",
-                               "site_type:age_at_survey:depth_sd",
-                               "site_type:age_at_survey:depth_cv",
-                               "site_type:age_at_survey:kelp",
-                               "site_type:age_at_survey:hard_bottom",
-                               "age_at_survey:depth_mean",
-                               "age_at_survey:depth_sd",
-                               "age_at_survey:depth_cv",
-                               "age_at_survey:hard_bottom",
-                               "age_at_survey:kelp",
-                               "site_type:depth_mean",
-                               "site_type:depth_sd",
-                               "site_type:depth_cv",
-                               "site_type:soft_bottom",
-                               "site_type:hard_bottom",
-                               "site_type:kelp",
-                               "site_type:age_at_survey",
-                               "site_type",
-                               "age_at_survey",
-                               "depth_mean",
-                               "depth_sd",
-                               "depth_cv",
-                               "soft_bottom",
-                               "hard_bottom",
-                               "kelp")))}
-
-add_significance <- function(df) {df %>%
-    mutate(significance = factor(case_when(p_value < 0.001 ~ "***",
-                                           p_value < 0.01 ~ "**",
-                                           p_value < 0.05 ~ "*",
-                                           is.na(p_value) ~ "NA",
-                                           TRUE ~ "NS"), levels = c("***", "**", "*", "NS", "NA")))
-}
 
 
 # Analyze Focal Models: 2-way version -------------------------------------------
 
-species <- "SMYS"
+species <- "SMIN"
 habitat <- "kelp"
-path <- "analyses/7habitat/output/2way-4region/kelp"
-
-# 
-# species <- "SHP"
-# habitat <- "rock"
-# path <- "analyses/7habitat/output/2way/rock"
+path <- "analyses/7habitat/output/2way-4region/kelp-reduced-rescaled"
 
 analyze_models_2way <- function(species, path, habitat){
   print(paste("Species:", species))
@@ -99,14 +52,16 @@ analyze_models_2way <- function(species, path, habitat){
     mutate(depth_type = case_when(str_detect(model_id, "DM") & str_detect(model_id, "DCV") ~ "depth_mean_and_cv",
                                   str_detect(model_id, "DM") ~ "depth_mean",
                                   str_detect(model_id, "DCV") ~ "depth_cv")) %>% 
-    filter(!is.na(type))
- 
+    filter(!is.na(type)) %>% 
+    filter(!(type == "top" & delta_AICc > 2))
+  
   # Process top models:
   # Extract results from all top models 
   print(paste("  Top models:", sum(models_df$type == "top")))
   
   if (sum(models_df$type == "top") > 1) {
     top_names <- models_df$model_id[models_df$type %in% c("top")]
+    top_models <- data$models[top_names]
     # top_results_full <- lapply(top_names, function(model_id) {
     #   if (is.null(data$models[[model_id]])) { return(NULL) }
     #   tidy(data$models[[model_id]], conf.int = TRUE, effect = "fixed") %>%
@@ -118,15 +73,27 @@ analyze_models_2way <- function(species, path, habitat){
     # top_results_full <- do.call(rbind, top_results_full) %>%
     #   left_join(., models_df %>% dplyr::select(model_id, scale, delta_AICc), by = "model_id") %>%
     #   mutate(key = if_else(model_id == "ST*A", NA, "Top Model"))
-
+    
+    nest_results <- check_nested_models(top_models, top_names)
+    
+    drop <- nest_results %>% 
+      filter(nested, decision != "keep_both") %>% 
+      mutate(drop = if_else(decision == model1, model2, model1)) %>% 
+      pull(drop) %>% 
+      unique()
+    
+    # Final set of top names: those not marked as losers
+    top_names <- setdiff(top_names, drop)
+    top_models <- data$models[top_names]
+    
   } else {
     top_names <- models_df$model_id[models_df$type %in% c("top")]
     # top_results_full <- NULL
   }
 
   # If there are multiple, get the model average. If not, get the results from the top one.
-  if (sum(models_df$type == "top") > 1) {
-    model_avg <- model.avg(data$models[models_df$model_id %in% top_names], fit = TRUE)
+  if (length(top_names) > 1) {
+    model_avg <- model.avg(top_models, fit = TRUE)
     coef_table <- data.frame(coefTable(model_avg)) %>%
       rownames_to_column("term") %>% 
       janitor::clean_names() %>% 
@@ -172,7 +139,7 @@ analyze_models_2way <- function(species, path, habitat){
   # Fit the model with the predictors > 0.5
   if (sum(models_df$type == "top") > 1) {
     predictors <- top_results %>% 
-      filter(importance > 0.5 & term != "(Intercept)") %>% 
+      filter(importance >= 0.5 & term != "(Intercept)") %>% 
       mutate(term = str_replace_all(term, ":", " * ")) %>% 
       pull(term) %>% 
       paste(., collapse = " + ")
@@ -218,8 +185,8 @@ analyze_models_2way <- function(species, path, habitat){
 
   # Calculate the effects 
   assign("data_sp", data$data_sp, envir = .GlobalEnv)
-  effects_list_top <- allEffects(m, data = data$data_sp, xlevels = 50)
-  effects_list_base <- allEffects(data$models$`ST*A`, data = data$data_sp, xlevels = 50)
+  effects_list_top <- allEffects(m, data = data$data_sp, xlevels = 50, partial.residuals = TRUE)
+  effects_list_base <- allEffects(data$models$`ST*A`, data = data$data_sp, xlevels = 50, partial.residuals = TRUE)
   
   # Add the refitted model to the models output
   models <- list(base = data$models$`ST*A`, 
@@ -237,7 +204,7 @@ analyze_models_2way <- function(species, path, habitat){
                                 is.na(model_id) & num_top_models == 1 ~ "Top Model",
                                 T~model_id)) %>% 
     dplyr::select(species_code, model_id, key, scale, term, term_revised, everything(), -effect) %>% 
-    left_join(., models_df %>% dplyr::select(model_id, n_sites, n_mpas, type, depth_type), by = c("model_id", "type")) %>% 
+    left_join(., models_df %>% dplyr::select(model_id, n_sites, n_mpas, type, depth_type, regions), by = c("model_id", "type")) %>% 
     left_join(., data$data_sp %>% 
                 distinct(species_code, sciname, genus, target_status, assemblage_new), by = "species_code")
   
@@ -252,9 +219,20 @@ analyze_models_2way <- function(species, path, habitat){
 
 # Kelp forest 
 habitat <- "kelp"
-path <- "analyses/7habitat/output/2way-4region-with-depth-comb/kelp"
+path <- "analyses/7habitat/output/2way-4region/kelp-reduced"
 
 analyze_models_2way("SPUL", path = path, habitat = "kelp")
+
+data_sp$fitted <- fitted(m)
+data_sp$residuals <- residuals(m)
+
+ggplot(data_sp, aes(x = fitted, y = residuals, color = region4)) + 
+  geom_point(alpha = 0.6) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "black") +
+  theme_minimal() +
+  labs(x = "Fitted Values", y = "Residuals")
+
+plot(effects_list_top, residuals.pch = 19, residuals.cex = 0.2)
 
 list.files(path = path, pattern = ".rds") %>%
   str_remove_all(., "_models.rds|_results.rds") %>%
@@ -262,6 +240,8 @@ list.files(path = path, pattern = ".rds") %>%
   filter(!. %in% c("AFLA", "SNEB")) %>% 
   pull(.) %>%
   walk(., ~analyze_models_2way(.x, path = path, habitat = "kelp"))
+
+
 
 # Rocky reef 
 # path <- "analyses/7habitat/output/2way/rock"

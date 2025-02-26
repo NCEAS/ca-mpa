@@ -861,3 +861,15 @@ check_model(mn, residual_type = "simulated", check = c("ncv", "qq", "normality",
 
 
 ```
+
+```{r}
+data_sp$fitted <- fitted(m)
+data_sp$residuals <- residuals(m)
+
+ggplot(data_sp, aes(x = fitted, y = residuals, color = region4)) + 
+  geom_point(alpha = 0.6) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "black") +
+  theme_minimal() +
+  labs(x = "Fitted Values", y = "Residuals")
+
+```

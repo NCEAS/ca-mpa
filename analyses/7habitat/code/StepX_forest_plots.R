@@ -13,7 +13,6 @@ library(effects)
 rm(list = ls())
 gc()
 
-fig.dir <- "analyses/7habitat/output/2way-4region-with-depth-comb"
 
 # Begin ------------------------------------------------------------------------
 
@@ -31,13 +30,10 @@ my_theme <- theme(
   plot.background = element_rect(fill = "white", color = NA)
 )
 
-species <- "SPUL"
+species <- "OELO"
 habitat <- "kelp"
-path <- "analyses/7habitat/output/2way-4region-with-depth-comb/kelp"
+path <- "analyses/7habitat/output/2way-4region-rmre/kelp-reduced"
 
-species <- "CPR"
-habitat <- "rock"
-path <- "analyses/7habitat/output/2way/rock"
 
 make_forest_plots <- function(species, path, habitat){
   print(paste("Species:", species))
@@ -63,6 +59,7 @@ make_forest_plots <- function(species, path, habitat){
   sciname <- unique(data$sciname)
   assemblage <- unique(data$assemblage_new)
   target_status <- unique(data$target_status)
+  regions <- unique(data$regions[!is.na(data$regions)])
   
   # Determine top model type
   top <- data %>% 
@@ -83,9 +80,15 @@ make_forest_plots <- function(species, path, habitat){
     distinct(top_depth) %>% 
     pull(top_depth)
   
-  # Plot models
+  if (length(top_depth) > 0) {
   data_plot <- data %>% 
-    filter(type %in% c("average", "top", "base", "core")) 
+    filter(type %in% c("average", "top", "base", "core")) %>% 
+    filter(!(type == "core" & depth_type != top_depth))
+  } else {
+    data_plot <- data %>% 
+      filter(type %in% c("average", "top", "base", "core")) %>% 
+      filter(!(type == "core" & depth_type != "depth_cv"))
+  }
   
   forest <- ggplot(data_plot, 
                    aes(x = estimate, y = term_revised, color = scale, pch = significance)) +
@@ -103,13 +106,12 @@ make_forest_plots <- function(species, path, habitat){
          color = "Scale", 
          pch = "Significance", 
          linetype = "Importance",
-         title = paste0(sciname, "\n", target_status, "\n", assemblage)) +
+         title = paste0(sciname, "\n", target_status, "\n", assemblage, "\n", regions)) +
     my_theme
-    forest
+  forest
   
-  ggsave(forest, 
-         filename = paste0(species, "_forest.png"),
-         path = file.path(fig.dir, habitat), width = 10, height = 5, dpi = 300, units = "in")
+  ggsave(forest, filename = paste0(species, "_forest.png"),
+         path = path, width = 10, height = 5, dpi = 300, units = "in")
   print("  Forest complete.")
   
   # Create table to export
@@ -148,7 +150,7 @@ make_forest_plots <- function(species, path, habitat){
 # Create and save figures -------------------------------------------------------------
 
 ## Kelp ----
-path <- "analyses/7habitat/output/2way-4region-with-depth-comb/kelp"
+path <- "analyses/7habitat/output/2way-4region/kelp-reduced"
 
 list.files(path = path, pattern = "_results.rds") %>%
   str_remove_all("_models.rds|_results.rds") %>% 
