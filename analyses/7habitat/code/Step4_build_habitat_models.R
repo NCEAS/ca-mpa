@@ -23,20 +23,50 @@
 refine_habitat <- function(species, response, predictors_df, random_effects, data, regions, path) {
   print(paste("Starting species: ", species))
   
-  data_sp <- data %>%
+  ## 1. Process Data -----------------------------
+  # Filter to the species and regions of interest, convert RE to factors
+  data1 <- data %>%
     filter(species_code == species) %>% 
     filter(region4 %in% regions) %>% 
     mutate(year = as.factor(year),
            bioregion = as.factor(bioregion),
            region4 = as.factor(region4),
-           affiliated_mpa = as.factor(affiliated_mpa)) %>% 
-    # Scale all predictors
-    mutate_at(vars(grep("^hard|soft|kelp|depth|age_at", names(.), value = TRUE)), scale)
-
+           affiliated_mpa = as.factor(affiliated_mpa))
+  
+  # Filter sites where species are infrequently observed
+  zero_site <- data1 %>%
+    group_by(site) %>% 
+    summarize(prop_zero = mean(kg_per_m2 == 0)) %>% 
+    filter(prop_zero > 0.9) # drop sites where observed < 10% of years
+    
+  data2 <- data1 %>% 
+    filter(!site %in% zero_site$site) 
+  
+  # Scale the static variables at the site-level (e.g. don't weight based on obs. frequency)
+  site_static <- data2 %>% 
+    distinct(site, across(all_of(grep("^hard|soft|depth", names(.), value = TRUE)))) %>%
+    mutate_at(vars(grep("^hard|soft|depth", names(.), value = TRUE)), scale)
+  
+  data3 <- data2 %>%
+    # Drop un-scaled static variables
+    dplyr::select(!c(grep("^hard|soft|depth", names(.), value = TRUE))) %>% 
+    # Join the scaled static variables
+    left_join(site_static, by = "site") %>% 
+    # Scale age
+    mutate_at(vars(grep("^age", names(.), value = TRUE)), scale)
+  
+  # Scale the kelp within each year (so it's relative to the annual average instead of across all years)
+  data4 <- data3 %>%
+    group_by(year) %>%
+    mutate_at(vars(grep("^kelp", names(.), value = TRUE)), scale) %>% ungroup()
+  
+  # Save final output for the model
+  data_sp <- data4
+  
   # Add a small constant, defined as the minimum value for that species
   if ("kg_per_m2" %in% colnames(data_sp)) {
     const <- min(data_sp$kg_per_m2[data_sp$kg_per_m2 > 0], na.rm = TRUE)
-    data_sp <- data_sp %>% mutate(log_c_biomass = log(kg_per_m2*100 + const*100))
+    data_sp <- data_sp %>% mutate(log_c_biomass = log(kg_per_m2*100 + const*100)) # kg per 100m2
   } else if ("weight_kg" %in% colnames(data_sp)) {
     const <- min(data_sp$weight_kg[data_sp$weight_kg > 0], na.rm = TRUE)
     data_sp <- data_sp %>% mutate(log_c_biomass = log(weight_kg + const))
@@ -126,7 +156,7 @@ refine_habitat <- function(species, response, predictors_df, random_effects, dat
 
   # Extract the top models within deltaAICc of 4
   top_model_names <- models_df %>%
-    filter(delta_AICc <= 4) %>%
+    filter(delta_AICc <= 2) %>%
     pull(model_id)
 
   # Extract the model objects for the core + top models
