@@ -56,7 +56,8 @@ kelp_predictors <- data_kelp %>%
   mutate(scale = sub("_", "", str_sub(predictor, -3, -1)),
          pred_group = case_when(str_detect(predictor, "0_30m|30_100m|100_200m|200m") ~ "depth",
                                 str_detect(predictor, "kelp|depth") ~ "all",
-                                T ~ "combined")) 
+                                T ~ "combined")) %>% 
+  filter(!scale == "25") # drop due to poor distribution
 
 rock_predictors <- data_rock %>%
   dplyr::select(year, site, site_type, bioregion, where(~ max(., na.rm = T) > 0)) %>%
@@ -457,3 +458,6 @@ saveRDS(deep_list, file.path("analyses/7habitat/intermediate_data", "deep_predic
 # in the models themselves. Opt out for now?
 # Challenge remains that there are more candidate models for different depths, so in the model averaging
 # this can get confusing about which remain the most important if both are not options. 
+
+# Dropped the 25m scale for kelp forest predictors on Feb 26 after looking more closely at the
+# distribution of the variable - was almost binary and causing fit challenges.
