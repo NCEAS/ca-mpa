@@ -11,6 +11,8 @@ library(dplyr)
 library(purrr)
 library(tidymodels)
 library(lmerTest)
+library(furrr)
+library(parallel)
 
 rm(list = ls())
 gc()
@@ -20,49 +22,16 @@ source("analyses/7habitat/code/Step4_build_habitat_models.R")  # Load the functi
 
 # Read Data --------------------------------------------------------------------
 ltm.dir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_2024"
-#ltm.dir <- "/Users/lopazanski/Desktop/ltm/update_2024"
 
 pred_kelp <- readRDS(file.path("analyses/7habitat/intermediate_data/kelp_predictors.Rds")) %>% filter(pred_group %in% c("all", "combined"))
-#pred_kelp_int  <- readRDS(file.path("analyses/7habitat/intermediate_data/kelp_predictors_interactions.Rds"))
-#pred_kelp_max  <- readRDS(file.path("analyses/7habitat/intermediate_data/kelp_predictors_max.Rds"))
 pred_kelp_2way <- readRDS(file.path("analyses/7habitat/intermediate_data/kelp_predictors_2way.Rds"))
 
 # Define subset for modeling (reduced number of columns)
-data_kelp <- readRDS(file.path(ltm.dir, "combine_tables/kelp_full.Rds")) %>% 
+data_kelp_subset <- readRDS(file.path(ltm.dir, "combine_tables/kelp_full.Rds")) %>% 
   mutate(site_type = factor(site_type, levels = c("Reference", "MPA"))) %>% 
   dplyr::select(year:affiliated_mpa, size_km2, age_at_survey,
                 species_code:target_status, assemblage_new, weight_kg:count_per_m2, 
                 all_of(pred_kelp$predictor))
-
-# Remove sites with outliers in permanent characteristics (depth and structural characteristics)
-sites_drop <- data_kelp %>% 
-  dplyr::select(site, site_type, affiliated_mpa, bioregion, region4, depth_cv_100:depth_mean_500, hard_bottom_100:hard_bottom_500) %>% 
-  distinct() %>% 
-  mutate_at(vars(grep("^hard|soft|kelp|depth", names(.), value = TRUE)), scale) %>% 
-  pivot_longer(cols = depth_cv_100:hard_bottom_500, names_to = "variable", values_to = "value") %>% 
-  filter(!between(value, -3, 3)) %>% 
-  pivot_wider(names_from = variable, values_from = value)
-
-
-# Examine outliers in kelp forest canopy cover
-kelp_drop <- data_kelp %>% 
-  dplyr::select(site, site_type, affiliated_mpa, region4, year, kelp_annual_100:kelp_annual_500) %>% 
-  distinct() %>% 
-  group_by(year) %>% 
-  summarize(mean = mean(kelp_annual_500))
-
-data_kelp_subset <- data_kelp %>% 
-  filter(!site %in% sites_drop$site)
-
-# sites_drop <- data_kelp_subset %>% 
-#   dplyr::select(site, site_type, affiliated_mpa, bioregion, region4, depth_cv_100:depth_mean_500, hard_bottom_100:hard_bottom_500) %>% 
-#   distinct() %>% 
-#   mutate_at(vars(grep("^hard|soft|kelp|depth", names(.), value = TRUE)), scale) %>% 
-#   pivot_longer(cols = depth_cv_100:hard_bottom_500, names_to = "variable", values_to = "value") 
-# 
-# ggplot(data = sites_drop) +
-#   geom_density(aes(x = value)) +
-#   facet_wrap(~variable, scales = "free")
 
 # Define Kelp Species Lists --------------------------------------------------------------------------
 # Bioregion version
@@ -117,12 +86,11 @@ kelp_ncci  <- sp_kelp %>% filter(south == 0 & central == 1 & north == 1 & ci == 
 
 
 # Fit models for each species --------------------------------------------------------------------
-library(furrr)
-library(parallel)
+
 
 # Combine all species into a single list
-species_list <- c(kelp_all, kelp_s, kelp_c, kelp_n, kelp_sc, kelp_nc) 
-species_list <- c(kelp_all, kelp_s, kelp_c, kelp_n, kelp_sc, kelp_nc, kelp_ci, kelp_sci, kelp_cci, kelp_scci, kelp_ncci) 
+#species_list <- c(kelp_all, kelp_s, kelp_c, kelp_n, kelp_sc, kelp_nc) 
+#species_list <- c(kelp_all, kelp_s, kelp_c, kelp_n, kelp_sc, kelp_nc, kelp_ci, kelp_sci, kelp_cci, kelp_scci, kelp_ncci) 
 species_list <- c("SPUL", "SMIN", "SMYS", "ELAT", "OPIC", "CPRI", "OELO", "SCAR", "SCAU", "EJAC")
 
 # Define a function to process a single species - the 2-way version

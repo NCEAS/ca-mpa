@@ -18,12 +18,11 @@
 # library(tidymodels)
 # library(lmerTest)
 
-# Fit all habitat combinations --------------------------------------------------------------
 
 refine_habitat <- function(species, response, predictors_df, random_effects, data, regions, path) {
   print(paste("Starting species: ", species))
   
-  ## 1. Process Data -----------------------------
+  ## 1. Process Data -----------------------------------------------------------------------------
   # Filter to the species and regions of interest, convert RE to factors
   data1 <- data %>%
     filter(species_code == species) %>% 
@@ -33,21 +32,48 @@ refine_habitat <- function(species, response, predictors_df, random_effects, dat
            region4 = as.factor(region4),
            affiliated_mpa = as.factor(affiliated_mpa))
   
-  # Filter sites where species are infrequently observed
+  # Identify sites where species are infrequently observed
   zero_site <- data1 %>%
     group_by(site) %>% 
     summarize(prop_zero = mean(kg_per_m2 == 0)) %>% 
     filter(prop_zero > 0.9) # drop sites where observed < 10% of years
     
+  # Check MPA/Ref balance of remaining sites 
+  zero_site_balance <- data1 %>% 
+    filter(!site %in% zero_site$site) %>% 
+    distinct(site, site_type, affiliated_mpa, year) %>% 
+    group_by(affiliated_mpa, site_type) %>% 
+    summarize(n_site_year = n(), .groups = 'drop') %>% 
+    pivot_wider(names_from = site_type, values_from = n_site_year) %>% 
+    filter(is.na(MPA) | is.na(Reference))
+  
   data2 <- data1 %>% 
-    filter(!site %in% zero_site$site) 
+    filter(!site %in% zero_site$site) %>% 
+    filter(!affiliated_mpa %in% zero_site_balance$affiliated_mpa)
   
   # Scale the static variables at the site-level (e.g. don't weight based on obs. frequency)
   site_static <- data2 %>% 
     distinct(site, across(all_of(grep("^hard|soft|depth", names(.), value = TRUE)))) %>%
     mutate_at(vars(grep("^hard|soft|depth", names(.), value = TRUE)), scale)
   
+  # Remove sites with extreme values in static vars (depth and hard bottom)
+  extreme_site <- site_static %>% 
+    pivot_longer(cols = depth_cv_100:hard_bottom_500, names_to = "variable", values_to = "value") %>% 
+    filter(!between(value, -3, 3)) %>% 
+    pivot_wider(names_from = variable, values_from = value)
+  
+  # Check balance of remaining sites (ensure still MPA/Ref pairs)
+  extreme_site_balance <- data2 %>% 
+    filter(!site %in% extreme_site$site) %>% 
+    distinct(site, site_type, affiliated_mpa, year) %>% 
+    group_by(affiliated_mpa, site_type) %>% 
+    summarize(n_site_year = n(), .groups = 'drop') %>% 
+    pivot_wider(names_from = site_type, values_from = n_site_year) %>% 
+    filter(is.na(MPA) | is.na(Reference))
+  
   data3 <- data2 %>%
+    filter(!site %in% extreme_site$site) %>% 
+    filter(!affiliated_mpa %in% extreme_site_balance$affiliated_mpa) %>% 
     # Drop un-scaled static variables
     dplyr::select(!c(grep("^hard|soft|depth", names(.), value = TRUE))) %>% 
     # Join the scaled static variables
@@ -69,13 +95,15 @@ refine_habitat <- function(species, response, predictors_df, random_effects, dat
     data_sp <- data_sp %>% mutate(log_c_biomass = log(kg_per_m2*100 + const*100)) # kg per 100m2
   } else if ("weight_kg" %in% colnames(data_sp)) {
     const <- min(data_sp$weight_kg[data_sp$weight_kg > 0], na.rm = TRUE)
-    data_sp <- data_sp %>% mutate(log_c_biomass = log(weight_kg + const))
+    data_sp <- data_sp %>% mutate(log_c_biomass = log(weight_kg + const)) # bpue
   } else if ("kg_per_haul" %in% colnames(data_sp)) {
     const <- min(data_sp$kg_per_haul[data_sp$kg_per_haul > 0], na.rm = TRUE)
-    data_sp <- data_sp %>% mutate(log_c_biomass = log(kg_per_haul + const))
+    data_sp <- data_sp %>% mutate(log_c_biomass = log(kg_per_haul + const)) # bpue
   } else {
     data_sp <- data_sp %>% mutate(log_c_biomass = NA_real_)
   }
+  
+  ## 2. Fit Models -----------------------------------------------------------------------
 
   models <- list()
 
@@ -156,7 +184,7 @@ refine_habitat <- function(species, response, predictors_df, random_effects, dat
 
   # Extract the top models within deltaAICc of 4
   top_model_names <- models_df %>%
-    filter(delta_AICc <= 2) %>%
+    filter(delta_AICc <= 4) %>%
     pull(model_id)
 
   # Extract the model objects for the core + top models
