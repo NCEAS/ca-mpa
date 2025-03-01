@@ -30,9 +30,9 @@ my_theme <- theme(
   plot.background = element_rect(fill = "white", color = NA)
 )
 
-species <- "OELO"
+species <- "SMYS"
 habitat <- "kelp"
-path <- "analyses/7habitat/output/2way-4region-rmre/kelp-reduced"
+path <- "analyses/7habitat/output/2way-4region/kelp-reduced-rescaled"
 
 
 make_forest_plots <- function(species, path, habitat){
@@ -97,7 +97,7 @@ make_forest_plots <- function(species, path, habitat){
                    height = 0.3, position = position_dodge(width = 0.6))+
     geom_point(position = position_dodge(width = 0.6), size = 2) +  
     scale_shape_manual(values = c("***" = 16, "**" = 17, "*" = 15, "NA" = NA, "NS" = 3)) +
-    scale_color_manual(values = c("#440154", "#3b528b", "#21908d", "#5dc863", "#D7C51B", "grey60", "black"), # Adjusted manually
+    scale_color_manual(values = c("#3b528b", "#21908d", "#5dc863", "#D7C51B", "grey60", "black"), # Adjusted manually
                        guide = guide_legend(order = 1)) +
     facet_wrap(~key) +
     theme_minimal() +

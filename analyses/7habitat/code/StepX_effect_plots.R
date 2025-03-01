@@ -31,9 +31,9 @@ my_theme <- theme(
   plot.background = element_rect(fill = "white", color = NA)
 )
 
-species <- "SCAU"
+species <- "SMYS"
 habitat <- "kelp"
-path <- "analyses/7habitat/output/2way-4region-rmre/kelp-reduced"
+path <- "analyses/7habitat/output/2way-4region/kelp-reduced-rescaled"
 
 make_effects_plots <- function(species, path, habitat){
   print(paste("Species:", species))
@@ -53,36 +53,39 @@ make_effects_plots <- function(species, path, habitat){
   const <- min(data_sp$kg_per_m2[data_sp$kg_per_m2 > 0], na.rm = TRUE)*100
   
   # 4. Evaluate diagnostics for the top model
-  #diag <- plot(check_model(top_models$top, residual_type = "simulated", check = c("ncv", "qq", "normality", "vif")))
+  diag <- plot(check_model(top_models$top, residual_type = "simulated", check = c("ncv", "qq", "normality", "vif")))
+  
   # ggsave(diag, filename = paste0(species, "_diagnostic.png"),
   #        path = path, width = 10, height = 6, dpi = 300, units = "in")
   # print("  Diagnostic complete.")
-  
+  # 
   # data_sp$fitted <- fitted(top_models$top)
   # data_sp$residuals <- residuals(top_models$top)
   # 
-  # ggplot(data_sp, aes(x = fitted, y = residuals, color = site_type)) + 
+  # ggplot(data_sp, aes(x = fitted, y = residuals, color = site_type)) +
   #   geom_point(alpha = 0.6) +
   #   geom_hline(yintercept = 0, linetype = "dashed", color = "black") +
   #   theme_minimal() +
   #   labs(x = "Fitted Values", y = "Residuals", color = NULL)
   # 
-  # ggplot(data_sp, aes(x = fitted, y = residuals, color = region4)) + 
+  # ggplot(data_sp, aes(x = fitted, y = residuals, color = region4)) +
   #   geom_point(alpha = 0.6) +
   #   geom_hline(yintercept = 0, linetype = "dashed", color = "black") +
   #   theme_minimal() +
   #   labs(x = "Fitted Values", y = "Residuals", color = NULL)
-  # 
+
   # 5. Calculate and plot the predictor effects 
   effects_list <- top_models$effects_list_top
 
   effect_plots <- lapply(seq_along(effects_list), function(i) {
     effects_data <- as.data.frame(effects_list[[i]])
     x_var <- colnames(effects_data)[which(colnames(effects_data) != "site_type")[1]]
+    const <- min(data_sp$kg_per_m2[data_sp$kg_per_m2 > 0], na.rm = TRUE)*100
     
     # Reverse scaling if available
     center <- attr(data_sp[[x_var]], "scaled:center")
     scale_ <- attr(data_sp[[x_var]], "scaled:scale")
+    
     if (!is.null(center) && !is.null(scale_)) {
       effects_data[[x_var]] <- effects_data[[x_var]] * scale_ + center
     }
@@ -94,16 +97,19 @@ make_effects_plots <- function(species, path, habitat){
       str_replace("\\d+", paste0(str_extract(., "\\d+"), "m"))
     
     show_legend <- (i == length(effects_list))  # Show legend only on the last plot
-    
+
     if (sum(str_detect(colnames(effects_data), "site_type")) > 0) {
       ggplot(effects_data, aes(x = !!sym(x_var))) +
-        geom_ribbon(aes(ymin = exp(lower) - const, ymax = exp(upper) - const, fill = site_type), 
+       # geom_ribbon(aes(ymin = exp(lower) - const, ymax = exp(upper) - const, fill = site_type), 
+       #             alpha = 0.2, show.legend = show_legend, stat = "identity") +
+       # geom_line(aes(y = exp(fit) - const, color = site_type), show.legend = show_legend, stat = "identity") +
+        geom_ribbon(aes(ymin = lower, ymax = upper, fill = site_type),
                     alpha = 0.2, show.legend = show_legend, stat = "identity") +
-        geom_line(aes(y = exp(fit) - const, color = site_type), show.legend = show_legend, stat = "identity") +
+        geom_line(aes(y = fit, color = site_type), show.legend = show_legend, stat = "identity") +
         scale_color_manual(values = c("#7e67f8", "#e5188b")) +
         scale_fill_manual(values = c("#7e67f8", "#e5188b")) +
         labs(x = x_var_label,
-             y = "Biomass (kg per m2)",
+             y = "Biomass (kg per 100m2)",
              color = NULL, fill = NULL) +
         theme_minimal() +
         theme(legend.position = ifelse(show_legend, "right", "none"),
@@ -113,11 +119,12 @@ make_effects_plots <- function(species, path, habitat){
       
     } else {
       ggplot(effects_data, aes(x = !!sym(x_var))) +
-        geom_smooth(aes(y = exp(fit) - const), color = "black", show.legend = FALSE, method = "loess", formula = y ~ x) +
-        geom_ribbon(aes(ymin = exp(lower) - const, ymax = exp(upper) - const), alpha = 0.2, show.legend = FALSE) +
-      #  scale_y_continuous(limits = c(0, NA)) + 
+      #  geom_line(aes(y = exp(fit) - const), color = "black", show.legend = FALSE, method = "loess", formula = y ~ x) +
+     #   geom_ribbon(aes(ymin = exp(lower) - const, ymax = exp(upper) - const), alpha = 0.2, show.legend = FALSE) +
+        geom_line(aes(y = fit), color = "black", show.legend = FALSE) +
+        geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, show.legend = FALSE) +
         labs(x = x_var_label,
-             y = "Biomass (kg per m2)")+
+             y = "Biomass (kg per 100m2)")+
         theme_minimal() +
         theme(axis.title.y = if (i != 1) element_blank() else element_text()) +
         my_theme
@@ -156,7 +163,8 @@ make_effects_plots <- function(species, path, habitat){
 
   dev.off()
   
-  }
+}
+
 
 path <- "analyses/7habitat/output/2way-4region-rmre/kelp-reduced"
 
@@ -165,7 +173,8 @@ make_effects_plots(species = "OPIC", path = path, habitat = "kelp")
 list.files(path = path, pattern = "_results.rds") %>%
   str_remove_all("_models.rds|_results.rds|_effects.rds") %>% 
   unique() %>% 
-  walk(., make_effects_plots, path = path, habitat = "kelp")
+  walk(., make_effects_plots, path = path, habitat = "kelp") %>% 
+  walk(., make_forest_plots, path = path, habitat = "kelp")
 
 # Test
 ggplot(data_sp) + 
@@ -180,7 +189,7 @@ ggplot(data_sp) +
 # data_sp <- data$data_sp
 # const <- min(data_sp$kg_per_m2[data_sp$kg_per_m2 > 0], na.rm = TRUE)
 
-check_outliers(top_models$top)
+check_outliers(data_sp$kelp_annual_100)
 
 intx_types <- data_plot %>%
   filter(key == "Refit Top Model (Predictor Importance > 0.5)" | model_id == "Top Model") %>%

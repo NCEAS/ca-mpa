@@ -37,9 +37,9 @@ source("analyses/7habitat/code/Step0_helper_functions.R")  # Load the function f
 
 # Analyze Focal Models: 2-way version -------------------------------------------
 
-species <- "SMIN"
+species <- "targeted"
 habitat <- "kelp"
-path <- "analyses/7habitat/output/2way-4region/kelp-reduced-rescaled"
+path <- "analyses/7habitat/output/targeted/mpa-year"
 
 analyze_models_2way <- function(species, path, habitat){
   print(paste("Species:", species))
@@ -52,8 +52,8 @@ analyze_models_2way <- function(species, path, habitat){
     mutate(depth_type = case_when(str_detect(model_id, "DM") & str_detect(model_id, "DCV") ~ "depth_mean_and_cv",
                                   str_detect(model_id, "DM") ~ "depth_mean",
                                   str_detect(model_id, "DCV") ~ "depth_cv")) %>% 
-    filter(!is.na(type)) %>% 
-    filter(!(type == "top" & delta_AICc > 2))
+    filter(!is.na(type)) #%>% 
+  #  filter(!(type == "top" & delta_AICc > 2))
   
   # Process top models:
   # Extract results from all top models 
@@ -74,17 +74,17 @@ analyze_models_2way <- function(species, path, habitat){
     #   left_join(., models_df %>% dplyr::select(model_id, scale, delta_AICc), by = "model_id") %>%
     #   mutate(key = if_else(model_id == "ST*A", NA, "Top Model"))
     
-    nest_results <- check_nested_models(top_models, top_names)
+   # nest_results <- check_nested_models(top_models, top_names)
     
-    drop <- nest_results %>% 
-      filter(nested, decision != "keep_both") %>% 
-      mutate(drop = if_else(decision == model1, model2, model1)) %>% 
-      pull(drop) %>% 
-      unique()
-    
-    # Final set of top names: those not marked as losers
-    top_names <- setdiff(top_names, drop)
-    top_models <- data$models[top_names]
+    # drop <- nest_results %>% 
+    #   filter(nested, decision != "keep_both") %>% 
+    #   mutate(drop = if_else(decision == model1, model2, model1)) %>% 
+    #   pull(drop) %>% 
+    #   unique()
+    # 
+    # # Final set of top names: those not marked as losers
+    # top_names <- setdiff(top_names, drop)
+    # top_models <- data$models[top_names]
     
   } else {
     top_names <- models_df$model_id[models_df$type %in% c("top")]
@@ -204,9 +204,9 @@ analyze_models_2way <- function(species, path, habitat){
                                 is.na(model_id) & num_top_models == 1 ~ "Top Model",
                                 T~model_id)) %>% 
     dplyr::select(species_code, model_id, key, scale, term, term_revised, everything(), -effect) %>% 
-    left_join(., models_df %>% dplyr::select(model_id, n_sites, n_mpas, type, depth_type, regions), by = c("model_id", "type")) %>% 
-    left_join(., data$data_sp %>% 
-                distinct(species_code, sciname, genus, target_status, assemblage_new), by = "species_code")
+    left_join(., models_df %>% dplyr::select(model_id, n_sites, n_mpas, type, depth_type, regions), by = c("model_id", "type")) #%>% 
+   # left_join(., data$data_sp %>% 
+   #             distinct(species_code, sciname, genus, target_status, assemblage_new), by = "species_code")
   
   # Export 
   saveRDS(list(results = all_results, models = models), 
@@ -221,7 +221,7 @@ analyze_models_2way <- function(species, path, habitat){
 habitat <- "kelp"
 path <- "analyses/7habitat/output/2way-4region/kelp-reduced"
 
-analyze_models_2way("SPUL", path = path, habitat = "kelp")
+analyze_models_2way("targeted", path = "analyses/7habitat/output/targeted/site-year", habitat = "kelp")
 
 data_sp$fitted <- fitted(m)
 data_sp$residuals <- residuals(m)
@@ -232,6 +232,10 @@ ggplot(data_sp, aes(x = fitted, y = residuals, color = region4)) +
   theme_minimal() +
   labs(x = "Fitted Values", y = "Residuals")
 
+test_eff <- allEffects(data$models$`H50*ST+K500+DM25*ST+ST*A`, data = data$data_sp, xlevels = 50, partial.residuals = TRUE)
+test_eff <- allEffects(data$models$`H250*ST+K250*ST+DM250*ST+ST*A`, data = data$data_sp, xlevels = 50, partial.residuals = TRUE)
+
+plot(test_eff)
 plot(effects_list_top, residuals.pch = 19, residuals.cex = 0.2)
 
 list.files(path = path, pattern = ".rds") %>%
