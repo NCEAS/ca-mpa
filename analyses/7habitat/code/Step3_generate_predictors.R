@@ -56,8 +56,8 @@ kelp_predictors <- data_kelp %>%
   mutate(scale = sub("_", "", str_sub(predictor, -3, -1)),
          pred_group = case_when(str_detect(predictor, "0_30m|30_100m|100_200m|200m") ~ "depth",
                                 str_detect(predictor, "kelp|depth") ~ "all",
-                                T ~ "combined")) %>% 
-  filter(!scale == "25") # drop due to poor distribution
+                                T ~ "combined")) #%>% 
+  #filter(!scale == "25") # drop due to poor distribution
 
 rock_predictors <- data_rock %>%
   dplyr::select(year, site, site_type, bioregion, where(~ max(., na.rm = T) > 0)) %>%
@@ -215,79 +215,10 @@ plot_site_corr <- function(site_table, predictor_list){
 
 # Generate combinations independent of scale for the depth and kelp, using hard only
 
-# Maximal list ----
-get_max_list <- function(predictors_df) {
-  
-  predictors_df <- predictors_df %>% 
-    filter(pred_group %in% c("all", "combined")) %>% 
-    filter(!str_detect(predictor, "depth_sd")) %>% 
-    mutate(predictor2 = paste0(predictor, " * site_type"),
-           predictor3 = paste0(predictor, " * site_type * age_at_survey"))
- 
-  # Generate **ONLY** maximal models (full combinations of H, K, and D at any scale)
-  max_list <- expand.grid(hard =  predictors_df %>% filter(str_detect(predictor, "hard")) %>% pull(predictor3), 
-                          kelp =  predictors_df %>% filter(str_detect(predictor, "kelp")) %>% pull(predictor3), 
-                          depth = predictors_df %>% filter(str_detect(predictor, "depth")) %>% pull(predictor3),
-                          stringsAsFactors = FALSE) %>%
-    
-    # Define the maximal interaction structure
-    mutate(base_terms  = "site_type * age_at_survey") %>%
-    
-    # Build the full maximal model formula
-    unite("predictors", c(hard, kelp, depth, base_terms), sep = " + ", na.rm = TRUE, remove = FALSE) %>% 
-    dplyr::select(predictors) %>% 
-    mutate(type = "max")
-  
-  # Generate **ONLY** full models (combinations of H, K, and D at one scale)
-  full_list <- bind_rows(
-    # Create grid from 3-way combinations
-    expand.grid(hard  = predictors_df %>% filter(str_detect(predictor, "hard")) %>% pull(predictor3), 
-                kelp  = predictors_df %>% filter(str_detect(predictor, "kelp")) %>% pull(predictor3), 
-                depth = predictors_df %>% filter(str_detect(predictor, "depth")) %>% pull(predictor3),
-                stringsAsFactors = FALSE),
-    # Create grid from 2-way combinations (w/ ST only)
-    expand.grid(hard  = predictors_df %>% filter(str_detect(predictor, "hard")) %>% pull(predictor2), 
-                kelp  = predictors_df %>% filter(str_detect(predictor, "kelp")) %>% pull(predictor2), 
-                depth = predictors_df %>% filter(str_detect(predictor, "depth")) %>% pull(predictor2),
-                stringsAsFactors = FALSE)) %>% 
-    mutate(hard_scale  = str_extract(hard, "\\d+"),
-           kelp_scale  = str_extract(kelp, "\\d+"),
-           depth_scale = str_extract(depth, "\\d+")) %>% 
-    filter(hard_scale == kelp_scale & kelp_scale == depth_scale) %>% 
-    bind_rows(tibble(hard = NA, kelp = NA, depth = NA)) %>% 
-    mutate(base_terms = "site_type * age_at_survey") %>% 
-    unite("predictors", c(hard, kelp, depth, base_terms), sep = " + ", na.rm = TRUE, remove = FALSE) %>% 
-    mutate(type = case_when(str_detect(hard, "age_at_survey") & str_detect(kelp, "age_at_survey") & str_detect(depth, "age_at_survey") ~ "core3",
-                            predictors == "site_type * age_at_survey" ~ "base",
-                            T~"core2")) %>% 
-    dplyr::select(predictors, type)
-  
-  all_list <- bind_rows(max_list, full_list) %>% 
-    mutate(model_id = 
-             str_replace_all(predictors, "hard_bottom_(\\d+)", "H\\1") %>% 
-             str_replace_all("kelp_annual_(\\d+)", "K\\1") %>% 
-             str_replace_all("depth_mean_(\\d+)", "DM\\1") %>% 
-             str_replace_all("depth_sd_(\\d+)", "DSD\\1") %>% 
-             str_replace_all("depth_cv_(\\d+)", "DCV\\1") %>% 
-             str_replace_all("site_type", "ST") %>%
-             str_replace_all("age_at_survey", "A") %>% 
-             str_replace_all("\\s+", ""))
-
-  return(all_list)
-}
-
-kelp_max <- get_max_list(kelp_predictors) # 2541 now 7936 now 11776
-rock_max <- get_max_list(rock_predictors) # 2541 now 7936 now 11776
-surf_max <- get_max_list(surf_predictors) # 1155 now 3472 now 5152
-deep_max <- get_max_list(deep_predictors) # 693 now 1984 now 2944
-
-saveRDS(kelp_max, file.path("analyses/7habitat/intermediate_data", "kelp_predictors_max.Rds")) 
-saveRDS(rock_max, file.path("analyses/7habitat/intermediate_data", "rock_predictors_max.Rds")) 
-saveRDS(surf_max, file.path("analyses/7habitat/intermediate_data", "surf_predictors_max.Rds")) 
-saveRDS(deep_max, file.path("analyses/7habitat/intermediate_data", "deep_predictors_max.Rds")) 
+# Include 3-way interactions ----
 
 get_3way_list <- function(predictors_df){
-  
+  predictors_df <- predictors
   predictors_df <- predictors_df %>% 
     filter(pred_group %in% c("all", "combined")) %>% 
     filter(!str_detect(predictor, "depth_sd")) %>% 
@@ -300,11 +231,24 @@ get_3way_list <- function(predictors_df){
   kelp_vars <- predictors_df %>% filter(str_detect(predictor, "kelp")) 
   depth_vars <- predictors_df %>% filter(str_detect(predictor, "depth")) 
   
-  # Extract interaction terms
-  hard_st <- hard_vars %>% pull(st)
-  kelp_st <- kelp_vars %>% pull(st)
-  depth_st <- depth_vars %>% pull(st)
+  # Version with both depths all scales
+  depth_comb <- expand.grid(depth_mean = c(depth_vars$predictor[str_detect(depth_vars$predictor, "depth_mean")],
+                                           depth_vars$st[str_detect(depth_vars$st, "depth_mean")], 
+                                           depth_vars$sta[str_detect(depth_vars$sta, "depth_mean")],
+                                           depth_vars$st_a[str_detect(depth_vars$st_a, "depth_mean")],
+                                           depth_vars$a[str_detect(depth_vars$a, "depth_mean")]),
+                            depth_cv = c(depth_vars$predictor[str_detect(depth_vars$predictor, "depth_cv")],
+                                         depth_vars$st[str_detect(depth_vars$st, "depth_cv")], 
+                                         depth_vars$sta[str_detect(depth_vars$sta, "depth_cv")],
+                                         depth_vars$st_a[str_detect(depth_vars$st_a, "depth_cv")],
+                                         depth_vars$a[str_detect(depth_vars$a, "depth_cv")])) %>%
+    unite("predictors", c(depth_mean, depth_cv), sep = " + ") %>% pull(predictors)
   
+  # Extract interaction terms
+  hard_st       <- hard_vars %>% pull(st)
+  kelp_st       <- kelp_vars %>% pull(st)
+  depth_st      <- depth_vars %>% pull(st)
+
   hard_sta  <- hard_vars %>% pull(sta)
   kelp_sta  <- kelp_vars %>% pull(sta)
   depth_sta <- depth_vars %>% pull(sta)
@@ -321,7 +265,7 @@ get_3way_list <- function(predictors_df){
   pred_list <- 
     expand_grid(hard  = c(NA, hard_vars %>% pull(predictor), hard_st, hard_a, hard_st_a, hard_sta),
                 kelp  = c(NA, kelp_vars %>% pull(predictor), kelp_st, kelp_a, kelp_st_a, kelp_sta),
-                depth = c(NA, depth_vars %>% pull(predictor), depth_st, depth_a, depth_st_a, depth_sta)) %>% 
+                depth = c(NA, depth_vars %>% pull(predictor), depth_st, depth_a, depth_st_a, depth_sta, depth_comb)) %>% 
     mutate(hard_scale  = str_extract(hard, "\\d+"),
            kelp_scale  = str_extract(kelp, "\\d+"),
            depth_scale = str_extract(depth, "\\d+"),
@@ -395,16 +339,15 @@ get_2way_list <- function(predictors_df){
   #   pivot_longer(cols = d1:d4, values_to = "predictor") %>% pull(predictor)
   
   # Version with both depths all scales
-  # depth_comb <- expand.grid(depth_mean = c(depth_vars[str_detect(depth_vars, "depth_mean")], depth_intx[str_detect(depth_intx, "depth_mean")]),
-  #                           depth_cv = c(depth_vars[str_detect(depth_vars, "depth_cv")], depth_intx[str_detect(depth_intx, "depth_cv")])) %>%
-  #   unite("predictors", c(depth_mean, depth_cv), sep = " + ") %>% pull(predictors)
-
+  depth_comb <- expand.grid(depth_mean = c(depth_vars[str_detect(depth_vars, "depth_mean")], depth_intx[str_detect(depth_intx, "depth_mean")]),
+                            depth_cv = c(depth_vars[str_detect(depth_vars, "depth_cv")], depth_intx[str_detect(depth_intx, "depth_cv")])) %>%
+    unite("predictors", c(depth_mean, depth_cv), sep = " + ") %>% pull(predictors)
 
   # Generate all models (all combinations of H, K, and D at any scale)
   pred_list <- 
     expand.grid(hard  = c(NA, hard_vars, hard_intx),
                 kelp  = c(NA, kelp_vars, kelp_intx),
-                depth = c(NA, depth_vars, depth_intx), # add depth_comb here if multiple depths
+                depth = c(NA, depth_vars, depth_intx, depth_comb), # add depth_comb here if multiple depths
                 stringsAsFactors = FALSE) %>% 
     mutate(hard_scale  = str_extract(hard, "\\d+"),
            kelp_scale  = str_extract(kelp, "\\d+"),
