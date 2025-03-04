@@ -2,6 +2,12 @@
 # Cori Lopazanski
 # Feb 2025
 
+library(tidyverse)
+library(lmerTest)
+library(performance)
+library(patchwork)
+
+
 # Set up --------------------------------------------------------------------------
 rm(list = ls())
 gc()
@@ -32,7 +38,8 @@ data_kelp <- readRDS(file.path(ltm.dir, "combine_tables/kelp_full.Rds")) %>%
   mutate(site_type = factor(site_type, levels = c("Reference", "MPA"))) %>% 
   dplyr::select(year:affiliated_mpa, size_km2, age_at_survey,
                 species_code:target_status, assemblage_new, weight_kg:count_per_m2, 
-                all_of(pred_kelp$predictor)) 
+                all_of(pred_kelp$predictor)) %>% 
+ filter(!affiliated_mpa %in% c("point dume smca"))
 
 # Build Data --------------------------------------------------------------------------
 
@@ -73,22 +80,23 @@ data2 <- data1 %>%
 
 # Scale the static variables at the site-level (e.g. don't weight based on obs. frequency)
 site_static <- data2 %>% 
-  distinct(site, across(all_of(grep("^hard|soft|depth", names(.), value = TRUE)))) %>%
+  dplyr::select(!all_of(grep("^depth_sd", names(.), value = TRUE))) %>% 
+  distinct(site, across(all_of(grep("^hard|depth", names(.), value = TRUE)))) %>% 
   mutate_at(vars(grep("^hard|soft|depth", names(.), value = TRUE)), scale)
 
 # Remove sites with extreme values in static vars (depth and hard bottom)
-extreme_site <- site_static %>% 
-  pivot_longer(cols = depth_cv_100:hard_bottom_500, names_to = "variable", values_to = "value") %>% 
-  filter(!between(value, -3.5, 3.5)) %>% 
+extreme_site <- site_static %>%
+  pivot_longer(cols = depth_cv_100:hard_bottom_500, names_to = "variable", values_to = "value") %>%
+  filter(!between(value, -3.29, 3.29)) %>%
   pivot_wider(names_from = variable, values_from = value)
 
 # Check balance of remaining sites (ensure still MPA/Ref pairs)
-extreme_site_balance <- data2 %>% 
-  filter(!site %in% extreme_site$site) %>% 
-  distinct(site, site_type, affiliated_mpa, year) %>% 
-  group_by(affiliated_mpa, site_type) %>% 
-  summarize(n_site_year = n(), .groups = 'drop') %>% 
-  pivot_wider(names_from = site_type, values_from = n_site_year) %>% 
+extreme_site_balance <- data2 %>%
+  filter(!site %in% extreme_site$site) %>%
+  distinct(site, site_type, affiliated_mpa, year) %>%
+  group_by(affiliated_mpa, site_type) %>%
+  summarize(n_site_year = n(), .groups = 'drop') %>%
+  pivot_wider(names_from = site_type, values_from = n_site_year) %>%
   filter(is.na(MPA) | is.na(Reference))
 
 data3 <- data2 %>%
@@ -120,6 +128,8 @@ base_model <- lmer(log_biomass ~ site_type * age_at_survey + (1|region4/affiliat
                    data = data_sp)
 
 summary(base_model)  
+plot(check_outliers(base_model, ID = "site"))
+
 #plot(base_model)  
 #plot(allEffects(base_model, partial.residuals = T), residuals.pch = 19, residuals.cex = 0.2)  
 
@@ -134,13 +144,13 @@ habitat250_rms <- lmer(log_biomass ~ hard_bottom_250 * site_type +
                    data = data_sp) 
 
 VarCorr(habitat250_rms)  # Inspect variance estimates
-# Singular fit with zero variance for mpa:region
+performance::icc(habitat250_rms, by_group = T) # Pretty low for region
 
-# 2. Given zero variance for mpa:region, test whether region improves fit
+# 2. Given low variance for mpa:region, test whether region improves fit
 habitat250_ms <- lmer(log_biomass ~ hard_bottom_250 * site_type + 
                      kelp_annual_250 * site_type + 
                      depth_mean_250 * site_type + depth_cv_250 * site_type + 
-                     site_type * age_at_survey + (1|affiliated_mpa/site) + (1|year),
+                     site_type * age_at_survey + (1|affiliated_mpa) + (1|year),
                    data = data_sp) 
 
 VarCorr(habitat250_ms) 
@@ -166,7 +176,10 @@ habitat250_s <- lmer(log_biomass ~ hard_bottom_250 * site_type +
                        data = data_sp) 
 VarCorr(habitat250_s) 
 performance::icc(habitat250_s, by_group = T)  
-anova(habitat250_s, habitat250_ms) # p = 1, so variation is pretty low for MPA; top is site + year
+anova(habitat250_s, habitat250_ms) 
+# p depends on whether extreme sites are included
+# if they are dropped = p > 0.05
+# if they are not dropped = p < 0.05
 
 # 5. Confirm year as RE
 habitat250_m2 <- lmer(log_biomass ~ hard_bottom_250 * site_type + 
@@ -176,70 +189,19 @@ habitat250_m2 <- lmer(log_biomass ~ hard_bottom_250 * site_type +
                       data = data_sp) 
 
 anova(habitat250_m2, habitat250_s) # p < 0.0 so year is useful
+
 # Conclusion: (1|affiliated_mpa/site) + (1|year)
 
 # 6. Examine if age effect varies by MPA (while including above RE)
-habitat250_m3 <- lmer(log_biomass ~ hard_bottom_250 * site_type + 
-                        kelp_annual_250 * site_type + 
-                        depth_mean_250 * site_type + depth_cv_250 * site_type + 
-                        site_type * age_at_survey + (1 + age_at_survey | affiliated_mpa) + (1 | site:affiliated_mpa) + (1 | year), 
-                      data = data_sp) 
-
-VarCorr(habitat250_m3) 
-performance::icc(habitat250_m3, by_group = T)  # Intraclass correlation to check variance partitioning
-anova(habitat250_m3, habitat250_ms) # p > 0.05 so does not significantly improve fit
-
-## Confirm appropriate RE structure ----
-
-
-
-# 1. Full model at intermediate scale (250m)
-habitat_rms <- lmer(log_biomass ~ hard_bottom_50 * site_type + kelp_annual_50 + depth_mean_500 * site_type + site_type * age_at_survey + 
-                         (1|region4/affiliated_mpa/site) + (1|year),
-                       data = data_sp) 
-
-VarCorr(habitat_rms)  # Inspect variance estimates
-# Singular fit with zero variance for mpa:region
-
-# 2. Given zero variance for mpa:region, test whether region improves fit
-habitat_ms <- lmer(log_biomass ~ hard_bottom_50 * site_type + kelp_annual_50 + depth_mean_500 * site_type + site_type * age_at_survey + 
-                        (1|affiliated_mpa/site) + (1|year),
-                      data = data_sp) 
-
-VarCorr(habitat_ms) 
-performance::icc(habitat_ms, by_group = T) 
-anova(habitat_ms, habitat_rms) # p > 0.05 so likely OK to drop region; top is mpa/site + year
-
-# 3. Confirm site as RE
-habitat_m <- lmer(log_biomass ~ hard_bottom_50 * site_type + kelp_annual_50 + depth_mean_500 * site_type + site_type * age_at_survey + 
-                       (1|affiliated_mpa) + (1|year),
-                     data = data_sp) 
-
-VarCorr(habitat_m) 
-performance::icc(habitat_m, by_group = T) 
-anova(habitat_m, habitat_ms) # p < 0.05 so site is useful; top is mpa/site + year
-
-# 4. Confirm MPA as RE
-habitat_s <- lmer(log_biomass ~ hard_bottom_50 * site_type + kelp_annual_50 + depth_mean_500 * site_type + site_type * age_at_survey + 
-                    (1|site) + (1|year),
-                     data = data_sp) 
-VarCorr(habitat_s) 
-performance::icc(habitat_s, by_group = T)  
-anova(habitat_s, habitat_ms) # p = 1, so variation is pretty low for MPA; top is site + year
-
-# 5. Confirm year as RE
-habitat_m2 <- lmer(log_biomass ~ hard_bottom_50 * site_type + kelp_annual_50 + depth_mean_500 * site_type + site_type * age_at_survey + 
-                     (1|site),
-                      data = data_sp) 
-
-anova(habitat_m2, habitat_s) # p < 0.0 so year is useful
-# Conclusion: (1|site) + (1|year)
-
-habitat_m3 <- lmer(log_biomass ~ hard_bottom_50 * site_type + kelp_annual_50 + depth_mean_500 * site_type + site_type * age_at_survey + 
-                     (1|affiliated_mpa) + (1|year),
-                   data = data_sp) 
-VarCorr(habitat_m3)
-anova(habitat_m3, habitat_s) 
+# habitat250_m3 <- lmer(log_biomass ~ hard_bottom_250 * site_type + 
+#                         kelp_annual_250 * site_type + 
+#                         depth_mean_250 * site_type + depth_cv_250 * site_type + 
+#                         site_type * age_at_survey + (1 + age_at_survey | affiliated_mpa) + (1 | site:affiliated_mpa) + (1 | year), 
+#                       data = data_sp) 
+# 
+# VarCorr(habitat250_m3) 
+# performance::icc(habitat250_m3, by_group = T)  # Intraclass correlation to check variance partitioning
+# anova(habitat250_m3, habitat250_ms) # p > 0.05 so does not significantly improve fit
 
 # note - also explored (1 + age_at_survey | affiliated_mpa:site_type) and it was statistically better but obviously more complex and likely not useful
 # 
@@ -258,7 +220,8 @@ anova(habitat_m3, habitat_s)
 #   labs(title = "Variation in MPA Age Slopes", x = "MPA", y = "Slope for MPA_Age") +
 #   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
-compare_performance(habitat250_rms, habitat250_ms, habitat250_m, habitat250_m2, habitat250_m3)
+
+
 
 # Confirm: Keep the random intercept model with site nested within MPA + year (_ms)
 
@@ -268,85 +231,100 @@ mpa_baseline <- data_sp %>%
   group_by(affiliated_mpa, site_type) %>%
   summarize(baseline_biomass = mean(log_biomass[age_at_survey == min(age_at_survey)], na.rm = TRUE))
 
-data_sp <- left_join(data_sp, mpa_baseline, by = c("affiliated_mpa", "site_type"))
+data_sp2 <- left_join(data_sp, mpa_baseline, by = c("affiliated_mpa", "site_type"))
 
-model_baseline <- lmer(log_biomass ~hard_bottom_50 * site_type + kelp_annual_50+ depth_mean_500 *site_type+
+std_model <- lmer(log_biomass ~ hard_bottom_50 * site_type + kelp_annual_50 + 
+                         depth_mean_250 +
+                         site_type * age_at_survey + 
+                         (1 | affiliated_mpa) + (1 | year), 
+                       data = data_sp2)
+
+baseline_model <- lmer(log_biomass ~ hard_bottom_50 * site_type + kelp_annual_50 + 
+                         depth_mean_250 +
                          site_type * age_at_survey + 
                          baseline_biomass * age_at_survey + 
                          (1 | affiliated_mpa) + (1 | year), 
-                       data = data_sp)
+                       data = data_sp2)
 
-summary(model_baseline)
-plot(model_baseline)
+summary(baseline_model)
 
-cor(data_sp[, c("baseline_biomass", "hard_bottom_250", "kelp_annual_250", "depth_mean_250", "depth_cv_250")], use = "pairwise.complete.obs")
+plot(baseline_model)
+cor(data_sp3[, c("baseline_biomass", "hard_bottom_250", "kelp_annual_250", "depth_mean_250", "depth_cv_250")], use = "pairwise.complete.obs")
 
-data_sp <- data_sp %>%
-  mutate(biomass_category = ifelse(baseline_biomass > median(baseline_biomass, na.rm = TRUE), "High (Baseline > Median)", "Low (Baseline < Median)"))
+data_sp3 <- data_sp2 %>%
+  mutate(biomass_category = ifelse(baseline_biomass > median(baseline_biomass, na.rm = TRUE), "High (Baseline > Median)", "Low (Baseline < Median)")) %>% 
+  mutate(age_at_survey = age_at_survey*attr(data_sp$age_at_survey, "scaled:scale") + attr(data_sp$age_at_survey, "scaled:center")) %>% 
+  mutate(baseline_cat = cut(baseline_biomass, breaks = quantile(baseline_biomass, probs = c(0, 0.33, 0.66, 1), na.rm = TRUE), 
+                            labels = c("Low", "Medium", "High"), include.lowest = TRUE))
 
-ggplot(data_sp, aes(x = age_at_survey, y = log_biomass, color = biomass_category)) +
+ggplot(data_sp3, aes(x = age_at_survey, y = exp(log_biomass), color = biomass_category, fill = biomass_category)) +
+  #geom_point(alpha = 0.2) + 
   geom_smooth(method = "lm") +
   theme_minimal() +
-  labs(x = "MPA Age",
-       y = "Log Biomass",
-       color = paste0("MPA Baseline Biomass")) + facet_wrap(~site_type)
+  labs(x = "MPA age",
+       y = "Biomass (kg per 100m2)",
+       color = "Baseline biomass",
+       fill = "Baseline biomass") + 
+  facet_wrap(~site_type)
 
 
-habitat500 <- lmer(log_biomass ~ hard_bottom_500 * site_type +
-                     kelp_annual_500 * site_type + 
-                     depth_mean_500 * site_type + depth_cv_500 * site_type + 
-                     site_type * age_at_survey + (1|region4/affiliated_mpa/site) + (1|year),
-                   data = data_sp)
+
 
 habitat500 <- lmer(log_biomass ~ hard_bottom_500 * site_type + 
                      kelp_annual_500 * site_type + 
                      depth_mean_500 * site_type + depth_cv_500 * site_type + 
-                site_type * age_at_survey + (1|region4/affiliated_mpa/site) + (1|year),
+                site_type * age_at_survey + (1|affiliated_mpa) + (1|year),
              data = data_sp)
 
 habitat250 <- lmer(log_biomass ~ hard_bottom_250 * site_type + 
                      kelp_annual_250 * site_type + 
                      depth_mean_250 * site_type + depth_cv_250 * site_type + 
-                     site_type * age_at_survey + (1|region4/affiliated_mpa/site) + (1|year),
+                     site_type * age_at_survey + (1|affiliated_mpa) + (1|year),
                    data = data_sp)
 
 habitat100 <- lmer(log_biomass ~ hard_bottom_100 * site_type + 
                      kelp_annual_100 * site_type + 
                      depth_mean_100 * site_type + depth_cv_100 * site_type + 
-                     site_type * age_at_survey + (1|region4/affiliated_mpa/site) + (1|year),
+                     site_type * age_at_survey + (1|affiliated_mpa) + (1|year),
                    data = data_sp)
 
 habitat50 <- lmer(log_biomass ~ hard_bottom_50 * site_type + 
                     kelp_annual_50 * site_type + 
                     depth_mean_50 * site_type + depth_cv_50 * site_type + 
-                     site_type * age_at_survey + (1|region4/affiliated_mpa/site) + (1|year),
+                     site_type * age_at_survey + (1|affiliated_mpa) + (1|year),
                    data = data_sp)
+
+habitat25 <- lmer(log_biomass ~ hard_bottom_25 * site_type + 
+                    kelp_annual_25 * site_type + 
+                    depth_mean_25 * site_type + depth_cv_25 * site_type + 
+                    site_type * age_at_survey + (1|affiliated_mpa) + (1|year),
+                  data = data_sp)
 
 habitat_refined <-  lmer(log_biomass ~ hard_bottom_100 * site_type + 
                            depth_mean_100*site_type +
                            site_type * age_at_survey + (1|affiliated_mpa) + (1|year), 
                          data = data_sp)
 
-summary(habitat500) # K, DM, STA
-summary(habitat250) # H, K, DM, STA
-summary(habitat100) # H*, DM*, STA, all individual
-summary(habitat50)
+summary(habitat500) # K, DM, ~STA      If drop site RE: +DCV*, -STA
+summary(habitat250) # K, DM, ~STA                       +DCV* +H*, -STA
+summary(habitat100) # K, DM, ~STA, H, ~H*               +DCV* +H*, - STA
+summary(habitat50)  # K, DM,  STA, H, H*                      +H*, -STA
+summary(habitat25)  # K, DM,  STA, H, H*                      +H*, -STA
 summary(habitat_refined)
-
-
-
 
 check_model(habitat100,residual_type = "simulated", check = c("ncv", "qq", "normality", "vif"))
 effects_list <- allEffects(habitat_refined, partial.residuals = T)
 
 effects_list <- allEffects(habitat100, partial.residuals = T)
 effects_list <- allEffects(base_model, partial.residuals = T)
-effects_list <- allEffects(model_baseline, xlevels = 100)
+effects_list <- allEffects(baseline_model, xlevels = 50, partial.residuals = T)
+effects_list <- allEffects(std_model, xlevels = 50, partial.residuals = T)
+
 
 effect_plots <- lapply(seq_along(effects_list), function(i) {
   effects_data <- as.data.frame(effects_list[[i]])
   x_var <- colnames(effects_data)[which(colnames(effects_data) != "site_type")[1]]
-  const <-  min(data3$kg_per_100m2[data3$kg_per_100m2 > 0])*10
+  const <-  min(data_sp$kg_per_100m2[data_sp$kg_per_100m2 > 0])
   
   # Reverse scaling if available
   center <- attr(data_sp[[x_var]], "scaled:center")
@@ -362,7 +340,7 @@ effect_plots <- lapply(seq_along(effects_list), function(i) {
     str_replace("cv", "CV") %>% 
     str_replace("\\d+", paste0(str_extract(., "\\d+"), "m"))
   
-  show_legend <- (i == length(effects_list))  # Show legend only on the last plot
+  show_legend <- (i == length(effects_list)-1)  # Show legend only on the last plot
   
   if (sum(str_detect(colnames(effects_data), "site_type")) > 0) {
     ggplot(effects_data, aes(x = !!sym(x_var))) +
@@ -371,6 +349,7 @@ effect_plots <- lapply(seq_along(effects_list), function(i) {
       geom_line(aes(y = exp(fit) - const, color = site_type), show.legend = show_legend, stat = "identity") +
       scale_color_manual(values = c("#7e67f8", "#e5188b")) +
       scale_fill_manual(values = c("#7e67f8", "#e5188b")) +
+      scale_y_continuous(limits = c(0, NA))+
       labs(x = x_var_label,
            y = "Biomass (kg per 100m2)",
            color = NULL, fill = NULL) +
@@ -386,11 +365,18 @@ effect_plots <- lapply(seq_along(effects_list), function(i) {
   
   ggplot(effects_baseline, aes(x = !!sym(x_var), y = exp(fit) - const)) +
     geom_ribbon(data = effects_baseline %>% filter(baseline_cat == "Low"), 
-                aes(ymin = exp(predict(loess(upper ~ age_at_survey))) - const, ymax = exp(predict(loess(lower~age_at_survey))) - const, fill = baseline_cat), stat = "identity", alpha = 0.2) +
+                aes(ymin = exp(predict(loess(upper ~ age_at_survey))) - const, 
+                    ymax = exp(predict(loess(lower~age_at_survey))) - const, 
+                    fill = baseline_cat), stat = "identity", alpha = 0.2) +
     geom_ribbon(data = effects_baseline %>% filter(baseline_cat == "Medium"), 
-                aes(ymin = exp(predict(loess(upper ~ age_at_survey))) - const, ymax = exp(predict(loess(lower~age_at_survey))) - const, fill = baseline_cat), stat = "identity", alpha = 0.2) +
+                aes(ymin = exp(predict(loess(upper ~ age_at_survey))) - const, 
+                    ymax = exp(predict(loess(lower~age_at_survey))) - const, 
+                    fill = baseline_cat), stat = "identity", alpha = 0.2) +
     geom_ribbon(data = effects_baseline %>% filter(baseline_cat == "High"), 
-                aes(ymin = exp(predict(loess(upper ~ age_at_survey))) - const, ymax = exp(predict(loess(lower~age_at_survey))) - const, fill = baseline_cat), stat = "identity", alpha = 0.2) +
+                aes(ymin = exp(predict(loess(upper ~ age_at_survey))) - const, 
+                    ymax = exp(predict(loess(lower~age_at_survey))) - const, 
+                    fill = baseline_cat), stat = "identity", alpha = 0.2) +
+    scale_y_continuous(limits = c(0, NA))+
     geom_smooth(aes(color = baseline_cat), se = F) +
     facet_wrap(~ baseline_cat) +
     labs(x = "Age at survey", y = "Biomass (kg per 100m2)", color = "Baseline Biomass Type", fill = "Baseline Biomass Type") +
@@ -404,6 +390,7 @@ effect_plots <- lapply(seq_along(effects_list), function(i) {
       geom_ribbon(aes(ymin = exp(lower)- const, ymax = exp(upper)- const), alpha = 0.2, show.legend = FALSE) +
       labs(x = x_var_label,
            y = "Biomass (kg per 100m2)")+
+      scale_y_continuous(limits = c(0, NA))+
       theme_minimal() +
       theme(axis.title.y = if (i != 1) element_blank() else element_text()) +
       my_theme

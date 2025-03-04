@@ -1,5 +1,5 @@
 species <- "targeted"
-path <- "analyses/7habitat/output/targeted/site-year"
+path <- "analyses/7habitat/output/drop-outliers/site-year"
 
 library(sf)
 library(sp)
@@ -14,15 +14,19 @@ library(spdep)
 sites <- readRDS(file.path("/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_2024", "site_locations_corrected.Rds")) %>% 
   dplyr::select(site, geometry)
 
-top_models <- readRDS(file.path(path, paste0(species, "_results.rds")))$models
+#top_models <- readRDS(file.path(path, paste0(species, "_results.rds")))$models
+top_models <- habitat250_rms
 
 # Load and merge data; data_sp must include spatial (geometry) and temporal (year) info
-data_sp <- readRDS(file.path(path, paste0(species, "_models.rds")))$data_sp %>% 
-  left_join(sites)
+# data_sp <- readRDS(file.path(path, paste0(species, "_models.rds")))$data_sp %>% 
+#   left_join(sites)
+
+data_sp <- data_sp %>% left_join(sites)
 
 # Convert to an sf object and add residuals and a time column
 data_sf <- st_as_sf(data_sp)
-data_sf$resid <- residuals(top_models$top)
+#data_sf$resid <- residuals(top_models$top)
+data_sf$resid <- residuals(top_models)
 data_sf$time <- as.POSIXct(paste0(data_sf$year, "-01-01"), tz = "UTC")
 
 # Aggregate residuals by site (replace 'site_id' with your unique site identifier)
@@ -45,6 +49,8 @@ spline_cor <- spline.correlog(x = coords[,1],
 plot(spline_cor, main = "Spline Correlogram of Model Residuals",
      xlab = "Distance (m)", ylab = "Spatial Correlation")
 
+summary(spline_cor)
+
 # Calculae moran's I
 # Create a nearest-neighbor list (using k = 5, adjust k if needed)
 nb <- knn2nb(knearneigh(coords, k = 5))
@@ -56,7 +62,6 @@ lw <- nb2listw(nb, style = "W")
 moran_result <- moran.test(data_site$avg_resid, lw)
 print(moran_result)
 
-
 # Using the neighbor list 'lw' from your previous analysis:
 localMI <- localmoran(data_site$avg_resid, lw)
 
@@ -67,7 +72,8 @@ data_site$adj_p <- p.adjust(data_site$pvalue, method = "BH")
 # FDR (Benjamini–Hochberg) is often preferred because it’s less conservative than Bonferroni when you have many tests (e.g., 138 sites).
 
 data_plot <- data_site %>% 
-  left_join(data_sp %>% distinct(site, affiliated_mpa, region4, site_type))
+  left_join(data_sp %>% ungroup() %>% distinct(site, affiliated_mpa, region4, site_type)) %>% 
+  mutate(adj_p = round(adj_p, 4))
 
 
 # Plot local Moran's I to visualize hotspots
@@ -76,11 +82,18 @@ ggplot(data_plot %>% filter(adj_p < 0.05)) +
   scale_fill_viridis_c() +
   labs(title = "Local Moran's I", fill = "Local I") + facet_wrap(~region4)
 
+ggplot(data = data_plot %>% filter(affiliated_mpa == "piedras blancas smr")) + geom_sf(aes(geometry = geometry, fill = adj_p))
+
+
+
 
 # Consider removing Point Dume SMCA:
-data_adj <- data_sp %>% filter(!affiliated_mpa == "point dume smca")
+data_adj <- data_sp %>% 
+  #filter(!affiliated_mpa == "point dume smca")
+  filter(!site %in% c("BL26", "BL31", "BL30", "BL44")) # "BL34"
 
 m <- top_models$top
+m <- habitat250_rms
 
 m2 <- update(m, data = data_adj)
 
@@ -132,7 +145,7 @@ data_site$adj_p <- p.adjust(data_site$pvalue, method = "BH")
 # FDR (Benjamini–Hochberg) is often preferred because it’s less conservative than Bonferroni when you have many tests (e.g., 138 sites).
 
 data_plot <- data_site %>% 
-  left_join(data_sp %>% distinct(site, affiliated_mpa, region4, site_type))
+  left_join(data_sp %>% ungroup() %>%  distinct(site, affiliated_mpa, region4, site_type))
 
 
 # Plot local Moran's I to visualize hotspots

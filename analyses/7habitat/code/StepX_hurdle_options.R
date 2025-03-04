@@ -128,15 +128,16 @@ data_sp$zero <- ifelse(data_sp$count_per_100m2 == 0, 0, 1)
 
 # Subset the data for positive counts only
 data_positive <- subset(data_sp, count_per_100m2 > 0) %>% 
-  mutate(log_count_per_100m2 = log(count_per_100m2))
+  mutate(log_count_per_100m2 = log(count_per_100m2)) %>% 
+  filter(count < 3000)
 
 # Define Modata_sp# Define Model ----------------------------------------------------------
 
 response <- "count_per_100m2"
-predictors_zero  <- "hard_bottom_250 * site_type + site_type * age_at_survey"
-predictors_count <- "hard_bottom_250 * site_type + depth_mean_250 * site_type + depth_cv_250 * site_type + site_type * age_at_survey"
+predictors_zero  <- "hard_bottom_100 * site_type + kelp_annual_100 * site_type + depth_mean_100 * site_type + depth_cv_100 * site_type + site_type * age_at_survey"
+predictors_count <- "hard_bottom_100 * site_type + kelp_annual_100 * site_type + depth_mean_100 * site_type + depth_cv_100 * site_type + site_type * age_at_survey"
 
-random_effects <- c("affiliated_mpa", "region4", "year")
+random_effects <- c("region4/affiliated_mpa/site", "year")
 
 form.zero  <- as.formula(paste("zero", "~", predictors_zero, "+", paste0("(1 | ", random_effects, ")", collapse = " + ")))
 form.count <- as.formula(paste(response, "~", predictors_count, "+", paste0("(1 | ", random_effects, ")", collapse = " + ")))
@@ -144,16 +145,41 @@ form.zi    <- as.formula(paste("~", predictors_zero, "+", paste0("(1 | ", random
 form.log   <- as.formula(paste("log_count_per_100m2", "~", predictors_count, "+", paste0("(1 | ", random_effects, ")", collapse = " + ")))
 
 # Fit the binary logistic regression (zero vs. positive)
-logit_model <- glmer(formula = form.zero,
+logit_model <- glmer(formula = zero ~ hard_bottom_100 * site_type + 
+                       kelp_annual_100 * site_type + 
+                       depth_mean_100 * site_type + 
+                       depth_cv_100 * site_type + 
+                       site_type * age_at_survey + (1|region4/affiliated_mpa/site) + (1|year),
                      data = data_sp,
-                     family = binomial, control = glmerControl(optimizer = "bobyqa"))
+                     family = binomial, 
+                     control = glmerControl(optimizer = "bobyqa"))
 
 # Fit the count model on the positive counts (using negative binomial)
-count_model <- glmmTMB(form.count, data = data_positive, family = nbinom2)
-gamma_model <- glmmTMB(form.count, data = data_positive, family = Gamma(link = "log"), na.action = na.pass)
+nbinom_model <- glmmTMB(count_per_100m2 ~ hard_bottom_500 * site_type + 
+                         kelp_annual_250  + 
+                         depth_mean_50 + 
+                         depth_cv_100 * site_type + 
+                         site_type * age_at_survey + (1|affiliated_mpa) + (1|year),
+                       data = data_positive, 
+                       family = nbinom2)
+summary(nbinom_model)
+
+gamma_model <- glmmTMB(count_per_100m2 ~ hard_bottom_500 * site_type + 
+                         kelp_annual_250  + 
+                         depth_mean_50 + 
+                         depth_cv_100 * site_type + 
+                         site_type * age_at_survey + (1|affiliated_mpa) + (1|year),
+                       data = data_positive, 
+                       family = Gamma(link = "log"))
+summary(gamma_model)
+
+plot(allEffects(gamma_model))
 
 # Fit the zero-inflated hurdle model
-zi_model <- glmmTMB(form.count, ziformula = form.zi, data = data_sp, family = nbinom2(link = "log"), na.action = na.pass)
+zi_model <- glmmTMB(form.count, 
+                    ziformula = form.zi, 
+                    data = data_sp, 
+                    family = nbinom2(link = "log"))
 
 summary(logit_model)
 summary(count_model)
@@ -163,6 +189,8 @@ summary(gamma_model)
 check_model(logit_model)
 check_model(count_model)
 check_model(gamma_model)
+check_model(nbinom_model)
+
 check_model(zi_model)
 check_model(log_model, residual_type = "simulated", check = c("ncv", "qq", "normality", "vif"))
 
@@ -171,9 +199,24 @@ plot(allEffects(count_model, partial.residuals = T),confint = T)
 plot(allEffects(logit_model, partial.residuals = T), confint = T)
 plot(allEffects(gamma_model, partial.residuals = T), confint = T)
 
+library(DHARMa)
 plot(simulateResiduals(gamma_model))
 plot(simulateResiduals(zi_model))
 plot(simulateResiduals(count_model))
+plot(simulateResiduals(nbinom_model))
+
+
+sim_out <- simulateResiduals(nbinom_model)
+plot(sim_out)
+
+par(mfrow = c(2,3))
+plotResiduals(sim_out, data_positive$site_type)
+plotResiduals(sim_out, data_positive$kelp_annual_250)
+plotResiduals(sim_out, data_positive$depth_mean_50)
+plotResiduals(sim_out, data_positive$depth_cv_100)
+plotResiduals(sim_out, data_positive$age_at_survey)
+plotResiduals(sim_out, data_positive$hard_bottom_500)
+
 
 data_sp$fitted <- fitted(zi_model)
 data_sp$residuals <- residuals(zi_model)
