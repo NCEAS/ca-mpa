@@ -56,8 +56,8 @@ kelp_predictors <- data_kelp %>%
   mutate(scale = sub("_", "", str_sub(predictor, -3, -1)),
          pred_group = case_when(str_detect(predictor, "0_30m|30_100m|100_200m|200m") ~ "depth",
                                 str_detect(predictor, "kelp|depth") ~ "all",
-                                T ~ "combined")) #%>% 
-  #filter(!scale == "25") # drop due to poor distribution
+                                T ~ "combined"))# %>% 
+#  filter(!scale == "25") # drop due to poor distribution
 
 rock_predictors <- data_rock %>%
   dplyr::select(year, site, site_type, bioregion, where(~ max(., na.rm = T) > 0)) %>%
@@ -351,13 +351,13 @@ get_2way_list <- function(predictors_df){
                 stringsAsFactors = FALSE) %>% 
     mutate(hard_scale  = str_extract(hard, "\\d+"),
            kelp_scale  = str_extract(kelp, "\\d+"),
-           depth_scale = str_extract(depth, "\\d+") #,
-          # depth_scale2 = str_extract_all(depth, "\\d+") %>% map_chr(~ .x[2] %||% NA)
+           depth_scale = str_extract(depth, "\\d+"),
+           depth_scale2 = str_extract_all(depth, "\\d+") %>% map_chr(~ .x[2] %||% NA)
           ) %>% 
     mutate(base_terms = "site_type * age_at_survey") %>% 
     unite("predictors", c(hard, kelp, depth, base_terms), sep = " + ", na.rm = TRUE, remove = FALSE) %>% 
     mutate(type = case_when(hard_scale == kelp_scale & kelp_scale == depth_scale & 
-                              str_detect(hard, "site") & str_detect(kelp, "site") & str_count(depth, "site") == 1 ~ "core",
+                              str_detect(hard, "site") & str_detect(kelp, "site") & str_count(depth, "site") == 2 ~ "core",
                             predictors == "site_type * age_at_survey" ~ "base",
                             T~NA)) %>% 
     mutate(model_id = 
