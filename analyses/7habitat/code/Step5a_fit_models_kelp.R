@@ -26,12 +26,133 @@ ltm.dir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_
 pred_kelp <- readRDS(file.path("analyses/7habitat/intermediate_data/kelp_predictors.Rds")) %>% filter(pred_group %in% c("all", "combined"))
 pred_kelp_2way <- readRDS(file.path("analyses/7habitat/intermediate_data/kelp_predictors_2way.Rds"))
 
+pred_kelp_2way_drop25 <- pred_kelp_2way %>% 
+  filter(!(str_detect(model_id, "H25") & !str_detect(model_id, "H250"))) %>% 
+  filter(!(str_detect(model_id, "K25") & !str_detect(model_id, "K250"))) %>% 
+  filter(!(str_detect(model_id, "DM25") & !str_detect(model_id, "DM250"))) %>% 
+  filter(!(str_detect(model_id, "DCV25") & !str_detect(model_id, "DCV250")))
+
 # Define subset for modeling (reduced number of columns)
 data_kelp_subset <- readRDS(file.path(ltm.dir, "combine_tables/kelp_full.Rds")) %>% 
   mutate(site_type = factor(site_type, levels = c("Reference", "MPA"))) %>% 
   dplyr::select(year:affiliated_mpa, size_km2, age_at_survey,
                 species_code:target_status, assemblage_new, weight_kg:count_per_m2, 
-                all_of(pred_kelp$predictor))
+                all_of(pred_kelp$predictor)) %>% 
+ # filter(!affiliated_mpa == "point dume smca") %>% # remove - spatial autocorrelation in residuals
+  mutate(kg_per_100m2 = kg_per_m2*100,
+         count_per_100m2 = count_per_m2*100)
+
+
+# Fit assemblage models ---------
+
+# Plan for parallel execution
+group_list <- c("targeted", "nontargeted")
+num_cores <- min(length(group_list), detectCores()/3)  
+plan(multisession, workers = num_cores)
+
+run_model <- function(focal_group){
+  fit_habitat_models(
+    type = "target_status",
+    focal_group = focal_group,
+    predictors_df = pred_kelp_2way,
+    random_effects = c("affiliated_mpa/site", "year"),
+    data = data_kelp_subset,
+    regions = c("North", "Central", "N. Channel Islands", "South"),
+    path = "analyses/7habitat/output/drop-outliers/nested.ms"
+  )
+  
+}
+
+# Run models in parallel
+future_walk(group_list, run_model)
+
+
+
+# Explore random effects structure ----
+## 1. Fit the maximal and base models to explore the random effects structure. 
+##    -- Nested region/mpa/site had several models that DNC and zero variance for region
+##    -- Nested mpa/site 
+fit_habitat_models(
+  type = "target_status",
+  focal_group = "targeted",
+  predictors_df = pred_kelp_2way,
+  random_effects = c("region4/affiliated_mpa/site", "year"),
+  data = data_kelp_subset,
+  regions = c("North", "Central", "N. Channel Islands", "South"),
+  path = "analyses/7habitat/output/test"
+)
+
+
+## Region had zero variance, after dropping p > 0.05 so examine: mpa/site + year 
+
+# fit_habitat_models(
+#   type = "target_status",
+#   focal_group = "targeted",
+#   predictors_df = pred_kelp_2way_drop25,
+#   random_effects = c("affiliated_mpa/site", "year"),
+#   data = data_kelp_subset,
+#   regions = c("North", "Central", "N. Channel Islands", "South"),
+#   path = "analyses/7habitat/output/targeted/extreme-sites_dropped/nested.mpa.site-year"
+# )
+
+# MPA had very low variance (nearly zero or zero for many models) after
+# accounting for the RE for site, which makes sense, examine: site + year 
+# fit_habitat_models(
+#   type = "target_status",
+#   focal_group = "targeted",
+#   predictors_df = pred_kelp_2way_drop25, 
+#   random_effects = c("site", "year"),
+#   data = data_kelp_subset,
+#   regions = c("North", "Central", "N. Channel Islands", "South"),
+#   path = "analyses/7habitat/output/targeted/extreme-sites_dropped/site-year"
+# )
+
+# Some concerns that site is soaking up too much of the habitat variation
+# so run one that's just MPA + year to compare the key habitat variables
+# fit_habitat_models(
+#   type = "target_status",
+#   focal_group = "targeted",
+#   response = "log_c_biomass",
+#   predictors_df = pred_kelp_2way_drop25,
+#   random_effects = c("affiliated_mpa", "year"),
+#   data = data_kelp_subset,
+#   regions = c("North", "Central", "N. Channel Islands", "South"),
+#   path = "analyses/7habitat/output/targeted/extreme-sites_dropped/mpa-year"
+# )
+
+## Explore including the 25m scales, no sites removed ----
+# fit_habitat_models(
+#   type = "target_status",
+#   focal_group = "targeted",
+#   predictors_df = pred_kelp_2way,
+#   random_effects = c("site", "year"),
+#   data = data_kelp_subset,
+#   regions = c("North", "Central", "N. Channel Islands", "South"),
+#   path = "analyses/7habitat/output/targeted/extreme-sites-included/site-year-with25"
+# )
+# 
+# fit_habitat_models(
+#   type = "target_status",
+#   focal_group = "targeted",
+#   predictors_df = pred_kelp_2way,
+#   random_effects = c("affiliated_mpa", "year"),
+#   data = data_sp,
+#   regions = c("North", "Central", "N. Channel Islands", "South"),
+#   path = "analyses/7habitat/output/targeted/extreme-sites-included/mpa-year-with25"
+# )
+
+## Explore 
+
+
+
+
+
+
+
+
+# Legacy explorations include:
+# mpa-region-year: affiliated mpa + region4 + year 
+
 
 # Define Kelp Species Lists --------------------------------------------------------------------------
 # Bioregion version
@@ -108,7 +229,7 @@ run_model <- function(species) {
                     if (species %in% kelp_cci) c("Central", "N. Channel Islands") else
                       if (species %in% kelp_scci) c("South", "Central", "N. Channel Islands") else
                         if (species %in% kelp_ncci) c("North", "Central", "N. Channel Islands") else
-                stop("Species not found in any region group")
+                          stop("Species not found in any region group")
   
   random_effects <- if(length(region) > 1) c("year", "region4", "affiliated_mpa") else c("year", "affiliated_mpa")
   
@@ -141,6 +262,8 @@ future_walk(species_list, run_model)
 #   rmre: removes the random effect for MPA (still keeps region and year) b/c soaks up lots of variability
 #   -reduced: drop sites with outliers in static habitat vars and drop sites where species infrequently observed (< 10% of years)
 #   -rescaled: adjust scaling so static vars are scaled to site-level means and kelp is scaled within each year
+
+
 
 
 
