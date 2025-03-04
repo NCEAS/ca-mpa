@@ -38,8 +38,8 @@ source("analyses/7habitat/code/Step0_helper_functions.R")  # Load the function f
 # Analyze Focal Models: 2-way version -------------------------------------------
 
 species <- "targeted"
-habitat <- "kelp"
-path <- "analyses/7habitat/output/targeted/mpa-year"
+habitat <- "rock"
+path <- "analyses/7habitat/output/keep-outliers/nested.rm-year"
 
 analyze_models_2way <- function(species, path, habitat){
   print(paste("Species:", species))
@@ -218,36 +218,17 @@ analyze_models_2way <- function(species, path, habitat){
 # Run          -----------------------------------------------------------------
 
 # Kelp forest 
-habitat <- "kelp"
-path <- "analyses/7habitat/output/2way-4region/kelp-reduced"
-
-analyze_models_2way("targeted", path = "analyses/7habitat/output/targeted/site-year", habitat = "kelp")
-
-data_sp$fitted <- fitted(m)
-data_sp$residuals <- residuals(m)
-
-ggplot(data_sp, aes(x = fitted, y = residuals, color = region4)) + 
-  geom_point(alpha = 0.6) +
-  geom_hline(yintercept = 0, linetype = "dashed", color = "black") +
-  theme_minimal() +
-  labs(x = "Fitted Values", y = "Residuals")
-
-test_eff <- allEffects(data$models$`H50*ST+K500+DM25*ST+ST*A`, data = data$data_sp, xlevels = 50, partial.residuals = TRUE)
-test_eff <- allEffects(data$models$`H250*ST+K250*ST+DM250*ST+ST*A`, data = data$data_sp, xlevels = 50, partial.residuals = TRUE)
-
-plot(test_eff)
-plot(effects_list_top, residuals.pch = 19, residuals.cex = 0.2)
-
-list.files(path = path, pattern = ".rds") %>%
-  str_remove_all(., "_models.rds|_results.rds") %>%
-  as.data.frame() %>% unique() %>% 
-  filter(!. %in% c("AFLA", "SNEB")) %>% 
-  pull(.) %>%
-  walk(., ~analyze_models_2way(.x, path = path, habitat = "kelp"))
-
-
+analyze_models_2way("targeted", path = "analyses/7habitat/output/drop-outliers/site-year", habitat = "kelp")
+analyze_models_2way("nontargeted", path = "analyses/7habitat/output/drop-outliers/site-year", habitat = "kelp")
+analyze_models_2way("targeted", path = "analyses/7habitat/output/drop-outliers/mpa-year", habitat = "kelp")
+analyze_models_2way("nontargeted", path = "analyses/7habitat/output/drop-outliers/mpa-year", habitat = "kelp")
+analyze_models_2way("targeted", path = "analyses/7habitat/output/drop-outliers/nested.ms", habitat = "kelp")
+analyze_models_2way("nontargeted", path = "analyses/7habitat/output/drop-outliers/nested.ms", habitat = "kelp")
 
 # Rocky reef 
+analyze_models_2way("nontargeted", path = "analyses/7habitat/output/keep-outliers/nested.rms-year", habitat = "rock")
+analyze_models_2way("targeted", path = "analyses/7habitat/output/keep-outliers/nested.rms-year", habitat = "rock")
+
 # path <- "analyses/7habitat/output/2way/rock"
 # 
 # list.files(path = path, pattern = ".rds") %>%
