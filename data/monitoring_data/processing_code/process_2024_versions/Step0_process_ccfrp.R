@@ -35,7 +35,7 @@ outdir <-  "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_
 # All caught fishes and associated drift_id
 ccfrp_caught_fishes <- read_csv(file.path(datadir, "4-Caught Fishes.csv"), na = c("")) %>% 
   clean_names() %>% 
-  dplyr::select(drift_id, species_code, length_cm)
+  dplyr::select(drift_id, species_code, fork_length_mm, total_length_mm, length_cm)
 
 # Site and effort for each drift (effort = angler hours)
 ccfrp_drift <- read_csv(file.path(datadir, "3-Drift Information.csv")) %>% 
@@ -115,9 +115,8 @@ data <- ccfrp_caught_fishes %>%
          drift_id, id_cell_per_trip, grid_cell_id, # sample
          total_angler_hrs, species_code, sciname, 
          class, order, family, 
-         genus, species, tl_cm = length_cm, # data
+         genus, species, tl_cm = length_cm, fork_length_mm, total_length_mm, # data
          target_status, level, excluded_drift_comment, drift_time_hrs, total_fishes_caught) # extra
-
 
 # Per instructions on DataONE, exclude certain drifts and cells
 # See pages 2 and 3 for more info: 
@@ -179,10 +178,16 @@ desig_match <- data3 %>% # this should be zero after correcting SP14 and BH07 ea
   pivot_wider(names_from = mpa_defacto_designation, values_from = years)%>%
   filter(map_lgl(smr, ~ !is.null(.)) & map_lgl(ref, ~ !is.null(.)))
 
+# Fix lengths from 2023 - changed to mm instead of cm, and have FL vs TL
+data4 <- data3 %>% 
+  mutate(sl_cm = fork_length_mm/10,
+         total_length_cm = total_length_mm/10,
+         tl_cm = coalesce(tl_cm, total_length_cm)) %>% 
+  dplyr::select(year:tl_cm, sl_cm, target_status:count)
 
 # Write to csv ---------------------------------------------------------------------------------------
-write.csv(data3, file.path(outdir, "ccfrp_processed.2024.csv"), row.names = F)
-# last write 5 Dec 2024
+write.csv(data4, file.path(outdir, "ccfrp_processed.2024.csv"), row.names = F)
+# last write 2 Mar 2025
 
 
 # Explore potential remaining concerns ---------------------------------------------------------------

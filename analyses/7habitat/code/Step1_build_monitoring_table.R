@@ -233,12 +233,12 @@ rock_complete <- rock_effort %>%
 ## Deep ----
 deep_effort <- deep_orig %>%
   # Identify distinct transects that have location information - 1532
-  distinct(year, bioregion, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation, dive, transect_id, transect_id_desig, area_m2) %>% 
+  distinct(year, bioregion, region4, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation, dive, transect_id, transect_id_desig, area_m2) %>% 
   # Join MPA metadata (region, implementation year)
   left_join(mpas %>% dplyr::select(affiliated_mpa, implementation_year, size_km2)) 
 
 deep <- deep_orig %>%
-  group_by(year, bioregion, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation,dive, transect_id, transect_id_desig, area_m2, species_code) %>%
+  group_by(year, bioregion, region4, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation,dive, transect_id, transect_id_desig, area_m2, species_code) %>%
   # Biomass and count for each species on each transect
   dplyr::summarize(biomass_kg = sum(weight_kg),
                    count = sum(count), .groups = 'drop') %>% # 9961
@@ -268,7 +268,7 @@ deep_complete <- deep_effort %>%
                                     sciname == "Sebastes miniatus" ~ "Hard Bottom", 
                                     T~assemblage_new)) %>% 
   dplyr::select(year, site = transect_id_desig, site_type, dive,
-                bioregion, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation, implementation_year, size_km2,
+                bioregion, region4, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation, implementation_year, size_km2,
                 age_at_survey, species_code, sciname, genus, target_status, assemblage, assemblage_new,
                 biomass_kg, count, kg_per_m2, count_per_m2)
 
@@ -286,7 +286,7 @@ saveRDS(deep_effort, file.path(ltm.dir, "update_2024/deep_site_year_effort.Rds")
 saveRDS(kelp_complete, file.path(ltm.dir, "update_2024/kelp_biomass_complete.Rds")) # last write Feb 21 2025
 saveRDS(rock_complete, file.path(ltm.dir, "update_2024/rock_biomass_complete.Rds")) # last write Feb 21 2025
 saveRDS(surf_complete, file.path(ltm.dir, "update_2024/surf_biomass_complete.Rds")) # last write Feb 21 2025
-saveRDS(deep_complete, file.path(ltm.dir, "update_2024/deep_biomass_complete.Rds")) # last write Feb 21 2025
+saveRDS(deep_complete, file.path(ltm.dir, "update_2024/deep_biomass_complete.Rds")) # last write 3 Mar 2025
 
 # Clean Subsets -----------------------------------------------------------------------------
 
@@ -425,7 +425,7 @@ surf_subset <- surf_complete %>%
 ## Deep ----
 deep_sites <- deep_complete %>%
   # Identify distinct site-year combinations (site is a transect)
-  distinct(year, site, site_type, bioregion, affiliated_mpa, mpa_defacto_class, implementation_year, size_km2) %>%
+  distinct(year, site, site_type, dive, bioregion, affiliated_mpa, mpa_defacto_class, implementation_year, size_km2) %>%
   mutate(before = if_else(year < implementation_year, 1, 0), # only point lobos visited once before
          after = if_else(year >= implementation_year, 1, 0),
          total = before + after) 
@@ -437,7 +437,7 @@ deep_mpas <- deep_sites %>%
   pivot_wider(names_from = site_type, values_from = n_total) %>%
   filter(!is.na(Reference)) %>%
   filter(!is.na(MPA)) %>%
-  filter(MPA > 5 & Reference > 5) %>% 
+  filter(MPA > 4 & Reference > 4) %>% # Changed from 5 to 4 so...
   filter(mpa_defacto_class == "smr") # 16 MPAs
 
 deep_subset <- deep_complete %>% 
@@ -447,12 +447,26 @@ deep_subset <- deep_complete %>%
   left_join(deep_sites) %>% 
   mutate(log_kg_per_m2 = log(kg_per_m2 + 1))
 
+# Consolidate so each site is a dive associated with a particular year and MPA/REF status
+deep_subset2 <- deep_subset %>% 
+  mutate(year_dive_type = paste(year, dive, site_type, sep = "-")) %>% 
+  group_by(year, year_dive_type, site_type, bioregion, region4, affiliated_mpa, mpa_defacto_class,
+           mpa_defacto_designation, implementation_year, size_km2, age_at_survey, species_code, sciname, genus,
+           target_status, assemblage, assemblage_new) %>% 
+  summarize(biomass_kg = sum(biomass_kg),
+            count = sum(count),
+            kg_per_m2 = sum(kg_per_m2)/n(),
+            count_per_m2 = sum(count_per_m2)/n(), .groups = 'drop')
+
+deep_subset3 <- deep_subset2 %>% 
+  rename(site = year_dive_type)
+
 
 
 saveRDS(kelp_subset, file.path(ltm.dir, "update_2024/kelp_biomass_subset.Rds")) # last write Feb 21 2025
 saveRDS(rock_subset, file.path(ltm.dir, "update_2024/rock_biomass_subset.Rds")) # last write Feb 21 2025
 saveRDS(surf_subset, file.path(ltm.dir, "update_2024/surf_biomass_subset.Rds")) # last write Feb 21 2025
-saveRDS(deep_subset, file.path(ltm.dir, "update_2024/deep_biomass_subset.Rds")) # last write Feb 21 2025
+saveRDS(deep_subset3, file.path(ltm.dir, "update_2024/deep_biomass_subset.Rds")) # last write Feb 21 2025
 
 
 
