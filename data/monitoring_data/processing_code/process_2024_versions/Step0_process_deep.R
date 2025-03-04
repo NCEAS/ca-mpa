@@ -350,7 +350,7 @@ deep_transects <- data4 %>%
 
 data5 <- data4 %>% 
   left_join(deep_transects) %>% 
-  dplyr::select(year, bioregion, affiliated_mpa:sl_cm, sciname:avg_lon) %>% 
+  dplyr::select(year, bioregion, region4, affiliated_mpa:sl_cm, sciname:avg_lon) %>% 
   # Drop transects without location data (will be removed from data below)
   filter(!is.na(avg_lat))
 
