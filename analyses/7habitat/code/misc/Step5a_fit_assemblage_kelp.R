@@ -22,6 +22,12 @@ ltm.dir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_
 pred_kelp <- readRDS(file.path("analyses/7habitat/intermediate_data/kelp_predictors.Rds")) %>% filter(pred_group %in% c("all", "combined"))
 pred_kelp_2way <- readRDS(file.path("analyses/7habitat/intermediate_data/kelp_predictors_2way.Rds"))
 
+pred_kelp_2way_drop25 <- pred_kelp_2way %>% 
+  filter(!(str_detect(model_id, "H25") & !str_detect(model_id, "H250"))) %>% 
+  filter(!(str_detect(model_id, "K25") & !str_detect(model_id, "K250"))) %>% 
+  filter(!(str_detect(model_id, "DM25") & !str_detect(model_id, "DM250"))) %>% 
+  filter(!(str_detect(model_id, "DCV25") & !str_detect(model_id, "DCV250")))
+
 # Prep Data -----
 
 # Load data and relevant variables
@@ -95,7 +101,7 @@ data3 <- data2 %>%
 # Save final output for the model
 data_sp <- data3 
 
-rm(list = setdiff(ls(), c("data_sp", "pred_kelp_2way")))
+rm(list = setdiff(ls(), c("data_sp", "pred_kelp_2way", "pred_kelp_2way_drop25")))
 
 refine_habitat <- function(species, response, predictors_df, random_effects, data, regions, path) {
   
@@ -208,11 +214,11 @@ refine_habitat <- function(species, response, predictors_df, random_effects, dat
 # refine_habitat(
 #   species = "targeted",
 #   response = "log_c_biomass",
-#   predictors_df = pred_kelp_2way, 
+#   predictors_df = pred_kelp_2way_drop25, 
 #   random_effects = c("affiliated_mpa/site", "year"),
 #   data = data_sp,
 #   regions = c("North", "Central", "N. Channel Islands", "South"),
-#   path = "analyses/7habitat/output/targeted/nested.mpa.site-year" 
+#   path = "analyses/7habitat/output/targeted/extreme-sites_dropped/nested.mpa.site-year" 
 # )
 
 # MPA had very low variance (nearly zero or zero for many models) after
@@ -220,15 +226,36 @@ refine_habitat <- function(species, response, predictors_df, random_effects, dat
 # refine_habitat(
 #   species = "targeted",
 #   response = "log_c_biomass",
-#   predictors_df = pred_kelp_2way, 
+#   predictors_df = pred_kelp_2way_drop25, 
 #   random_effects = c("site", "year"),
 #   data = data_sp,
 #   regions = c("North", "Central", "N. Channel Islands", "South"),
-#   path = "analyses/7habitat/output/targeted/site-year"
+#   path = "analyses/7habitat/output/targeted/extreme-sites_dropped/site-year"
 # )
 
 # Some concerns that site is soaking up too much of the habitat variation
 # so run one that's just MPA + year to compare the key habitat variables
+# refine_habitat(
+#   species = "targeted",
+#   response = "log_c_biomass",
+#   predictors_df = pred_kelp_2way_drop25,
+#   random_effects = c("affiliated_mpa", "year"),
+#   data = data_sp,
+#   regions = c("North", "Central", "N. Channel Islands", "South"),
+#   path = "analyses/7habitat/output/targeted/extreme-sites_dropped/mpa-year"
+# )
+
+# Want to see what 25m scale does, so re-run the site and MPA models to see
+refine_habitat(
+  species = "targeted",
+  response = "log_c_biomass",
+  predictors_df = pred_kelp_2way,
+  random_effects = c("site", "year"),
+  data = data_sp,
+  regions = c("North", "Central", "N. Channel Islands", "South"),
+  path = "analyses/7habitat/output/targeted/extreme-sites-dropped/site-year-with25"
+)
+
 refine_habitat(
   species = "targeted",
   response = "log_c_biomass",
@@ -236,9 +263,8 @@ refine_habitat(
   random_effects = c("affiliated_mpa", "year"),
   data = data_sp,
   regions = c("North", "Central", "N. Channel Islands", "South"),
-  path = "analyses/7habitat/output/targeted/mpa-year"
+  path = "analyses/7habitat/output/targeted/extreme-sites-dropped/mpa-year-with25"
 )
-
 
 # Legacy explorations include:
 # mpa-region-year: affiliated mpa + region4 + year 
