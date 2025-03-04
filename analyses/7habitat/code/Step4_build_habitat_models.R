@@ -18,24 +18,42 @@
 # library(tidymodels)
 # library(lmerTest)
 
+# Testing:
+# type = "target_status"
+# focal_group = "targeted"
+# biomass_variable = "weight_kg"
+# predictors_df = head(pred_rock_2way, 25)
+# random_effects = c("affiliated_mpa", "year")
+# data = data_rock
+# regions = c("North", "Central", "N. Channel Islands", "South")
+# path = "analyses/7habitat/output/targeted/test"
 
-refine_habitat <- function(species, response, predictors_df, random_effects, data, regions, path) {
-  print(paste("Starting species: ", species))
+fit_habitat_models <- function(type, focal_group, biomass_variable, predictors_df, random_effects, data, regions, path) {
+  
+  print(paste("Starting: ", focal_group))
   
   ## 1. Process Data -----------------------------------------------------------------------------
-  # Filter to the species and regions of interest, convert RE to factors
+  
+  # Filter to the groups interest, convert RE to factors
+  if (type == "species") {
   data1 <- data %>%
-    filter(species_code == species) %>% 
-    filter(region4 %in% regions) %>% 
-    mutate(year = as.factor(year),
-           bioregion = as.factor(bioregion),
-           region4 = as.factor(region4),
-           affiliated_mpa = as.factor(affiliated_mpa))
+    filter(species_code == focal_group) %>% 
+    filter(region4 %in% regions) 
+  
+  } else if (type == "target_status") {
+    data1 <- data %>%
+      group_by(year, site, site_type, bioregion, region4, affiliated_mpa, age_at_survey,
+               target_status, across(matches("^hard|soft|depth|kelp"))) %>%
+      summarize(biomass = sum(!!sym(biomass_variable), na.rm = T), .groups = 'drop') %>%
+      filter(target_status == str_to_sentence(focal_group))
+  } else {
+    stop("Focal group not specified.")
+  }
   
   # Identify sites where species are infrequently observed
   zero_site <- data1 %>%
     group_by(site) %>% 
-    summarize(prop_zero = mean(kg_per_m2 == 0)) %>% 
+    summarize(prop_zero = mean(biomass == 0)) %>% 
     filter(prop_zero > 0.9) # drop sites where observed < 10% of years
     
   # Check MPA/Ref balance of remaining sites 
@@ -49,7 +67,11 @@ refine_habitat <- function(species, response, predictors_df, random_effects, dat
   
   data2 <- data1 %>% 
     filter(!site %in% zero_site$site) %>% 
-    filter(!affiliated_mpa %in% zero_site_balance$affiliated_mpa)
+    filter(!affiliated_mpa %in% zero_site_balance$affiliated_mpa) %>% 
+    mutate(year = as.factor(year),
+           bioregion = as.factor(bioregion),
+           region4 = as.factor(region4),
+           affiliated_mpa = as.factor(affiliated_mpa))
   
   # Scale the static variables at the site-level (e.g. don't weight based on obs. frequency)
   site_static <- data2 %>% 
@@ -72,41 +94,31 @@ refine_habitat <- function(species, response, predictors_df, random_effects, dat
     filter(is.na(MPA) | is.na(Reference))
   
   data3 <- data2 %>%
-    filter(!site %in% extreme_site$site) %>% 
-    filter(!affiliated_mpa %in% extreme_site_balance$affiliated_mpa) %>% 
+    #filter(!site %in% extreme_site$site) %>% 
+    #filter(!affiliated_mpa %in% extreme_site_balance$affiliated_mpa) %>% 
     # Drop un-scaled static variables
     dplyr::select(!c(grep("^hard|soft|depth", names(.), value = TRUE))) %>% 
     # Join the scaled static variables
     left_join(site_static, by = "site") %>% 
     # Scale age
-    mutate_at(vars(grep("^age", names(.), value = TRUE)), scale)
-  
-  # Scale the kelp within each year (so it's relative to the annual average instead of across all years)
-  data4 <- data3 %>%
+    mutate_at(vars(grep("^age", names(.), value = TRUE)), scale) %>% 
+    # Scale the kelp within each year (so it's relative to the annual average instead of across all years)
     group_by(year) %>%
     mutate_at(vars(grep("^kelp", names(.), value = TRUE)), scale) %>% ungroup()
   
   # Save final output for the model
-  data_sp <- data4
+  data_sp <- data3
+  rm(data1, data2, data3)
   
   # Add a small constant, defined as the minimum value for that species
-  if ("kg_per_m2" %in% colnames(data_sp)) {
-    const <- min(data_sp$kg_per_m2[data_sp$kg_per_m2 > 0], na.rm = TRUE)
-    data_sp <- data_sp %>% mutate(log_c_biomass = log(kg_per_m2*100 + const*100)) # kg per 100m2
-  } else if ("weight_kg" %in% colnames(data_sp)) {
-    const <- min(data_sp$weight_kg[data_sp$weight_kg > 0], na.rm = TRUE)
-    data_sp <- data_sp %>% mutate(log_c_biomass = log(weight_kg + const)) # bpue
-  } else if ("kg_per_haul" %in% colnames(data_sp)) {
-    const <- min(data_sp$kg_per_haul[data_sp$kg_per_haul > 0], na.rm = TRUE)
-    data_sp <- data_sp %>% mutate(log_c_biomass = log(kg_per_haul + const)) # bpue
-  } else {
-    data_sp <- data_sp %>% mutate(log_c_biomass = NA_real_)
-  }
+  const <- if_else(min(data_sp$biomass) > 0, 0, min(data_sp$biomass[data_sp$biomass > 0], na.rm = TRUE))
+  data_sp <- data_sp %>% mutate(log_c_biomass = log(biomass + const))
+ 
   
   ## 2. Fit Models -----------------------------------------------------------------------
-
   models <- list()
-
+  response <- "log_c_biomass"
+  
   models_df <- map_dfr(seq_len(nrow(predictors_df)), function(i) {
     predictors <- predictors_df$predictors[i]
     model_id <- predictors_df$model_id[i]
@@ -115,7 +127,6 @@ refine_habitat <- function(species, response, predictors_df, random_effects, dat
     warning_message <- NULL
     message_text <- NULL
     error_message <- NULL
-    singular_message <- NULL
     singular_status <- "Unknown"
 
     model <- suppressWarnings(
@@ -124,15 +135,7 @@ refine_habitat <- function(species, response, predictors_df, random_effects, dat
           withCallingHandlers(
             { m <- lmer(model_formula, data = data_sp,
                         control = lmerControl(optCtrl = list(maxfun = 1e7)))
-              singular_status <- tryCatch(
-                {
-                  if (isSingular(m)) "Singular fit" else "OK"
-                },
-                error = function(e) {
-                  singular_message <<- paste("Error checking singularity:", conditionMessage(e))
-                  "Unknown (Error in Singular Check)"
-                }
-              )
+              singular_status <- if (isSingular(m)) "Singular fit" else "OK"
               m
             },
             warning = function(w) {
@@ -154,7 +157,8 @@ refine_habitat <- function(species, response, predictors_df, random_effects, dat
 
     models[[model_id]] <<- model
 
-    data.frame(model_id = model_id,
+    data.frame(focal_group = focal_group,
+               model_id = model_id,
                predictors = gsub("\\s*\\+\\s*", " + ", predictors),
                response = response,
                regions = paste(regions, collapse = ", "),
@@ -165,18 +169,16 @@ refine_habitat <- function(species, response, predictors_df, random_effects, dat
                n_sites = if (!is.null(model)) n_distinct(data_sp$site) else NA,
                n_mpas = if (!is.null(model)) n_distinct(data_sp$affiliated_mpa) else NA,
                singular_status = singular_status,
-               singular_message = ifelse(is.null(singular_message), "OK", singular_message),
                errors = ifelse(is.null(error_message), "OK", error_message),
                warnings = ifelse(is.null(warning_message), "OK", warning_message),
                messages = ifelse(is.null(message_text), "OK", message_text))
   }) %>%
     mutate(delta_AICc = AICc - min(AICc, na.rm = TRUE)) %>%
     arrange(delta_AICc) %>% 
-    mutate(across(c(singular_status, singular_message, errors, warnings, messages), ~ if_else(.x == "OK", NA, .x))) %>% 
-    unite("messages", c(singular_status, singular_message, errors, warnings, messages), sep = ";", remove = T, na.rm = T) %>% 
+    mutate(across(c(singular_status, errors, warnings, messages), ~ if_else(.x == "OK", NA, .x))) %>% 
+    unite("messages", c(singular_status, errors, warnings, messages), sep = ";", remove = T, na.rm = T) %>% 
     mutate(messages = if_else(messages == "", NA, messages))
   
-
   # Extract the base model and full models for each scale
   core_model_names <- predictors_df %>%
     filter(type == "base" | str_starts(type, "core")) %>%
@@ -198,7 +200,7 @@ refine_habitat <- function(species, response, predictors_df, random_effects, dat
 
   # Save the subset
   saveRDS(list(models_df = models_df, models = models, data_sp = data_sp),
-          file = file.path(path, paste0(species, "_models.rds")))
+          file = file.path(path, paste0(focal_group, "_models.rds")))
 
   models_df
 }
