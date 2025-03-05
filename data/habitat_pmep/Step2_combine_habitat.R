@@ -5,6 +5,8 @@
 # This script avoid doing a spatial overlap between the substrate and biotic classes.
 # Instead, it takes the spatial exports from Step 1 and builds X.
 
+print("Starting Step 2: Combine Habitat")
+
 # Setup   ----------------------------------------------------------------------------------------------------------------------------------------------
 library(tidyverse)
 library(sf)
@@ -94,6 +96,7 @@ classify_substrate <- function(section){
   
   }
   
+print("  Classifying substrate.")
 
 classify_substrate(section = "23")
 classify_substrate(section = "30")
@@ -167,7 +170,40 @@ build_habitat <- function(section){
   
 }
 
+print("  Building habitat table.")
+
 sections <- c("23", "30", "31", "32", "33", "40", "41")
 lapply(sections, build_habitat)
 
+
+# Use the substrate data to create site footprints and centers ------
+
+create_footprints <- function(section) {
+  
+  substrate <- readRDS(file.path(sub.dir, paste0("substrate_sites_500m/substrate_sites_section_classified_", section, ".Rds"))) %>% 
+    filter(depth_zone != "landward") %>% 
+    ungroup() 
+  
+  footprint <- substrate %>% 
+    group_by(habitat, site, site_type) %>% 
+    summarize(geometry = st_union(st_combine(geometry)), .groups = "drop") %>% 
+    st_make_valid()
+  
+  return(footprint)
+}
+
+# Process all sections and combine into one dataframe
+print("  Starting footprints.")
+
+combined_footprints <- bind_rows(lapply(sections, create_footprints))
+
+combined_footprints2 <- combined_footprints %>% 
+  group_by(habitat, site, site_type) %>%  # because some sites span across sections
+  summarize(geometry = st_union(geometry), .groups = 'drop') 
+
+combined_footprints3 <- combined_footprints2 %>% 
+  st_make_valid()
+
+# Save the final combined dataframe
+saveRDS(combined_footprints3, file.path(sub.dir, "substrate_sites_500m/site_footprints.Rds"))
 

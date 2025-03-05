@@ -70,24 +70,3 @@ intersect_biotic <- function(section){
 sites <- st_transform(sites, crs = crs_bio)
 lapply(sections, intersect_biotic)
 
-
-# Clean details by site + export ------------------------------------------
-# Did not do this for V2 yet but leaving here in case need these details (CL 18 Dec 2024)
-# site_columns <- c("habitat", "mpa", "mpa_orig", "site", "site_type", "PMEP_Section", "PMEP_Zone")
-# bio_columns <- c("FaunalBed", "AquaticVegetationBed", "BenthicMacroalgae", "Kelp", "OtherMacroalgae", "EmergentWetland", "ScrubShrubWetland", "ForestedWetland", "Seagrass", "AquaticVascularVegetation", "FloatingSuspendedBiota")
-# 
-# section <- "31"
-# 
-# clean_substrate <- function(section){
-#   substrate <- readRDS(file.path(sub.dir, paste0("substrate_sites_1000m/intersect_by_site/substrate_sites_section_", section, ".Rds"))) %>% 
-#     rename(geometry = Shape) %>% 
-#     filter(!CMECS_SC_Category_Code == "9.9.9.9.9") %>% 
-#     group_by(across(all_of(site_columns)), CMECS_SC_Category_Code, CMECS_SC_Category, CMECS_SC_Code, CMECS_SC_Name) %>% 
-#     summarize(geometry = st_union(geometry), .groups = 'drop') 
-#   
-#   saveRDS(substrate,  file.path(sub.dir, paste0("substrate_sites_1000m/substrate_sites_section_", section, ".Rds")))
-# }
-# 
-# sections <- c("23", "30", "31", "32", "33", "53", "40", "41")
-# lapply(sections, clean_substrate)
-
