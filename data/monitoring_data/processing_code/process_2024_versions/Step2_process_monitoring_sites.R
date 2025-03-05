@@ -3,7 +3,6 @@
 # Dec 2024
 # About: Updated from Josh's script from 2022
 
-
 rm(list=ls())
 
 library(tidyverse)
@@ -25,22 +24,89 @@ ccfrp <- ccfrp_sites %>%
   dplyr::select(habitat, site, site_type, lat_dd, lon_dd)
 
 ## Kelp Forest ---------------------
-kelp_sites <- read.csv(file.path(data.dir, "monitoring_kelp/update_2024/MLPA_kelpforest_07.25.2024/MLPA_kelpforest_site_table.6.csv"), 
-                       na.strings = c("N/A", "NA")) %>% clean_names()
-
-kelp <- kelp_sites %>%
-  distinct(site, site_status, latitude, longitude) %>%
-  mutate(habitat = "Kelp forest",
-         site_type = case_when(site_status == "mpa" ~ "MPA",
+# Site table provided in MLPA data gives ~ one lat/lon point for each site
+kelp_site_table <- read.csv(file.path(data.dir, "monitoring_kelp/update_2024/MLPA_kelpforest_07.25.2024/MLPA_kelpforest_site_table.6.csv"),
+                       na.strings = c("N/A", "NA")) %>%
+  clean_names()  %>%
+  filter(str_detect(method, "FISH")) %>%
+  distinct(site, site_status, ca_mpa_name_short, latitude, longitude) %>%
+  mutate(site_type = case_when(site_status == "mpa" ~ "MPA",
                                site_status == "reference" ~ "Reference", T~site_status)) %>%
   mutate(site_type = case_when(site == "HORSESHOE_REEF_E" ~ "Reference",
-                               site == "HORSESHOE_REEF_W" ~ "Reference", T~site_type)) %>% 
-  filter(!is.na(site_type)) %>% 
-  dplyr::select(habitat, site, site_type, lat_dd = latitude, lon_dd = longitude) %>% 
-  group_by(habitat, site, site_type) %>% 
+                               site == "HORSESHOE_REEF_W" ~ "Reference",
+                               site == "POINT_LOMA_CEN" ~ "Reference",
+                               T~site_type)) %>%
+  dplyr::select(site, site_type, lat_dd = latitude, lon_dd = longitude) %>%
+  group_by(site, site_type) %>%
   # A few duplicates with different lat/lon in a single year
   summarize(lat_dd = mean(lat_dd, na.rm = T),
-            lon_dd = mean(lon_dd, na.rm = T), .groups = 'drop')
+            lon_dd = mean(lon_dd, na.rm = T), .groups = 'drop') 
+
+# Use the actual fish data to reduce to the sites where fish monitoring has taken place and
+# also made it into the final dataset (the one on DataOne, not ours)
+kelp_fish_sites <- read_csv(file.path(data.dir, "monitoring_kelp/update_2024/MLPA_kelpforest_07.25.2024", "MLPA_kelpforest_fish.6.csv"),
+                            na = c("N/A", "NA", "na", "'n/a'")) %>% 
+  distinct(site, site_name_old) %>% 
+  mutate(site = snakecase::to_screaming_snake_case(site)) %>% 
+  mutate(across(where(is.character), ~ trimws(.)))
+
+# Site centroids were provided by MLPA monitoring groups but does not cover all sites in data
+kelp_centroids <- read_sf("/home/shares/ca-mpa/data/sync-data/gis_data/raw/MLPA_AM_site_centroids") %>% clean_names() %>% 
+  dplyr::select(site_sd, campus, mpa_status:geometry) %>% 
+  mutate(across(where(is.character), ~ trimws(.))) %>% 
+  filter(!campus == "RCCA") %>% 
+  # Many sites are listed as the old names. Create new column that's the screaming snake case version of the name:
+  mutate(site = snakecase::to_screaming_snake_case(site_sd)) %>% 
+  # Reclassify the original site name as the old names
+  dplyr::select(site, site_name_old = site_sd, everything()) %>% 
+  # Remove the old name if the new name is the same 
+  mutate(site_name_old = if_else(site_name_old == site, NA, site_name_old)) %>% 
+  mutate(site = str_replace_all(site, "EAST$", "E") %>% 
+           str_replace_all(., "WEST$", "W") %>% 
+           str_replace_all(., "NORTH$", "N") %>% 
+           str_replace_all(., "SOUTH$", "S") %>% 
+           str_replace_all(., "_S_", "S_")) %>% # fixes X's to Xs
+  mutate(site = recode(site,
+                       "PYRAMIND_POINT_2" = "PYRAMID_POINT_2",
+                       "LEO_CARILLO" = "LEO_CARRILLO",
+                       "DEEP_HOLE_E" = "DEEP_HOLE_EAST",
+                       "SCAI_LIONS_HEAD" = "SCAI_LION_HEAD")) %>% 
+  group_by(site) %>% 
+  summarize(geometry = st_centroid(st_union(geometry)), .groups = 'drop')
+  
+kelp <- kelp_fish_sites %>% 
+  # Start by matching by the available centroids
+  left_join(kelp_centroids, by = c("site")) %>% 
+  # Where not available, use the points from the site table
+  full_join(kelp_site_table) %>% 
+  dplyr::select(site, site_type, lat_dd, lon_dd, centroid = geometry) %>% 
+  filter(!is.na(lat_dd)) %>% # three sites with no centroid or lat/lon info
+  st_as_sf(coords = c("lon_dd", "lat_dd"), crs = 4326, remove = F, sf_column_name = "new_point") %>%
+  st_transform(st_crs(kelp_centroids)) # new point becomes sticky here
+
+# # Create two sf objects from different geometry columns
+# centroids_sf <- kelp %>% st_set_geometry("centroid")
+# new_points_sf <- kelp %>% st_set_geometry("new_point")
+# 
+# # Plot them together
+# tm_shape(new_points_sf) +  # Base layer with new points
+#   tm_dots(fill = "black") +
+#   tm_text("site", size = 1) +
+#   tm_shape(centroids_sf) +  # Centroids in red
+#   tm_dots(fill = "red")
+
+# Bridge the two together - pick centroid where available, otherwise the point
+kelp <- kelp %>% 
+  # Create a new column prioritizing centroid and using site info where centroid missing
+  mutate(geometry = if_else(st_is_empty(centroid), new_point, centroid)) %>%   
+  st_set_geometry("geometry") %>% 
+  dplyr::select(site, site_type, geometry) %>% 
+  st_transform(crs = 4326) %>% 
+  # Use the new geometry column to extract the lat/lon points
+  mutate(lon_dd = st_coordinates(geometry)[,1], 
+         lat_dd = st_coordinates(geometry)[,2]) %>% 
+  mutate(habitat = "Kelp forest") %>% 
+  dplyr::select(habitat, site, site_type, lat_dd, lon_dd, geometry)
 
 ## Surf Zone ----------------------
 # Read the site names for matching with the habitat site names (boo Chris bad processing making extra work!)
