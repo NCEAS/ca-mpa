@@ -17,8 +17,9 @@ ltm.dir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_
 
 habitat <- readRDS(file.path(hab.dir, "buffers", "habitat_buffers_combined.Rds")) 
 
-habitat_bathy <- readRDS(file.path(ltm.dir, "site_depth.Rds")) %>% 
-  mutate(site_type = if_else(site_type == "REF", "Reference", site_type))
+habitat_bathy <- readRDS(file.path(ltm.dir, "site_depth_agg.Rds")) %>%  # drop agg for last version
+  mutate(site_type = if_else(site_type == "REF", "Reference", site_type)) %>% 
+  dplyr::select(site, site_type, depth_mean_25:depth_cv_500)
 
 habitat_depth <- habitat %>% # create identifier matching depth to the habitat_depth combined class
   distinct(habitat_class, habitat_depth, depth_zone)
@@ -30,7 +31,7 @@ habitat2 <- habitat %>%
   mutate_at(vars(grep("^(hard|soft|aq|sea)", names(.), value = TRUE)), ~ replace(., is.na(.), 0)) %>% 
   # Lengthen 
   pivot_longer(cols = grep("^(hard|soft|aq|sea)", names(.), value = TRUE), names_to = "habitat_depth", values_to = "area_m2") %>% 
-  left_join(habitat_depth) %>% 
+  left_join(habitat_depth, by = "habitat_depth") %>% 
   dplyr::select(habitat, site, site_type, buffer, habitat_class, habitat_depth, depth_zone, area_m2) %>% 
   # Create identifier based on habitat and buffer
   mutate(habitat_depth_buffer = paste(habitat_depth, buffer, sep = "_")) %>% 
@@ -46,10 +47,10 @@ habitat3 <- habitat2 %>% # should be 828
 
 # Add bathy
 habitat4 <- habitat3 %>% 
-  left_join(habitat_bathy) %>% 
+  left_join(habitat_bathy, by = c("site", "site_type")) %>% 
   mutate_at(vars(grep("^depth_mean|depth_cv", names(.), value = TRUE)), ~ .x * -1)
 
-saveRDS(habitat4, file.path(int.dir, "habitat_buffers_by_site_v2.Rds"))
+saveRDS(habitat4, file.path(int.dir, "habitat_buffers_by_site_v3.Rds")) # v2 has the non-agg depth metrics and other sites
 
 # Create version that combines across depth  ----------------------------------------
 
@@ -60,10 +61,12 @@ habitat_combined <- habitat %>%
   dplyr::select(-c(habitat_class, buffer)) %>% 
   pivot_wider(names_from = habitat_buffer, values_from = area_m2) %>% 
   mutate_at(vars(grep("^(hard|soft|aq|sea)", names(.), value = TRUE)), ~ replace(., is.na(.), 0)) %>% 
-  left_join(habitat_bathy) %>% 
+  left_join(habitat_bathy,  by = c("site", "site_type")) %>% 
   mutate_at(vars(grep("^depth_mean|depth_cv", names(.), value = TRUE)), ~ .x * -1)
 
-saveRDS(habitat_combined, file.path(int.dir, "habitat_buffers_by_site_combined.Rds"))
+saveRDS(habitat_combined, file.path(int.dir, "habitat_buffers_by_site_combined_v3.Rds")) 
+
+# no _v# for the non-agg depth and other sites; there was never a v1 or v2, just updated to match the buffers by site v3 above :)
 
 
 

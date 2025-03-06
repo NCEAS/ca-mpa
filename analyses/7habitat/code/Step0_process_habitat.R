@@ -24,12 +24,17 @@
 # Step 2. Get substrate and biotic characteristics for each site
 source("~/ca-mpa/data/habitat_pmep/Step1_export_sites.R")
 source("~/ca-mpa/data/habitat_pmep/Step2_combine_habitat.R")
+
+# After this, Steps 3-5 can proceed simultaneously if needed:
+
+# Step 3. Calculate the substrate/biotic buffers
 source("~/ca-mpa/data/habitat_pmep/Step3_caclulate_buffers.R")
 
-# Step 3. Get annual kelp canopy estimates for each site
+# Step 4. Get annual kelp canopy estimates for each site
 source("~/ca-mpa/data/kelpwatch/Step1_export_kelpwatch_data.R")
 source("~/ca-mpa/data/kelpwatch/Step2_calculate_kelpwatch_buffers.R")
 
-# Step 4. Get depth for each site
+# Step 5. Get depth for each site
 source("~/ca-mpa/analyses/7habitat/code/Step0_process_bathy.R")
 
+# Congrats. Now you're ready for Step_1_build_habitat_table. Have fun :) 

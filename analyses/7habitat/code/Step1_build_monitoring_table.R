@@ -292,26 +292,26 @@ saveRDS(deep_complete, file.path(ltm.dir, "update_2024/deep_biomass_complete.Rds
 
 kelp_sites <- kelp_complete %>% 
   # Identify distinct site-year combinations
-  distinct(year, site, site_type, bioregion, region4, affiliated_mpa, mpa_defacto_class, implementation_year, size_km2) %>% 
-  mutate(before = if_else(year <= implementation_year, 1, 0),
-         after = if_else(year > implementation_year, 1, 0)) %>% 
+  distinct(year, site, site_type, bioregion, region4, affiliated_mpa, mpa_defacto_class, implementation_year, size_km2) %>%
+  mutate(before = if_else(year < implementation_year, 1, 0),
+         after = if_else(year >= implementation_year, 1, 0)) %>% 
   # Count number of years each site was visited before and after the MPA was implemented
   group_by(site, bioregion, region4, affiliated_mpa,  mpa_defacto_class, implementation_year, size_km2, site_type) %>% 
   summarize(n_before = sum(before),
             n_after = sum(after),
             n_total = n_before + n_after, .groups = 'drop') %>% 
   # Drop sites with no inside/outside information
-  filter(!is.na(site_type)) %>%
+  filter(!is.na(site_type)) %>%   # 366 sites with location info & attributed to specific MPA/Reference area; 54 MPAs
   # Drop sites that haven't been visited at least 5 times
-  filter(n_after >= 5) 
+  filter(n_after >= 4) # 250 sites; 41 MPAs
 
 kelp_mpas <- kelp_sites %>%
   group_by(bioregion, region4, affiliated_mpa, mpa_defacto_class, implementation_year, size_km2, site_type) %>%
   summarize(n_total = sum(n_total), .groups = 'drop') %>%
   pivot_wider(names_from = site_type, values_from = n_total) %>% 
   filter(!is.na(Reference)) %>% 
-  filter(!is.na(MPA)) %>% 
-  filter(mpa_defacto_class == "smr")
+  filter(!is.na(MPA)) %>% # 35 MPAs with both inside/outside data
+  filter(mpa_defacto_class == "smr") # 28 with defacto SMR status
 
 kelp_subset <- kelp_complete %>% 
   # Drop observations for dropped sites 
@@ -321,67 +321,17 @@ kelp_subset <- kelp_complete %>%
   # Drop before data
   filter(age_at_survey >= 0) %>% 
   # Join site visitation information
-  left_join(kelp_sites) %>% 
-  # Log-transformed biomass
-  mutate(log_kg_per_m2 = log(kg_per_m2 + 1))
+  left_join(kelp_sites)  %>% 
+  mutate(kg_per_100m2 = kg_per_m2*100)
 
-# sp <- data %>% 
-#   filter(kg_per_m2 > 0) %>% 
-#   group_by(species_code, sciname, target_status, bioregion) %>% 
-#   summarize(total_biomass = sum(kg_per_m2),
-#             total_count = sum(count_per_m2),
-#             n_obs = n()) %>% 
-#   filter(n_obs > 20) %>% dplyr::select(species_code, sciname, target_status, bioregion, total_biomass) %>% 
-#   pivot_wider(names_from = "bioregion", values_from = "total_biomass") %>% 
-#   filter(North > 0 & Central > 0 & South > 0)
-
-### Test Transformations 
-
-# Box-Cox 
-# 
-# species_list <- unique(data$species_code)
-# transformed_list <- list()
-# error_species <- list()
-# 
-# for (species in species_list) {
-#   data_sp <- data %>% 
-#     filter(species_code == species) %>% 
-#     mutate(kg_per_m2_0.01 = kg_per_m2 + 0.01)
-#   
-#   tryCatch({
-#     model <- lm(kg_per_m2_0.01 ~ age_at_survey * site_type, data = data_sp)
-#     bc <- boxcox(model, lambda = seq(-4, 4, 0.1))
-#     best_lambda <- bc$x[which.max(bc$y)]
-#     
-#     # Apply Box-Cox transformation
-#     data_sp$bc_kg_per_m2 <- if (best_lambda >= -2 && best_lambda <= 2) 
-#     {(data_sp$kg_per_m2_0.01^best_lambda - 1) / best_lambda} 
-#     else {NA}
-#     
-#     data_sp$lambda <- if (best_lambda >= -2 && best_lambda <= 2) {best_lambda} else {NA}
-#     
-#     # Store transformed data
-#     transformed_list[[species]] <- data_sp
-#     
-#   }, error = function(e){
-#     message(paste("Box-Cox transformation error for species:", species))
-#     message("Error details:", e$message)
-#     error_species <<- c(error_species, species)
-#   })
-#   
-# }
-# 
-# # Combine all transformed data back into a single data frame
-# data_transformed <- bind_rows(transformed_list)
-# 
 
 ## Rock (CCFRP) ----
 
 rock_sites <- rock_complete %>% 
   # Identify distinct site-year combinations
   distinct(year, site, site_type, bioregion, region4, affiliated_mpa, mpa_defacto_class, implementation_year) %>% 
-  mutate(before = if_else(year <= implementation_year, 1, 0),
-         after = if_else(year > implementation_year, 1, 0)) %>% 
+  mutate(before = if_else(year < implementation_year, 1, 0),
+         after = if_else(year >= implementation_year, 1, 0)) %>% 
   # Count number of years each site was visited before and after the MPA was implemented
   group_by(site, bioregion, region4, affiliated_mpa, mpa_defacto_class, implementation_year, site_type) %>% 
   summarize(n_before = sum(before),
@@ -400,9 +350,7 @@ rock_subset <- rock_complete %>%
   # Drop before data
   filter(age_at_survey >= 0) %>% 
   # Join site visitation information
-  left_join(rock_sites) %>% 
-  # Log-transformed biomass
-  mutate(log_bpue_kg = log(weight_kg + 1))
+  left_join(rock_sites) 
 
 ## Surf ----
 
@@ -418,9 +366,7 @@ surf_sites <- surf_complete %>%
 surf_subset <- surf_complete %>% 
   mutate(site = paste(site_name, site_type)) %>% 
   # Join habitat and site visitation information
-  left_join(surf_sites) %>% 
-  # Log-transformed biomass
-  mutate(log_kg_per_haul = log(kg_per_haul + 1))
+  left_join(surf_sites) 
 
 ## Deep ----
 deep_sites <- deep_complete %>%
@@ -444,8 +390,7 @@ deep_subset <- deep_complete %>%
   # Drop observations for dropped MPAs
   filter(affiliated_mpa %in% deep_mpas$affiliated_mpa) %>% 
   # Join visitation information
-  left_join(deep_sites) %>% 
-  mutate(log_kg_per_m2 = log(kg_per_m2 + 1))
+  left_join(deep_sites) 
 
 # Consolidate so each site is a dive associated with a particular year and MPA/REF status
 deep_subset2 <- deep_subset %>% 
