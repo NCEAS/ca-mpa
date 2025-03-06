@@ -32,13 +32,12 @@ data_rock <- readRDS(file.path(ltm.dir, "combine_tables/ccfrp_full.Rds")) %>%
   mutate(site_type = factor(site_type, levels = c("Reference", "MPA"))) %>% 
   dplyr::select(year:affiliated_mpa, size_km2, age_at_survey,
                 species_code:target_status, assemblage_new, weight_kg,
-                all_of(pred_rock$predictor)) %>% 
-  filter(!site == "BH26") # haven't processed yet
+                all_of(pred_rock$predictor)) 
 
 # Fit Assemblage Models --------------------------------------------------------
 
 # Plan for parallel execution
-group_list <- c("targeted", "nontargeted")
+group_list <- c("targeted", "nontargeted", "all")
 num_cores <- min(length(group_list), detectCores()/3)  
 plan(multisession, workers = num_cores)
 
@@ -46,12 +45,14 @@ run_model <- function(focal_group){
   fit_habitat_models(
     type = "target_status",
     focal_group = focal_group,
+    drop_zeroes = "no",
+    drop_outliers = "no",
     biomass_variable = "weight_kg",
     predictors_df = pred_rock_2way,
     random_effects = c("region4/affiliated_mpa", "year"),
     data = data_rock,
     regions = c("North", "Central", "N. Channel Islands", "South"),
-    path = "analyses/7habitat/output/keep-outliers/nested.rm-year"
+    path = "analyses/7habitat/output/rock/region-mpa-year"
   )
   
 }
@@ -121,8 +122,8 @@ extreme_site_balance <- data2 %>%
   filter(is.na(MPA) | is.na(Reference))
 
 data3 <- data2 %>%
-  #filter(!site %in% extreme_site$site) %>% # keep for now; reasonable
-  #filter(!affiliated_mpa %in% extreme_site_balance$affiliated_mpa) %>% 
+  filter(!site %in% extreme_site$site) %>% # keep for now; reasonable
+  filter(!affiliated_mpa %in% extreme_site_balance$affiliated_mpa) %>% 
   # Drop un-scaled static variables
   dplyr::select(!c(grep("^hard|soft|depth", names(.), value = TRUE))) %>% 
   # Join the scaled static variables
@@ -160,7 +161,7 @@ habitat250_rms <- lmer(log_biomass ~ hard_bottom_250 * site_type +
                        data = data_sp) 
 
 VarCorr(habitat250_rms)  # Inspect variance estimates
-performance::icc(habitat250_rms, by_group = T) # Region is fairly high, but the nesting variables are low
+performance::icc(habitat250_rms, by_group = T) # Region is fairly high, year seems low
 
 # 2. See whether site RE is needed; hopefully not b/c is major source of variation in habitat
 habitat250_rm <- lmer(log_biomass ~ hard_bottom_250 * site_type + 
@@ -171,9 +172,7 @@ habitat250_rm <- lmer(log_biomass ~ hard_bottom_250 * site_type +
 
 VarCorr(habitat250_rm) 
 performance::icc(habitat250_rm, by_group = T) 
-anova(habitat250_rm, habitat250_rms) # p < 0.05 so we need site for rock...
-plot(allEffects(habitat250_rms))
-plot(allEffects(habitat250_rm))
+anova(habitat250_rm, habitat250_rms) # p < 0.05 so we need site for rock... but soaks lots of variation
 
 # 3. Confirm MPA as RE
 habitat250_r <- lmer(log_biomass ~ hard_bottom_250 * site_type + 
@@ -197,18 +196,58 @@ performance::icc(habitat250_rm2, by_group = T)
 anova(habitat250_rm2, habitat250_rm) 
 
 # 5. Confirm region as RE
-habitat250_ms <- lmer(log_biomass ~ hard_bottom_250 * site_type + 
+habitat250_m <- lmer(log_biomass ~ hard_bottom_250 * site_type + 
                          kelp_annual_250 * site_type + 
                          depth_mean_250 * site_type + depth_cv_250 * site_type + 
-                         site_type * age_at_survey + (1|affiliated_mpa/site) + (1|year),
+                         site_type * age_at_survey + (1|affiliated_mpa) + (1|year),
                        data = data_sp)  
-VarCorr(habitat250_ms) 
-performance::icc(habitat250_ms, by_group = T)  
-anova(habitat250_ms, habitat250_rms)  # close, so this could be okay (p = 0.03)
+VarCorr(habitat250_m) 
+performance::icc(habitat250_m, by_group = T)  
+anova(habitat250_m, habitat250_rm)  # close, so this could be okay (p = 0.03)
+anova(habitat250_rm, habitat250_ms)
+
+# Lower AIC with region/MPA than with MPA/site, site likely soaks up too much variation
+
+# Confirm Model -------------------------------------------------------------------------
+
+mpa_baseline <- data_sp %>%
+  group_by(affiliated_mpa, site_type) %>%
+  summarize(baseline_biomass = mean(weight_kg[age_at_survey == min(age_at_survey)], na.rm = TRUE))
+
+data_sp2 <- left_join(data_sp, mpa_baseline, by = c("affiliated_mpa", "site_type"))
+
+m <- lmer(log_biomass ~ hard_bottom_50 * site_type + 
+            depth_mean_25 + depth_cv_500 * site_type + 
+            site_type * age_at_survey + (1|region4/affiliated_mpa) + (1|year),
+          data = data_sp2) 
+
+mb <- lmer(log_biomass ~ hard_bottom_50 * site_type + 
+            depth_mean_25 + depth_cv_500 * site_type + 
+             baseline_biomass * age_at_survey + 
+            site_type * age_at_survey + (1|region4/affiliated_mpa) + (1|year),
+          data = data_sp2) 
+
+summary(m)
+summary(mb)
 
 
+data_sp3 <- data_sp2 %>% ungroup() %>% 
+  mutate(biomass_category = ifelse(baseline_biomass > median(baseline_biomass, na.rm = TRUE), "High (Baseline > Median)", "Low (Baseline < Median)")) %>% 
+  mutate(age_at_survey = age_at_survey*attr(data_sp$age_at_survey, "scaled:scale") + attr(data_sp$age_at_survey, "scaled:center")) %>% 
+  mutate(baseline_cat = cut(baseline_biomass, breaks = quantile(baseline_biomass, probs = c(0, 0.33, 0.66, 1), na.rm = TRUE), 
+                            labels = c("Low", "Medium", "High"), include.lowest = TRUE))
 
+ggplot(data_sp3, aes(x = age_at_survey, y = exp(log_biomass), color = biomass_category, fill = biomass_category)) +
+  geom_point(alpha = 0.2) + 
+  geom_smooth(method = "lm") +
+  theme_minimal() +
+  labs(x = "MPA age",
+       y = "Biomass (kg per 100m2)",
+       color = "Baseline biomass",
+       fill = "Baseline biomass") + 
+  facet_wrap(~site_type)
 
+plot(allEffects(mb, partial.residuals = T))
 
 ## Define Species Lists ------------------------------------------
 sp_rock <- data_rock %>%

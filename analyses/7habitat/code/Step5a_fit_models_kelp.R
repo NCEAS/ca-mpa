@@ -38,15 +38,16 @@ data_kelp_subset <- readRDS(file.path(ltm.dir, "combine_tables/kelp_full.Rds")) 
   dplyr::select(year:affiliated_mpa, size_km2, age_at_survey,
                 species_code:target_status, assemblage_new, weight_kg:count_per_m2, 
                 all_of(pred_kelp$predictor)) %>% 
+  filter(!site == "SCAI_SHIP_ROCK") %>% # depth 67m, all others < 20m
  # filter(!affiliated_mpa == "point dume smca") %>% # remove - spatial autocorrelation in residuals
-  mutate(kg_per_100m2 = kg_per_m2*100,
-         count_per_100m2 = count_per_m2*100)
+  mutate(kg_per_100m2 = kg_per_m2*100)
+
 
 
 # Fit assemblage models ---------
 
 # Plan for parallel execution
-group_list <- c("targeted", "nontargeted")
+group_list <- c("targeted", "nontargeted", "all")
 num_cores <- min(length(group_list), detectCores()/3)  
 plan(multisession, workers = num_cores)
 
@@ -54,11 +55,14 @@ run_model <- function(focal_group){
   fit_habitat_models(
     type = "target_status",
     focal_group = focal_group,
+    drop_zeroes = "no",
+    drop_outliers = "no",
+    biomass_variable = "kg_per_100m2",
     predictors_df = pred_kelp_2way,
-    random_effects = c("affiliated_mpa/site", "year"),
+    random_effects = c("region4/affiliated_mpa", "year"),
     data = data_kelp_subset,
     regions = c("North", "Central", "N. Channel Islands", "South"),
-    path = "analyses/7habitat/output/drop-outliers/nested.ms"
+    path = "analyses/7habitat/output/kelp/region-mpa-year"
   )
   
 }
