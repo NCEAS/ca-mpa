@@ -46,9 +46,9 @@ kelp_site_table <- read.csv(file.path(data.dir, "monitoring_kelp/update_2024/MLP
 # also made it into the final dataset (the one on DataOne, not ours)
 kelp_fish_sites <- read_csv(file.path(data.dir, "monitoring_kelp/update_2024/MLPA_kelpforest_07.25.2024", "MLPA_kelpforest_fish.6.csv"),
                             na = c("N/A", "NA", "na", "'n/a'")) %>% 
-  distinct(site, site_name_old) %>% 
+  distinct(site) %>% 
   mutate(site = snakecase::to_screaming_snake_case(site)) %>% 
-  mutate(across(where(is.character), ~ trimws(.)))
+  mutate(across(where(is.character), ~ trimws(.))) 
 
 # Site centroids were provided by MLPA monitoring groups but does not cover all sites in data
 kelp_centroids <- read_sf("/home/shares/ca-mpa/data/sync-data/gis_data/raw/MLPA_AM_site_centroids") %>% clean_names() %>% 
@@ -106,7 +106,7 @@ kelp <- kelp %>%
   mutate(lon_dd = st_coordinates(geometry)[,1], 
          lat_dd = st_coordinates(geometry)[,2]) %>% 
   mutate(habitat = "Kelp forest") %>% 
-  dplyr::select(habitat, site, site_type, lat_dd, lon_dd, geometry)
+  dplyr::select(habitat, site, site_type, lat_dd, lon_dd) %>% st_drop_geometry()
 
 ## Surf Zone ----------------------
 # Read the site names for matching with the habitat site names (boo Chris bad processing making extra work!)
