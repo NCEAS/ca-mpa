@@ -83,14 +83,24 @@ for (my_site in unique(sites_outside$site)) {
     geom_sf(data = state_waters_poly, fill = "lightblue", alpha = 0.5) +
     geom_sf(data = habitat_df, aes(fill = habitat_class)) +
     geom_sf(data = site_25, color = "green") +
-    geom_sf(data = site_point, color = "black", size = 2) +
     geom_sf(data = site_point_corrected, color = "red", size = 2) +
+    geom_sf(data = site_point, color = "black", size = 2) +
     coord_sf(
       xlim = c(site_bbox["xmin"], site_bbox["xmax"]),
       ylim = c(site_bbox["ymin"], site_bbox["ymax"])
     ) +
+    labs(fill = NULL) +
     ggtitle(paste("Site:", my_site)) +
-    theme_minimal()
+    theme_minimal() +
+    scale_fill_manual(
+      values = c(
+        "Soft Bottom" = "tan",
+        "Hard Bottom" = "saddlebrown",
+        "Aquatic Vegetation Bed" = "lightgreen",
+        "Aquatic Vascular Vegetation" = "darkgreen",
+        "Seagrass" = "darkgreen"
+      )
+    )
   
   # Store the plot
   plots[[my_site]] <- plot
@@ -99,7 +109,7 @@ for (my_site in unique(sites_outside$site)) {
 # Combine all corrected points into a single dataframe
 corrected_points_df <- bind_rows(corrected_points_list)
 
-# wrap_plots(plots, ncol = 5) # 19 sites moved
+wrap_plots(plots, ncol = 5) # 19 sites moved
 
 # Merge corrected points back into the original sites dataframe
 sites_updated <- sites %>%
