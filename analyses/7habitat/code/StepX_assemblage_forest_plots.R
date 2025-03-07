@@ -30,16 +30,10 @@ my_theme <- theme(
   plot.background = element_rect(fill = "white", color = NA)
 )
 
+
 focal_group <- "targeted"
-habitat <- "Shallow reef"
-path <- "analyses/7habitat/output/rock/region-mpa-year"
-
-
-# habitat <- "kelp"
-# path <- "analyses/7habitat/output/drop-outliers/mpa-year"
-#path <- "analyses/7habitat/output/drop-outliers/site-year"
-#path <- "analyses/7habitat/output/drop-outliers/nested.ms"
-
+path <- "analyses/7habitat/output/kelp/mpa-year-drop"
+habitat <- "kelp"
 
 make_forest_plots <- function(focal_group, path, habitat){
   print(paste("Group:", focal_group))
@@ -62,7 +56,8 @@ make_forest_plots <- function(focal_group, path, habitat){
                                                    str_detect(model_id, "DM50\\*ST\\+DCV50\\*ST") |
                                                    str_detect(model_id, "DM100\\*ST\\+DCV100\\*ST") |
                                                    str_detect(model_id, "DM250\\*ST\\+DCV250\\*ST") | 
-                                                   str_detect(model_id, "DM500\\*ST\\+DCV500\\*ST")), "core", NA))
+                                                   str_detect(model_id, "DM500\\*ST\\+DCV500\\*ST") |
+                                                    str_detect(model_id, "DM25\\*ST\\+DCV100\\*ST")), "core", NA))
   
   # Determine top model type
   top <- data %>% 
@@ -170,7 +165,10 @@ purrr::walk2(
   ~ purrr::walk(focal_groups, \(fg) make_forest_plots(focal_group = fg, path = .y, habitat = .x))
 )
 
-
+make_forest_plots("targeted", "analyses/7habitat/output/rock/mpa-year", "Shallow rocky reef") # looks like some models didn't converge, kelp very unstable
+make_forest_plots("targeted", "analyses/7habitat/output/rock/mpa-year-drop", "Shallow rocky reef") # ditto
+make_forest_plots("targeted", "analyses/7habitat/output/rock/region-mpa-year", "Shallow rocky reef") # fucking same
+make_forest_plots("targeted", "analyses/7habitat/output/rock/region-mpa-year-drop", "Shallow rocky reef")
 
 ## Species Versions
 
