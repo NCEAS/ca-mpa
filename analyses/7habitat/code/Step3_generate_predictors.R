@@ -56,7 +56,8 @@ kelp_predictors <- data_kelp %>%
   mutate(scale = sub("_", "", str_sub(predictor, -3, -1)),
          pred_group = case_when(str_detect(predictor, "0_30m|30_100m|100_200m|200m") ~ "depth",
                                 str_detect(predictor, "kelp|depth") ~ "all",
-                                T ~ "combined"))# %>% 
+                                T ~ "combined")) %>% 
+  filter(!predictor == "depth_cv_25") # %>% 
 #  filter(!scale == "25") # drop due to poor distribution
 
 rock_predictors <- data_rock %>%
@@ -70,7 +71,8 @@ rock_predictors <- data_rock %>%
   mutate(scale = sub("_", "", str_sub(predictor, -3, -1)),
          pred_group = case_when(str_detect(predictor, "0_30m|30_100m|100_200m|200m") ~ "depth",
                                 str_detect(predictor, "kelp|depth") ~ "all",
-                                T ~ "combined")) 
+                                T ~ "combined")) %>% 
+  filter(!predictor == "kelp_annual")
 
 surf_predictors <- data_surf %>%
   dplyr::select(year, site, site_type, bioregion, where(~ max(., na.rm = T) > 0)) %>%
