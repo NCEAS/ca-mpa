@@ -29,7 +29,7 @@ pred_surf_2way <- readRDS(file.path("analyses/7habitat/intermediate_data/surf_pr
 data_surf <- readRDS(file.path(ltm.dir, "combine_tables/surf_full.Rds")) %>% 
   mutate(site_type = factor(site_type, levels = c("Reference", "MPA"))) %>% 
   dplyr::select(year:affiliated_mpa, size_km2, age_at_survey,species_code:target_status, 
-                assemblage_new, weight_kg, count, kg_per_haul, count_per_haul, log_kg_per_haul,
+                assemblage_new, weight_kg, count, kg_per_haul, count_per_haul, 
                 all_of(pred_surf$predictor), matches("^aquatic_vegetation_bed"))
 
 

@@ -39,7 +39,7 @@ source("analyses/7habitat/code/Step0_helper_functions.R")  # Load the function f
 
 species <- "targeted"
 habitat <- "rock"
-path <- "analyses/7habitat/output/keep-outliers/nested.rm-year"
+path <- "analyses/7habitat/output/kelp/region-mpa-year"
 
 analyze_models_2way <- function(species, path, habitat){
   print(paste("Species:", species))
@@ -218,16 +218,28 @@ analyze_models_2way <- function(species, path, habitat){
 # Run          -----------------------------------------------------------------
 
 # Kelp forest 
-analyze_models_2way("targeted", path = "analyses/7habitat/output/drop-outliers/site-year", habitat = "kelp")
-analyze_models_2way("nontargeted", path = "analyses/7habitat/output/drop-outliers/site-year", habitat = "kelp")
-analyze_models_2way("targeted", path = "analyses/7habitat/output/drop-outliers/mpa-year", habitat = "kelp")
-analyze_models_2way("nontargeted", path = "analyses/7habitat/output/drop-outliers/mpa-year", habitat = "kelp")
-analyze_models_2way("targeted", path = "analyses/7habitat/output/drop-outliers/nested.ms", habitat = "kelp")
-analyze_models_2way("nontargeted", path = "analyses/7habitat/output/drop-outliers/nested.ms", habitat = "kelp")
+analyze_models_2way("nontargeted", path = "analyses/7habitat/output/kelp/mpa-year", habitat = "kelp")
+analyze_models_2way("targeted",    path = "analyses/7habitat/output/kelp/mpa-year", habitat = "kelp")
+analyze_models_2way("all",         path = "analyses/7habitat/output/kelp/mpa-year", habitat = "kelp")
+
+analyze_models_2way("nontargeted", path = "analyses/7habitat/output/kelp/region-mpa-year", habitat = "kelp")
+analyze_models_2way("targeted",    path = "analyses/7habitat/output/kelp/region-mpa-year", habitat = "kelp")
+analyze_models_2way("all",         path = "analyses/7habitat/output/kelp/region-mpa-year", habitat = "kelp")
+
+analyze_models_2way("nontargeted", path = "analyses/7habitat/output/kelp/mpa-year-drop", habitat = "kelp")
+analyze_models_2way("targeted",    path = "analyses/7habitat/output/kelp/mpa-year-drop", habitat = "kelp")
+analyze_models_2way("all",         path = "analyses/7habitat/output/kelp/mpa-year-drop", habitat = "kelp")
+
+analyze_models_2way("nontargeted", path = "analyses/7habitat/output/kelp/region-mpa-year-drop", habitat = "kelp")
+analyze_models_2way("targeted",    path = "analyses/7habitat/output/kelp/region-mpa-year-drop", habitat = "kelp")
+analyze_models_2way("all",         path = "analyses/7habitat/output/kelp/region-mpa-year-drop", habitat = "kelp")
+
 
 # Rocky reef 
-analyze_models_2way("nontargeted", path = "analyses/7habitat/output/keep-outliers/nested.rms-year", habitat = "rock")
-analyze_models_2way("targeted", path = "analyses/7habitat/output/keep-outliers/nested.rms-year", habitat = "rock")
+analyze_models_2way("targeted",    path = "analyses/7habitat/output/rock/mpa-year-drop", habitat = "rock")
+analyze_models_2way("targeted",    path = "analyses/7habitat/output/rock/region-mpa-year-drop", habitat = "rock")
+analyze_models_2way("targeted",    path = "analyses/7habitat/output/rock/mpa-year", habitat = "rock")
+analyze_models_2way("targeted",    path = "analyses/7habitat/output/rock/region-mpa-year", habitat = "rock")
 
 # path <- "analyses/7habitat/output/2way/rock"
 # 

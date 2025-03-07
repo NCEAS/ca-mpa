@@ -28,6 +28,9 @@
 # regions = c("North", "Central", "N. Channel Islands", "South")
 # path = "analyses/7habitat/output/targeted/test"
 
+
+
+
 fit_habitat_models <- function(type, focal_group, drop_zeroes, drop_outliers, biomass_variable, predictors_df, random_effects, data, regions, path) {
   
   print(paste("Starting:", focal_group))
@@ -51,8 +54,7 @@ fit_habitat_models <- function(type, focal_group, drop_zeroes, drop_outliers, bi
       group_by(year, site, site_type, bioregion, region4, affiliated_mpa, age_at_survey,
                across(matches("^hard|soft|depth|kelp"))) %>%
       summarize(biomass = sum(!!sym(biomass_variable), na.rm = T), .groups = 'drop')
-  }
-  else {
+  } else {
     stop("Error in focal group or type.")
   }
   
@@ -90,7 +92,8 @@ fit_habitat_models <- function(type, focal_group, drop_zeroes, drop_outliers, bi
     extreme_site <- site_static %>% 
       pivot_longer(cols = depth_cv_100:soft_bottom_500, names_to = "variable", values_to = "value") %>% 
       filter(!str_detect(variable, "depth_sd")) %>% 
-      filter(!between(value, -3, 3)) %>% 
+      filter(!str_detect(variable, "depth_cv_25")) %>% 
+      filter(!between(value, -3.5, 3.5)) %>% 
       pivot_wider(names_from = variable, values_from = value)
     
     # Check balance of remaining sites (ensure still MPA/Ref pairs)
@@ -154,7 +157,7 @@ fit_habitat_models <- function(type, focal_group, drop_zeroes, drop_outliers, bi
         {
           withCallingHandlers(
             { m <- lmer(model_formula, data = data_sp,
-                        control = lmerControl(optCtrl = list(maxfun = 1e7)))
+                        control = lmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 1e8)))
               singular_status <- if (isSingular(m)) "Singular fit" else "OK"
               m
             },
@@ -219,12 +222,20 @@ fit_habitat_models <- function(type, focal_group, drop_zeroes, drop_outliers, bi
     mutate(type = case_when(model_id %in% top_model_names ~ "top",
                             predictors == "site_type * age_at_survey" ~ "base",
                             model_id %in% core_model_names ~ "core"))
+  
+  # Find those that did not converge or had other issues
+  problems <- models_df %>% 
+    filter(!is.na(messages))
+  
+  print(paste("Problems: ", length(unique(problems$model_id))))
 
   # Save the subset
   saveRDS(list(models_df = models_df, models = models, data_sp = data_sp),
-          file = file.path(path, paste0(focal_group, "_models.rds")))
+          file = file.path(path, paste(habitat, focal_group, re_string, "models.rds", sep = "_")))
   
   print("  Saved.")
+  
+  
 
 }
 

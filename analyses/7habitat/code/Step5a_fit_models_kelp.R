@@ -26,22 +26,16 @@ ltm.dir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_
 pred_kelp <- readRDS(file.path("analyses/7habitat/intermediate_data/kelp_predictors.Rds")) %>% filter(pred_group %in% c("all", "combined"))
 pred_kelp_2way <- readRDS(file.path("analyses/7habitat/intermediate_data/kelp_predictors_2way.Rds"))
 
-pred_kelp_2way_drop25 <- pred_kelp_2way %>% 
-  filter(!(str_detect(model_id, "H25") & !str_detect(model_id, "H250"))) %>% 
-  filter(!(str_detect(model_id, "K25") & !str_detect(model_id, "K250"))) %>% 
-  filter(!(str_detect(model_id, "DM25") & !str_detect(model_id, "DM250"))) %>% 
-  filter(!(str_detect(model_id, "DCV25") & !str_detect(model_id, "DCV250")))
-
 # Define subset for modeling (reduced number of columns)
-data_kelp_subset <- readRDS(file.path(ltm.dir, "combine_tables/kelp_full.Rds")) %>% 
+data_kelp <- readRDS(file.path(ltm.dir, "combine_tables/kelp_full.Rds")) %>% 
   mutate(site_type = factor(site_type, levels = c("Reference", "MPA"))) %>% 
   dplyr::select(year:affiliated_mpa, size_km2, age_at_survey,
                 species_code:target_status, assemblage_new, weight_kg:count_per_m2, 
                 all_of(pred_kelp$predictor)) %>% 
   filter(!site == "SCAI_SHIP_ROCK") %>% # depth 67m, all others < 20m
+  filter(!site == "CASPAR_2") %>% # depth 0
  # filter(!affiliated_mpa == "point dume smca") %>% # remove - spatial autocorrelation in residuals
   mutate(kg_per_100m2 = kg_per_m2*100)
-
 
 
 # Fit assemblage models ---------
@@ -51,24 +45,32 @@ group_list <- c("targeted", "nontargeted", "all")
 num_cores <- min(length(group_list), detectCores()/3)  
 plan(multisession, workers = num_cores)
 
+# Provide some of the global variables
+habitat <- "kelp"
+re_string <- "my"
+random_effects <- c("affiliated_mpa", "year")
+
 run_model <- function(focal_group){
+  
   fit_habitat_models(
     type = "target_status",
     focal_group = focal_group,
     drop_zeroes = "no",
-    drop_outliers = "no",
-    biomass_variable = "kg_per_100m2",
+    drop_outliers = "no", # beyond the 2 sites above
     predictors_df = pred_kelp_2way,
-    random_effects = c("region4/affiliated_mpa", "year"),
-    data = data_kelp_subset,
+    biomass_variable = "weight_kg",
+    random_effects = random_effects,
+    data = data_kelp,
     regions = c("North", "Central", "N. Channel Islands", "South"),
-    path = "analyses/7habitat/output/kelp/region-mpa-year"
+    path = "analyses/7habitat/output"
   )
   
 }
 
 # Run models in parallel
 future_walk(group_list, run_model)
+
+
 
 
 

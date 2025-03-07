@@ -31,13 +31,12 @@ my_theme <- theme(
 )
 
 focal_group <- "targeted"
+habitat <- "Shallow reef"
+path <- "analyses/7habitat/output/rock/region-mpa-year"
 
-habitat <- "rock"
-path <- "analyses/7habitat/output/keep-outliers/nested.rms-year"
 
-
-habitat <- "kelp"
-path <- "analyses/7habitat/output/drop-outliers/mpa-year"
+# habitat <- "kelp"
+# path <- "analyses/7habitat/output/drop-outliers/mpa-year"
 #path <- "analyses/7habitat/output/drop-outliers/site-year"
 #path <- "analyses/7habitat/output/drop-outliers/nested.ms"
 
@@ -110,11 +109,11 @@ make_forest_plots <- function(focal_group, path, habitat){
          color = "Scale", 
          pch = "Significance", 
          linetype = "Importance",
-         title = paste0(str_to_sentence(focal_group))) +
+         title = paste0(str_to_sentence(focal_group), "\n", str_to_sentence(habitat), "\n", "Top Models: ", paste(unique(data$num_top_models)))) +
     my_theme
   forest
   
-  ggsave(forest, filename = paste0(focal_group, "_forest.png"),
+  ggsave(forest, filename = paste(focal_group, snakecase::to_snake_case(habitat), "forest.png", sep = "_"),
          path = path, width = 10, height = 5, dpi = 300, units = "in")
   
   # Create table to export
@@ -125,7 +124,7 @@ make_forest_plots <- function(focal_group, path, habitat){
     mutate(significance = if_else(significance == "NS", NA_character_, significance)) %>%
     mutate(scale = if_else(scale == "None", NA_character_, scale)) %>% 
     gt() %>%
-    tab_header(title = html(paste0("<b><i>", str_to_sentence(focal_group), "</i></b>"))) %>%
+    tab_header(title = html(paste0("<b><i>", str_to_sentence(focal_group), " - ", str_to_sentence(habitat), "</i></b>"))) %>%
     cols_label(term_revised = "Term",
                scale = "Scale (m)",
                estimate = "Estimate",
@@ -144,16 +143,32 @@ make_forest_plots <- function(focal_group, path, habitat){
     tab_options(table.font.size = "small", table.width = pct(100)) %>% 
     tab_row_group(label = "Base Model", rows = scale == "Base") %>%
     tab_row_group(label = "Top Model", rows = scale != "Base" | is.na(scale))
-gt_table
-  gtsave(gt_table, filename = paste0(focal_group, "_table.docx"),
-         path = file.path(fig.dir, habitat), width = 4, height = 3, dpi = 300, units = "in")
+  gt_table
+  gtsave(gt_table, filename = paste(focal_group, snakecase::to_snake_case(habitat), "table.docx", sep = "_"),
+         path = path, width = 4, height = 3, dpi = 300, units = "in")
 
 }
 
 
 
 # Create and save figures -------------------------------------------------------------
-make_forest_plots(focal_group = "targeted", path = "analyses/7habitat/output/drop-outliers/mpa-year", habitat = "kelp")
+
+focal_groups <- c("targeted", "nontargeted", "all")
+
+habitat_paths <- list(
+  "Shallow rocky reef" = c("analyses/7habitat/output/rock/mpa-year", 
+                           "analyses/7habitat/output/rock/region-mpa-year"),
+  "Kelp forest" = c("analyses/7habitat/output/kelp/region-mpa-year", 
+                    "analyses/7habitat/output/kelp/mpa-year", 
+                    "analyses/7habitat/output/kelp/region-mpa-year-drop", 
+                    "analyses/7habitat/output/kelp/mpa-year-drop"))
+
+# Iterate efficiently over all combinations
+purrr::walk2(
+  rep(names(habitat_paths), lengths(habitat_paths)),  
+  unlist(habitat_paths),
+  ~ purrr::walk(focal_groups, \(fg) make_forest_plots(focal_group = fg, path = .y, habitat = .x))
+)
 
 
 

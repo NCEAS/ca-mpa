@@ -32,11 +32,15 @@ my_theme <- theme(
 )
 
 focal_group <- "targeted"
-habitat <- "kelp"
-path <- "analyses/7habitat/output/drop-outliers/mpa-year"
+
+habitat <- "Kelp forest"
+path <- "analyses/7habitat/output/kelp/mpa-year"
+
+habitat <- "Shallow reef"
+path <- "analyses/7habitat/output/rock/region-mpa-year"
 
 make_effects_plots <- function(focal_group, path, habitat){
-  print(paste("focal_group:", focal_group))
+  print(paste0(habitat, ", ", focal_group))
   
   # 1. Read the top model and base model
   top_models <- readRDS(file.path(path, paste0(focal_group, "_results.rds")))$models
@@ -46,10 +50,10 @@ make_effects_plots <- function(focal_group, path, habitat){
   models_df <- readRDS(file.path(path, paste0(focal_group, "_models.rds")))$models_df
   
   # 4. Evaluate diagnostics for the top model
-  diag <- plot(check_model(top_models$top, residual_type = "simulated", check = c("ncv", "qq", "normality", "vif")))
+  diag <- plot(check_model(top_models$top, residual_type = "simulated", check = c("ncv", "qq")))
   
-  ggsave(diag, filename = paste0(focal_group, "_diagnostic.png"),
-         path = path, width = 10, height = 6, dpi = 300, units = "in")
+  ggsave(diag, filename = paste(focal_group, snakecase::to_snake_case(habitat), "diagnostic.png", sep = "_"),
+         path = path, width = 4, height = 4, dpi = 300, units = "in")
   
   # 5. Calculate and plot the predictor effects 
   effects_list <- top_models$effects_list_top
@@ -57,7 +61,7 @@ make_effects_plots <- function(focal_group, path, habitat){
   effect_plots <- lapply(seq_along(effects_list), function(i) {
     effects_data <- as.data.frame(effects_list[[i]])
     x_var <- colnames(effects_data)[which(colnames(effects_data) != "site_type")[1]]
-    const <- min(data_sp$kg_per_100m2[data_sp$kg_per_100m2 > 0], na.rm = TRUE)*100
+    const <- min(data_sp$biomass[data_sp$biomass > 0], na.rm = TRUE)
     
     # Reverse scaling if available
     center <- attr(data_sp[[x_var]], "scaled:center")
@@ -106,7 +110,7 @@ make_effects_plots <- function(focal_group, path, habitat){
   # Combine all effect plots and export
   wrap_plots(effect_plots, ncol = length(effect_plots)) + 
     plot_annotation(
-      title = paste0(str_to_sentence(focal_group)),
+      title = paste0(str_to_sentence(focal_group), "\n", str_to_sentence(habitat)),
       theme = theme(plot.title = element_text(size = 10, face = "bold"),
                     plot.subtitle = element_text(size = 8),
                     axis.title = element_text(size = 8),
@@ -118,12 +122,10 @@ make_effects_plots <- function(focal_group, path, habitat){
                     panel.background = element_rect(fill = "white", color = NA),  
                     plot.background = element_rect(fill = "white", color = NA)))
   
-  ggsave(filename = paste0(focal_group, "_effects.png"),
+  ggsave(filename = paste(focal_group, snakecase::to_snake_case(habitat), "effects.png", sep = "_"),
          path = path, width = 8, height = 3, dpi = 300, units = "in")
   
-  print("  Effects complete.")
-  
-  png(paste0(path, "/", focal_group, "_residuals.png"), width = 5000, height = 1000, res = 300)
+  png(paste0(path, "/", focal_group, "_", snakecase::to_snake_case(habitat), "_residuals.png"), width = 5000, height = 1000, res = 300)
   
   plot(effects_list, partial.residuals = TRUE, residuals.cex = 0.4, residuals.pch = 19, 
        confint = list(style = "auto"), 
@@ -131,11 +133,44 @@ make_effects_plots <- function(focal_group, path, habitat){
        lattice = list(strip = list(cex = 0.8)),
        main = NULL, rows = 1, cols = length(effects_list))  
   
-  grid.text(paste(sciname), x = 0.02, y = 0.95, just = "left", gp = gpar(fontsize = 10, fontface = "bold"))
+  grid.text(paste(focal_group, "-", habitat), x = 0.02, y = 0.95, just = "left", gp = gpar(fontsize = 10, fontface = "bold"))
 
   dev.off()
   
 }
+
+
+
+focal_groups <- c("targeted", "nontargeted", "all")
+
+habitat_paths <- list(
+  "Shallow rocky reef" = c("analyses/7habitat/output/rock/mpa-year", 
+                           "analyses/7habitat/output/rock/region-mpa-year"),
+  "Kelp forest" = c("analyses/7habitat/output/kelp/region-mpa-year", 
+                    "analyses/7habitat/output/kelp/mpa-year", 
+                    "analyses/7habitat/output/kelp/region-mpa-year-drop", 
+                    "analyses/7habitat/output/kelp/mpa-year-drop"))
+
+# Iterate efficiently over all combinations
+purrr::walk2(
+  rep(names(habitat_paths), lengths(habitat_paths)),  
+  unlist(habitat_paths),
+  ~ purrr::walk(focal_groups, \(fg) make_effects_plots(focal_group = fg, path = .y, habitat = .x))
+)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 path <- "analyses/7habitat/output/2way-4region-rmre/kelp-reduced"

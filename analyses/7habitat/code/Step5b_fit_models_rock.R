@@ -22,11 +22,9 @@ source("analyses/7habitat/code/Step4_build_habitat_models.R")  # Load the functi
 
 # Read Data --------------------------------------------------------------------
 ltm.dir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_2024"
-#ltm.dir <- "/Users/lopazanski/Desktop/ltm/update_2024"
 
 pred_rock <- readRDS(file.path("analyses/7habitat/intermediate_data/rock_predictors.Rds")) %>% filter(pred_group %in% c("all", "combined"))
 pred_rock_2way <- readRDS(file.path("analyses/7habitat/intermediate_data/rock_predictors_2way.Rds"))
-
 
 data_rock <- readRDS(file.path(ltm.dir, "combine_tables/ccfrp_full.Rds")) %>% 
   mutate(site_type = factor(site_type, levels = c("Reference", "MPA"))) %>% 
@@ -37,22 +35,28 @@ data_rock <- readRDS(file.path(ltm.dir, "combine_tables/ccfrp_full.Rds")) %>%
 # Fit Assemblage Models --------------------------------------------------------
 
 # Plan for parallel execution
-group_list <- c("targeted", "nontargeted", "all")
+group_list <- c("targeted", "all")
 num_cores <- min(length(group_list), detectCores()/3)  
 plan(multisession, workers = num_cores)
 
+# Provide some of the global variables
+habitat <- "rock"
+re_string <- "rmy"
+random_effects <- c("region4/affiliated_mpa", "year")
+
 run_model <- function(focal_group){
+  
   fit_habitat_models(
     type = "target_status",
     focal_group = focal_group,
     drop_zeroes = "no",
     drop_outliers = "no",
-    biomass_variable = "weight_kg",
     predictors_df = pred_rock_2way,
-    random_effects = c("region4/affiliated_mpa", "year"),
+    biomass_variable = "weight_kg",
+    random_effects = random_effects,
     data = data_rock,
     regions = c("North", "Central", "N. Channel Islands", "South"),
-    path = "analyses/7habitat/output/rock/region-mpa-year"
+    path = "analyses/7habitat/output"
   )
   
 }
@@ -109,7 +113,7 @@ site_static <- data2 %>%
 # Remove sites with extreme values in static vars (depth and hard bottom)
 extreme_site <- site_static %>%
   pivot_longer(cols = depth_cv_100:hard_bottom_500, names_to = "variable", values_to = "value") %>%
-  filter(!between(value, -3.29, 3.29)) %>%
+  filter(!between(value, -3.5, 3.5)) %>%
   pivot_wider(names_from = variable, values_from = value)
 
 # Check balance of remaining sites (ensure still MPA/Ref pairs)
@@ -132,7 +136,7 @@ data3 <- data2 %>%
   mutate_at(vars(grep("^age", names(.), value = TRUE)), scale) %>% 
   # Scale kelp within each year (so relative to annual average instead of across all years)
   group_by(year) %>%
-  mutate_at(vars(grep("^kelp", names(.), value = TRUE)), scale) 
+  mutate_at(vars(grep("^kelp", names(.), value = TRUE)), ~ ifelse(sd(.) == 0, 0, scale(.)))
 
 # Save final output for the model
 const <- if_else(min(data3$weight_kg) > 0, 0, min(data3$weight_kg[data3$weight_kg > 0]))
