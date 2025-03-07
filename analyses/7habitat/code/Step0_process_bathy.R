@@ -26,8 +26,7 @@ sites <- readRDS(file.path("/home/shares/ca-mpa/data/sync-data/monitoring/proces
   arrange(site) %>% 
   mutate(site_id = row_number()) 
 
-footprints <- readRDS(file.path("/home/shares/ca-mpa/data/sync-data/habitat_pmep/processed_v2/substrate/substrate_sites_500m", "site_footprints.Rds")) %>% 
-  arrange(site) %>% 
+footprints <- readRDS(file.path("/home/shares/ca-mpa/data/sync-data/habitat_pmep/processed_v2/substrate/substrate_sites_500m", "site_footprints.Rds")) %>%
   mutate(site_id = row_number()) 
 
 
@@ -120,7 +119,7 @@ process_cdfw_rasters <- function(regions) {
   return(cdfw_df)
 }
 
-process_cdfw_rasters(regions)
+# process_cdfw_rasters(regions)
 
 # 2. 30m raster from Kelp People
 bathy_30m <- rast(file.path(caba.dir, "depth_30m_all_CA.tif"))
@@ -154,14 +153,17 @@ saveRDS(wcdsci_df, file.path(proc.dir, "wcdsci_depth_buffers.Rds"))
 
 
 # Join all three ---- 
-depth_all <- full_join(cdfw_df, csmp_df) %>%
-  full_join(., wcdsci_df)
+wcdsci_df <- readRDS(file.path(proc.dir, "wcdsci_depth_buffers_surf.Rds"))
+cdfw_df <- readRDS(file.path(proc.dir, "cdfw_depth_buffers_surf.Rds"))
+csmp_df <- readRDS(file.path(proc.dir, "csmp_depth_buffers_surf.Rds"))
 
-saveRDS(depth_all, file.path("/home/shares/ca-mpa/data/sync-data/habitat_anita/processed/depth_buffers_agg.Rds"))
+depth_all <- full_join(cdfw_df, csmp_df) %>%
+  full_join(., wcdsci_df) %>%  
+  left_join(sites %>% dplyr::select(habitat, site, site_id) %>% st_drop_geometry(), by = c("ID" = "site_id"))
+
+saveRDS(depth_all, file.path("/home/shares/ca-mpa/data/sync-data/habitat_anita/processed/depth_buffers_agg_surf.Rds"))
 
 # Build --------------------------------------------------------------------------------
-rm(list = setdiff(ls(), c("sites", "ltm.dir", "sites_proj", "foot_proj", "bathy_25m", "bathy_30m")))
-gc()
 
 depth_all <- readRDS(file.path("/home/shares/ca-mpa/data/sync-data/habitat_anita/processed/depth_buffers_agg.Rds")) %>% 
   left_join(sites %>% dplyr::select(habitat, site, site_id) %>% st_drop_geometry(), by = c("ID" = "site_id"))
@@ -187,59 +189,59 @@ saveRDS(depth2, file.path(ltm.dir, "site_depth_agg.Rds"))
 
 # Examine the extremely shallow sites to see if there is a logistical issue ---------------
 
-shallow_sites <- sites_proj %>% 
-  filter(habitat == "Surf zone" | site %in% depth2$site[depth2$depth_mean_25 > -2]) %>% 
-  arrange(habitat)
+# shallow_sites <- sites_proj %>% 
+#   filter(habitat == "Surf zone" | site %in% depth2$site[depth2$depth_mean_25 > -2]) %>% 
+#   arrange(habitat)
 
 #shallow_sites <- head(shallow_sites, 6)
 
 # Create a list to store plots and a dataframe to store corrected points
-plots <- list()
-corrected_points_list <- list()
-my_site <- shallow_sites$site[1]
-raster_layer <- bathy_30m
-
-
-library(tmap)
-tmap_mode("plot")
-tmap_options(component.autoscale = F)
-
-# Process each site
-for (my_site in unique(shallow_sites$site)) {
-  
-  # Filter for the current site
-  site_point <- sites %>% filter(site == !!my_site)
-  site_foot  <- foot_proj %>% filter(site == !!my_site)
-  
-  # Calculate buffer to find raster in proxmity of the site
-  site_500 <- st_buffer(site_point, dist = 500)
-  site_25 <- st_buffer(site_point, dist = 25)
-  
-  # Convert to vector object and reproject to raster CRS
-  sites_vect <- vect(site_500)
-  sites_vect <- project(sites_vect, crs(raster_layer))
-  
-  # Crop raster to the site
-  raster_site <- crop(raster_layer, sites_vect)
-  
-  # Determine whether to show the legend (only on the first plot)
-  #legend_setting <- if (my_site == "Ano Nuevo MPA") tm_legend(title = "", position = tm_pos_in("left", "top")) else tm_legend_hide()
-  
-  # Plot  
-  plot <- 
-    tm_shape(raster_site) +
-    tm_raster(col.scale = tm_scale_intervals(breaks = seq(-40, 0, by = 1)),
-              col.legend =  tm_legend_hide())+ 
-    tm_shape(site_foot) +
-      tm_borders(col = "green") +
-    tm_shape(site_25) + 
-      tm_borders(col = "red") + 
-    tm_title(paste(my_site), position = tm_pos_on_top(), frame = F, size = 1) +
-    tm_layout(outer.margins = c(0.001, 0.001, 0.001, 0.001), frame = F) 
-  
-  plot
-  plots[[my_site]] <- plot
-}
+# plots <- list()
+# corrected_points_list <- list()
+# my_site <- shallow_sites$site[1]
+# raster_layer <- bathy_30m
+# 
+# 
+# library(tmap)
+# tmap_mode("plot")
+# tmap_options(component.autoscale = F)
+# 
+# # Process each site
+# for (my_site in unique(shallow_sites$site)) {
+#   
+#   # Filter for the current site
+#   site_point <- sites %>% filter(site == !!my_site)
+#   site_foot  <- foot_proj %>% filter(site == !!my_site)
+#   
+#   # Calculate buffer to find raster in proxmity of the site
+#   site_500 <- st_buffer(site_point, dist = 500)
+#   site_25 <- st_buffer(site_point, dist = 25)
+#   
+#   # Convert to vector object and reproject to raster CRS
+#   sites_vect <- vect(site_500)
+#   sites_vect <- project(sites_vect, crs(raster_layer))
+#   
+#   # Crop raster to the site
+#   raster_site <- crop(raster_layer, sites_vect)
+#   
+#   # Determine whether to show the legend (only on the first plot)
+#   #legend_setting <- if (my_site == "Ano Nuevo MPA") tm_legend(title = "", position = tm_pos_in("left", "top")) else tm_legend_hide()
+#   
+#   # Plot  
+#   plot <- 
+#     tm_shape(raster_site) +
+#     tm_raster(col.scale = tm_scale_intervals(breaks = seq(-40, 0, by = 1)),
+#               col.legend =  tm_legend_hide())+ 
+#     tm_shape(site_foot) +
+#       tm_borders(col = "green") +
+#     tm_shape(site_25) + 
+#       tm_borders(col = "red") + 
+#     tm_title(paste(my_site), position = tm_pos_on_top(), frame = F, size = 1) +
+#     tm_layout(outer.margins = c(0.001, 0.001, 0.001, 0.001), frame = F) 
+#   
+#   plot
+#   plots[[my_site]] <- plot
+# }
 
 #tmap_options(component.autoscale = FALSE)
-# tmap_arrange(plots, ncol = 6, outer.margins = 0.0001)
+#tmap_arrange(plots, ncol = 6, outer.margins = 0.0001)

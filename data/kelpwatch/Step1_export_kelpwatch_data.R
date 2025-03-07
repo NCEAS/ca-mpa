@@ -26,7 +26,6 @@
 librarian::shelf(tidyverse, tidync, sf, rnaturalearth, terra)
 
 # paths
-site.dir <- "/home/shares/ca-mpa/data/sync-data/monitoring/ltm_sites_1000m_merged"
 kelp.dir <- "/home/shares/ca-mpa/data/sync-data/kelpwatch/2024"
 ltm.dir  <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_2024"
 
@@ -35,7 +34,7 @@ kelpwatch_file <- "LandsatKelpBiomass_2024_Q3_withmetadata.nc"
 kelpwatch_raw <- tidync(file.path(kelp.dir, kelpwatch_file))
 kelpwatch_raw # select the biomass grid by default
 
-# Read the LTM sites (these are ones incldued in the habitat analyses)
+# Read the LTM sites
 sites <- readRDS(file.path("/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_2024", "site_locations_corrected.Rds")) %>% 
   mutate(site_id = row_number())
 
@@ -138,20 +137,14 @@ for (yr in years) {
 
 # Inspect --------------------------------------------------------------------------------
 
-# Load raster
-raster_2004 <- terra::rast(file.path(kelp.dir, "processed", "kelp_canopy_2004.tif"))
-
-# Summary of the raster
-print(raster_2004)
-
-plot(raster_2004, main = "Kelp Canopy 2004")
-plot(st_geometry(sites), add = TRUE, border = "blue")
-
-# Compare input data and rasterized values
-input_sum <- sum(kelp_annual %>% filter(year == 2004) %>% pull(area), na.rm = TRUE)
-raster_sum <- global(raster_2004, "sum", na.rm = TRUE)
-
-# Compare the two sums
-print(input_sum)
-print(raster_sum)
+# # Load raster
+# raster_2004 <- terra::rast(file.path(kelp.dir, "processed", "kelp_canopy_2004.tif"))
+# 
+# # Compare input data and rasterized values
+# input_sum <- sum(kelp_annual %>% filter(year == 2004) %>% pull(area), na.rm = TRUE)
+# raster_sum <- global(raster_2004, "sum", na.rm = TRUE)
+# 
+# # Compare the two sums
+# print(input_sum)
+# print(raster_sum)
 

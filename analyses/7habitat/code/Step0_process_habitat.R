@@ -21,20 +21,33 @@
 # source("~/ca-mpa/data/monitoring_data/processing_code/process_2024_versions/Step2_process_monitoring_sites.R")
 # source("~/ca-mpa/data/monitoring_data/processing_code/process_2024_versions/Step3_correct_monitoring_site_locations.R")
 
-# Step 2. Get substrate and biotic characteristics for each site
+# Step 2. Get substrate and biotic characteristics for each site  -----
+print("Step 2: Substrate and Biotic")
 source("~/ca-mpa/data/habitat_pmep/Step1_export_sites.R")
+print("Step 2: Combining Substrate and Biotic")
 source("~/ca-mpa/data/habitat_pmep/Step2_combine_habitat.R")
 
-# After this, Steps 3-5 can proceed simultaneously if needed:
+# After this, Steps 3-4 can proceed simultaneously if needed:
 
-# Step 3. Calculate the substrate/biotic buffers
-source("~/ca-mpa/data/habitat_pmep/Step3_caclulate_buffers.R")
+# Step 3. Calculate the substrate/biotic buffers  -----
+print("Step 3: Calculating Buffers")
+source("~/ca-mpa/data/habitat_pmep/Step3_calculate_buffers.R")
 
-# Step 4. Get annual kelp canopy estimates for each site
+# Step 4. Get depth for each site  -----
+# Beware: Running this for all 2k+ sites takes a long time. Like 10 hours. 
+print("Step 4: Processing Bathymetry")
+source("~/ca-mpa/analyses/7habitat/code/Step0_process_bathy.R")
+
+# Anytime after Step 1:
+
+# Step 5. Get annual kelp canopy estimates for each site (anytime after Step 1) -----
+print("Step 5: Kelp Canopy")
 source("~/ca-mpa/data/kelpwatch/Step1_export_kelpwatch_data.R")
 source("~/ca-mpa/data/kelpwatch/Step2_calculate_kelpwatch_buffers.R")
 
-# Step 5. Get depth for each site
-source("~/ca-mpa/analyses/7habitat/code/Step0_process_bathy.R")
 
-# Congrats. Now you're ready for Step_1_build_habitat_table. Have fun :) 
+
+# Congrats. Now you're ready for Step_1_build_habitat_table.
+
+
+

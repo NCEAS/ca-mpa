@@ -95,8 +95,8 @@ deep <- deep_raw %>%
 
 
 # Export 
-saveRDS(kelp, file.path(ltm.dir, "combine_tables/kelp_full.Rds"))  # Last write 2 Mar 2025
-saveRDS(surf, file.path(ltm.dir, "combine_tables/surf_full.Rds"))  # Last write 21 Feb 2025
-saveRDS(rock, file.path(ltm.dir, "combine_tables/ccfrp_full.Rds")) # Last write 2 Mar 2025
-saveRDS(deep, file.path(ltm.dir, "combine_tables/deep_full.Rds"))  # Last write 3 Mar 2025
+saveRDS(kelp, file.path(ltm.dir, "combine_tables/kelp_full.Rds"))  # Last write 7 Mar 2025
+saveRDS(surf, file.path(ltm.dir, "combine_tables/surf_full.Rds"))  # Last write 7 Mar 2025
+saveRDS(rock, file.path(ltm.dir, "combine_tables/ccfrp_full.Rds")) # Last write 7 Mar 2025
+saveRDS(deep, file.path(ltm.dir, "combine_tables/deep_full.Rds"))  # Last write 7 Mar 2025
 
