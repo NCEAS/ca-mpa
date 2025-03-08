@@ -32,8 +32,8 @@ data_kelp <- readRDS(file.path(ltm.dir, "combine_tables/kelp_full.Rds")) %>%
   dplyr::select(year:affiliated_mpa, size_km2, age_at_survey,
                 species_code:target_status, assemblage_new, weight_kg:count_per_m2, 
                 all_of(pred_kelp$predictor)) %>% 
-  filter(!site == "SCAI_SHIP_ROCK") %>% # depth 67m, all others < 20m
-  filter(!site == "CASPAR_2") %>% # depth 0
+ # filter(!site == "SCAI_SHIP_ROCK") %>% # depth 67m, all others < 20m
+ # filter(!site %in% c("CASPAR_2", "POINT_CABRILLO_2")) %>% # depth 0
  # filter(!affiliated_mpa == "point dume smca") %>% # remove - spatial autocorrelation in residuals
   mutate(kg_per_100m2 = kg_per_m2*100)
 
@@ -50,15 +50,18 @@ habitat <- "kelp"
 re_string <- "my"
 random_effects <- c("affiliated_mpa", "year")
 
+print(paste0("Starting: ", habitat))
+print(paste0("RE Structure: ", paste(random_effects, collapse = ", ")))
+
+
 run_model <- function(focal_group){
   
   fit_habitat_models(
     type = "target_status",
     focal_group = focal_group,
-    drop_zeroes = "no",
-    drop_outliers = "no", # beyond the 2 sites above
+    drop_outliers = "no", # beyond the sites above
     predictors_df = pred_kelp_2way,
-    biomass_variable = "weight_kg",
+    biomass_variable = "kg_per_100m2",
     random_effects = random_effects,
     data = data_kelp,
     regions = c("North", "Central", "N. Channel Islands", "South"),
@@ -69,90 +72,6 @@ run_model <- function(focal_group){
 
 # Run models in parallel
 future_walk(group_list, run_model)
-
-
-
-
-
-# Explore random effects structure ----
-## 1. Fit the maximal and base models to explore the random effects structure. 
-##    -- Nested region/mpa/site had several models that DNC and zero variance for region
-##    -- Nested mpa/site 
-fit_habitat_models(
-  type = "target_status",
-  focal_group = "targeted",
-  predictors_df = pred_kelp_2way,
-  random_effects = c("region4/affiliated_mpa/site", "year"),
-  data = data_kelp_subset,
-  regions = c("North", "Central", "N. Channel Islands", "South"),
-  path = "analyses/7habitat/output/test"
-)
-
-
-## Region had zero variance, after dropping p > 0.05 so examine: mpa/site + year 
-
-# fit_habitat_models(
-#   type = "target_status",
-#   focal_group = "targeted",
-#   predictors_df = pred_kelp_2way_drop25,
-#   random_effects = c("affiliated_mpa/site", "year"),
-#   data = data_kelp_subset,
-#   regions = c("North", "Central", "N. Channel Islands", "South"),
-#   path = "analyses/7habitat/output/targeted/extreme-sites_dropped/nested.mpa.site-year"
-# )
-
-# MPA had very low variance (nearly zero or zero for many models) after
-# accounting for the RE for site, which makes sense, examine: site + year 
-# fit_habitat_models(
-#   type = "target_status",
-#   focal_group = "targeted",
-#   predictors_df = pred_kelp_2way_drop25, 
-#   random_effects = c("site", "year"),
-#   data = data_kelp_subset,
-#   regions = c("North", "Central", "N. Channel Islands", "South"),
-#   path = "analyses/7habitat/output/targeted/extreme-sites_dropped/site-year"
-# )
-
-# Some concerns that site is soaking up too much of the habitat variation
-# so run one that's just MPA + year to compare the key habitat variables
-# fit_habitat_models(
-#   type = "target_status",
-#   focal_group = "targeted",
-#   response = "log_c_biomass",
-#   predictors_df = pred_kelp_2way_drop25,
-#   random_effects = c("affiliated_mpa", "year"),
-#   data = data_kelp_subset,
-#   regions = c("North", "Central", "N. Channel Islands", "South"),
-#   path = "analyses/7habitat/output/targeted/extreme-sites_dropped/mpa-year"
-# )
-
-## Explore including the 25m scales, no sites removed ----
-# fit_habitat_models(
-#   type = "target_status",
-#   focal_group = "targeted",
-#   predictors_df = pred_kelp_2way,
-#   random_effects = c("site", "year"),
-#   data = data_kelp_subset,
-#   regions = c("North", "Central", "N. Channel Islands", "South"),
-#   path = "analyses/7habitat/output/targeted/extreme-sites-included/site-year-with25"
-# )
-# 
-# fit_habitat_models(
-#   type = "target_status",
-#   focal_group = "targeted",
-#   predictors_df = pred_kelp_2way,
-#   random_effects = c("affiliated_mpa", "year"),
-#   data = data_sp,
-#   regions = c("North", "Central", "N. Channel Islands", "South"),
-#   path = "analyses/7habitat/output/targeted/extreme-sites-included/mpa-year-with25"
-# )
-
-## Explore 
-
-
-
-
-
 
 
 

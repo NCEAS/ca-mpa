@@ -44,12 +44,14 @@ habitat <- "rock"
 re_string <- "rmy"
 random_effects <- c("region4/affiliated_mpa", "year")
 
+print(paste0("Starting: ", habitat))
+print(paste0("RE Structure: ", paste(random_effects, collapse = ", ")))
+
 run_model <- function(focal_group){
   
   fit_habitat_models(
     type = "target_status",
     focal_group = focal_group,
-    drop_zeroes = "no",
     drop_outliers = "no",
     predictors_df = pred_rock_2way,
     biomass_variable = "weight_kg",
