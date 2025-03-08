@@ -22,16 +22,16 @@
 # type = "target_status"
 # focal_group = "targeted"
 # biomass_variable = "weight_kg"
+# biomass_variable = "kg_per_100m2"
 # predictors_df = head(pred_rock_2way, 25)
 # random_effects = c("region4/affiliated_mpa", "year")
 # data = data_rock
+# data = data_kelp
 # regions = c("North", "Central", "N. Channel Islands", "South")
 # path = "analyses/7habitat/output/targeted/test"
 
 
-
-
-fit_habitat_models <- function(type, focal_group, drop_zeroes, drop_outliers, biomass_variable, predictors_df, random_effects, data, regions, path) {
+fit_habitat_models <- function(type, focal_group, drop_outliers, biomass_variable, predictors_df, random_effects, data, regions, path) {
   
   print(paste("Starting:", focal_group))
   
@@ -58,32 +58,8 @@ fit_habitat_models <- function(type, focal_group, drop_zeroes, drop_outliers, bi
     stop("Error in focal group or type.")
   }
   
-  if (drop_zeroes == "yes") {
-    # Identify sites where species are infrequently observed
-    zero_site <- data1 %>%
-      group_by(site) %>% 
-      summarize(prop_zero = mean(biomass == 0)) %>% 
-      filter(prop_zero > 0.9) # drop sites where observed < 10% of years
-    
-    # Check MPA/Ref balance of remaining sites 
-    zero_site_balance <- data1 %>% 
-      filter(!site %in% zero_site$site) %>% 
-      distinct(site, site_type, affiliated_mpa, year) %>% 
-      group_by(affiliated_mpa, site_type) %>% 
-      summarize(n_site_year = n(), .groups = 'drop') %>% 
-      pivot_wider(names_from = site_type, values_from = n_site_year) %>% 
-      filter(is.na(MPA) | is.na(Reference))
-    
-    data2 <- data1 %>% 
-      filter(!site %in% zero_site$site) %>% 
-      filter(!affiliated_mpa %in% zero_site_balance$affiliated_mpa)
-    
-  } else {
-    data2 <- data1
-  }
-  
   # Scale the static variables at the site-level (e.g. don't weight based on obs. frequency)
-  site_static <- data2 %>% 
+  site_static <- data1 %>% 
     distinct(site, across(all_of(grep("^hard|soft|depth", names(.), value = TRUE)))) %>%
     mutate_at(vars(grep("^hard|soft|depth", names(.), value = TRUE)), scale)
   
@@ -93,11 +69,11 @@ fit_habitat_models <- function(type, focal_group, drop_zeroes, drop_outliers, bi
       pivot_longer(cols = depth_cv_100:soft_bottom_500, names_to = "variable", values_to = "value") %>% 
       filter(!str_detect(variable, "depth_sd")) %>% 
       filter(!str_detect(variable, "depth_cv_25")) %>% 
-      filter(!between(value, -3.5, 3.5)) %>% 
+      filter(!between(value, -3, 3)) %>% 
       pivot_wider(names_from = variable, values_from = value)
     
     # Check balance of remaining sites (ensure still MPA/Ref pairs)
-    extreme_site_balance <- data2 %>% 
+    extreme_site_balance <- data1 %>% 
       filter(!site %in% extreme_site$site) %>% 
       distinct(site, site_type, affiliated_mpa, year) %>% 
       group_by(affiliated_mpa, site_type) %>% 
@@ -105,15 +81,15 @@ fit_habitat_models <- function(type, focal_group, drop_zeroes, drop_outliers, bi
       pivot_wider(names_from = site_type, values_from = n_site_year) %>% 
       filter(is.na(MPA) | is.na(Reference))
     
-    data3 <- data2 %>%
+    data2 <- data1 %>%
       filter(!site %in% extreme_site$site) %>%
       filter(!affiliated_mpa %in% extreme_site_balance$affiliated_mpa)
     
   } else {
-    data3 <- data2
+    data2 <- data1
   }
   
-  data4 <- data3 %>%
+  data3 <- data2 %>%
     mutate(year = as.factor(year),
            bioregion = as.factor(bioregion),
            region4 = as.factor(region4),
@@ -129,8 +105,8 @@ fit_habitat_models <- function(type, focal_group, drop_zeroes, drop_outliers, bi
     mutate_at(vars(grep("^kelp", names(.), value = TRUE)), scale) %>% ungroup()
   
   # Save final output for the model
-  data_sp <- data4
-  rm(data1, data2, data3, data4)
+  data_sp <- data3
+  rm(data1, data2, data3)
   
   # Add a small constant, defined as the minimum value for that species
   const <- if_else(min(data_sp$biomass) > 0, 0, min(data_sp$biomass[data_sp$biomass > 0], na.rm = TRUE))
@@ -156,7 +132,7 @@ fit_habitat_models <- function(type, focal_group, drop_zeroes, drop_outliers, bi
       tryCatch(
         {
           withCallingHandlers(
-            { m <- lmer(model_formula, data = data_sp,
+            { m <- lmer(model_formula, data = data_sp, REML = FALSE,
                         control = lmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 1e8)))
               singular_status <- if (isSingular(m)) "Singular fit" else "OK"
               m
@@ -209,9 +185,9 @@ fit_habitat_models <- function(type, focal_group, drop_zeroes, drop_outliers, bi
     filter(type == "base" | str_starts(type, "core")) %>%
     pull(model_id)
 
-  # Extract the top models within deltaAICc of 4
+  # Extract the top models within deltaAICc of 10 
   top_model_names <- models_df %>%
-    filter(delta_AICc <= 4) %>%
+    filter(delta_AICc <= 6) %>%
     pull(model_id)
 
   # Extract the model objects for the core + top models
@@ -227,11 +203,11 @@ fit_habitat_models <- function(type, focal_group, drop_zeroes, drop_outliers, bi
   problems <- models_df %>% 
     filter(!is.na(messages))
   
-  print(paste("Problems: ", length(unique(problems$model_id))))
+  print(paste("  Problems: ", length(unique(problems$model_id))))
 
   # Save the subset
   saveRDS(list(models_df = models_df, models = models, data_sp = data_sp),
-          file = file.path(path, paste(habitat, focal_group, re_string, "models.rds", sep = "_")))
+          file = file.path(path, "models", paste(habitat, focal_group, re_string, "models.rds", sep = "_")))
   
   print("  Saved.")
   
