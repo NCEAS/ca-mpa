@@ -107,6 +107,7 @@ process_cdfw_rasters <- function(regions) {
     regional_df <- map_dfr(buffers, ~process_buffer(.x, regional_raster))
     
     regional_df %>% 
+      filter(!is.na(w_mean)) %>% 
       mutate(prop_na = round(prop_na, 3),
              region = region_name,
              layer = "cdfw_2m_upscaled_to_30m") %>% 
@@ -165,11 +166,16 @@ saveRDS(depth_all, file.path("/home/shares/ca-mpa/data/sync-data/habitat_anita/p
 
 # Build --------------------------------------------------------------------------------
 
-depth_all <- readRDS(file.path("/home/shares/ca-mpa/data/sync-data/habitat_anita/processed/depth_buffers_agg.Rds")) %>% 
-  left_join(sites %>% dplyr::select(habitat, site, site_id) %>% st_drop_geometry(), by = c("ID" = "site_id"))
+depth_all <- readRDS(file.path("/home/shares/ca-mpa/data/sync-data/habitat_anita/processed/depth_buffers_agg.Rds"))# %>% 
+  #left_join(sites %>% dplyr::select(habitat, site, site_id) %>% st_drop_geometry(), by = c("ID" = "site_id"))
 
 depth <- depth_all %>%
-  arrange(ID, buffer, prop_na, -n_total) %>%  # Arrange by ID, buffer, resolution (factor), and prop_na (ascending)
+  filter(!is.na(depth_mean)) %>% 
+  filter(!prop_na == 1) %>% 
+  # Anita's interpolated data seems best for shallow areas, so start with that
+  mutate(layer = factor(layer, levels = c("anita_30m", "wcdsci_25m", "cdfw_2m_upscaled_to_30m"))) %>% 
+  filter(!(str_detect(site, "^SCAI") & layer != "anita_30m")) %>% 
+  arrange(ID, buffer, prop_na, layer) %>%  # Arrange by ID, buffer, resolution (factor), and prop_na (ascending)
   group_by(ID, buffer) %>%                      # Group by ID and buffer
   slice(1) %>%                                  # Select the first row per group (best resolution and lowest prop_na)
   ungroup() %>% 
@@ -187,61 +193,59 @@ depth2 <- depth %>%
 
 saveRDS(depth2, file.path(ltm.dir, "site_depth_agg.Rds"))
 
-# Examine the extremely shallow sites to see if there is a logistical issue ---------------
+# Examine sites for issues ---------------
 
-# shallow_sites <- sites_proj %>% 
-#   filter(habitat == "Surf zone" | site %in% depth2$site[depth2$depth_mean_25 > -2]) %>% 
-#   arrange(habitat)
+shallow_sites <- sites_proj %>%
+  filter(str_detect(site, "^SCAI"))
 
-#shallow_sites <- head(shallow_sites, 6)
+shallow_sites <- head(shallow_sites, 6)
 
 # Create a list to store plots and a dataframe to store corrected points
-# plots <- list()
-# corrected_points_list <- list()
-# my_site <- shallow_sites$site[1]
-# raster_layer <- bathy_30m
-# 
-# 
-# library(tmap)
-# tmap_mode("plot")
-# tmap_options(component.autoscale = F)
-# 
-# # Process each site
-# for (my_site in unique(shallow_sites$site)) {
-#   
-#   # Filter for the current site
-#   site_point <- sites %>% filter(site == !!my_site)
-#   site_foot  <- foot_proj %>% filter(site == !!my_site)
-#   
-#   # Calculate buffer to find raster in proxmity of the site
-#   site_500 <- st_buffer(site_point, dist = 500)
-#   site_25 <- st_buffer(site_point, dist = 25)
-#   
-#   # Convert to vector object and reproject to raster CRS
-#   sites_vect <- vect(site_500)
-#   sites_vect <- project(sites_vect, crs(raster_layer))
-#   
-#   # Crop raster to the site
-#   raster_site <- crop(raster_layer, sites_vect)
-#   
-#   # Determine whether to show the legend (only on the first plot)
-#   #legend_setting <- if (my_site == "Ano Nuevo MPA") tm_legend(title = "", position = tm_pos_in("left", "top")) else tm_legend_hide()
-#   
-#   # Plot  
-#   plot <- 
-#     tm_shape(raster_site) +
-#     tm_raster(col.scale = tm_scale_intervals(breaks = seq(-40, 0, by = 1)),
-#               col.legend =  tm_legend_hide())+ 
-#     tm_shape(site_foot) +
-#       tm_borders(col = "green") +
-#     tm_shape(site_25) + 
-#       tm_borders(col = "red") + 
-#     tm_title(paste(my_site), position = tm_pos_on_top(), frame = F, size = 1) +
-#     tm_layout(outer.margins = c(0.001, 0.001, 0.001, 0.001), frame = F) 
-#   
-#   plot
-#   plots[[my_site]] <- plot
-# }
+plots <- list()
+corrected_points_list <- list()
+my_site <- shallow_sites$site[1]
+raster_layer <- bathy_30m
 
-#tmap_options(component.autoscale = FALSE)
-#tmap_arrange(plots, ncol = 6, outer.margins = 0.0001)
+
+library(tmap)
+tmap_mode("plot")
+tmap_options(component.autoscale = F)
+
+# Process each site
+for (my_site in unique(shallow_sites$site)) {
+
+  # Filter for the current site
+  site_point <- sites %>% filter(site == !!my_site)
+  site_foot  <- foot_proj %>% filter(site == !!my_site)
+
+  # Calculate buffer to find raster in proxmity of the site
+  site_500 <- st_buffer(site_point, dist = 500)
+  site_25 <- st_buffer(site_point, dist = 25)
+
+  # Convert to vector object and reproject to raster CRS
+  sites_vect <- vect(site_500)
+  sites_vect <- project(sites_vect, crs(raster_layer))
+
+  # Crop raster to the site
+  raster_site <- crop(raster_layer, sites_vect)
+
+  # Determine whether to show the legend (only on the first plot)
+  #legend_setting <- if (my_site == "Ano Nuevo MPA") tm_legend(title = "", position = tm_pos_in("left", "top")) else tm_legend_hide()
+
+  # Plot
+  plot <-
+    tm_shape(raster_site) +
+    tm_raster(col.scale = tm_scale_intervals(breaks = seq(-40, 0, by = 1)),
+              col.legend =  tm_legend_hide())+
+    tm_shape(site_foot) +
+      tm_borders(col = "green") +
+    tm_shape(site_25) +
+      tm_borders(col = "red") +
+    tm_title(paste(my_site), position = tm_pos_on_top(), frame = F, size = 1) +
+    tm_layout(outer.margins = c(0.001, 0.001, 0.001, 0.001), frame = F)
+
+  plot
+  plots[[my_site]] <- plot
+}
+
+tmap_arrange(plots, ncol = 6, outer.margins = 0.0001)

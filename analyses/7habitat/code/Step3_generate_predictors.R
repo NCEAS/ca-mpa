@@ -57,8 +57,7 @@ kelp_predictors <- data_kelp %>%
          pred_group = case_when(str_detect(predictor, "0_30m|30_100m|100_200m|200m") ~ "depth",
                                 str_detect(predictor, "kelp|depth") ~ "all",
                                 T ~ "combined")) %>% 
-  filter(!predictor == "depth_cv_25") # %>% 
-#  filter(!scale == "25") # drop due to poor distribution
+  filter(!predictor == "depth_cv_25")
 
 rock_predictors <- data_rock %>%
   dplyr::select(year, site, site_type, bioregion, where(~ max(., na.rm = T) > 0)) %>%
@@ -72,7 +71,7 @@ rock_predictors <- data_rock %>%
          pred_group = case_when(str_detect(predictor, "0_30m|30_100m|100_200m|200m") ~ "depth",
                                 str_detect(predictor, "kelp|depth") ~ "all",
                                 T ~ "combined")) %>% 
-  filter(!predictor == "kelp_annual")
+  filter(!predictor == "kelp_annual_25")
 
 surf_predictors <- data_surf %>%
   dplyr::select(year, site, site_type, bioregion, where(~ max(., na.rm = T) > 0)) %>%
@@ -323,6 +322,9 @@ get_2way_list <- function(predictors_df){
     filter(!str_detect(predictor, "depth_sd")) %>% 
     mutate(predictor2 = paste0(predictor, " * site_type"))
   
+  K25_absent <- sum(predictors_df$predictor == "kelp_annual_25") == 0
+  DCV25_absent <- sum(predictors_df$predictor == "depth_cv_25") == 0
+  
   hard_vars <- predictors_df %>% filter(str_detect(predictor, "hard")) %>% pull(predictor)
   kelp_vars <- predictors_df %>% filter(str_detect(predictor, "kelp")) %>% pull(predictor)
   depth_vars <- predictors_df %>% filter(str_detect(predictor, "depth")) %>% pull(predictor)
@@ -359,7 +361,7 @@ get_2way_list <- function(predictors_df){
     mutate(base_terms = "site_type * age_at_survey") %>% 
     unite("predictors", c(hard, kelp, depth, base_terms), sep = " + ", na.rm = TRUE, remove = FALSE) %>% 
     mutate(type = case_when(hard_scale == kelp_scale & kelp_scale == depth_scale & 
-                              str_detect(hard, "site") & str_detect(kelp, "site") & str_count(depth, "site") == 2 ~ "core",
+                              str_detect(hard, "site") & str_detect(kelp, "site") & str_count(depth, "site") == 2 & depth_scale == depth_scale2 ~ "core",
                             predictors == "site_type * age_at_survey" ~ "base",
                             T~NA)) %>% 
     mutate(model_id = 
@@ -372,7 +374,9 @@ get_2way_list <- function(predictors_df){
              str_replace_all("site_type", "ST") %>%
              str_replace_all("age_at_survey", "A") %>% 
              str_replace_all("\\s+", "")) %>% 
-    dplyr::select(predictors, type, model_id)
+    dplyr::select(predictors, type, model_id) %>% 
+    mutate(type = if_else(K25_absent & str_detect(model_id, fixed("H25*ST+DM25*ST+DCV25+ST*A")), "core", type)) %>% 
+    mutate(type = if_else(DCV25_absent & str_detect(model_id, fixed("H25*ST+K25*ST+DM25*ST+ST*A")), "core", type))
   
   return(pred_list)
 }

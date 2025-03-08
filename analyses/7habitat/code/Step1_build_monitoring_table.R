@@ -303,15 +303,15 @@ kelp_sites <- kelp_complete %>%
   # Drop sites with no inside/outside information
   filter(!is.na(site_type)) %>%   # 366 sites with location info & attributed to specific MPA/Reference area; 54 MPAs
   # Drop sites that haven't been visited at least 5 times
-  filter(n_after >= 4) # 250 sites; 41 MPAs
+  filter(n_after >= 5) # 211 sites; 41 MPAs
 
 kelp_mpas <- kelp_sites %>%
   group_by(bioregion, region4, affiliated_mpa, mpa_defacto_class, implementation_year, size_km2, site_type) %>%
   summarize(n_total = sum(n_total), .groups = 'drop') %>%
   pivot_wider(names_from = site_type, values_from = n_total) %>% 
   filter(!is.na(Reference)) %>% 
-  filter(!is.na(MPA)) %>% # 35 MPAs with both inside/outside data
-  filter(mpa_defacto_class == "smr") # 28 with defacto SMR status
+  filter(!is.na(MPA)) %>% # 33 MPAs with both inside/outside data
+  filter(mpa_defacto_class == "smr") # 26 with defacto SMR status
 
 kelp_subset <- kelp_complete %>% 
   # Drop observations for dropped sites 
