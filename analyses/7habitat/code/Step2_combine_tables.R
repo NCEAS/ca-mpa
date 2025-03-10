@@ -36,6 +36,10 @@ kelp <- kelp_raw %>%
   left_join(habitat_combined) %>% 
   left_join(habitat_kelp) 
 
+# CASPAR_2 did not have depth data; too shallow
+unique(kelp$site[is.na(kelp$depth_mean_25)])
+kelp <- kelp %>% filter(site != "CASPAR_2")
+
 # Rock (CCFRP) ----------------------------------------------------------------------------------------------
 rock_raw <- readRDS(file.path(ltm.dir, "rock_biomass_subset.Rds")) 
 
@@ -43,6 +47,7 @@ rock <- rock_raw %>%
   #left_join(habitat) %>%
   left_join(habitat_combined) %>% 
   left_join(habitat_kelp) 
+
 
 # Surf zone (seines) ----------------------------------------------------------------------------------------------
 

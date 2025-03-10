@@ -183,26 +183,34 @@ surf_complete <- surf_effort %>%
 ## Rock (CCFRP) ----
 rock_effort <- rock_orig %>% 
   # Identify distinct cell-trips (2 dropped above bc missing data; trinidad dropped)
-  distinct(year, grid_cell_id, id_cell_per_trip, 
+  distinct(year, grid_cell_id, id_cell_per_trip, total_angler_hrs_cell,
            bioregion, region4, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation) %>% 
   group_by(year, bioregion, region4, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation, grid_cell_id) %>% 
   # Caculate number of cell-trips per site per year
-  summarize(n_rep = n()) %>% ungroup() %>% 
+  summarize(n_rep = n(),
+            n_angler_hrs_cell = sum(total_angler_hrs_cell)) %>% ungroup() %>% 
   left_join(mpas %>% dplyr::select(affiliated_mpa, implementation_year, size_km2))
 
 # Calculated biomass per unit effort (trip-cell)
 rock <- rock_orig %>% 
   # Calculate biomass per unit effort (trip-cell) for each individual fish
   mutate(bpue_kg = weight_kg/total_angler_hrs_cell) %>% 
-  # Update OYT to include both OLV and YTL
-  # mutate(species_code = ifelse(species_code %in% c("OLV", "YTL"), "OYT", species_code)) %>%  
-  # Total BPUE for each species in each site (grid cell) and year
-  group_by(year, bioregion, region4, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation, grid_cell_id,
+  # Total BPUE for each species for each trip-cell
+  group_by(year, bioregion, region4, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation, 
+           grid_cell_id, id_cell_per_trip,
            species_code, sciname, genus, target_status) %>% 
   summarize(bpue_kg = sum(bpue_kg),
-            count = sum(count)) %>% ungroup() %>% 
+            count = sum(count), .groups = 'drop') %>% 
   # Drop NO_ORG because already captured effort above
   filter(!species_code == "NO_ORG")
+
+# Get the biomass per unit effort for each site and year (relative to # trips to that site)
+rock <- rock %>% 
+  group_by(year, bioregion, region4, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation, 
+           grid_cell_id, species_code, sciname, genus, target_status) %>% 
+  summarize(bpue_kg = sum(bpue_kg)/n(),
+            count = sum(count)/n(), .groups = 'drop')
+
 
 rock_complete <- rock_effort %>% 
   # Create complete grid of all species at all sites and years
@@ -300,10 +308,12 @@ kelp_sites <- kelp_complete %>%
   summarize(n_before = sum(before),
             n_after = sum(after),
             n_total = n_before + n_after, .groups = 'drop') %>% 
+  # Focus on data after MPA establishment
+  filter(n_after > 0) %>% 
   # Drop sites with no inside/outside information
-  filter(!is.na(site_type)) %>%   # 366 sites with location info & attributed to specific MPA/Reference area; 54 MPAs
+  filter(!is.na(site_type)) %>%   # 366 sites with location info & attributed to specific MPA/Reference area; 55 MPAs
   # Drop sites that haven't been visited at least 5 times
-  filter(n_after >= 5) # 211 sites; 41 MPAs
+  filter(n_after >= 4) # 211 sites; 41 MPAs
 
 kelp_mpas <- kelp_sites %>%
   group_by(bioregion, region4, affiliated_mpa, mpa_defacto_class, implementation_year, size_km2, site_type) %>%
@@ -336,13 +346,14 @@ rock_sites <- rock_complete %>%
   group_by(site, bioregion, region4, affiliated_mpa, mpa_defacto_class, implementation_year, site_type) %>% 
   summarize(n_before = sum(before),
             n_after = sum(after), # max visited is 16; most visited <5 times
-            n_total = n_before + n_after, .groups = 'drop') 
+            n_total = n_before + n_after, 
+            years = paste(unique(year), collapse = ", "), .groups = 'drop') 
 
 rock_mpas <- rock_sites %>%
   group_by(bioregion, region4, affiliated_mpa, mpa_defacto_class, implementation_year, site_type) %>%
   summarize(n_total = sum(n_total), .groups = 'drop') %>%
   pivot_wider(names_from = site_type, values_from = n_total) %>% 
-  filter(MPA > 10 & Reference > 10) # at least 10 site-years; 13 MPAs
+  filter(MPA > 15 & Reference > 15) # visited at least 3x (these two only one year per above)
 
 rock_subset <- rock_complete %>% 
   # Drop observations for dropped MPAs
