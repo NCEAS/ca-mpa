@@ -30,12 +30,12 @@ data_rock <- readRDS(file.path(ltm.dir, "combine_tables/ccfrp_full.Rds")) %>%
   mutate(site_type = factor(site_type, levels = c("Reference", "MPA"))) %>% 
   dplyr::select(year:affiliated_mpa, size_km2, age_at_survey,
                 species_code:target_status, assemblage_new, weight_kg,
-                all_of(pred_rock$predictor)) 
+                all_of(pred_rock$predictor))
 
 # Fit Assemblage Models --------------------------------------------------------
 
 # Plan for parallel execution
-group_list <- c("targeted", "all")
+group_list <- c("targeted")
 num_cores <- min(length(group_list), detectCores()/3)  
 plan(multisession, workers = num_cores)
 

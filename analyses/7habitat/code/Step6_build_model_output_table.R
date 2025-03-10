@@ -30,6 +30,9 @@ library(broom.mixed) # for extracting fit info
 library(lmerTest)
 library(effects)
 library(performance)
+library(gt)
+library(dplyr)
+library(MuMIn)
 
 source("analyses/7habitat/code/Step0_helper_functions.R")  # Load the function from the file
 
@@ -38,9 +41,9 @@ source("analyses/7habitat/code/Step0_helper_functions.R")  # Load the function f
 # Analyze Focal Models: 2-way version -------------------------------------------
 
 path <- "analyses/7habitat/output"
-habitat <- "rock"
+habitat <- "kelp"
 focal_group <- "targeted"
-re_string <- "rmy"
+re_string <- "my"
 results_file <- paste(habitat, focal_group, re_string, "models.rds", sep = "_")
 
 analyze_models_2way <- function(results_file, focal_group, habitat, re_string){
@@ -68,23 +71,41 @@ analyze_models_2way <- function(results_file, focal_group, habitat, re_string){
     filter(!is.na(type)) 
   
   # Process top models:
-  # Extract results from all top models 
   print(paste("  Top models:", sum(models_df$type == "top")))
   
-  if (sum(models_df$type == "top") > 2) {
+  if (sum(models_df$type == "top") > 1) {
     top_names <- models_df$model_id[models_df$type %in% c("top")]
     top_models <- data$models[top_names]
     
-  } else {
+    # Check for nested models 
+    model_set <- model.sel(top_models)
+    nested <- nested(model_set)
+    
+    top_names <- top_names[nested == FALSE]
+    top_models <- top_models[nested == FALSE]
+    
+    print(paste("  Nesting rule:", sum(nested)))
+    
+    # Apply LRT on any remaining nested models
+    nested <- check_nested_models(top_models) 
+    top_names <- nested$candidate_list$model
+    top_models <- top_models[top_names]
+    
+    print(paste("  LRT:", sum(nested$nested_results$p > 0.05, na.rm = T)))
+    print(paste("    Top models:", length(top_names)))
+    
+   } else {
     top_names <- models_df$model_id[models_df$type %in% c("top")]
-    # top_results_full <- NULL
-  }
+   }
+  
+  models_df2 <- models_df %>% filter(model_id %in% top_names)
 
   # If there are multiple, get the model average. If not, get the results from the top one.
   if (length(top_names) > 1) {
     model_avg <- model.avg(top_models, fit = TRUE)
     coef_table <- data.frame(coefTable(model_avg)) %>%
       rownames_to_column("term") %>% 
+      filter(!term == "(Intercept)") %>% 
       janitor::clean_names() %>% 
       dplyr::select(-df) %>%
       mutate(term       = str_replace(term, "typeMPA", "type"),
@@ -93,7 +114,7 @@ analyze_models_2way <- function(results_file, focal_group, habitat, re_string){
              importance_abs_t = abs(estimate/std_error),
              importance_relative = importance_abs_t / max(importance_abs_t, na.rm = TRUE),  # Scale max = 1
              importance_sw = sw(model_avg)[term],
-             p_value    = NA) 
+             p_value    = NA) %>% arrange(desc(importance_abs_t))
   } else {
     coef_table <- tidy(data$models[models_df$type == "top"][[1]], conf.int = TRUE, effect = "fixed") %>%
       mutate(term = str_replace(term, "typeMPA", "type"),
@@ -131,11 +152,22 @@ analyze_models_2way <- function(results_file, focal_group, habitat, re_string){
     mutate(key = if_else(model_id == "ST*A", NA, "Full Model"))
   
   # Fit the model with the top-ranked predictors
-  if (sum(models_df$type == "top") > 1) {
-    predictors <- top_results %>% 
-      filter(term != "(Intercept)") %>% 
+  if (length(top_names) > 1) {
+    # Step 1: Select the most important term (main effect or interaction) for each variable group
+    selected_terms <- top_results %>%
+      separate(term, into = c("var1", "var2"), sep = ":", remove = FALSE, fill = "left") %>%
       group_by(term_revised) %>%
-      slice_max(order_by = importance_relative, n = 1) %>%  # Select the strongest predictor per group
+      slice_max(order_by = importance_relative, n = 1) %>%
+      ungroup() 
+    
+    # Step2. Add the main effects back in, if they are part of an interaction and not already selected
+    predictors <- selected_terms %>% 
+      bind_rows(top_results %>%
+                  filter(!str_detect(term, ":")) %>%  
+                  filter(term %in% selected_terms$var1 & !term %in% selected_terms$term)) %>%
+      distinct() %>% 
+      group_by(term_revised) %>% 
+      filter(n() == 1 | term %in% selected_terms$var1) %>%  # Keep only if it's the only term or part of an interaction
       ungroup() %>% 
       mutate(term = str_replace_all(term, ":", " * ")) %>% 
       pull(term) %>% 
@@ -144,10 +176,10 @@ analyze_models_2way <- function(results_file, focal_group, habitat, re_string){
     data_sp <- data$data_sp %>% as.data.frame()
     response <- unique(models_df$response)
     random_effects <- unique(unlist(strsplit(models_df$random_effects, ", ")))
-    
     model_formula <- as.formula(paste(response, "~", predictors, "+", paste0("(1 | ", random_effects, ")", collapse = " + ")))
     
-    m <- lmerTest::lmer(model_formula, data = data_sp, control = lmerControl(optCtrl = list(maxfun = 1e7)))
+    m <- lmer(model_formula, data = data_sp, REML = TRUE,
+              control = lmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 1e8)))
     
     coef_table <- tidy(m, conf.int = TRUE, effect = "fixed") %>%
       mutate(term = str_replace(term, "typeMPA", "type"),
@@ -168,7 +200,8 @@ analyze_models_2way <- function(results_file, focal_group, habitat, re_string){
       str_replace_all(., " \\+ ", ", ") %>% 
       str_remove_all(" site_type,") %>% 
       str_remove_all(" age_at_survey\\,") %>% 
-      str_remove_all(" age_at_survey\\*site_type")
+      str_remove_all(" age_at_survey\\*site_type") %>% 
+      str_replace_all(",,", ",")
     
     print(paste("  Predictors:", predictor_list))
     
@@ -209,52 +242,25 @@ analyze_models_2way <- function(results_file, focal_group, habitat, re_string){
   # Export 
   saveRDS(list(results = all_results, models = models), 
           file = file.path("~/ca-mpa/analyses/7habitat/output/results", paste(habitat, focal_group, re_string, "results.rds", sep = "_")))
-  
-  
-  library(gt)
-  library(dplyr)
-  library(MuMIn)
-  
-  # Extract k values from top models
-  top_k_vals <- model.sel(top_models) %>%
-    as.data.frame() %>%
-    dplyr::select(delta, weight, df) %>%
+
+  # Get AIC weights
+  aicc_table <- model.sel(top_models) %>% 
+    as.data.frame() %>% 
+    dplyr::select(delta, weight, df) %>% 
     rownames_to_column("Model") %>% 
-    dplyr::select(Model, K = df)
-  
-  # Get the full AIC weights across the entire model set
-  aic_table <- data$models_df %>% 
-    dplyr::select(model_id, AICc, delta_AICc) %>% 
-    mutate(
-      AIC_Likelihood = exp(-0.5 * delta_AICc),  # Compute model likelihood
-      AICc_Weight = AIC_Likelihood / sum(AIC_Likelihood)  # Normalize to sum to 1
-    ) %>%
-    arrange(delta_AICc)
-  
-  # Compute cumulative weight for models with ΔAICc ≤ 4
-  cumulative_weight <- sum(aic_table$AICc_Weight[aic_table$delta_AICc <= 4])
-  
-  # Format table in GT
-  aic_gt <- aic_table %>%
-    filter(delta_AICc <= 4) %>% 
-    select(Model = model_id, delta_AICc, AICc_Weight) %>%
-    left_join(top_k_vals) %>% 
-    gt() %>%
-    tab_header(title = paste0("AICc model selection summary: ", str_to_sentence(habitat), ", ", focal_group, " fish biomass")) %>%
-    cols_label(
-      Model = "Model",
-      delta_AICc = "ΔAICc",
-      AICc_Weight = "AICc Weight"
-    ) %>%
-    fmt_number(columns = c(delta_AICc, AICc_Weight), decimals = 3) %>%
-    tab_options(table.width = pct(80),  heading.align = "left") %>%
-    tab_footnote(
-      footnote = paste0("Cumulative weight of models with ΔAICc ≤ 4: ", round(cumulative_weight, 3))
-    )
-  
-  # Display table
-  aic_gt
-  
+    dplyr::select(Model, delta, weight, K = df) %>% 
+    gt() %>% 
+    cols_label(delta = "ΔAICc",
+               weight = "AICc Weight") %>% 
+    fmt_number(columns = c(delta, weight), decimals = 3) %>% 
+    tab_options(table.width = pct(80), heading.align = "left") %>% 
+    tab_style(style = cell_text(font = "Arial", size = px(13)), 
+              locations = cells_body(columns = everything())) %>% 
+    tab_style(style = cell_text(font = "Arial", size = px(13), weight = "bold"), 
+             locations = cells_column_labels(columns = everything()))
+    
+  aicc_table
+
 }
 
 
@@ -262,6 +268,9 @@ analyze_models_2way <- function(results_file, focal_group, habitat, re_string){
 
 file_list <- data.frame(results_file = list.files(path = "~/ca-mpa/analyses/7habitat/output/models", pattern = "models.rds")) %>% 
   mutate(info = str_remove_all(results_file, "_models.rds")) %>% 
-  separate(info, into = c("habitat", "focal_group", "re_string"), sep = "_")
+  separate(info, into = c("habitat", "focal_group", "re_string"), sep = "_") %>% 
+  filter(!(results_file %in% c("kelp_all_rmsy_models.rds",
+                               "kelp_targeted_rmsy_models.rds",
+                               "kelp_targeted_rmy_models.rds"))) # confirmed errors (unless rerun)
 
 pmap(file_list, analyze_models_2way)

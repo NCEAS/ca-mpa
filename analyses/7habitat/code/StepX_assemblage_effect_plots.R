@@ -31,30 +31,50 @@ my_theme <- theme(
   plot.background = element_rect(fill = "white", color = NA)
 )
 
+path <- "analyses/7habitat/output"
+habitat <- "rock"
 focal_group <- "targeted"
+re_string <- "rmy"
+results_file <- paste(habitat, focal_group, re_string, "results.rds", sep = "_")
 
-habitat <- "Kelp forest"
-path <- "analyses/7habitat/output/kelp/mpa-year"
-
-habitat <- "Shallow reef"
-path <- "analyses/7habitat/output/rock/region-mpa-year"
 
 make_effects_plots <- function(focal_group, path, habitat){
   print(paste0(habitat, ", ", focal_group))
   
   # 1. Read the top model and base model
-  top_models <- readRDS(file.path(path, paste0(focal_group, "_results.rds")))$models
+  top_models <-  readRDS(file.path("~/ca-mpa/analyses/7habitat/output/results", paste(results_file)))$models
   
   # 2. Read data for fitting models (used to calculate effects)
-  data_sp <- readRDS(file.path(path, paste0(focal_group, "_models.rds")))$data_sp
-  models_df <- readRDS(file.path(path, paste0(focal_group, "_models.rds")))$models_df
+  data_sp <- readRDS(file.path("~/ca-mpa/analyses/7habitat/output/models", paste(habitat, focal_group, re_string, "models.rds", sep = "_")))$data_sp
+  #models_df <- readRDS(file.path(path, paste0(focal_group, "_models.rds")))$models_df
   
   # 4. Evaluate diagnostics for the top model
+  par(mfrow = c(1, 2))
+  plot(residuals(top_models$top) ~ fitted(top_models$top), main = attr(top_models$top, "name"))
+  abline(h = 0, col = "red", lty = 2)
+  lines(lowess(fitted(top_models$top), residuals(top_models$top)), col = "blue", lwd = 2)
+
+  qqnorm(residuals(top_models$top), main = paste(attr(top_models$top, "name")), cex.main = 0.8); qqline(residuals(top_models$top))
+  
   diag <- plot(check_model(top_models$top, residual_type = "simulated", check = c("ncv", "qq")))
+  plot(fitted(top_models$top), resid(top_models$top))
+  plot(top_models$top)
   
-  ggsave(diag, filename = paste(focal_group, snakecase::to_snake_case(habitat), "diagnostic.png", sep = "_"),
-         path = path, width = 4, height = 4, dpi = 300, units = "in")
+  data_sp$fitted <- fitted(top_models$top)
+  data_sp$residuals <- residuals(top_models$top)
+
+  ggplot(data = data_sp) +
+    geom_point(aes(x = fitted, y = residuals, color = affiliated_mpa))
   
+  
+  ggplot(data_sp, aes(sample = residuals, color = affiliated_mpa)) +
+    stat_qq() +
+    stat_qq_line() +
+    labs(title = "QQ Plot of Residuals by MPA") +
+    theme_minimal()
+  
+  outliers <- check_outliers(top_models$top)
+  plot(outliers)
   # 5. Calculate and plot the predictor effects 
   effects_list <- top_models$effects_list_top
 
@@ -86,6 +106,7 @@ make_effects_plots <- function(focal_group, path, habitat){
        geom_line(aes(y = exp(fit) - const, color = site_type), show.legend = show_legend, stat = "identity") +
         scale_color_manual(values = c("#7e67f8", "#e5188b")) +
         scale_fill_manual(values = c("#7e67f8", "#e5188b")) +
+        scale_y_continuous(limits = c(0, NA), expand = c(0, 0)) +
         labs(x = x_var_label,
              y = "Biomass (kg per 100m2)",
              color = NULL, fill = NULL) +
@@ -99,6 +120,7 @@ make_effects_plots <- function(focal_group, path, habitat){
       ggplot(effects_data, aes(x = !!sym(x_var))) +
         geom_smooth(aes(y = exp(fit) - const), color = "black", show.legend = FALSE, method = "loess", formula = y ~ x) +
         geom_ribbon(aes(ymin = exp(lower) - const, ymax = exp(upper) - const), alpha = 0.2, show.legend = FALSE) +
+        scale_y_continuous(limits = c(0, NA), expand = c(0, 0)) +
         labs(x = x_var_label,
              y = "Biomass (kg per 100m2)")+
         theme_minimal() +
@@ -127,11 +149,13 @@ make_effects_plots <- function(focal_group, path, habitat){
   
   png(paste0(path, "/", focal_group, "_", snakecase::to_snake_case(habitat), "_residuals.png"), width = 5000, height = 1000, res = 300)
   
-  plot(effects_list, partial.residuals = TRUE, residuals.cex = 0.4, residuals.pch = 19, 
+  plot(effects_list, 
        confint = list(style = "auto"), 
-       axes = list(x = list(rotate = 45, cex = 0.8)),
+       partial.residual = list(smooth = TRUE, span = 0.75, lty = "dashed", col="#E69F00", smooth.col="#E69F00", 
+                                cex = 0.1, pch = 19, col = ""),  # Reduce cex for less dominant points
        lattice = list(strip = list(cex = 0.8)),
-       main = NULL, rows = 1, cols = length(effects_list))  
+       axes = list(x = list(rotate = 45, cex = 0.8)),
+       main = NULL, rows = 2, cols = length(effects_list))  
   
   grid.text(paste(focal_group, "-", habitat), x = 0.02, y = 0.95, just = "left", gp = gpar(fontsize = 10, fontface = "bold"))
 

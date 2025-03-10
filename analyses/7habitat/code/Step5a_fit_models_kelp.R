@@ -31,17 +31,16 @@ data_kelp <- readRDS(file.path(ltm.dir, "combine_tables/kelp_full.Rds")) %>%
   mutate(site_type = factor(site_type, levels = c("Reference", "MPA"))) %>% 
   dplyr::select(year:affiliated_mpa, size_km2, age_at_survey,
                 species_code:target_status, assemblage_new, weight_kg:count_per_m2, 
-                all_of(pred_kelp$predictor)) %>% 
- # filter(!site == "SCAI_SHIP_ROCK") %>% # depth 67m, all others < 20m
- # filter(!site %in% c("CASPAR_2", "POINT_CABRILLO_2")) %>% # depth 0
- # filter(!affiliated_mpa == "point dume smca") %>% # remove - spatial autocorrelation in residuals
+                all_of(pred_kelp$predictor))  %>% 
+  mutate(region5 = if_else(affiliated_mpa %in% c("blue cavern onshore smca", "farnsworth onshore smca", "long point smr"), "S. Channel Islands", region4)) %>% 
+  filter(!(site %in% c("SCAI_SHIP_ROCK", "POINT_CABRILLO_2"))) %>% # depth criteria not met
   mutate(kg_per_100m2 = kg_per_m2*100)
 
 
 # Fit assemblage models ---------
 
 # Plan for parallel execution
-group_list <- c("targeted", "nontargeted", "all")
+group_list <- c("targeted")
 num_cores <- min(length(group_list), detectCores()/3)  
 plan(multisession, workers = num_cores)
 

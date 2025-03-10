@@ -39,7 +39,9 @@ data_kelp <- readRDS(file.path(ltm.dir, "combine_tables/kelp_full.Rds")) %>%
   dplyr::select(year:affiliated_mpa, size_km2, age_at_survey,
                 species_code:target_status, assemblage_new, weight_kg:count_per_m2, 
                 all_of(pred_kelp$predictor)) %>% 
- filter(!affiliated_mpa %in% c("point dume smca"))
+ #filter(!affiliated_mpa %in% c("point dume smca"))
+  filter(!site == "SCAI_SHIP_ROCK") %>%  # depth at 25m is 67m, whereas others are all 20 or less
+  filter(!site == "CASPAR_2") # depth is zero
 
 # Build Data --------------------------------------------------------------------------
 
@@ -100,8 +102,8 @@ extreme_site_balance <- data2 %>%
   filter(is.na(MPA) | is.na(Reference))
 
 data3 <- data2 %>%
-  filter(!site %in% extreme_site$site) %>% 
-  filter(!affiliated_mpa %in% extreme_site_balance$affiliated_mpa) %>% 
+  # filter(!site %in% extreme_site$site) %>% 
+  # filter(!affiliated_mpa %in% extreme_site_balance$affiliated_mpa) %>% 
   # Drop un-scaled static variables
   dplyr::select(!c(grep("^hard|soft|depth", names(.), value = TRUE))) %>% 
   # Join the scaled static variables
@@ -150,7 +152,7 @@ performance::icc(habitat250_rms, by_group = T) # Pretty low for region
 habitat250_ms <- lmer(log_biomass ~ hard_bottom_250 * site_type + 
                      kelp_annual_250 * site_type + 
                      depth_mean_250 * site_type + depth_cv_250 * site_type + 
-                     site_type * age_at_survey + (1|affiliated_mpa) + (1|year),
+                     site_type * age_at_survey + (1|affiliated_mpa/site) + (1|year),
                    data = data_sp) 
 
 VarCorr(habitat250_ms) 
@@ -229,9 +231,11 @@ anova(habitat250_m2, habitat250_s) # p < 0.0 so year is useful
 
 mpa_baseline <- data_sp %>%
   group_by(affiliated_mpa, site_type) %>%
-  summarize(baseline_biomass = mean(log_biomass[age_at_survey == min(age_at_survey)], na.rm = TRUE))
+  summarize(baseline_biomass = mean(log_biomass[age_at_survey == min(age_at_survey)], na.rm = TRUE),
+            min_age = round(min(age_at_survey)*5.397158+7.951374, 0))
 
-data_sp2 <- left_join(data_sp, mpa_baseline, by = c("affiliated_mpa", "site_type"))
+data_sp2 <- left_join(data_sp, mpa_baseline, by = c("affiliated_mpa", "site_type")) %>% 
+  filter(min_age == 0)
 
 std_model <- lmer(log_biomass ~ hard_bottom_50 * site_type + kelp_annual_50 + 
                          depth_mean_250 +
@@ -324,8 +328,8 @@ effects_list <- allEffects(std_model, xlevels = 50, partial.residuals = T)
 effect_plots <- lapply(seq_along(effects_list), function(i) {
   effects_data <- as.data.frame(effects_list[[i]])
   x_var <- colnames(effects_data)[which(colnames(effects_data) != "site_type")[1]]
-  const <-  min(data_sp$kg_per_100m2[data_sp$kg_per_100m2 > 0])
-  
+ # const <-  min(data_sp$kg_per_100m2[data_sp$kg_per_100m2 > 0])
+  const <-  min(data_sp$log_biomass[data_sp$log_biomass > 0])
   # Reverse scaling if available
   center <- attr(data_sp[[x_var]], "scaled:center")
   scale_ <- attr(data_sp[[x_var]], "scaled:scale")

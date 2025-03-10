@@ -30,19 +30,20 @@ my_theme <- theme(
   plot.background = element_rect(fill = "white", color = NA)
 )
 
-
+path <- "analyses/7habitat/output"
+habitat <- "rock"
 focal_group <- "targeted"
-path <- "analyses/7habitat/output/kelp/mpa-year-drop"
-habitat <- "kelp"
+re_string <- "rmy"
+results_file <- paste(habitat, focal_group, re_string, "results.rds", sep = "_")
 
-make_forest_plots <- function(focal_group, path, habitat){
-  print(paste("Group:", focal_group))
+make_forest_plots <- function(results_file, habitat, focal_group, re_string){
+  print(paste(results_file))
   # Read the data
-  data <- readRDS(file.path(path, paste0(focal_group, "_results.rds")))$results %>% 
+  data <- readRDS(file.path("~/ca-mpa/analyses/7habitat/output/results", paste(results_file)))$results %>% 
     filter(term != "(Intercept)") %>%  
     mutate(scale = if_else(key != "Full Model", as.factor(str_extract(term, "\\d+")), as.factor(scale)),
-           importance_type = case_when(is.na(importance) | importance > 0.5 ~ "Greater than 0.5",
-                                       !is.na(importance) & importance < 0.5 ~ "Less than 0.5"),
+           importance_sw_type = case_when(is.na(importance_sw) | importance_sw > 0.5 ~ "Greater than 0.5",
+                                       !is.na(importance_sw) & importance_sw < 0.5 ~ "Less than 0.5"),
            type = case_when(model_id == "Model Average" ~ "average", 
                             model_id == "Top Model" ~ "top",
                             TRUE ~ type)) %>% 
@@ -51,47 +52,15 @@ make_forest_plots <- function(focal_group, path, habitat){
     mutate(scale = case_when(type == "base" ~ "Base",
                              is.na(scale) ~ "None",
                              TRUE ~ as.character(scale)) %>% 
-             factor(levels = c(25, 50, 100, 250, 500, "None", "Base"))) %>% 
-    mutate(depth_core = if_else(type == "core" & (str_detect(model_id, "DM25\\*ST\\+DCV25\\*ST") |
-                                                   str_detect(model_id, "DM50\\*ST\\+DCV50\\*ST") |
-                                                   str_detect(model_id, "DM100\\*ST\\+DCV100\\*ST") |
-                                                   str_detect(model_id, "DM250\\*ST\\+DCV250\\*ST") | 
-                                                   str_detect(model_id, "DM500\\*ST\\+DCV500\\*ST") |
-                                                    str_detect(model_id, "DM25\\*ST\\+DCV100\\*ST")), "core", NA))
+             factor(levels = c(25, 50, 100, 250, 500, "None", "Base"))) 
   
-  # Determine top model type
-  top <- data %>% 
-    filter(key %in% c("Top Model v. Base Model", "Top Models (Average)")) %>% 
-    #filter(importance >= 0.5) %>% 
-    mutate(top_depth = case_when(str_detect(term_revised, "_cv") ~ "depth_cv",
-                                 str_detect(term_revised, "_mean") ~ "depth_mean",
-                                 T~NA_character_)) %>% 
-    mutate(top_sub = case_when(str_detect(term_revised, "hard") ~ "hard_bottom",
-                               str_detect(term_revised, "soft") ~ "soft_bottom",
-                               T~NA_character_)) %>% 
-    dplyr::select(species_code, term_revised, top_depth, top_sub)
-  
-  top_depth <- unique(top$top_depth[!is.na(top$top_depth)])
-  
-  top_depth_intx <- top %>% 
-    filter(str_detect(term_revised, ":") & !is.na(top_depth)) %>% 
-    distinct(top_depth) %>% 
-    pull(top_depth)
-  
-  if (length(top_depth) > 0) {
   data_plot <- data %>% 
-    filter(type %in% c("average", "top", "base", "core")) %>% 
-    filter(!(type == "core" & is.na(depth_core)))
-  } else {
-    data_plot <- data %>% 
-      filter(type %in% c("average", "top", "base", "core")) %>% 
-      filter(!(type == "core" & depth_type != "depth_cv"))
-  }
+    filter(type %in% c("average", "top", "base", "core"))
   
   forest <- ggplot(data_plot, 
                    aes(x = estimate, y = term_revised, color = scale, pch = significance)) +
     geom_vline(aes(xintercept = 0), linetype = "dashed") +
-    geom_errorbarh(aes(xmin = conf_low, xmax = conf_high, linetype = importance_type, color = scale),
+    geom_errorbarh(aes(xmin = conf_low, xmax = conf_high, linetype = importance_sw_type, color = scale),
                    height = 0.3, position = position_dodge(width = 0.6))+
     geom_point(position = position_dodge(width = 0.6), size = 2) +  
     scale_shape_manual(values = c("***" = 16, "**" = 17, "*" = 15, "NA" = NA, "NS" = 3)) +
@@ -103,13 +72,12 @@ make_forest_plots <- function(focal_group, path, habitat){
          y = NULL, 
          color = "Scale", 
          pch = "Significance", 
-         linetype = "Importance",
-         title = paste0(str_to_sentence(focal_group), "\n", str_to_sentence(habitat), "\n", "Top Models: ", paste(unique(data$num_top_models)))) +
+         linetype = "Importance") +
     my_theme
   forest
   
-  ggsave(forest, filename = paste(focal_group, snakecase::to_snake_case(habitat), "forest.png", sep = "_"),
-         path = path, width = 10, height = 5, dpi = 300, units = "in")
+  ggsave(forest, filename = paste(habitat, focal_group, re_string, "forest.png", sep = "_"),
+         path = "~/ca-mpa/analyses/7habitat/output/forest", width = 8, height = 5, dpi = 300, units = "in")
   
   # Create table to export
   gt_table <- data_plot %>%
@@ -119,7 +87,7 @@ make_forest_plots <- function(focal_group, path, habitat){
     mutate(significance = if_else(significance == "NS", NA_character_, significance)) %>%
     mutate(scale = if_else(scale == "None", NA_character_, scale)) %>% 
     gt() %>%
-    tab_header(title = html(paste0("<b><i>", str_to_sentence(focal_group), " - ", str_to_sentence(habitat), "</i></b>"))) %>%
+    tab_header(title = paste0("Model results: ", str_to_sentence(habitat), ", ", focal_group, " fish biomass")) %>% 
     cols_label(term_revised = "Term",
                scale = "Scale (m)",
                estimate = "Estimate",
@@ -130,45 +98,97 @@ make_forest_plots <- function(focal_group, path, habitat){
                significance = "") %>%
     fmt_number(columns = c(estimate, std_error, statistic),
                decimals = 3) %>%
+    fmt_number(columns = c(df),
+               decimals = 0) %>%
     sub_missing(columns = everything(), missing_text = "") %>%
     tab_options(heading.align = "left") %>%
-    cols_align(align = "center", columns = everything()) %>%
+    cols_align(align = "center", columns = everything()) %>% 
+    tab_row_group(label = "Base Model", rows = scale == "Base") %>%
+    tab_row_group(label = "Top Model", rows = scale != "Base" | is.na(scale)) %>% 
+    tab_style(style = cell_text(font = "Arial", size = px(12)), 
+              locations = cells_body(columns = everything())) %>%
+    tab_style(style = cell_text(font = "Arial", size = px(12)), 
+              locations = cells_row_groups()) %>%
     tab_style(style = cell_text(weight = "bold"),
               locations = cells_body(columns = c(p_value, significance), rows = significance %in% c("***", "**", "*") )) %>%
-    tab_options(table.font.size = "small", table.width = pct(100)) %>% 
-    tab_row_group(label = "Base Model", rows = scale == "Base") %>%
-    tab_row_group(label = "Top Model", rows = scale != "Base" | is.na(scale))
+    tab_style(style = cell_text(font = "Arial", size = px(12), weight = "bold"), 
+              locations = cells_column_labels(columns = everything())) %>%
+    tab_style(style = cell_text(font = "Arial", size = px(13), weight = "bold"),
+              locations = cells_title(groups = "title")) %>% 
+    tab_options(table.width = pct(90))
+  
   gt_table
-  gtsave(gt_table, filename = paste(focal_group, snakecase::to_snake_case(habitat), "table.docx", sep = "_"),
-         path = path, width = 4, height = 3, dpi = 300, units = "in")
-
+  
+  gtsave(gt_table, filename = paste(habitat, focal_group, re_string, "table.docx", sep = "_"),
+         path = "~/ca-mpa/analyses/7habitat/output/table", width = 4, height = 3, dpi = 300, units = "in")
+  
+  # Create predictor importance table
+  predictor_table <- data %>% 
+    filter(key == "Top Models (Average)") %>% 
+    dplyr::select(term, term_revised, estimate:importance_sw) %>% 
+    mutate(term = str_replace_all(term, "_", " ") %>% 
+             str_to_sentence() %>% 
+             str_replace("cv", "CV") %>% 
+             str_replace("\\d+", paste0(str_extract(., "\\d+"), "m"))) %>% 
+    mutate(CI = paste0("(", round(conf_low, 2), ", ", round(conf_high,2), ")")) %>% 
+    dplyr::select(term, estimate, CI, importance_abs_t, importance_sw) %>% 
+    arrange(desc(importance_abs_t)) %>% 
+    mutate(rank = 1:nrow(.)) %>% 
+    gt() %>%
+    cols_label(term = "Term",
+               estimate = "Std. Estimate",
+               CI = "95% CI",
+               importance_abs_t = "Absolute t-statistic",
+               importance_sw = "AICc Weight (SW)",
+               rank = "Rank") %>%
+    tab_header(title = paste0("Model-averaged predictor importance: ", str_to_sentence(habitat), ", ", focal_group, " fish biomass")) %>%
+    fmt_number(columns = c(estimate, importance_abs_t, importance_sw),
+               decimals = 3) %>% 
+    tab_options(heading.align = "left") %>%
+    cols_align(align = "center", columns = everything()) %>% 
+    cols_align(align = "left", columns = c("term")) %>% 
+    tab_style(style = cell_text(font = "Arial", size = px(12)), 
+      locations = cells_body(columns = everything())
+    ) %>%
+    tab_style(
+      style = cell_text(font = "Arial", size = px(12), weight = "bold"), 
+      locations = cells_column_labels(columns = everything())
+    ) %>%
+    tab_style(
+      style = cell_text(font = "Arial", size = px(13), weight = "bold"),
+      locations = cells_title(groups = "title")
+    ) %>% 
+    tab_options(table.width = pct(90))
+  predictor_table  
+  gtsave(predictor_table, filename = paste(habitat, focal_group, re_string, "predictor_table.docx", sep = "_"),
+         path = "~/ca-mpa/analyses/7habitat/output/table",  width = 4, height = 3, dpi = 300, units = "in")
+  
+   
+  # Barplot ?
+  bar_plot <- data_plot %>% 
+    filter(term_revised == "site_type:age_at_survey" & key == "Top Model v. Base Model") %>% 
+    mutate(model_id = case_when(model_id == "Model Average" ~ "Top Model",
+                                model_id == "ST*A" ~ "Base Model"))
+  
+  ggplot(bar_plot, aes(x = model_id, y = estimate)) +
+    geom_point(size = 3) +  # Coefficients as points
+    geom_errorbar(aes(ymin = conf_low, ymax = conf_high), width = 0.2) +  # CI bars
+    geom_hline(yintercept = 0, linetype = "dashed", color = "gray") +  # Reference line at 0
+    theme_minimal() +
+    labs(x = NULL, y = "Estimate")
 }
 
 
 
 # Create and save figures -------------------------------------------------------------
 
-focal_groups <- c("targeted", "nontargeted", "all")
+file_list <- data.frame(results_file = list.files(path = "~/ca-mpa/analyses/7habitat/output/results")) %>% 
+  mutate(info = str_remove_all(results_file, "_results.rds")) %>% 
+  separate(info, into = c("habitat", "focal_group", "re_string"), sep = "_")
 
-habitat_paths <- list(
-  "Shallow rocky reef" = c("analyses/7habitat/output/rock/mpa-year", 
-                           "analyses/7habitat/output/rock/region-mpa-year"),
-  "Kelp forest" = c("analyses/7habitat/output/kelp/region-mpa-year", 
-                    "analyses/7habitat/output/kelp/mpa-year", 
-                    "analyses/7habitat/output/kelp/region-mpa-year-drop", 
-                    "analyses/7habitat/output/kelp/mpa-year-drop"))
+pmap(file_list, make_forest_plots)
 
-# Iterate efficiently over all combinations
-purrr::walk2(
-  rep(names(habitat_paths), lengths(habitat_paths)),  
-  unlist(habitat_paths),
-  ~ purrr::walk(focal_groups, \(fg) make_forest_plots(focal_group = fg, path = .y, habitat = .x))
-)
 
-make_forest_plots("targeted", "analyses/7habitat/output/rock/mpa-year", "Shallow rocky reef") # looks like some models didn't converge, kelp very unstable
-make_forest_plots("targeted", "analyses/7habitat/output/rock/mpa-year-drop", "Shallow rocky reef") # ditto
-make_forest_plots("targeted", "analyses/7habitat/output/rock/region-mpa-year", "Shallow rocky reef") # fucking same
-make_forest_plots("targeted", "analyses/7habitat/output/rock/region-mpa-year-drop", "Shallow rocky reef")
 
 ## Species Versions
 
