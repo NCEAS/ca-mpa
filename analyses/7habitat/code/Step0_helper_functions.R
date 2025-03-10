@@ -48,46 +48,57 @@ add_significance <- function(df) {df %>%
 }
 
 
-check_nested_models <- function(models, model_names) {
-  # helper to check nesting: returns a string if nested, NA otherwise
-  nested_status <- function(mod1, mod2) {
-    t1 <- attr(terms(mod1), "term.labels")
-    t2 <- attr(terms(mod2), "term.labels")
-    if (all(t1 %in% t2)) return("mod1_nested_in_mod2")
-    if (all(t2 %in% t1)) return("mod2_nested_in_mod1")
-    NA_character_
-  }
+
+check_nested_models <- function(top_models) {
   
-  # Compare every unique pair of models
-  comparisons <- combn(model_names, 2, simplify = FALSE) %>% 
-    map_df(function(pair) {
-      mod1 <- models[[pair[1]]]
-      mod2 <- models[[pair[2]]]
-      nest_status <- nested_status(mod1, mod2)
-      nested_flag <- !is.na(nest_status)
-      p_val <- NA_real_
-      decision <- "not_nested"
+  candidate_list <- data.frame(model = NULL)
+  nested_results <- data.frame(model = NULL, nested = NULL, p = NULL)
+  drop_list <- data.frame(model = NULL)
+  
+  # Convert models to a model.selection object
+  model_set <- model.sel(top_models) %>% arrange(delta)
+  
+  # Check whether they are nested
+  nested <- nested(model_set, indices = "rownames")
+  nested_lengths <- sapply(nested, length)
+  
+  # Output is a list with one object per model
+  for (i in 1:length(nested)) {
+    current_model <- names(nested)[i]
+    nested_status <- nested_lengths[current_model]
+  
+    if (nested_status == 0) {
+      candidate_list <- bind_rows(candidate_list, data.frame(model = current_model))
+      results <- data.frame(model = current_model)
+      nested_results <- bind_rows(nested_results, results)
       
-      if (nested_flag) {
-        test <- anova(mod1, mod2)
-        p_val <- test$`Pr(>Chisq)`[2]
-        # If the difference is not significant, keep both; if significant, keep the better one (lower AIC)
-        if (is.na(p_val) || p_val > 0.05) {
-          decision <- "keep_both"
+    } else {
+      
+      nested_models <- nested[[i]]
+      
+      for (j in 1:length(nested_models)) {
+        nested_model <- nested_models[j]
+        lrt <- anova(top_models[[current_model]], top_models[[nested_model]])
+        p <- lrt$`Pr(>Chisq)`[2]
+        
+        if (p >= 0.05) {
+          candidate_list <- bind_rows(candidate_list, data.frame(model = nested_model))
+          drop_list <- bind_rows(drop_list, data.frame(model = current_model))
         } else {
-          decision <- if (AIC(mod1) < AIC(mod2)) paste(pair[1])
-          else paste(pair[2])
+          candidate_list <- bind_rows(candidate_list, data.frame(model = current_model))
+          drop_list <- bind_rows(drop_list, data.frame(model = nested_model))
+        }
+        
+        results <- data.frame(model = current_model, nested = nested_model, p = p)
+        nested_results <- bind_rows(nested_results, results)
+        
         }
       }
-      
-      tibble(
-        model1 = pair[1],
-        model2 = pair[2],
-        nested = nested_flag,
-        p_val = p_val,
-        decision = decision
-      )
-    })
+  }
   
-  comparisons
+  candidate_list <- candidate_list %>% 
+    filter(!model %in% drop_list$model) %>% 
+    distinct()
+  
+  return(list(candidate_list = candidate_list, nested_results = nested_results))
 }
