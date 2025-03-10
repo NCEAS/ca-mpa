@@ -50,7 +50,6 @@ habitat4 <- habitat3 %>%
   left_join(habitat_bathy, by = c("site", "site_type")) %>% 
   mutate_at(vars(grep("^depth_mean|depth_cv", names(.), value = TRUE)), ~ .x * -1)
 
-# NOTE: Difference of 18 is expected for dropped KF sites. habitat4 = 2361 site, habitat_bathy = 2377 sites
 saveRDS(habitat4, file.path(int.dir, "habitat_buffers_by_site_v3.Rds")) # v2 has the non-agg depth metrics and other sites
 
 # Create version that combines across depth  ----------------------------------------
