@@ -17,7 +17,8 @@ library(parallel)
 rm(list = ls())
 gc()
 
-source("analyses/7habitat/code/Step4_build_habitat_models.R")  # Load the function from the file
+source("analyses/7habitat/code/Step4a_prep_focal_data.R")  # Load the function from the file
+source("analyses/7habitat/code/Step4b_build_habitat_models.R")  # Load the function from the file
 
 
 # Read Data --------------------------------------------------------------------
@@ -30,7 +31,9 @@ data_rock <- readRDS(file.path(ltm.dir, "combine_tables/ccfrp_full.Rds")) %>%
   mutate(site_type = factor(site_type, levels = c("Reference", "MPA"))) %>% 
   dplyr::select(year:affiliated_mpa, size_km2, age_at_survey,
                 species_code:target_status, assemblage_new, weight_kg,
-                all_of(pred_rock$predictor))
+                all_of(pred_rock$predictor)) %>% 
+  # Remove sites that do not fit criteria
+  filter(site != "SW14")  # depth is 8m; minimum 10m
 
 # Fit Assemblage Models --------------------------------------------------------
 
@@ -40,24 +43,29 @@ num_cores <- min(length(group_list), detectCores()/3)
 plan(multisession, workers = num_cores)
 
 # Provide some of the global variables
-habitat <- "rock"
+habitat <- "rock_post2017"
 re_string <- "rmy"
 random_effects <- c("region4/affiliated_mpa", "year")
-
+regions = c("North", "Central", "N. Channel Islands", "South")
+focal_group <- "targeted"
 print(paste0("Starting: ", habitat))
 print(paste0("RE Structure: ", paste(random_effects, collapse = ", ")))
 
 run_model <- function(focal_group){
   
-  fit_habitat_models(
+  data_sp <- prep_focal_data(
     type = "target_status",
     focal_group = focal_group,
     drop_outliers = "no",
-    predictors_df = pred_rock_2way,
     biomass_variable = "weight_kg",
-    random_effects = random_effects,
     data = data_rock,
-    regions = c("North", "Central", "N. Channel Islands", "South"),
+    regions = c("North", "Central", "N. Channel Islands", "South")
+    )
+  
+  fit_habitat_models(
+    data = data_sp,
+    predictors_df = pred_rock_2way,
+    random_effects = random_effects,
     path = "analyses/7habitat/output"
   )
   
@@ -70,91 +78,45 @@ future_walk(group_list, run_model)
 
 
 
-
-
-# Summarize across all targeted fishes
-data1 <- data_rock %>%
-  group_by(year, site, site_type, bioregion, region4, affiliated_mpa, age_at_survey,
-           target_status, across(matches("^hard|soft|depth|kelp"))) %>%
-  summarize(weight_kg = sum(weight_kg, na.rm = T), .groups = 'drop') %>% 
-  filter(target_status == "Targeted")
-
-# Summarize across genuses
-# data1 <- data_kelp %>% 
-#   group_by(year, site, site_type, bioregion, region4, affiliated_mpa, age_at_survey, genus, across(matches("^hard|soft|depth|kelp"))) %>% 
-#   summarize(kg_per_100m2 = sum(kg_per_m2, na.rm = T)*100,
-#             count_per_100m2 = sum(count_per_m2, na.rm = T)*100, .groups = 'drop') %>% 
-#   filter(genus == "Sebastes") #%>% 
-# #  filter(region4 == "Central")
-
-# Identify sites where species are infrequently observed
-zero_site <- data1 %>%
-  group_by(site) %>% 
-  summarize(prop_zero = mean(weight_kg == 0)) %>% 
-  filter(prop_zero > 0.9) # drop sites where observed < 10% of years
-
-# Check MPA/Ref balance of remaining sites 
-zero_site_balance <- data1 %>% 
-  filter(!site %in% zero_site$site) %>% 
-  distinct(site, site_type, affiliated_mpa, year) %>% 
-  group_by(affiliated_mpa, site_type) %>% 
-  summarize(n_site_year = n(), .groups = 'drop') %>% 
-  pivot_wider(names_from = site_type, values_from = n_site_year) %>% 
-  filter(is.na(MPA) | is.na(Reference))
-
-data2 <- data1 %>% 
-  filter(!site %in% zero_site$site) %>% 
-  filter(!affiliated_mpa %in% zero_site_balance$affiliated_mpa)
-
-# Scale the static variables at the site-level (e.g. don't weight based on obs. frequency)
-site_static <- data2 %>% 
-  dplyr::select(!all_of(grep("^depth_sd", names(.), value = TRUE))) %>% 
-  distinct(site, across(all_of(grep("^hard|depth", names(.), value = TRUE)))) %>% 
-  mutate_at(vars(grep("^hard|depth", names(.), value = TRUE)), scale)
-
-# Remove sites with extreme values in static vars (depth and hard bottom)
-extreme_site <- site_static %>%
-  pivot_longer(cols = depth_cv_100:hard_bottom_500, names_to = "variable", values_to = "value") %>%
-  filter(!between(value, -3.5, 3.5)) %>%
-  pivot_wider(names_from = variable, values_from = value)
-
-# Check balance of remaining sites (ensure still MPA/Ref pairs)
-extreme_site_balance <- data2 %>%
-  filter(!site %in% extreme_site$site) %>%
-  distinct(site, site_type, affiliated_mpa, year) %>%
-  group_by(affiliated_mpa, site_type) %>%
-  summarize(n_site_year = n(), .groups = 'drop') %>%
-  pivot_wider(names_from = site_type, values_from = n_site_year) %>%
-  filter(is.na(MPA) | is.na(Reference))
-
-data3 <- data2 %>%
-  filter(!site %in% extreme_site$site) %>% # keep for now; reasonable
-  filter(!affiliated_mpa %in% extreme_site_balance$affiliated_mpa) %>% 
-  # Drop un-scaled static variables
-  dplyr::select(!c(grep("^hard|soft|depth", names(.), value = TRUE))) %>% 
-  # Join the scaled static variables
-  left_join(site_static, by = "site") %>% 
-  # Scale age
-  mutate_at(vars(grep("^age", names(.), value = TRUE)), scale) %>% 
-  # Scale kelp within each year (so relative to annual average instead of across all years)
-  group_by(year) %>%
-  mutate_at(vars(grep("^kelp", names(.), value = TRUE)), ~ ifelse(sd(.) == 0, 0, scale(.)))
-
-# Save final output for the model
-const <- if_else(min(data3$weight_kg) > 0, 0, min(data3$weight_kg[data3$weight_kg > 0]))
-
-data_sp <- data3 %>% 
-  mutate(log_biomass = log(weight_kg + const))
-
 # Base Model --------------------------------------------------------------------------
 
-base_model <- lmer(log_biomass ~ site_type * age_at_survey + (1|region4/affiliated_mpa/site) + (1|year), 
+base_model <- lmer(log_c_biomass ~ site_type * age_at_survey + age_at_survey * region4 + (1|affiliated_mpa/site) + (1|year), 
                    data = data_sp)
 
 summary(base_model)  
+
 #plot(check_outliers(base_model, ID = "site"))
 #plot(base_model)  
 #plot(allEffects(base_model, partial.residuals = T), residuals.pch = 19, residuals.cex = 0.2)  
+
+
+m <- lmer(log_c_biomass ~ hard_bottom_100 * site_type + 
+                           depth_cv_500 * site_type + 
+                           depth_mean_500 + age_at_survey * region4 + 
+                           site_type * age_at_survey + (1|affiliated_mpa/site) + (1|year),
+                         data = data_sp) 
+
+summary(m)
+
+ggplot(data_sp, aes(x = age_at_survey, y = biomass, color = region4)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "lm") +
+  facet_wrap(~ site_type) +
+  theme_minimal()
+
+
+mpa_baseline <- data_sp %>%
+  group_by(affiliated_mpa, site_type) %>%
+  summarize(baseline_biomass = mean(biomass[age_at_survey == min(age_at_survey)], na.rm = TRUE), .groups = 'drop')
+
+m2 <- lmer(log_c_biomass ~ hard_bottom_100 * site_type + 
+            depth_cv_500 * site_type + 
+            depth_mean_500 + baseline_biomass * age_at_survey +  age_at_survey + region4 + 
+            site_type * age_at_survey + (1|affiliated_mpa/site) + (1|year),
+          data = data_sp2) 
+
+model.sel(m, m2)
+summary(m2)
 
 # Habitat Model --------------------------------------------------------------------------
 
@@ -254,6 +216,88 @@ ggplot(data_sp3, aes(x = age_at_survey, y = exp(log_biomass), color = biomass_ca
   facet_wrap(~site_type)
 
 plot(allEffects(mb, partial.residuals = T))
+
+
+# Try out some plots:
+data_plot <- data1 %>% 
+  dplyr::select(year, site, site_type, bioregion, region4, affiliated_mpa, age_at_survey, target_status, weight_kg, everything()) %>% 
+  pivot_longer(cols = depth_cv_100:soft_bottom_500, names_to = "habitat_variable", values_to = "value") %>% 
+  filter(!str_detect(habitat_variable, "depth_sd|soft")) %>% 
+  mutate(scale = as.numeric(str_extract(habitat_variable, "\\d+")),
+         habitat_type = factor(str_remove(habitat_variable, "_\\d+"))) %>% 
+  arrange(habitat_type, scale) %>% 
+  mutate(habitat_variable = factor(habitat_variable, levels = unique(habitat_variable)))
+
+data_scaled <- data3 %>% 
+  dplyr::select(year, site, site_type, bioregion, region4, affiliated_mpa, age_at_survey, target_status, weight_kg, everything()) %>% 
+  pivot_longer(cols = kelp_annual_100:hard_bottom_500, names_to = "habitat_variable", values_to = "value") %>% 
+  filter(!str_detect(habitat_variable, "depth_sd|soft")) %>% 
+  mutate(scale = as.numeric(str_extract(habitat_variable, "\\d+")),
+         habitat_type = factor(str_remove(habitat_variable, "_\\d+"))) %>% 
+  arrange(habitat_type, scale) %>% 
+  mutate(habitat_variable = factor(habitat_variable, levels = unique(habitat_variable)))
+
+
+ggplot(data = data_plot, aes(x = value, y = weight_kg, color = site_type, fill = site_type)) +
+  geom_point(alpha = 0.2, size = 0.5)+
+  geom_smooth(method = "lm")+
+  scale_color_manual(values = c("#7e67f8", "#e5188b")) +
+  scale_fill_manual(values = c("#7e67f8", "#e5188b")) +
+  labs(x = "Value of habitat characteristic",
+       y = "Biomass (kg) per unit effort",
+       color = NULL, fill = NULL) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  facet_wrap(~habitat_variable, scales = "free")
+
+# Show kelp scaled
+ggplot(data = data_scaled %>% filter(str_detect(habitat_variable, "kelp")), aes(x = value, y = weight_kg, color = site_type, fill = site_type)) +
+  geom_point(alpha = 0.2, size = 0.5)+
+  geom_smooth(method = "lm")+
+  scale_color_manual(values = c("#7e67f8", "#e5188b")) +
+  scale_fill_manual(values = c("#7e67f8", "#e5188b")) +
+  labs(x = "Value of habitat characteristic",
+       y = "Weight (kg)",
+       color = NULL, fill = NULL) +
+  theme_minimal() + 
+  facet_wrap(~habitat_variable, scales = "free", ncol = 4)
+
+ggplot(data = data1, aes(x = year, y = weight_kg, color = site_type, fill = site_type)) +
+  geom_jitter(alpha = 0.1, size = 0.5) +
+  geom_smooth(method = "lm")+
+  scale_color_manual(values = c("#7e67f8", "#e5188b")) +
+  scale_fill_manual(values = c("#7e67f8", "#e5188b")) +
+  labs(x = "Year",
+       y = "Weight (kg)",
+       color = NULL, fill = NULL) +
+  theme_minimal()
+
+
+a <- ggplot(data = data1, aes(x = age_at_survey, y = weight_kg, color = site_type, fill = site_type)) +
+  geom_jitter(alpha = 0.1, size = 0.5, show.legend = F) +
+  geom_smooth(method = "loess", show.legend = F)+
+  scale_color_manual(values = c("#7e67f8", "#e5188b")) +
+  scale_fill_manual(values = c("#7e67f8", "#e5188b")) +
+  labs(x = "MPA Age",
+       y = "Weight (kg)",
+       color = NULL, fill = NULL,
+       title = "A") +
+  theme_minimal() 
+
+b <- ggplot(data = data1, aes(x = age_at_survey, y = weight_kg, color = site_type, fill = site_type)) +
+  geom_jitter(alpha = 0.1, size = 0.5) +
+  geom_smooth(method = "loess")+
+  scale_color_manual(values = c("#7e67f8", "#e5188b")) +
+  scale_fill_manual(values = c("#7e67f8", "#e5188b")) +
+  labs(x = "MPA Age",
+       y = "Weight (kg)",
+       color = NULL, fill = NULL,
+       title = "B") +
+  theme_minimal() +
+  facet_wrap(~region4, ncol = 1)
+
+library(patchwork)
+a+b
 
 ## Define Species Lists ------------------------------------------
 sp_rock <- data_rock %>%
