@@ -135,12 +135,21 @@ taxa_match <- data %>%
   dplyr::select(species_code, sciname:target_status) %>% distinct() %>% 
   filter(is.na(sciname)) 
 
+# Read the taxonomy from other habitats where the kelp forest details are missing (re: target status, etc.)
+full_code <- read.csv("/home/shares/ca-mpa/data/sync-data/species_traits/processed/species_key.csv") %>% 
+  clean_names()%>%
+  #reassign target_status_standardized for downstream code
+  dplyr::select(-target_status)%>%
+  rename(target_status = target_status_standardized) %>% 
+  distinct(sciname, target_status)
+
 # Read newest taxonomy table
 new_taxa <- read.csv(file.path(datadir, "MLPA_kelpforest_taxon_table.6.csv")) %>% 
   clean_names() %>% 
   filter(classcode %in% taxa_match$species_code) %>% 
   dplyr::select(classcode:species_definition, -orig_classcode) %>% 
-  distinct()
+  distinct() %>% 
+  left_join(full_code, by = c("species_definition" = "sciname"))
 
 # Update the taxonomy for those species (won't have lw but alas this is a start)
 data2 <- data %>% 
@@ -152,7 +161,8 @@ data2 <- data %>%
          family = coalesce(family, family_new),
          genus = coalesce(genus, genus_new),
          species = coalesce(species,  species_new),
-         sciname = coalesce(sciname, species_definition)) %>%
+         sciname = coalesce(sciname, species_definition),
+         target_status = coalesce(target_status, target_status_new)) %>%
   dplyr::select(-ends_with("_new"), -species_definition) %>% 
   mutate(level = if_else(is.na(level) & !is.na(species), "species", level))
 
@@ -172,13 +182,13 @@ kelp_names <- read.csv(file.path(datadir, "MLPA_kelpforest_taxon_table.6.csv")) 
   clean_names() %>% 
   dplyr::select(species_code = classcode, name = species_definition) %>% 
   distinct()
-  
+
 data3 <- data2 %>% 
   left_join(kelp_names)
 
 # Write processed data
 write.csv(data3, file.path(outdir, "kelp_processed.6.csv"), row.names = F)
-# Last write Jan 6 2025
+# Last write March 13 2025
 
 
 

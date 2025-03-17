@@ -25,7 +25,7 @@ habitat <- readRDS(file.path(hab.dir, "combined/buffers", paste0("habitat_buffer
 
 # Load the cleaned monitoring site table
 sites <- readRDS(file.path("/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_2024", "site_locations.Rds")) %>% 
-  st_as_sf(., coords = c("lon_dd", "lat_dd"), remove = T, crs = 4326) %>% 
+  st_as_sf(., coords = c("lon_dd", "lat_dd"), remove = F, crs = 4326) %>% 
   st_transform(., crs = 26910) 
 
 # Load the state waters polygon
