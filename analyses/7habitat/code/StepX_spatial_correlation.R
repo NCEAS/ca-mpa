@@ -23,7 +23,8 @@ sites <- readRDS(file.path("/home/shares/ca-mpa/data/sync-data/monitoring/proces
 
 # Read the top models 
 path <- "~/ca-mpa/analyses/7habitat/output"
-id <- "rock_targeted_rmsy"
+id <- "rock_targeted_rmy"
+
 id <- "kelp_targeted_my"
 
 top_models <- readRDS(file.path(path, "results", paste0(id, "_results.rds")))$models
@@ -285,4 +286,4 @@ ggplot(variog_all, aes(x = dist, y = gamma, color = as.factor(year))) +
   facet_wrap(~year, scales = "free")
 
 
-
+# Residuals vs fitted plots for rock?

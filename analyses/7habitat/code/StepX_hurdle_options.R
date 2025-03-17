@@ -30,10 +30,10 @@ data_kelp <- readRDS(file.path(ltm.dir, "combine_tables/kelp_full.Rds")) %>%
   mutate(site_type = factor(site_type, levels = c("Reference", "MPA"))) %>% 
   dplyr::select(year:affiliated_mpa, size_km2, age_at_survey,
                 species_code:target_status, assemblage_new, weight_kg:count_per_m2, 
-                all_of(pred_kelp$predictor)) 
+                all_of(pred_kelp$predictor))
 
 # Set Focal Details ------------------------------------------------------------------
-species <-"SMYS"
+species <-"SMIN"
 regions <- c("Central", "North", "N. Channel Islands")
 
 # Prep Data --------------------------------------------------------------------------
@@ -87,8 +87,8 @@ extreme_site_balance <- data2 %>%
   filter(is.na(MPA) | is.na(Reference))
 
 data3 <- data2 %>%
-  filter(!site %in% extreme_site$site) %>% 
-  filter(!affiliated_mpa %in% extreme_site_balance$affiliated_mpa) %>% 
+  # filter(!site %in% extreme_site$site) %>% 
+  # filter(!affiliated_mpa %in% extreme_site_balance$affiliated_mpa) %>% 
   # Drop un-scaled static variables
   dplyr::select(!c(grep("^hard|soft|depth", names(.), value = TRUE))) %>% 
   # Join the scaled static variables
@@ -154,15 +154,17 @@ logit_model <- glmer(formula = zero ~ hard_bottom_100 * site_type +
                      family = binomial, 
                      control = glmerControl(optimizer = "bobyqa"))
 
+summary(logit_model)
+
 # Fit the count model on the positive counts (using negative binomial)
-nbinom_model <- glmmTMB(count_per_100m2 ~ hard_bottom_500 * site_type + 
-                         kelp_annual_250  + 
-                         depth_mean_50 + 
+nbinom_model <- glmmTMB(count_per_100m2 ~ kelp_annual_250  + 
+                         depth_mean_250 + hard_bottom_50 +
                          depth_cv_100 * site_type + 
-                         site_type * age_at_survey + (1|affiliated_mpa) + (1|year),
+                         site_type * age_at_survey + (1|affiliated_mpa/site) + (1|year),
                        data = data_positive, 
                        family = nbinom2)
 summary(nbinom_model)
+plot(simulateResiduals(nbinom_model))
 
 gamma_model <- glmmTMB(count_per_100m2 ~ hard_bottom_500 * site_type + 
                          kelp_annual_250  + 

@@ -175,7 +175,8 @@ analyze_models_2way <- function(results_file, focal_group, habitat, re_string){
     
     data_sp <- data$data_sp %>% as.data.frame()
     response <- unique(models_df$response)
-    random_effects <- unique(unlist(strsplit(models_df$random_effects, ", ")))
+    #random_effects <- unique(unlist(strsplit(models_df$random_effects, ", ")))
+    random_effects <- c("region4/affiliated_mpa/site", "year")
     model_formula <- as.formula(paste(response, "~", predictors, "+", paste0("(1 | ", random_effects, ")", collapse = " + ")))
     
     m <- lmer(model_formula, data = data_sp, REML = TRUE,

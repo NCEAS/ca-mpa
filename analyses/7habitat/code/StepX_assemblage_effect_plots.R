@@ -32,9 +32,9 @@ my_theme <- theme(
 )
 
 path <- "analyses/7habitat/output"
-habitat <- "rock"
+habitat <- "kelp"
 focal_group <- "targeted"
-re_string <- "rmy"
+re_string <- "my"
 results_file <- paste(habitat, focal_group, re_string, "results.rds", sep = "_")
 
 
@@ -64,8 +64,13 @@ make_effects_plots <- function(focal_group, path, habitat){
   data_sp$residuals <- residuals(top_models$top)
 
   ggplot(data = data_sp) +
-    geom_point(aes(x = fitted, y = residuals, color = affiliated_mpa))
-  
+    geom_point(aes(x = fitted, y = residuals, color = affiliated_mpa)) + 
+    theme_minimal() +
+    labs(color = NULL)
+  ggplot(data = data_sp) +
+    geom_point(aes(x = fitted, y = residuals, color = region4)) + 
+    theme_minimal() +
+    labs(color = NULL)
   
   ggplot(data_sp, aes(sample = residuals, color = affiliated_mpa)) +
     stat_qq() +
