@@ -38,7 +38,47 @@ kelp <- kelp_raw %>%
 
 # CASPAR_2 did not have depth data; too shallow
 unique(kelp$site[is.na(kelp$depth_mean_25)])
-kelp <- kelp %>% filter(site != "CASPAR_2")
+
+kelp <- kelp %>% filter(site != "CASPAR_2")  # too shallow
+
+# Examine the range for each habitat characteristic
+kelp_sites <- kelp %>% 
+  dplyr::select(site, site_type, affiliated_mpa, hard_bottom_25:depth_cv_500) %>% distinct() %>% 
+  pivot_longer(cols = hard_bottom_25:depth_cv_500, names_to = "habitat_variable", values_to = "value") %>% 
+  filter(!str_detect(habitat_variable, "aquatic|soft|seagrass|depth_sd")) %>% 
+  mutate(scale = as.numeric(str_extract(habitat_variable, "\\d+"))) %>% 
+  mutate(habitat = str_remove(habitat_variable, "_\\d+")) %>% 
+  arrange(desc(habitat), scale) %>% 
+  mutate(habitat_variable = factor(habitat_variable, levels = unique(habitat_variable)))
+
+kelp_sites_scaled <- kelp %>% 
+  distinct(site, site_type, across(all_of(grep("^hard|depth_mean|depth_cv", names(.), value = TRUE)))) %>%
+  mutate_at(vars(grep("^hard|depth_mean|depth_cv", names(.), value = TRUE)), scale) %>% 
+  pivot_longer(cols = hard_bottom_25:depth_cv_500, names_to = "habitat_variable", values_to = "value") %>% 
+  mutate(scale = as.numeric(str_extract(habitat_variable, "\\d+"))) %>% 
+  mutate(habitat = str_remove(habitat_variable, "_\\d+")) %>% 
+  arrange(desc(habitat), scale) %>% 
+  mutate(habitat_variable = factor(habitat_variable, levels = unique(habitat_variable)))
+
+kelp_sites_flagged <- kelp_sites_scaled %>% 
+  filter(!between(value, -3.5, 3.5))
+
+kelp_sites_balanced <- kelp %>% 
+  filter(!site %in% kelp_sites_flagged$site) %>% 
+  distinct(site, site_type, affiliated_mpa, year) %>% 
+  group_by(affiliated_mpa, site_type) %>% 
+  summarize(n_site_year = n(), .groups = 'drop') %>% 
+  pivot_wider(names_from = site_type, values_from = n_site_year) %>% 
+  filter(is.na(MPA) | is.na(Reference))
+
+ggplot(data = kelp_sites %>% 
+         filter(!site %in% kelp_sites_flagged$site) %>% 
+         filter(!affiliated_mpa %in% kelp_sites_balanced$affiliated_mpa)) +
+  geom_density(aes(x = value, color = site_type, fill = site_type), alpha = 0.3) + 
+  labs(x = "Value of habitat characteristic", y = "Density", fill = NULL, color = NULL)+
+  theme_minimal() + 
+  facet_wrap(~habitat_variable, scales = "free", ncol = 5)
+
 
 # Rock (CCFRP) ----------------------------------------------------------------------------------------------
 rock_raw <- readRDS(file.path(ltm.dir, "rock_biomass_subset.Rds")) 

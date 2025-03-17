@@ -86,7 +86,7 @@ kelp <- left_join(kelpwatch_df, kelp_time)
 # Filter the kelp data for the stations that intersect and years of interest
 kelp <- kelp %>% 
   filter(station %in% site_station$station) %>% 
-  filter(year >= 2003 & year <= 2023)
+  filter(year >= 2000 & year <= 2023)
 
 # Since we are interested in the max value only, can drop the zeroes 
 kelp_present <- kelp %>% 

@@ -15,6 +15,13 @@ ltm.dir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_
 
 # Build  ----------------------------------------------------------------------
 
+sites <- readRDS(file.path("/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_2024",
+                           "site_locations_corrected.Rds")) %>% 
+  st_transform(., crs = 4326) %>% 
+  mutate(lon_dd = st_coordinates(.)[, "X"],
+         lat_dd = st_coordinates(.)[, "Y"]) %>% 
+  st_drop_geometry()
+
 habitat <- readRDS(file.path(hab.dir, "buffers", "habitat_buffers_combined.Rds")) 
 
 habitat_bathy <- readRDS(file.path(ltm.dir, "site_depth_agg.Rds")) %>%  # drop agg for last version
@@ -48,7 +55,8 @@ habitat3 <- habitat2 %>% # should be 828
 # Add bathy
 habitat4 <- habitat3 %>% 
   left_join(habitat_bathy, by = c("site", "site_type")) %>% 
-  mutate_at(vars(grep("^depth_mean|depth_cv", names(.), value = TRUE)), ~ .x * -1)
+  mutate_at(vars(grep("^depth_mean|depth_cv", names(.), value = TRUE)), ~ .x * -1) %>% 
+  left_join(sites)
 
 saveRDS(habitat4, file.path(int.dir, "habitat_buffers_by_site_v3.Rds")) # v2 has the non-agg depth metrics and other sites
 
@@ -62,7 +70,8 @@ habitat_combined <- habitat %>%
   pivot_wider(names_from = habitat_buffer, values_from = area_m2) %>% 
   mutate_at(vars(grep("^(hard|soft|aq|sea)", names(.), value = TRUE)), ~ replace(., is.na(.), 0)) %>% 
   left_join(habitat_bathy,  by = c("site", "site_type")) %>% 
-  mutate_at(vars(grep("^depth_mean|depth_cv", names(.), value = TRUE)), ~ .x * -1)
+  mutate_at(vars(grep("^depth_mean|depth_cv", names(.), value = TRUE)), ~ .x * -1) %>% 
+  left_join(sites)
 
 saveRDS(habitat_combined, file.path(int.dir, "habitat_buffers_by_site_combined_v3.Rds")) 
 

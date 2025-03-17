@@ -11,7 +11,6 @@ kelp.dir <- "/home/shares/ca-mpa/data/sync-data/kelpwatch/2024/processed"
 ltm.dir  <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_2024"
 
 # Read Data --------------------------------------------------------------------
-# Created here: data/monitoring_data/processing_code/archive/clean_monitoring_sites.R
 # Read the LTM sites (these are ones incldued in the habitat analyses)
 # sites_included <- readRDS(file.path(ltm.dir, "combine_tables/kelp_combine_table.Rds")) %>% distinct(site, site_type) %>% 
 #   bind_rows(., readRDS(file.path(ltm.dir, "combine_tables/surf_combine_table.Rds")) %>% distinct(site, site_name, site_type)) %>% 
@@ -51,7 +50,7 @@ calculate_kelp_buffer <- function(kelp_raster, sites, buffer, year) {
 
 # Main loop for processing
 buffers <- c(25, 50, 100, 250, 500)
-years <- seq(2003, 2023)
+years <- seq(2000, 2023)
 all_kelp_results <- data.frame()
 
 for (year in years) {
