@@ -101,7 +101,7 @@ plan(multisession, workers = num_cores)
 future_walk(group_list, run_model)
 
 
-
+# Plots ------------------------------------------------------------------------
 data_plot <- data2 %>% 
   dplyr::select(year, site, site_type, bioregion, region4, affiliated_mpa, size_km2, age_at_survey, target_status, biomass, everything()) %>% 
   pivot_longer(cols = depth_cv_100:soft_bottom_500, names_to = "habitat_variable", values_to = "value") %>% 
@@ -111,10 +111,9 @@ data_plot <- data2 %>%
   arrange(desc(habitat_type), scale) %>% 
   mutate(habitat_variable = factor(habitat_variable, levels = unique(habitat_variable)))
 
-
-
+# Visualize biomass as a function of each habitat variable 
 ggplot(data = data_plot, aes(x = value, y = biomass, color = site_type, fill = site_type)) +
- # geom_point(alpha = 0.2, size = 0.5)+
+ # geom_point(alpha = 0.2, size = 0.5)+ # shows variation much larger than relationships shown
   geom_smooth(method = "lm")+
   scale_color_manual(values = c("#7e67f8", "#e5188b")) +
   scale_fill_manual(values = c("#7e67f8", "#e5188b")) +
@@ -125,14 +124,8 @@ ggplot(data = data_plot, aes(x = value, y = biomass, color = site_type, fill = s
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
   facet_wrap(~habitat_variable, scales = "free")
 
+# Add the adjusted implementation dates (original historical protection)
 mpa_adj_implementation <- data_kelp %>% distinct(affiliated_mpa, implementation_year_adj)
-
-ggplot(data = data2, aes(x = age_at_survey, y = biomass, color = region4, fill = region4)) +
-  geom_point(size = 1, alpha = 0.2) +
-  geom_smooth(method = "lm") +
-  theme_minimal() +
-  labs(x = "MPA Age", y = "Biomass Density (kg per 100m2)", color = NULL, fill = NULL) +
-  facet_wrap(~site_type)
 
 data_adj <- data_kelp %>%
   mutate(site_type = factor(site_type, levels = c("Reference", "MPA"))) %>% 
@@ -142,6 +135,15 @@ data_adj <- data_kelp %>%
   filter(target_status == "Targeted") %>% 
   mutate(age_at_survey_adj = year - implementation_year_adj)
 
+# Plot the effect of MPA age on biomass for the MLPA ages
+ggplot(data = data2, aes(x = age_at_survey, y = biomass, color = region4, fill = region4)) +
+  geom_point(size = 1, alpha = 0.2) +
+  geom_smooth(method = "lm") +
+  theme_minimal() +
+  labs(x = "MPA Age", y = "Biomass Density (kg per 100m2)", color = NULL, fill = NULL) +
+  facet_wrap(~site_type)
+
+# Plot the effect of MPA age on biomass based on the historical ages
 ggplot(data = data_adj, aes(x = age_at_survey_adj, y = biomass, color = region4, fill = region4)) +
   geom_point(size = 1, alpha = 0.2) +
   geom_smooth(method = "glm") +
@@ -149,34 +151,35 @@ ggplot(data = data_adj, aes(x = age_at_survey_adj, y = biomass, color = region4,
   labs(x = "MPA Age", y = "Biomass Density (kg per 100m2)", color = NULL, fill = NULL) +
   facet_wrap(~site_type)
 
+# Examine the relationships between mean depth, depth cv, and kelp
 
-ggplot(data = data2, aes(x = depth_mean_250, y = kelp_annual_50, color = site_type)) + 
-  geom_point(alpha = 0.2, size = 1) +
+# a) Rarely any kelp beyond mean depth > 20m at 250m scale
+a <- ggplot(data = data2, aes(x = depth_mean_250, y = kelp_annual_50, color = site_type)) + 
+  geom_point(alpha = 0.2, size = 1, show.legend = F) +
   theme_minimal() +
   labs(x = "Depth mean 250m", y = "Kelp annual 50m", fill = NULL, color = NULL)
 
-ggplot(data = data_sp, aes(x = depth_mean_250, y = kelp_annual_50, color = site_type)) + 
-  geom_point(alpha = 0.2, size = 1) +
-  theme_minimal() +
-  labs(x = "Depth mean 250m", y = "Kelp annual 50m", fill = NULL, color = NULL)
-
-ggplot(data = data2, aes(x = depth_cv_100, y = kelp_annual_50, color = site_type)) + 
-  geom_point(alpha = 0.2, size = 1) +
+# b) Only a few reference sites with depth cv at 100m > 90 (no MPA sites)
+b <- ggplot(data = data2, aes(x = depth_cv_100, y = kelp_annual_50, color = site_type)) + 
+  geom_point(alpha = 0.2, size = 1, show.legend = F) +
   theme_minimal() +
   labs(x = "Depth CV 100m", y = "Kelp annual 50m", fill = NULL, color = NULL)
 
-ggplot(data = data2, aes(x = depth_mean_250, y = depth_cv_100, color = site_type)) + 
-  geom_point(alpha = 0.2, size = 1) +
+# c) CV generally increases with average depth, same in MPA vs reference, but not too correlated
+c <- ggplot(data = data2, aes(x = depth_mean_250, y = depth_cv_100, color = site_type)) + 
+  geom_point(alpha = 0.2, size = 1, show.legend = F) +
   geom_smooth(method = 'lm') +
   theme_minimal() +
   labs(x = "Depth mean 250m", y =  "Depth CV 100m", fill = NULL, color = NULL)
 
-ggplot(data = data_sp, aes(x = kelp_annual_50, y = biomass, color = site_type)) + 
+# d) No MPA sites with standardized average annual kelp > 4
+d <- ggplot(data = data_sp, aes(x = kelp_annual_50, y = biomass, color = site_type)) + 
   geom_point(alpha = 0.2, size = 1) +
   theme_minimal() +
-  labs(x = "Depth CV 100m", y = "Kelp annual 50m", fill = NULL, color = NULL)
+  labs(x = "Kelp annual 50m", y =  "Biomass", fill = NULL, color = NULL)
 
-
+library(patchwork)
+(a+b)/(c+d) + plot_annotation(tag_levels = 'A')
 # Legacy explorations include:
 # mpa-region-year: affiliated mpa + region4 + year 
 
