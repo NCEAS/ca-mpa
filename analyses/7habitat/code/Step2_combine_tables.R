@@ -52,7 +52,7 @@ kelp_sites <- kelp %>%
   mutate(habitat_variable = factor(habitat_variable, levels = unique(habitat_variable)))
 
 kelp_sites_scaled <- kelp %>% 
-  distinct(site, site_type, across(all_of(grep("^hard|depth_mean|depth_cv", names(.), value = TRUE)))) %>%
+  distinct(site, site_type, affiliated_mpa, across(all_of(grep("^hard|depth_mean|depth_cv", names(.), value = TRUE)))) %>%
   mutate_at(vars(grep("^hard|depth_mean|depth_cv", names(.), value = TRUE)), scale) %>% 
   pivot_longer(cols = hard_bottom_25:depth_cv_500, names_to = "habitat_variable", values_to = "value") %>% 
   mutate(scale = as.numeric(str_extract(habitat_variable, "\\d+"))) %>% 
@@ -72,11 +72,14 @@ kelp_sites_balanced <- kelp %>%
   filter(is.na(MPA) | is.na(Reference))
 
 ggplot(data = kelp_sites %>% 
-         filter(!site %in% kelp_sites_flagged$site) %>% 
-         filter(!affiliated_mpa %in% kelp_sites_balanced$affiliated_mpa)) +
+        filter(!site %in% kelp_sites_flagged$site) %>% 
+        filter(!affiliated_mpa %in% kelp_sites_balanced$affiliated_mpa)
+         ) +
   geom_density(aes(x = value, color = site_type, fill = site_type), alpha = 0.3) + 
   labs(x = "Value of habitat characteristic", y = "Density", fill = NULL, color = NULL)+
   theme_minimal() + 
+  theme(legend.position = "top",
+        axis.text.x = element_text(angle = 45, hjust = 1)) +
   facet_wrap(~habitat_variable, scales = "free", ncol = 5)
 
 
