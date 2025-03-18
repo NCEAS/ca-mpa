@@ -16,13 +16,13 @@ gc()
 my_theme <- theme(
   plot.title = element_text(size = 10, face = "bold"),
   plot.subtitle = element_text(size = 8),
-  axis.title = element_text(size = 8),
-  axis.text.x = element_text(size = 8, angle = 45, hjust = 1),
-  axis.text.y = element_text(size = 8),
-  legend.title = element_text(size = 8),
-  legend.text = element_text(size = 8),
+  axis.title = element_text(size = 10),
+  axis.text.x = element_text(size = 10, angle = 45, hjust = 1),
+  axis.text.y = element_text(size = 10),
+  legend.title = element_text(size = 10),
+  legend.text = element_text(size = 10),
   plot.caption = element_text(size = 8),
-  strip.text = element_text(size = 7, face = "bold"),
+  strip.text = element_text(size = 10, face = "bold"),
   panel.background = element_rect(fill = "white", color = NA),  
   plot.background = element_rect(fill = "white", color = NA)
 )
@@ -33,7 +33,7 @@ source("analyses/7habitat/code/Step4a_prep_focal_data.R")
 ltm.dir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_2024"
 
 pred_kelp <- readRDS(file.path("analyses/7habitat/intermediate_data/kelp_predictors.Rds")) %>% filter(pred_group %in% c("all", "combined"))
-pred_kelp_2way <- readRDS(file.path("analyses/7habitat/intermediate_data/kelp_predictors_2way.Rds"))
+pred_rock <- readRDS(file.path("analyses/7habitat/intermediate_data/rock_predictors.Rds")) %>% filter(pred_group %in% c("all", "combined"))
 
 # Define subset for modeling (reduced number of columns)
 data_kelp <- readRDS(file.path(ltm.dir, "combine_tables/kelp_full.Rds")) %>% 
@@ -45,8 +45,16 @@ data_kelp <- readRDS(file.path(ltm.dir, "combine_tables/kelp_full.Rds")) %>%
   filter(!(site %in% c("SCAI_SHIP_ROCK", "POINT_CABRILLO_2", "ANACAPA_EAST_ISLE_W"))) %>% # depth criteria not met
   mutate(kg_per_100m2 = kg_per_m2*100)
 
+data_rock <- readRDS(file.path(ltm.dir, "combine_tables/ccfrp_full.Rds")) %>% 
+  mutate(site_type = factor(site_type, levels = c("Reference", "MPA"))) %>% 
+  dplyr::select(year:affiliated_mpa, size_km2, age_at_survey,
+                species_code:target_status, assemblage_new, weight_kg,
+                all_of(pred_rock$predictor)) %>% 
+  # Remove sites that do not fit criteria
+  filter(site != "SW14")  # depth is 8m; minimum 10m
+
 # Prep data
-data_sp <- prep_focal_data(
+kelp_sp <- prep_focal_data(
   type = "target_status",
   focal_group = "targeted",
   drop_outliers = "no",
@@ -55,32 +63,79 @@ data_sp <- prep_focal_data(
   regions = c("North", "Central", "N. Channel Islands", "South")
   )
 
+kelp2 <- data2
+
+rock_sp <- prep_focal_data(
+  type = "target_status",
+  focal_group = "targeted",
+  drop_outliers = "no",
+  biomass_variable = "weight_kg",
+  data = data_rock,
+  regions = c("North", "Central", "N. Channel Islands", "South")
+)
+
+rock2 <- data2
+
 # data_sp is the aggregated and scaled version
 # data2 is the aggregated but NOT scaled version
 
 # Calculate baseline biomass ----------
-age_center <- attr(data_sp$age_at_survey, "scaled:center")
-age_scale <- attr(data_sp$age_at_survey, "scaled:scale")
+kelp_center <- attr(kelp_sp$age_at_survey, "scaled:center")
+kelp_scale <- attr(kelp_sp$age_at_survey, "scaled:scale")
 
-mpa_baseline <- data_sp %>%
+kelp_baseline <- kelp_sp %>%
   group_by(affiliated_mpa, site_type) %>%
   summarize(baseline_biomass = mean(biomass[age_at_survey == min(age_at_survey)], na.rm = TRUE),
-            min_age = round(min(age_at_survey)*age_scale+age_center, 0))
+            min_age = round(min(age_at_survey) * kelp_scale + kelp_center, 0)) %>% 
+  mutate(mpa_type_median = median(baseline_biomass)) %>% ungroup() 
 
-mpa_baseline_wide <- mpa_baseline %>% 
-  dplyr::select(-baseline_biomass) %>% 
+kelp_sp2 <- kelp_sp %>%
+  left_join(kelp_baseline, by = c("affiliated_mpa", "site_type")) %>% 
+  filter(min_age < 2) %>% 
+  mutate(baseline_category2 = if_else(baseline_biomass > median(baseline_biomass), "High", "Low")) %>% 
+  mutate(baseline_category3 = cut(baseline_biomass,
+                                 breaks = quantile(baseline_biomass, probs = c(0, 1/3, 2/3, 1), na.rm = TRUE),
+                                 labels = c("Low", "Mid", "High"),
+                                 include.lowest = TRUE)) %>% 
+  mutate(baseline_category4 = case_when(baseline_biomass > mpa_type_median & site_type == "MPA" ~ "MPA > Reference", 
+                                        baseline_biomass < mpa_type_median & site_type == "Reference" ~ "MPA > Reference",
+                                        baseline_biomass < mpa_type_median & site_type == "MPA" ~ "Reference > MPA", 
+                                        baseline_biomass > mpa_type_median & site_type == "Reference" ~ "Reference > MPA"))
+
+test <- kelp_sp2 %>% 
+  distinct(site, site_type, affiliated_mpa, baseline_biomass, mpa_type_median, baseline_category4) 
+
+ggplot(data = kelp_sp2, 
+       aes(x = age_at_survey * kelp_scale + kelp_center, 
+           y = biomass, color = baseline_category2, fill = baseline_category2)) +
+  #geom_jitter(alpha = 0.2, size = 1) +
+  geom_smooth(method = 'lm') +
+  labs(x = "MPA age",
+       y = "Biomass (kg per 100m2)", color = NULL, fill = NULL) +
+  theme_minimal() + 
+  facet_wrap(~site_type)
+
+ggplot(data = kelp_sp2, 
+       aes(x = age_at_survey * kelp_scale + kelp_center, 
+           y = biomass, color = site_type, fill = site_type)) +
+#  geom_jitter(alpha = 0.2, size = 1) +
+  geom_smooth(method = 'lm') +
+  labs(x = "MPA age",
+       y = "Biomass (kg per 100m2)", color = NULL, fill = NULL) +
+  scale_color_manual(values = c("#7e67f8", "#e5188b")) +
+  scale_fill_manual(values = c("#7e67f8", "#e5188b")) +
+  theme_minimal() + 
+  facet_wrap(~baseline_category4)
+
+kelp_baseline_wide <- kelp_baseline %>% 
+  dplyr::select(affiliated_mpa, site_type, min_age) %>% 
   pivot_wider(names_from = "site_type", values_from = "min_age") # 13 MPAs measured in year 0 or 1
 
-data_sp_fym <- left_join(data_sp, mpa_baseline, by = c("affiliated_mpa", "site_type")) %>%  # baseline is FYOM
-  mutate(log_baseline_biomass = log(baseline_biomass + 0.01))
-
-data_sp_yz <- data_sp_fym %>% 
-  filter(affiliated_mpa %in% mpa_baseline_wide$affiliated_mpa[mpa_baseline_wide$Reference == 0 & mpa_baseline_wide$MPA == 0]) # baseline is year 0
 
 # Test FYM  --------------------------------------------------------------------------
 
 base_model <- lmer(log_c_biomass ~ site_type * age_at_survey + (1|region4/affiliated_mpa/site) + (1|year), 
-                   data = data_sp)
+                   data = kelp_sp2)
 
 summary(base_model)  
 
@@ -93,18 +148,35 @@ plot(allEffects(base_model, partial.residuals = T), residuals.pch = 19, residual
 
 base_biomass <- lmer(log_c_biomass ~ baseline_biomass * site_type * age_at_survey  + 
                        (1|affiliated_mpa/site) + (1|year), 
-                     data = data_sp_yz)
+                     data = kelp_sp2)
 
 summary(base_biomass)
 plot(allEffects(base_biomass), x.var = "age_at_survey", multiline = T, confint = list(style = "auto"))
 
 
+
+base_biomass2 <- lmer(log_c_biomass ~ site_type * age_at_survey + baseline_biomass * age_at_survey + 
+                        (1|region4/affiliated_mpa/site) + (1|year), 
+                      data = kelp_sp2)
+
+summary(base_biomass2)
+
+kelp_sp2 <- kelp_sp2 %>% 
+  mutate(baseline_category3 = relevel(baseline_category3, ref = "High"))
+
+base_biomass3 <- lmer(log_c_biomass ~ site_type * age_at_survey * baseline_category2 + 
+                        (1|affiliated_mpa/site) + (1|year), 
+                      data = kelp_sp2)
+
+summary(base_biomass3)
+
+
+
 base_biomass_habitat <- lmer(log_c_biomass ~ hard_bottom_25 * site_type + kelp_annual_50 + 
-                               depth_mean_250 + depth_cv_100 * site_type + 
-                               site_type * age_at_survey + 
-                               baseline_biomass * age_at_survey + 
+                               depth_mean_250 + depth_cv_100 + 
+                               site_type * baseline_biomass * age_at_survey + 
                                (1 | affiliated_mpa) + (1 | year), 
-                             data = data_sp2)
+                             data = kelp_sp2)
 
 summary(base_biomass_habitat)
 
@@ -216,12 +288,13 @@ base_model <- lmer(log_c_biomass ~ site_type * age_at_survey + (1|region4/affili
 
 summary(base_model)
 
-base_biomass <- lmer(log_c_biomass ~ site_type * age_at_survey + baseline_biomass * age_at_survey + 
+base_biomass <- lmer(log_c_biomass ~ site_type * baseline_biomass * age_at_survey + 
                        (1|region4/affiliated_mpa/site) + (1|year), 
                      data = data_sp2)
 
 summary(base_biomass)
 plot(allEffects(base_biomass))
+
 
 
 base_biomass_habitat <- lmer(log_c_biomass ~ hard_bottom_25 * site_type + kelp_annual_50 + 
@@ -305,11 +378,12 @@ effects_list <- allEffects(base_model, partial.residuals = T)
 effects_list <- allEffects(baseline_model, xlevels = 50, partial.residuals = T)
 effects_list <- allEffects(std_model, xlevels = 50, partial.residuals = T)
 effects_list <- allEffects(base_biomass, xlevels = 50, partial.residuals = T)
+effects_list <- allEffects(base_biomass2, xlevels = 50, partial.residuals = T)
 
 effects_list <- allEffects(base_biomass_habitat, xlevels = 50, partial.residuals = T)
 
 effect_plots <- lapply(seq_along(effects_list), function(i) {
-  data_sp <- data_sp
+  data_sp <- kelp_sp2
   effects_data <- as.data.frame(effects_list[[i]])
   x_var <- colnames(effects_data)[which(colnames(effects_data) != "site_type")[1]]
   const <-  min(data_sp$log_c_biomass[data_sp$log_c_biomass > 0])
@@ -328,7 +402,7 @@ effect_plots <- lapply(seq_along(effects_list), function(i) {
     str_replace("cv", "CV") %>% 
     str_replace("\\d+", paste0(str_extract(., "\\d+"), "m"))
   
-  show_legend <- i == 3 #(i == length(effects_list)-1)  # Show legend only on the last plot
+  show_legend <-(i == length(effects_list)-1)  # Show legend only on the last plot
   
   if (sum(str_detect(colnames(effects_data), "site_type")) > 0) {
     ggplot(effects_data, aes(x = !!sym(x_var))) +
@@ -349,24 +423,27 @@ effect_plots <- lapply(seq_along(effects_list), function(i) {
   } else if (sum(str_detect(colnames(effects_data), "baseline_biomass")) > 0)  {
   effects_baseline <- effects_data %>%
     mutate(baseline_cat = cut(baseline_biomass, breaks = quantile(baseline_biomass, probs = c(0, 0.33, 0.66, 1), na.rm = TRUE), 
-                              labels = c("Low", "Medium", "High"), include.lowest = TRUE))
+                              labels = c("Low", "Medium", "High"), include.lowest = TRUE)) %>%
+    group_by(baseline_cat) %>%
+    mutate(loess_upper = predict(loess(upper ~ age_at_survey)),
+           loess_lower = predict(loess(lower ~ age_at_survey)))
   
   ggplot(effects_baseline, aes(x = !!sym(x_var), y = exp(fit) - const)) +
     geom_ribbon(data = effects_baseline %>% filter(baseline_cat == "Low"), 
                 aes(ymin = exp(predict(loess(upper ~ age_at_survey))) - const, 
-                    ymax = exp(predict(loess(lower~age_at_survey))) - const, 
+                    ymax = exp(predict(loess(lower ~ age_at_survey))) - const, 
                     fill = baseline_cat), stat = "identity", alpha = 0.2) +
     geom_ribbon(data = effects_baseline %>% filter(baseline_cat == "Medium"), 
                 aes(ymin = exp(predict(loess(upper ~ age_at_survey))) - const, 
-                    ymax = exp(predict(loess(lower~age_at_survey))) - const, 
+                    ymax = exp(predict(loess(lower ~ age_at_survey))) - const, 
                     fill = baseline_cat), stat = "identity", alpha = 0.2) +
     geom_ribbon(data = effects_baseline %>% filter(baseline_cat == "High"), 
                 aes(ymin = exp(predict(loess(upper ~ age_at_survey))) - const, 
-                    ymax = exp(predict(loess(lower~age_at_survey))) - const, 
+                    ymax = exp(predict(loess(lower ~ age_at_survey))) - const, 
                     fill = baseline_cat), stat = "identity", alpha = 0.2) +
     scale_y_continuous(limits = c(0, NA))+
     geom_smooth(aes(color = baseline_cat), se = F) +
-    facet_wrap(~ baseline_cat) +
+    facet_wrap(~baseline_cat) +
     labs(x = "Age at survey", y = "Biomass (kg per 100m2)", color = "Baseline Biomass Type", fill = "Baseline Biomass Type") +
     theme_minimal() +
     my_theme
@@ -387,7 +464,8 @@ effect_plots <- lapply(seq_along(effects_list), function(i) {
 })
 
 # Combine all effect plots and export
-wrap_plots(effect_plots, ncol = length(effect_plots)/2) + 
+wrap_plots(effect_plots, ncol = 2 #length(effect_plots)/2
+           ) + 
   plot_annotation(
     #title = paste0(sciname, "\n", target_status, "\n", assemblage, "\n", regions),
     theme = theme(plot.title = element_text(size = 10, face = "bold"),
@@ -427,7 +505,47 @@ ggplot(effects_baseline, aes(x = age_at_survey)) +
   my_theme
 
 
-library(tidyverse)
+effects_baseline <- effects_data %>%
+  mutate(baseline_cat = cut(baseline_biomass, breaks = quantile(baseline_biomass, probs = c(0, 0.33, 0.66, 1), na.rm = TRUE), 
+                            labels = c("Low", "Medium", "High"), include.lowest = TRUE)) 
+
+ggplot(effects_baseline, aes(x = !!sym(x_var), y = exp(fit) - const)) +
+  geom_ribbon(data = effects_baseline %>% filter(baseline_cat == "Low" & site_type == "Reference"), 
+              aes(ymin = exp(predict(loess(upper ~ age_at_survey))) - const, 
+                  ymax = exp(predict(loess(lower ~ age_at_survey))) - const, 
+                  fill = site_type), stat = "identity", alpha = 0.2) +
+  geom_ribbon(data = effects_baseline %>% filter(baseline_cat == "Low" & site_type == "MPA"), 
+              aes(ymin = exp(predict(loess(upper ~ age_at_survey))) - const, 
+                  ymax = exp(predict(loess(lower ~ age_at_survey))) - const, 
+                  fill = site_type), stat = "identity", alpha = 0.2) +
+  geom_ribbon(data = effects_baseline %>% filter(baseline_cat == "Medium" & site_type == "Reference"), 
+              aes(ymin = exp(predict(loess(upper ~ age_at_survey))) - const, 
+                  ymax = exp(predict(loess(lower ~ age_at_survey))) - const, 
+                  fill = site_type), stat = "identity", alpha = 0.2) +
+  geom_ribbon(data = effects_baseline %>% filter(baseline_cat == "Medium" & site_type == "MPA"), 
+              aes(ymin = exp(predict(loess(upper ~ age_at_survey))) - const, 
+                  ymax = exp(predict(loess(lower ~ age_at_survey))) - const, 
+                  fill = site_type), stat = "identity", alpha = 0.2) +
+  geom_ribbon(data = effects_baseline %>% filter(baseline_cat == "High"& site_type == "Reference"),
+              aes(ymin = exp(predict(loess(upper ~ age_at_survey))) - const, 
+                  ymax = exp(predict(loess(lower ~ age_at_survey))) - const, 
+                  fill = site_type), stat = "identity", alpha = 0.2) +
+  geom_ribbon(data = effects_baseline %>% filter(baseline_cat == "High"& site_type == "MPA"),
+              aes(ymin = exp(predict(loess(upper ~ age_at_survey))) - const, 
+                  ymax = exp(predict(loess(lower ~ age_at_survey))) - const, 
+                  fill = site_type), stat = "identity", alpha = 0.2) +
+  scale_y_continuous(limits = c(0, NA))+
+  scale_color_manual(values = c("#7e67f8", "#e5188b")) +
+  scale_fill_manual(values = c("#7e67f8", "#e5188b")) +
+  geom_smooth(aes(color = site_type), se = F) +
+  facet_wrap(~baseline_cat) +
+  labs(x = "Age at survey", y = "Biomass (kg per 100m2)", color = NULL, fill = NULL) +
+  theme_minimal() +
+  my_theme
+
+
+
+flibrary(tidyverse)
 library(lme4)
 library(lmerTest)
 library(performance)
