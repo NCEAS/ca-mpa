@@ -4,7 +4,7 @@
 # Dec 2024
 
 # Analyze the focal models that were fit and extracted in the previous step.
-# The extracted species_models.Rds contains:
+# The extracted _models.Rds contains:
 #   -- models_df: dataframe with summary of model results, including model_id, 
 #         predictor string and other specifications used in model fitting, AICc
 #         and other fit results (singular status, warnings), and the "type" of the
@@ -15,7 +15,8 @@
 # 1. Process top models:
 #     If there are multiple top models, calculate the model average
 #         and extract the weighted estimates and importance scores for each predictor
-#     If there is only one top model, use tidy to extract the estimates etc.
+#     If there is only one top model, we will still re-fit it with REML.
+#
 # 2. Process full and base model:
 #     Extract the estimates and errors for each of the full models (at each scale) 
 #     and the base model (site * age)
@@ -41,12 +42,13 @@ source("analyses/7habitat/code/Step0_helper_functions.R")  # Load the function f
 # Analyze Focal Models: 2-way version -------------------------------------------
 
 path <- "analyses/7habitat/output"
-habitat <- "kelp"
+habitat <- "kelp_subset"
 focal_group <- "targeted"
-re_string <- "my"
+re_string <- "msy"
+delta_threshold <- 2
 results_file <- paste(habitat, focal_group, re_string, "models.rds", sep = "_")
 
-analyze_models_2way <- function(results_file, focal_group, habitat, re_string){
+analyze_models_2way <- function(results_file, delta_threshold, focal_group, habitat, re_string){
   
   print(paste(results_file))
   
@@ -60,6 +62,8 @@ analyze_models_2way <- function(results_file, focal_group, habitat, re_string){
     print(paste("Problems: ", length(problems$model_id)))
     print(paste("   ", head(unique(problems$messages))))
     return(NULL)
+  } else {
+    rm(problems)
   }
   
   models_df <- data$models_df %>% 
@@ -67,7 +71,7 @@ analyze_models_2way <- function(results_file, focal_group, habitat, re_string){
     mutate(depth_type = case_when(str_detect(model_id, "DM") & str_detect(model_id, "DCV") ~ "depth_mean_and_cv",
                                   str_detect(model_id, "DM") ~ "depth_mean",
                                   str_detect(model_id, "DCV") ~ "depth_cv")) %>% 
-    mutate(type = if_else(delta_AICc > 4 & type == "top", NA, type)) %>% 
+    mutate(type = if_else(delta_AICc >= delta_threshold & type == "top", NA, type)) %>% 
     filter(!is.na(type)) 
   
   # Process top models:
@@ -98,9 +102,8 @@ analyze_models_2way <- function(results_file, focal_group, habitat, re_string){
     top_names <- models_df$model_id[models_df$type %in% c("top")]
    }
   
-  models_df2 <- models_df %>% filter(model_id %in% top_names)
-
-  # If there are multiple, get the model average. If not, get the results from the top one.
+  # If there are multiple, get the model average. 
+  # If there are not, get importance estimates from the top model.
   if (length(top_names) > 1) {
     model_avg <- model.avg(top_models, fit = TRUE)
     coef_table <- data.frame(coefTable(model_avg)) %>%
@@ -113,24 +116,21 @@ analyze_models_2way <- function(results_file, focal_group, habitat, re_string){
              conf_high  = estimate + 1.96 * std_error,
              importance_abs_t = abs(estimate/std_error),
              importance_relative = importance_abs_t / max(importance_abs_t, na.rm = TRUE),  # Scale max = 1
-             importance_sw = sw(model_avg)[term],
-             p_value    = NA) %>% arrange(desc(importance_abs_t))
+             importance_sw = sw(model_avg)[term]) %>% 
+      arrange(desc(importance_abs_t))
   } else {
-    coef_table <- tidy(data$models[models_df$type == "top"][[1]], conf.int = TRUE, effect = "fixed") %>%
+    coef_table <- tidy(data$models[[top_names]], conf.int = TRUE, effect = "fixed") %>%
       mutate(term = str_replace(term, "typeMPA", "type"),
-             importance_abs_t = 1,
-             importance_relative = 1,
+             importance_abs_t = abs(estimate/std.error),
+             importance_relative = importance_abs_t / max(importance_abs_t, na.rm = TRUE),  # Scale max = 1
              importance_sw = 1) %>% 
       janitor::clean_names()
   } 
   
-  
   # Create df with the results from the top models
   top_results <- coef_table %>%
     clean_terms() %>%
-    add_significance() %>%
-    mutate(num_top_models = length(top_names),
-           key = if_else(num_top_models == 1, "Top Model v. Base Model", "Top Models (Average)")) 
+    mutate(key = if_else(length(top_names) > 1, "Top Models (Average)", "Top Model v. Base Model")) 
   
   # Process core models
   core_names <- models_df$model_id[models_df$type %in% c("core", "base")]
@@ -175,8 +175,8 @@ analyze_models_2way <- function(results_file, focal_group, habitat, re_string){
     
     data_sp <- data$data_sp %>% as.data.frame()
     response <- unique(models_df$response)
-    #random_effects <- unique(unlist(strsplit(models_df$random_effects, ", ")))
-    random_effects <- c("region4/affiliated_mpa/site", "year")
+    random_effects <- unique(unlist(strsplit(models_df$random_effects, ", ")))
+    #random_effects <- c("region4/affiliated_mpa/site", "year")
     model_formula <- as.formula(paste(response, "~", predictors, "+", paste0("(1 | ", random_effects, ")", collapse = " + ")))
     
     m <- lmer(model_formula, data = data_sp, REML = TRUE,
@@ -207,10 +207,29 @@ analyze_models_2way <- function(results_file, focal_group, habitat, re_string){
     print(paste("  Predictors:", predictor_list))
     
   } else {
-    top_model_id <- models_df$model_id[models_df$type == "top"]
-    m <- data$models[[top_model_id]]
-    refit_results <- NULL
-    print(paste(" Predictors:", models_df$model_id[models_df$type == "top"]))
+    data_sp <- data$data_sp %>% as.data.frame()
+    response <- unique(models_df$response)
+    random_effects <- unique(unlist(strsplit(models_df$random_effects, ", ")))
+    
+    model_formula <- formula(top_models[[1]])
+
+    m <- lmer(model_formula, data = data_sp, REML = TRUE,
+              control = lmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 1e8)))
+    
+    coef_table <- tidy(m, conf.int = TRUE, effect = "fixed") %>%
+      mutate(term = str_replace(term, "typeMPA", "type"),
+             importance = 1) %>% 
+      janitor::clean_names() %>% 
+      clean_terms() %>%
+      add_significance() %>%
+      mutate(num_top_models = length(top_names),
+             key = "Top Model v. Base Model")
+    
+    # Create df with the results from the top models
+    refit_results <- coef_table %>%
+      clean_terms() %>%
+      add_significance() 
+    
   }
   
 
@@ -255,9 +274,9 @@ analyze_models_2way <- function(results_file, focal_group, habitat, re_string){
                weight = "AICc Weight") %>% 
     fmt_number(columns = c(delta, weight), decimals = 3) %>% 
     tab_options(table.width = pct(80), heading.align = "left") %>% 
-    tab_style(style = cell_text(font = "Arial", size = px(13)), 
+    tab_style(style = cell_text(font = "Arial", size = px(14)), 
               locations = cells_body(columns = everything())) %>% 
-    tab_style(style = cell_text(font = "Arial", size = px(13), weight = "bold"), 
+    tab_style(style = cell_text(font = "Arial", size = px(14), weight = "bold"), 
              locations = cells_column_labels(columns = everything()))
     
   aicc_table
