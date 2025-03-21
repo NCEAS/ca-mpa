@@ -28,7 +28,7 @@ data_kelp <- readRDS(file.path(ltm.dir, "combine_tables/kelp_full.Rds")) %>% # 1
   distinct() 
   
 data_surf <- readRDS(file.path(ltm.dir, "combine_tables/surf_full.Rds")) %>% # 26 sites
-  dplyr::select(year, site, site_type, bioregion, all_of(grep("^(hard|soft|kelp|depth)", names(.), value = TRUE))) %>% 
+  dplyr::select(year, site, site_type, bioregion, all_of(grep("^(hard|soft|kelp|depth|aquatic_vegetation)", names(.), value = TRUE))) %>% 
   distinct()
 
 data_rock <- readRDS(file.path(ltm.dir, "combine_tables/ccfrp_full.Rds")) %>% # 335 sites (grid cells)
@@ -71,7 +71,8 @@ rock_predictors <- data_rock %>%
          pred_group = case_when(str_detect(predictor, "0_30m|30_100m|100_200m|200m") ~ "depth",
                                 str_detect(predictor, "kelp|depth") ~ "all",
                                 T ~ "combined")) %>% 
-  filter(!predictor == "kelp_annual_25")
+  filter(!predictor == "kelp_annual_25") %>% 
+  filter(!predictor == "depth_cv_25")
 
 surf_predictors <- data_surf %>%
   dplyr::select(year, site, site_type, bioregion, where(~ max(., na.rm = T) > 0)) %>%
@@ -79,13 +80,13 @@ surf_predictors <- data_surf %>%
   group_by(bioregion, predictor) %>%
   summarize(sd = sd(value, na.rm = T), .groups = "drop") %>%
   pivot_wider(names_from = "bioregion", values_from = "sd") %>% 
-  filter(!str_detect(predictor, "landward")) %>% 
-  filter(!str_detect(predictor, "kelp_annual_50")) %>% 
+  filter(!str_detect(predictor, "kelp_annual_100")) %>% 
   dplyr::select(predictor) %>% 
   mutate(scale = sub("_", "", str_sub(predictor, -3, -1)),
          pred_group = case_when(str_detect(predictor, "0_30m|30_100m|100_200m|200m") ~ "depth",
-                                str_detect(predictor, "kelp|depth") ~ "all",
-                                T ~ "combined")) 
+                                str_detect(predictor, "kelp|depth|aquatic") ~ "all",
+                                T ~ "combined")) %>% 
+  filter(!predictor == "depth_cv_25")
 
 
 # surf_na <- data_surf  %>% 
@@ -325,13 +326,17 @@ get_2way_list <- function(predictors_df){
   K25_absent <- sum(predictors_df$predictor == "kelp_annual_25") == 0
   DCV25_absent <- sum(predictors_df$predictor == "depth_cv_25") == 0
   
-  hard_vars <- predictors_df %>% filter(str_detect(predictor, "hard")) %>% pull(predictor)
-  kelp_vars <- predictors_df %>% filter(str_detect(predictor, "kelp")) %>% pull(predictor)
+  hard_vars  <- predictors_df %>% filter(str_detect(predictor, "hard")) %>% pull(predictor)
+  soft_vars  <- predictors_df %>% filter(str_detect(predictor, "soft")) %>% pull(predictor)
+  kelp_vars  <- predictors_df %>% filter(str_detect(predictor, "kelp")) %>% pull(predictor)
   depth_vars <- predictors_df %>% filter(str_detect(predictor, "depth")) %>% pull(predictor)
+  aqua_vars  <- predictors_df %>% filter(str_detect(predictor, "aquatic")) %>% pull(predictor)
 
   hard_intx <- predictors_df %>% filter(str_detect(predictor, "hard")) %>% pull(predictor2)
+  soft_intx <- predictors_df %>% filter(str_detect(predictor, "soft")) %>% pull(predictor2)
   kelp_intx <- predictors_df %>% filter(str_detect(predictor, "kelp")) %>% pull(predictor2)
   depth_intx <- predictors_df %>% filter(str_detect(predictor, "depth")) %>% pull(predictor2)
+  aqua_intx  <- predictors_df %>% filter(str_detect(predictor, "aquatic")) %>% pull(predictor2)
   
   # Version with both depths matching scales
   # depth_comb <- predictors_df %>% filter(str_detect(predictor, "depth")) %>% 
@@ -349,19 +354,21 @@ get_2way_list <- function(predictors_df){
 
   # Generate all models (all combinations of H, K, and D at any scale)
   pred_list <- 
-    expand.grid(hard  = c(NA, hard_vars, hard_intx),
+    expand.grid(hard  = c(NA, hard_vars, hard_intx, soft_vars, soft_intx),
                 kelp  = c(NA, kelp_vars, kelp_intx),
                 depth = c(NA, depth_vars, depth_intx, depth_comb), # add depth_comb here if multiple depths
+                aqua = c(NA, aqua_vars, aqua_intx),
                 stringsAsFactors = FALSE) %>% 
     mutate(hard_scale  = str_extract(hard, "\\d+"),
            kelp_scale  = str_extract(kelp, "\\d+"),
+           aqua_scale = str_extract(aqua, "\\d+"),
            depth_scale = str_extract(depth, "\\d+"),
            depth_scale2 = str_extract_all(depth, "\\d+") %>% map_chr(~ .x[2] %||% NA)
           ) %>% 
     mutate(base_terms = "site_type * age_at_survey") %>% 
-    unite("predictors", c(hard, kelp, depth, base_terms), sep = " + ", na.rm = TRUE, remove = FALSE) %>% 
-    mutate(type = case_when(hard_scale == kelp_scale & kelp_scale == depth_scale & 
-                              str_detect(hard, "site") & str_detect(kelp, "site") & str_count(depth, "site") == 2 & depth_scale == depth_scale2 ~ "core",
+    unite("predictors", c(hard, kelp, depth, aqua, base_terms), sep = " + ", na.rm = TRUE, remove = FALSE) %>% 
+    mutate(type = case_when(hard_scale == kelp_scale & kelp_scale == depth_scale & depth_scale == aqua_scale &
+                              str_detect(hard, "site") & str_detect(kelp, "site") & str_count(depth, "site") == 2 & depth_scale == depth_scale2 & str_detect(aqua, "site") ~ "core",
                             predictors == "site_type * age_at_survey" ~ "base",
                             T~NA)) %>% 
     mutate(model_id = 
@@ -373,10 +380,11 @@ get_2way_list <- function(predictors_df){
              str_replace_all("depth_cv_(\\d+)", "DCV\\1") %>% 
              str_replace_all("site_type", "ST") %>%
              str_replace_all("age_at_survey", "A") %>% 
+             str_replace_all("aquatic_vegetation_bed_(\\d+)", "AV\\1") %>% 
              str_replace_all("\\s+", "")) %>% 
     dplyr::select(predictors, type, model_id) %>% 
-    mutate(type = if_else(K25_absent & str_detect(model_id, fixed("H25*ST+DM25*ST+DCV25+ST*A")), "core", type)) %>% 
-    mutate(type = if_else(DCV25_absent & str_detect(model_id, fixed("H25*ST+K25*ST+DM25*ST+ST*A")), "core", type))
+    mutate(type = if_else(K25_absent & str_detect(model_id, stringr::fixed("H25*ST+DM25*ST+DCV25*ST+ST*A")), "core", type)) %>% 
+    mutate(type = if_else(DCV25_absent & str_detect(model_id, stringr::fixed("H25*ST+K25*ST+DM25*ST+ST*A")), "core", type))
   
   return(pred_list)
 }
@@ -386,10 +394,26 @@ rock_list <- get_2way_list(rock_predictors) # 2541
 surf_list <- get_2way_list(surf_predictors) # 1155 
 deep_list <- get_2way_list(deep_predictors) # 693 
 
-saveRDS(kelp_list, file.path("analyses/7habitat/intermediate_data", "kelp_predictors_2way.Rds"))  
-saveRDS(rock_list, file.path("analyses/7habitat/intermediate_data", "rock_predictors_2way.Rds")) 
-saveRDS(surf_list, file.path("analyses/7habitat/intermediate_data", "surf_predictors_2way.Rds")) 
-saveRDS(deep_list, file.path("analyses/7habitat/intermediate_data", "deep_predictors_2way.Rds")) 
+
+# Fix surf core types
+surf_list2 <- surf_list %>% 
+  mutate(type = case_when(str_detect(model_id, stringr::fixed("H50*ST+DM50*ST+DCV50*ST+AV50*ST+ST*A")) ~ "core", 
+                          str_detect(model_id, stringr::fixed("H100*ST+DM100*ST+DCV100+AV100*ST+ST*A")) ~ "core", 
+                          str_detect(model_id, stringr::fixed("H25*ST+DM25*ST+AV25*ST+ST*A")) ~ "core",
+                          str_detect(model_id, stringr::fixed("S50*ST+DM50*ST+DCV50*ST+AV50*ST+ST*A")) ~ "core", 
+                          str_detect(model_id, stringr::fixed("S100*ST+DM100*ST+DCV100+AV100*ST+ST*A")) ~ "core", 
+                          str_detect(model_id, stringr::fixed("S25*ST+DM25*ST+AV25*ST+ST*A")) ~ "core",
+                          T~type))
+
+#saveRDS(kelp_list, file.path("analyses/7habitat/intermediate_data", "kelp_predictors_2way.Rds"))  
+#saveRDS(rock_list, file.path("analyses/7habitat/intermediate_data", "rock_predictors_2way.Rds")) 
+saveRDS(surf_list2, file.path("analyses/7habitat/intermediate_data", "surf_predictors_2way.Rds")) 
+#saveRDS(deep_list, file.path("analyses/7habitat/intermediate_data", "deep_predictors_2way.Rds")) 
+
+
+# Add soft and aquatic vegetation bed
+
+
 
 # Test adding "|soft" (Feb 19) to see if made more sense to have either hard or soft bottom as 
 # the substrate predictor, but made more confusing when interpreting output because some still
