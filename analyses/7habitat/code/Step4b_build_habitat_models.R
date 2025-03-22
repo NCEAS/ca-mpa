@@ -4,11 +4,9 @@
 
 # This script builds and fits the models across the predictor lists generated in
 # the previous step, including interactions with all possible habitat predictors.
-# 1. Fit and save all of the candidate models
-# 2. Extract the following focal models for each species:
-#     -- Top models within 4 AICc of the model with the lowest AICc
-#     -- The base model (site type * age at survey only)
-#     -- The full models at each scale (all predictors with interactions)
+# 1. Fit the candidate models
+# 2. Extract the AICc and fit information for each
+# 3. Save the df used to fit the models
 
 # library(tidyverse)
 # library(lme4)
@@ -23,20 +21,20 @@
 # focal_group = "targeted"
 # biomass_variable = "weight_kg"
 # biomass_variable = "kg_per_100m2"
-# predictors_df = head(pred_rock_2way, 25)
+# predictors_df = pred_kelp_2way %>% filter(type %in% c("core", "base"))
 # random_effects = c("region4/affiliated_mpa", "year")
 # data = data_rock
 # data = data_kelp
 # regions = c("North", "Central", "N. Channel Islands", "South")
 # path = "analyses/7habitat/output/targeted/test"
+# response <- "biomass"
 
 
-fit_habitat_models <- function(data_sp, focal_group, predictors_df, random_effects, path) {
+fit_habitat_models <- function(habitat, data_sp, response, focal_group, predictors_df, random_effects, re_string, path) {
   
 
   ## 2. Fit Models -----------------------------------------------------------------------
-  models <- list()
-  response <- "log_c_biomass"
+  # models <- list()
   
   models_df <- map_dfr(seq_len(nrow(predictors_df)), function(i) {
     predictors <- predictors_df$predictors[i]
@@ -52,9 +50,15 @@ fit_habitat_models <- function(data_sp, focal_group, predictors_df, random_effec
       tryCatch(
         {
           withCallingHandlers(
-            { m <- lmer(model_formula, data = data_sp, REML = FALSE,
-                        control = lmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 1e8)))
+            { m <- lmer(model_formula, data = data_sp, REML = FALSE, control = lmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 1e8)))
               singular_status <- if (isSingular(m)) "Singular fit" else "OK"
+             
+            vc <- tryCatch(VarCorr(m), error = function(e) NULL)
+            singular_status <- if (is.null(vc)) {"Unknown"} 
+            else { 
+              vc_values <- unlist(lapply(vc$cond, function(x) attr(x, "stddev")))
+              if (any(vc_values < 1e-6)) "Singular (near-zero RE variance)" else "OK"
+              }
               m
             },
             warning = function(w) {
@@ -74,7 +78,7 @@ fit_habitat_models <- function(data_sp, focal_group, predictors_df, random_effec
       )
     )
 
-    models[[model_id]] <<- model
+  #  models[[model_id]] <<- model
 
     data.frame(focal_group = focal_group,
                model_id = model_id,
@@ -101,23 +105,23 @@ fit_habitat_models <- function(data_sp, focal_group, predictors_df, random_effec
   print("  Models complete. Starting extraction.")
   
   # Extract the base model and full models for each scale
-  core_model_names <- predictors_df %>%
-    filter(type == "base" | str_starts(type, "core")) %>%
-    pull(model_id)
+  # core_model_names <- predictors_df %>%
+  #   filter(type == "base" | str_starts(type, "core")) %>%
+  #   pull(model_id)
 
   # Extract the top models within deltaAICc of 10 
-  top_model_names <- models_df %>%
-    filter(delta_AICc <= 6) %>%
-    pull(model_id)
+  # top_model_names <- models_df %>%
+  #   filter(delta_AICc <= 6) %>%
+  #   pull(model_id)
 
   # Extract the model objects for the core + top models
-  models <- models[unique(c(top_model_names, core_model_names))]
+  #models <- models[unique(c(top_model_names, core_model_names))]
 
   # Define the top, core, and full models (but save entire df for debug)
-  models_df <- models_df %>%
-    mutate(type = case_when(model_id %in% top_model_names ~ "top",
-                            predictors == "site_type * age_at_survey" ~ "base",
-                            model_id %in% core_model_names ~ "core"))
+  # models_df <- models_df %>%
+  #   mutate(type = case_when(model_id %in% top_model_names ~ "top",
+  #                           predictors == "site_type * age_at_survey" ~ "base",
+  #                           model_id %in% core_model_names ~ "core"))
   
   # Find those that did not converge or had other issues
   problems <- models_df %>% 
@@ -126,7 +130,8 @@ fit_habitat_models <- function(data_sp, focal_group, predictors_df, random_effec
   print(paste("  Problems: ", length(unique(problems$model_id))))
 
   # Save the subset
-  saveRDS(list(models_df = models_df, models = models, data_sp = data_sp),
+  saveRDS(list(models_df = models_df, #models = models,
+               data_sp = data_sp),
           file = file.path(path, "models", paste(habitat, focal_group, re_string, "models.rds", sep = "_")))
   
   print("  Saved.")
