@@ -17,8 +17,8 @@ library(parallel)
 rm(list = ls())
 gc()
 
-source("analyses/7habitat/code/Step4a_prep_focal_data.R")  # Load the function from the file
-source("analyses/7habitat/code/Step4b_build_habitat_models.R")  # Load the function from the file
+source("analyses/7habitat/code/Step4a_prep_focal_data.R") 
+source("analyses/7habitat/code/Step4b_build_habitat_models.R")  
 
 
 # Read Data --------------------------------------------------------------------
@@ -33,31 +33,15 @@ data_kelp <- readRDS(file.path(ltm.dir, "combine_tables/kelp_full.Rds")) %>%
   dplyr::select(year:affiliated_mpa, size_km2, age_at_survey,
                 species_code:target_status, assemblage_new, vertical_zonation, name, common_name, weight_kg:count_per_m2, 
                 all_of(pred_kelp$predictor))  %>% 
-  mutate(region5 = if_else(affiliated_mpa %in% c("blue cavern onshore smca", "farnsworth onshore smca", "long point smr"), "S. Channel Islands", region4)) %>% 
-  filter(!(site %in% c("SCAI_SHIP_ROCK", "POINT_CABRILLO_2", "ANACAPA_EAST_ISLE_W"))) %>% # depth criteria not met
-  mutate(kg_per_100m2 = kg_per_m2*100) %>% 
-  # Correct some of the vertical zonations that seem to contain both the adult and larval stages
-  mutate(vertical_zonation = case_when(
-    sciname %in% c("Lethops connectens", "Scorpaena guttata", "Anarrhichthys ocellatus", "Porichthys notatus",
-                   "Squatina californica", "Tetronarce californica") ~ "Benthic", 
-    sciname %in% c("Embiotoca jacksoni", "Semicossyphus pulcher", "Embiotoca lateralis", 
-                   "Rhacochilus toxotes", "Sebastes hopkinsi", "Sebastes mystinus", "Hypsypops rubicundus", 
-                   "Girella nigricans", "Cymatogaster aggregata", "Balistes polylepis", "Phanerodon atripes",
-                   "Micrometrus minimus", "Kyphosus azureus", "Amphistichus argenteus") ~ "Benthic", # would be BP
-    sciname %in% c("Oxyjulis californica", "Hyperprosopon argenteum", "Hyperprosopon anale", "Hyperprosopon ellipticum",
-                   "Aulorhynchus flavidus", "Atractoscion nobilis") ~ "Pelagic",
-    vertical_zonation == "Benthic" ~ "Benthic",
-    vertical_zonation == "WC" ~ "Benthic", # would be BP
-    vertical_zonation == "Benthic, WC" ~ "Benthic", # would be BP
-    vertical_zonation == "Pelagic" ~ "Pelagic",
-    T~NA))
+  mutate(kg_per_100m2 = kg_per_m2*100) 
+  
 
 # Fit assemblage models ---------
 
 # Provide some of the global variables
-habitat <- "kelp"
-re_string <- "my"
-random_effects <- c("affiliated_mpa", "year")
+habitat <- "kelp_subset"
+re_string <- "msy"
+random_effects <- c("affiliated_mpa/site", "year")
 regions <- c("North", "Central", "N. Channel Islands", "South")
 print(paste0("Starting: ", habitat))
 print(paste0("RE Structure: ", paste(random_effects, collapse = ", ")))
@@ -91,8 +75,8 @@ run_model <- function(focal_group){
 
 
 # Plan for parallel execution
-# group_list <- c("targeted") # type == "target_status"
-group_list <- unique(data_kelp$vertical_zonation)
+group_list <- c("targeted") # type == "target_status"
+# group_list <- unique(data_kelp$vertical_zonation)
 num_cores <- min(length(group_list), detectCores()/3)  
 plan(multisession, workers = num_cores)
 
@@ -172,7 +156,7 @@ c <- ggplot(data = data2, aes(x = depth_mean_250, y = depth_cv_100, color = site
   theme_minimal() +
   labs(x = "Depth mean 250m", y =  "Depth CV 100m", fill = NULL, color = NULL)
 
-# d) No MPA sites with standardized average annual kelp > 4
+# d) No REF sites with standardized average annual kelp > 4
 d <- ggplot(data = data_sp, aes(x = kelp_annual_50, y = biomass, color = site_type)) + 
   geom_point(alpha = 0.2, size = 1) +
   theme_minimal() +
