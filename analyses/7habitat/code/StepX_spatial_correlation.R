@@ -23,13 +23,13 @@ sites <- readRDS(file.path("/home/shares/ca-mpa/data/sync-data/monitoring/proces
 
 # Read the top models 
 path <- "~/ca-mpa/analyses/7habitat/output"
-id <- "rock_targeted_rmy"
+id <- "rock_subset_targeted_rmy"
+#id <- "kelp_targeted_my"
 
-id <- "kelp_targeted_my"
+top_effects <- readRDS(file.path(path, "effects", paste0(id, "_effects.rds")))
+top_models <- top_effects$models
 
-top_models <- readRDS(file.path(path, "results", paste0(id, "_results.rds")))$models
-
-data_sp <- readRDS(file.path(path, "models", paste0(id, "_models.rds")))$data_sp %>% 
+data_sp <- readRDS(file.path(path, "data", paste0(id, "_data.rds"))) %>% 
   left_join(sites)
 
 # Convert to an sf object and add residuals and a time column
@@ -47,7 +47,7 @@ data_site <- data_sf %>%
 # Extract coordinates from the sf object
 coords <- st_coordinates(data_site)
 
-max.dist <- max(dist(coords)) / 20
+max.dist <- max(dist(coords)) / 50
 spline_cor <- spline.correlog(x = coords[,1],
                               y = coords[,2],
                               z = data_site$avg_resid,
@@ -58,23 +58,24 @@ plot(spline_cor, main = NULL,
      xlab = "Distance (m)", ylab = "Spatial Correlation")
 
 summary(spline_cor)
+# Rocky reef says moderate autocorrelation to 3934m
 
 # Consider cross-correlogram with time
-spline_cor_cross <- spline.correlog(
-  x = st_coordinates(data_sf)[,1],  
-  y = st_coordinates(data_sf)[,2],  
-  z = data_sf$resid,  
-  w = as.numeric(data_sf$time),  # Treat year as a second variable
-  resamp = 100, 
-  xmax = max(dist(st_coordinates(data_sf))) / 2,
-  na.rm = TRUE  
-)
-
-plot(spline_cor_cross)
+# spline_cor_cross <- spline.correlog(
+#   x = st_coordinates(data_sf)[,1],  
+#   y = st_coordinates(data_sf)[,2],  
+#   z = data_sf$resid,  
+#   w = as.numeric(data_sf$time),  # Treat year as a second variable
+#   resamp = 100, 
+#   xmax = max(dist(st_coordinates(data_sf))) / 2,
+#   na.rm = TRUE  
+# )
+# 
+# plot(spline_cor_cross)
 
 # Calculae moran's I
 # Create a nearest-neighbor list (using k = 5, adjust k if needed)
-nb <- knn2nb(knearneigh(coords, k = 5))
+nb <- knn2nb(knearneigh(coords, k = 8))
 
 # Convert neighbor list to a spatial weights list
 lw <- nb2listw(nb, style = "W")
@@ -130,10 +131,12 @@ data_plot <- data_site %>%
 # Plot local Moran's I to visualize hotspots
 ggplot(data_plot %>% filter(adj_p < 0.05)) +
   geom_sf(aes(fill = localI)) +
+  geom_label(aes(geometry = geometry, label = site, color = site_type), stat = "sf_coordinates", size = 3, alpha = 0.7) +
   scale_fill_viridis_c() +
   labs(title = "Local Moran's I", fill = "Local I") + facet_wrap(~region4)
 
-ggplot(data = data_plot %>% filter(affiliated_mpa == "piedras blancas smr")) + geom_sf(aes(geometry = geometry, fill = adj_p))
+ggplot(data = data_plot %>% filter(affiliated_mpa == "piedras blancas smr")) + 
+  geom_label(aes(geometry = geometry, label = site, color = site_type), stat = "sf_coordinates", size =3, alpha = 0.7)
 
 dist_matrix <- st_distance(data_site)
 
@@ -152,11 +155,11 @@ ggplot(dist_df) +
 # Consider removing Point Dume SMCA:
 data_adj <- data_sp %>% 
   #filter(!affiliated_mpa == "point dume smca")
-  filter(!site %in% c("BL29", "BL26",  "BL30", "BL31", "BL27")) # "BL34", "BL31",, "BL44"
+  filter(!site %in% c("BL29","BL31", "BL26", "BL27", "BL30", "BL43")) # "BL34", "BL31",, "BL44"  "BL30","BL27" ,"BL30", "BL31", "BL34", "BL44", "BL45"
 
 m <- top_models$top
 
-m2 <- update(m, data = data_adj)
+m2 <- update(m, formula = top_effects$formulas$model_formula_top, data = data_adj)
 
 summary(m2)
 
@@ -207,6 +210,9 @@ data_site$adj_p <- p.adjust(data_site$pvalue, method = "BH")
 
 data_plot <- data_site %>% 
   left_join(data_sp %>% ungroup() %>%  distinct(site, affiliated_mpa, region4, site_type))
+
+
+
 
 # OLD:
 # # Convert to SpatialPointsDataFrame for gstat functions
