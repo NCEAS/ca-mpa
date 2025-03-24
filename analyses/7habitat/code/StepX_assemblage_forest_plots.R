@@ -31,9 +31,9 @@ my_theme <- theme(
 )
 
 path <- "analyses/7habitat/output"
-habitat <- "rock"
+habitat <- "kelp_subset"
 focal_group <- "targeted"
-re_string <- "rmy"
+re_string <- "my"
 results_file <- paste(habitat, focal_group, re_string, "results.rds", sep = "_")
 
 make_forest_plots <- function(results_file, habitat, focal_group, re_string){
@@ -57,7 +57,7 @@ make_forest_plots <- function(results_file, habitat, focal_group, re_string){
   data_plot <- data %>% 
     filter(type %in% c("average", "top", "base", "core"))
   
-  forest <- ggplot(data_plot, 
+  forest <- ggplot(data_plot, #%>% filter(is.na(importance_sw)), # adjusted
                    aes(x = estimate, y = term_revised, color = scale, pch = significance)) +
     geom_vline(aes(xintercept = 0), linetype = "dashed") +
     geom_errorbarh(aes(xmin = conf_low, xmax = conf_high, linetype = importance_sw_type, color = scale),
@@ -81,6 +81,7 @@ make_forest_plots <- function(results_file, habitat, focal_group, re_string){
   
   # Create table to export
   gt_table <- data_plot %>%
+    filter(is.na(importance_sw)) %>% # for rocky reef this drops the original, saves the refit REML
     filter(model_id == "Top Model" | key == "Top Model v. Base Model") %>%
     dplyr::select(term_revised, scale, estimate, std_error, statistic, df, p_value, significance) %>%
     mutate(p_value = case_when(p_value < 0.001 ~ "< 0.001", T~as.character(round(p_value, 3)))) %>%
@@ -124,7 +125,7 @@ make_forest_plots <- function(results_file, habitat, focal_group, re_string){
   
   # Create predictor importance table
   predictor_table <- data %>% 
-    filter(key == "Top Models (Average)") %>% 
+    filter(key == "Top Models (Average)" | !is.na(importance_relative)) %>% 
     dplyr::select(term, term_revised, estimate:importance_sw) %>% 
     mutate(term = str_replace_all(term, "_", " ") %>% 
              str_to_sentence() %>% 
@@ -168,6 +169,7 @@ make_forest_plots <- function(results_file, habitat, focal_group, re_string){
   bar_plot <- data_plot %>% 
     filter(term_revised == "site_type:age_at_survey" & key == "Top Model v. Base Model") %>% 
     mutate(model_id = case_when(model_id == "Model Average" ~ "Top Model",
+                                model_id == "Top Model" ~ "Top Model",
                                 model_id == "ST*A" ~ "Base Model"))
   
   ggplot(bar_plot, aes(x = model_id, y = estimate)) +

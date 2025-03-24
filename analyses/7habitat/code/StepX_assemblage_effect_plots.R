@@ -32,57 +32,22 @@ my_theme <- theme(
 )
 
 path <- "analyses/7habitat/output"
-habitat <- "kelp"
+habitat <- "rock_subset"
 focal_group <- "targeted"
-re_string <- "my"
-results_file <- paste(habitat, focal_group, re_string, "results.rds", sep = "_")
+re_string <- "rmy"
+results_file <- paste(habitat, focal_group, re_string, "effects.rds", sep = "_")
+data_file <- paste(habitat, focal_group, re_string, "data.rds", sep = "_")
 
 
 make_effects_plots <- function(focal_group, path, habitat){
+  
   print(paste0(habitat, ", ", focal_group))
   
-  # 1. Read the top model and base model
-  top_models <-  readRDS(file.path("~/ca-mpa/analyses/7habitat/output/results", paste(results_file)))$models
-  
-  # 2. Read data for fitting models (used to calculate effects)
-  data_sp <- readRDS(file.path("~/ca-mpa/analyses/7habitat/output/models", paste(habitat, focal_group, re_string, "models.rds", sep = "_")))$data_sp
-  #models_df <- readRDS(file.path(path, paste0(focal_group, "_models.rds")))$models_df
-  
-  # 4. Evaluate diagnostics for the top model
-  par(mfrow = c(1, 2))
-  plot(residuals(top_models$top) ~ fitted(top_models$top), main = attr(top_models$top, "name"))
-  abline(h = 0, col = "red", lty = 2)
-  lines(lowess(fitted(top_models$top), residuals(top_models$top)), col = "blue", lwd = 2)
+  effects <- readRDS(file.path("~/ca-mpa/analyses/7habitat/output/effects", results_file)) 
+  data_sp <- readRDS(file.path("~/ca-mpa/analyses/7habitat/output/data", data_file)) 
 
-  qqnorm(residuals(top_models$top), main = paste(attr(top_models$top, "name")), cex.main = 0.8); qqline(residuals(top_models$top))
+  effects_list <- effects$models$effects_list_top
   
-  diag <- plot(check_model(top_models$top, residual_type = "simulated", check = c("ncv", "qq")))
-  plot(fitted(top_models$top), resid(top_models$top))
-  plot(top_models$top)
-  
-  data_sp$fitted <- fitted(top_models$top)
-  data_sp$residuals <- residuals(top_models$top)
-
-  ggplot(data = data_sp) +
-    geom_point(aes(x = fitted, y = residuals, color = affiliated_mpa)) + 
-    theme_minimal() +
-    labs(color = NULL)
-  ggplot(data = data_sp) +
-    geom_point(aes(x = fitted, y = residuals, color = region4)) + 
-    theme_minimal() +
-    labs(color = NULL)
-  
-  ggplot(data_sp, aes(sample = residuals, color = affiliated_mpa)) +
-    stat_qq() +
-    stat_qq_line() +
-    labs(title = "QQ Plot of Residuals by MPA") +
-    theme_minimal()
-  
-  outliers <- check_outliers(top_models$top)
-  plot(outliers)
-  # 5. Calculate and plot the predictor effects 
-  effects_list <- top_models$effects_list_top
-
   effect_plots <- lapply(seq_along(effects_list), function(i) {
     effects_data <- as.data.frame(effects_list[[i]])
     x_var <- colnames(effects_data)[which(colnames(effects_data) != "site_type")[1]]
@@ -127,7 +92,7 @@ make_effects_plots <- function(focal_group, path, habitat){
         geom_ribbon(aes(ymin = exp(lower) - const, ymax = exp(upper) - const), alpha = 0.2, show.legend = FALSE) +
         scale_y_continuous(limits = c(0, NA), expand = c(0, 0)) +
         labs(x = x_var_label,
-             y = "Biomass (kg per 100m2)")+
+             y = "Biomass (kg per unit effort)")+
         theme_minimal() +
         theme(axis.title.y = if (i != 1) element_blank() else element_text()) +
         my_theme
@@ -137,7 +102,7 @@ make_effects_plots <- function(focal_group, path, habitat){
   # Combine all effect plots and export
   wrap_plots(effect_plots, ncol = length(effect_plots)) + 
     plot_annotation(
-      title = paste0(str_to_sentence(focal_group), "\n", str_to_sentence(habitat)),
+     # title = paste0(str_to_sentence(focal_group), "\n", str_to_sentence(habitat)),
       theme = theme(plot.title = element_text(size = 10, face = "bold"),
                     plot.subtitle = element_text(size = 8),
                     axis.title = element_text(size = 8),
@@ -149,9 +114,9 @@ make_effects_plots <- function(focal_group, path, habitat){
                     panel.background = element_rect(fill = "white", color = NA),  
                     plot.background = element_rect(fill = "white", color = NA)))
   
-  ggsave(filename = paste(focal_group, snakecase::to_snake_case(habitat), "effects.png", sep = "_"),
-         path = path, width = 8, height = 3, dpi = 300, units = "in")
-  
+  # ggsave(filename = paste(focal_group, snakecase::to_snake_case(habitat), "effects.png", sep = "_"),
+  #        path = path, width = 8, height = 3, dpi = 300, units = "in")
+  # 
   png(paste0(path, "/", focal_group, "_", snakecase::to_snake_case(habitat), "_residuals.png"), width = 5000, height = 1000, res = 300)
   
   plot(effects_list, 
@@ -160,7 +125,8 @@ make_effects_plots <- function(focal_group, path, habitat){
                                 cex = 0.1, pch = 19, col = ""),  # Reduce cex for less dominant points
        lattice = list(strip = list(cex = 0.8)),
        axes = list(x = list(rotate = 45, cex = 0.8)),
-       main = NULL, rows = 2, cols = length(effects_list))  
+       main = NULL# rows = 2, cols = length(effects_list)
+       )  
   
   grid.text(paste(focal_group, "-", habitat), x = 0.02, y = 0.95, just = "left", gp = gpar(fontsize = 10, fontface = "bold"))
 
@@ -192,7 +158,51 @@ purrr::walk2(
 
 
 
+# OLD STUFF
 
+# 1. Read the top model and base model
+top_models <-  readRDS(file.path("~/ca-mpa/analyses/7habitat/output/results", paste(results_file)))$models
+
+# 2. Read data for fitting models (used to calculate effects)
+data_sp <- readRDS(file.path("~/ca-mpa/analyses/7habitat/output/models", paste(habitat, focal_group, re_string, "models.rds", sep = "_")))$data_sp
+#models_df <- readRDS(file.path(path, paste0(focal_group, "_models.rds")))$models_df
+
+# 4. Evaluate diagnostics for the top model
+par(mfrow = c(1, 2))
+plot(residuals(top_models$top) ~ fitted(top_models$top), main = attr(top_models$top, "name"))
+abline(h = 0, col = "red", lty = 2)
+lines(lowess(fitted(top_models$top), residuals(top_models$top)), col = "blue", lwd = 2)
+
+qqnorm(residuals(top_models$top), main = paste(attr(top_models$top, "name")), cex.main = 0.8); qqline(residuals(top_models$top))
+
+diag <- plot(check_model(top_models$top, residual_type = "simulated", check = c("ncv", "qq")))
+plot(fitted(top_models$top), resid(top_models$top))
+plot(top_models$top)
+
+data_sp$fitted <- fitted(top_models$top)
+data_sp$residuals <- residuals(top_models$top)
+
+ggplot(data = data_sp) +
+  geom_point(aes(x = fitted, y = residuals, color = affiliated_mpa)) + 
+  geom_smooth(aes(x = fitted, y = residuals), method = "loess") +
+  theme_minimal() +
+  labs(color = NULL)
+
+ggplot(data = data_sp) +
+  geom_point(aes(x = fitted, y = residuals, color = region4)) + 
+  geom_smooth(aes(x = fitted, y = residuals), method = "loess") +
+  theme_minimal() +
+  labs(color = NULL)
+
+ggplot(data_sp, aes(sample = residuals)) +
+  stat_qq() +
+  stat_qq_line() +
+  #    labs(title = "QQ Plot of Residuals by MPA") +
+  theme_minimal()
+
+outliers <- check_outliers(top_models$top)
+plot(outliers)
+# 5. Calculate and plot the predictor effects 
 
 
 
