@@ -110,7 +110,8 @@ kelp_remove %>%
              pct_diff = "% Difference")
 
 ggplot(data = kelp_sites %>% 
-         filter(site %in% kelp$site) %>% filter(affiliated_mpa %in% kelp$affiliated_mpa)
+         filter(site %in% kelp$site) %>% filter(affiliated_mpa %in% kelp$affiliated_mpa) %>% 
+         mutate(habitat_variable = str_to_sentence(str_replace_all(habitat_variable, "_", " ")))
          ) +
   geom_density(aes(x = value, color = site_type, fill = site_type), alpha = 0.3) + 
   labs(x = "Value of habitat characteristic", y = "Density", fill = NULL, color = NULL)+
@@ -147,7 +148,7 @@ rock_max <- rock_sites %>%
   mutate(range_max = pmin(MPA, Reference),
          pct_diff = round(abs(MPA - Reference)/(0.5*(MPA + Reference))*100, 3))
 
-# Add the values to the kelp_sites df for comparison
+# Add the values to the sites df for comparison
 rock_sites_max <- rock_sites %>% 
   left_join(rock_max %>% dplyr::select(habitat_variable, range_max))
 
@@ -197,22 +198,32 @@ surf <- surf_raw %>%
   left_join(sst %>% filter(habitat == "surf_zone") %>% dplyr::select(-habitat))
 
 # Examine the range for each habitat characteristic
-# surf_sites <- surf %>% 
-#   dplyr::select(site, site_type, affiliated_mpa, hard_bottom_25:depth_cv_500) %>% distinct() %>% 
-#   pivot_longer(cols = hard_bottom_25:depth_cv_500, names_to = "habitat_variable", values_to = "value") %>% 
-#   filter(!str_detect(habitat_variable, "aquatic|soft|seagrass|depth_sd")) %>% 
-#   filter(!habitat_variable == "depth_cv_25") %>% 
-#   mutate(scale = as.numeric(str_extract(habitat_variable, "\\d+"))) %>% 
-#   mutate(habitat = str_remove(habitat_variable, "_\\d+")) %>% 
-#   arrange(desc(habitat), scale) %>% 
-#   mutate(habitat_variable = factor(habitat_variable, levels = unique(habitat_variable)))
-# 
-# surf_max <- surf_sites %>% 
-#   group_by(site_type, habitat_variable, scale) %>% 
-#   summarize(max = max(value, na.rm = T), .groups = 'drop') %>% 
-#   pivot_wider(names_from = site_type, values_from = max) %>% 
-#   mutate(range_max = pmin(MPA, Reference),
-#          pct_diff = round(abs(MPA - Reference)/(0.5*(MPA + Reference))*100, 3))
+surf_sites <- surf %>%
+  dplyr::select(site, site_type, affiliated_mpa, hard_bottom_25:depth_cv_500) %>% distinct() %>%
+  pivot_longer(cols = hard_bottom_25:depth_cv_500, names_to = "habitat_variable", values_to = "value") %>%
+  filter(!str_detect(habitat_variable, "aquatic|seagrass|depth_sd")) %>%
+  filter(!habitat_variable == "depth_cv_25") %>%
+  mutate(scale = as.numeric(str_extract(habitat_variable, "\\d+"))) %>%
+  mutate(habitat = str_remove(habitat_variable, "_\\d+")) %>%
+  arrange(desc(habitat), scale) %>%
+  mutate(habitat_variable = factor(habitat_variable, levels = unique(habitat_variable)))
+
+surf_max <- surf_sites %>%
+  group_by(site_type, habitat_variable, scale) %>%
+  summarize(max = max(value, na.rm = T), .groups = 'drop') %>%
+  pivot_wider(names_from = site_type, values_from = max) %>%
+  mutate(range_max = pmin(MPA, Reference),
+         pct_diff = round(abs(MPA - Reference)/(0.5*(MPA + Reference))*100, 3))
+
+# Add the values to the sites df for comparison
+surf_sites_max <- surf_sites %>% 
+  left_join(surf_max %>% dplyr::select(habitat_variable, range_max))
+
+# Flag the ones that are outside, calculate how far outside
+surf_flagged_max <- surf_sites_max %>% 
+  filter(value > range_max) %>% 
+  mutate(pct_diff = round(abs(value - range_max)/(0.5*(value + range_max))*100, 3)) %>% 
+  filter(pct_diff > 0) %>% arrange(pct_diff)
 
 # Deep ----------------------------------------------------------------------------------------------
 deep_raw <- readRDS(file.path(ltm.dir, "deep_biomass_subset.Rds")) 
