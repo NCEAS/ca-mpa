@@ -11,6 +11,9 @@ library(dplyr)
 library(purrr)
 library(tidymodels)
 library(lmerTest)
+library(future)
+library(furrr)
+library(parallel)
 
 rm(list = ls())
 gc()
@@ -24,7 +27,7 @@ ltm.dir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_
 #ltm.dir <- "/Users/lopazanski/Desktop/ltm/update_2024"
 
 pred_surf <- readRDS(file.path("analyses/7habitat/intermediate_data/surf_predictors.Rds")) %>% filter(pred_group %in% c("all", "combined"))
-pred_surf_2way <- readRDS(file.path("analyses/7habitat/intermediate_data/surf_predictors_2way.Rds"))
+pred_surf_2way <- readRDS(file.path("analyses/7habitat/intermediate_data/surf_predictors_2way.Rds")) #%>% filter(!str_detect(predictors, "aquatic_vegetation"))
 
 # Define subset for modeling (reduced number of columns)
 data_surf <- readRDS(file.path(ltm.dir, "combine_tables/surf_full.Rds")) %>% 
@@ -37,7 +40,7 @@ data_surf <- readRDS(file.path(ltm.dir, "combine_tables/surf_full.Rds")) %>%
 # Build Data --------------------------------------------------------------------------
 # Provide some of the global variables
 habitat <- "surf"
-re_string <- "my"
+re_string <- "m"
 random_effects <- c("affiliated_mpa")
 regions <- c("North", "Central", "N. Channel Islands", "South")
 print(paste0("Starting: ", habitat))
@@ -53,13 +56,27 @@ data_sp <- prep_focal_data(
   regions = c("North", "Central", "N. Channel Islands", "South")
 )
 
+scale_selection <- select_scales(data_sp, 
+                                 pred_list = pred_surf,
+                                 "log_c_biomass", 
+                                 random_effects = random_effects)
 
+scale_table <- scale_selection$formatted_table
+gtsave(scale_table, paste("tableSX", habitat, re_string, "habitat_scale.png"))
+
+# Only fit models with the top scales
+top_scales <- scale_selection$results %>% janitor::clean_names() %>% 
+  filter(delta == 0) %>% 
+  pull(model)
+
+pred_surf_filtered <- get_2way_list(pred_surf %>% filter(predictor %in% top_scales), habitat = "surf")
+# pred_surf_filtered <- pred_surf_filtered %>% filter(!str_detect(predictors, "aquatic_vegetation"))
 
 # Run The Models -------------------------------------------------------------------------------------
 
 n_workers <- round(parallel::detectCores()/10)
 plan(multisession, workers = n_workers)
-predictors_df <- pred_surf_2way
+predictors_df <- pred_surf_filtered
 batch_size <- round(length(predictors_df$model_id)/n_workers)
 batches <- split(predictors_df, (seq_len(nrow(predictors_df)) - 1) %/% batch_size)
 
@@ -116,97 +133,21 @@ models_df <- bind_rows(results_list) %>%
   mutate(delta_AICc = AICc - min(AICc, na.rm = TRUE)) %>%
   arrange(delta_AICc)
 
-
-re_string <- "m"
-
 saveRDS(list(models_df = models_df, data_sp = data_sp),
         file.path("analyses/7habitat/output/models",
-                  paste(habitat, focal_group, re_string, "models.rds", sep = "_")))
+                  paste(habitat, "filtered", focal_group, re_string, "models.rds", sep = "_")))
  
 
-delta_threshold <- 4
+# Now we have:
+# models_df = df with fit metrics from all candidate models
+# nesting_results = df with the number of models removed via nesting rule + LRTs
+# top_models = list containing refit candidate models (REML = F) for model averaging
+# data_sp = data used in modeling
 
-top_models_df <- models_df %>% 
-  filter(delta_AICc <= delta_threshold)
-
-# Start with just refitting the actual top model to see how it looks
-
-focal_model <- top_models_df[1, ]
-model_formula <- as.formula(focal_model$formula)
-
-model <- lmer(model_formula, data = data_sp, REML = T, 
-              control = lmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 1e8)))
-
-summary(model)
-VarCorr(model)
-sim_res <- simulateResiduals(model)
-plot(sim_res)
-effects <- allEffects(model, partial.residuals = T)
-plot(effects, multiline = T, confint = list(style = 'auto'))
+# Next steps:
+# Do model averaging and rank predictor importance.
 
 
-# Looks like we should use the nested approach
-top_names <- top_models_df$model_id
-top_models <- top_models_df %>% 
-  mutate(model = map(formula, 
-                     ~ lmer(as.formula(.x), data = data_sp, REML = FALSE,
-                            control = lmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 1e8)))))
-
-names(top_models$model) <- top_models$model_id
-
-nesting_results <- data.frame(initial = length(top_models$model_id),
-                              nesting_rule = NA,
-                              LRT = NA,
-                              final = NA)
-
-# Check for nested models 
-model_set <- model.sel(top_models$model)
-nested <- nested(model_set)
-
-top_names <- top_names[nested == FALSE]
-top_models <- top_models$model[nested == FALSE]
-
-print(paste("  Nesting rule:", sum(nested)))
-
-nesting_results$nesting_rule <- sum(nested)
-
-# Apply LRT on any remaining nested models
-nested <- check_nested_models(top_models) 
-top_names <- nested$candidate_list$model
-top_models <- top_models[top_names]
-
-nesting_results$LRT <- sum(nested$nested_results$p > 0.05, na.rm = T)
-nesting_results$final <- length(top_names)
-print(paste("  LRT:", sum(nested$nested_results$p > 0.05, na.rm = T)))
-print(paste("    Top models:", length(top_names)))
-
-top_names
-
-summary(top_models[[1]])
-sim_res <- simulateResiduals(top_models[[1]])
-plot(sim_res)
-
-diagnostics_df <- purrr::map_dfr(names(top_models), function(id) {
-  model <- top_models[[id]]
-  
-  sim <- simulateResiduals(model)
-  ks_p    <- testUniformity(sim)$p.value
-  disp_p  <- testDispersion(sim)$p.value
-  out_p   <- testOutliers(sim)$p.value
-  zero_p  <- testZeroInflation(sim)$p.value
-  
-  broom_out <- broom.mixed::glance(model)
-  
-  tibble(
-    model_id = id,
-    ks_p = ks_p,
-    dispersion_p = disp_p,
-    outlier_p = out_p,
-    zero_infl_p = zero_p,
-    logLik = broom_out$logLik,
-    AICc = broom_out$AICc
-  )
-})
 
 
 

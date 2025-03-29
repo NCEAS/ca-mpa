@@ -17,6 +17,7 @@ library(parallel)
 rm(list = ls())
 gc()
 
+source("analyses/7habitat/code/Step0_helper_functions.R") 
 source("analyses/7habitat/code/Step4a_prep_focal_data.R") 
 source("analyses/7habitat/code/Step4b_build_habitat_models.R")  
 
@@ -24,19 +25,136 @@ source("analyses/7habitat/code/Step4b_build_habitat_models.R")
 # Read Data --------------------------------------------------------------------
 ltm.dir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_2024"
 
-pred_kelp <- readRDS(file.path("analyses/7habitat/intermediate_data/kelp_predictors.Rds")) %>% filter(pred_group %in% c("all", "combined"))
-pred_kelp_2way <- readRDS(file.path("analyses/7habitat/intermediate_data/kelp_predictors_2way.Rds"))
+pred_kelp <- readRDS(file.path("analyses/7habitat/intermediate_data/kelp_predictors.Rds")) %>% filter(pred_group %in% c("all", "combined")) %>%  filter(!str_detect(predictor, "aquatic_vegetation|soft_bottom"))
+pred_kelp_2way <- readRDS(file.path("analyses/7habitat/intermediate_data/kelp_predictors_2way.Rds")) %>% filter(!str_detect(predictors, "aquatic_vegetation"))
 
 # Define subset for modeling (reduced number of columns)
 data_kelp <- readRDS(file.path(ltm.dir, "combine_tables/kelp_full.Rds")) %>% 
   mutate(site_type = factor(site_type, levels = c("Reference", "MPA"))) %>% 
-  dplyr::select(year:affiliated_mpa, size_km2, age_at_survey,
+  dplyr::select(year:affiliated_mpa, size_km2, age_at_survey, cluster_area_km2,
                 species_code:target_status, assemblage_new, vertical_zonation, name, common_name, weight_kg:count_per_m2, 
                 all_of(pred_kelp$predictor))  %>% 
   mutate(kg_per_100m2 = kg_per_m2*100) 
   
 
-# Fit assemblage models ---------
+# Build Data -------------------------------------------------------------------
+
+# Provide some of the global variables
+habitat <- "kelp"
+re_string <- "msy"
+random_effects <- c("affiliated_mpa/site", "year")
+regions <- c("North", "Central", "N. Channel Islands", "South")
+print(paste0("Starting: ", habitat))
+print(paste0("RE Structure: ", paste(random_effects, collapse = ", ")))
+focal_group <- "targeted"
+
+# Prep the data for the given analysis
+data_sp <- prep_focal_data(
+  type = "target_status",
+  focal_group = focal_group, 
+  drop_outliers = "no",
+  biomass_variable = "kg_per_100m2",
+  data = data_kelp,
+  regions = c("North", "Central", "N. Channel Islands", "South")
+)
+
+# Omit aquatic vegetation for kelp:
+pred_kelp <- filter(pred_kelp, !str_detect(predictor, "aquatic_vegetation|soft_bottom"))
+pred_kelp_2way <- filter(pred_kelp_2way, !str_detect(predictors, "aquatic_vegetation"))
+
+scale_selection <- select_scales(data_sp, 
+                                 pred_list = pred_kelp,
+                                 "log_c_biomass", 
+                                 random_effects = random_effects)
+
+scale_table <- scale_selection$formatted_table
+gtsave(scale_table, paste("tableSX", habitat, re_string, "habitat_scale.png"))
+
+# Only fit models with the top scales
+top_scales <- scale_selection$results %>% janitor::clean_names() %>% 
+  filter(delta == 0) %>% 
+  mutate(scale = str_extract(model, "\\d+"))
+
+pred_kelp_filtered <- pred_kelp_2way %>%
+  filter(is.na(hard_scale) | hard_scale == top_scales$scale[top_scales$feature == "hard_bottom"]) %>% 
+  filter(is.na(kelp_scale) | kelp_scale == top_scales$scale[top_scales$feature == "kelp_annual"]) %>% 
+  filter(is.na(depth_mean_scale) | depth_mean_scale == top_scales$scale[top_scales$feature == "depth_mean"]) %>% 
+  filter(is.na(depth_cv_scale) | depth_cv_scale == top_scales$scale[top_scales$feature == "depth_cv"]) %>% 
+  dplyr::select(predictors, type, model_id)
+  
+
+# Run The Models -------------------------------------------------------------------------------------
+
+#n_workers <- round(parallel::detectCores()/5)
+n_workers <- 5
+plan(multisession, workers = n_workers)
+predictors_df <- pred_kelp_filtered
+batch_size <- round(length(predictors_df$model_id)/n_workers)
+batches <- split(predictors_df, (seq_len(nrow(predictors_df)) - 1) %/% batch_size)
+
+fit_batch <- function(batch_df, data_sp, response, random_effects) {
+  purrr::map_dfr(seq_len(nrow(batch_df)), function(i) {
+    predictors <- batch_df$predictors[i]
+    model_id   <- batch_df$model_id[i]
+    fixed      <- paste(response, "~", predictors)
+    random     <- paste0("(1 | ", random_effects, ")", collapse = " + ")
+    formula    <- as.formula(paste(fixed, "+", random))
+    
+    out <- tryCatch({
+      model <- suppressMessages(suppressWarnings(lmer(formula, 
+                                                      data = data_sp, REML = FALSE, 
+                                                      control = lmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 1e8)))))
+      
+      singular <- if (isSingular(model)) "Singular fit" else "OK"
+      
+      tibble(
+        model_id = model_id,
+        formula = paste(deparse(formula), collapse = ""),
+        AICc = AICc(model),
+        logLik = as.numeric(logLik(model)),
+        n = nobs(model),
+        singular_status = singular,
+        error = NA_character_
+      )
+    }, error = function(e) {
+      tibble(
+        model_id = model_id,
+        formula = paste(deparse(formula), collapse = ""),
+        AICc = NA_real_,
+        logLik = NA_real_,
+        n = NA_integer_,
+        singular_status = NA_character_,
+        error = conditionMessage(e)
+      )
+    })
+    
+    out
+  })
+}
+
+results_list <- future_map(
+  batches, ~fit_batch(.x,  data_sp, 
+                      response = "log_c_biomass", 
+                      random_effects = random_effects),
+  .options = furrr_options(seed = TRUE))
+
+models_df <- bind_rows(results_list) %>%
+  mutate(delta_AICc = AICc - min(AICc, na.rm = TRUE)) %>%
+  arrange(delta_AICc)
+
+
+
+saveRDS(list(models_df = models_df, data_sp = data_sp),
+        file.path("analyses/7habitat/output/models",
+                  paste(habitat, "filtered", focal_group, re_string, "models.rds", sep = "_")))
+
+
+
+
+
+
+
+# OLD BELOW OOPSIES
 
 # Provide some of the global variables
 habitat <- "kelp_subset"
@@ -279,6 +397,36 @@ future_walk(species_list, run_model)
 
 
 
+mod <- top_models$`K100+DCV100+AV250*ST+ST*A`
+data_sp$residuals <- residuals(mod, type = "response")
+
+ggplot(data_sp, aes(x = aquatic_vegetation_bed_250, y = residuals)) +
+  geom_point(alpha = 0.5) +
+  facet_wrap(~ region4) +
+  geom_smooth(method = "lm", se = FALSE, color = "red") +
+  theme_minimal()
+
+ggplot(data_sp, aes(x = aquatic_vegetation_bed_250, y = log_c_biomass, fill = site_type, color = site_type)) +
+  geom_point(alpha = 0.5) +
+  facet_wrap(~ region4) +
+  geom_smooth(method = "lm") +
+  theme_minimal()
+
+
+ggplot(data_sp, aes(x = region4, y = aquatic_vegetation_bed_250, fill = site_type)) +
+  geom_boxplot() +
+  theme_minimal() +
+  labs(x = "Region", y = "Aquatic vegetation (250m)")
+
+ggplot(data_sp, aes(x = kelp_annual_100, y = residuals)) +
+  geom_point(alpha = 0.5) +
+  facet_wrap(~ region4) +
+  geom_smooth(method = "lm", se = FALSE, color = "red") +
+  theme_minimal()
+
+ggplot(data_sp, aes(x = region4, y = kelp_annual_100, fill = site_type)) +
+  geom_boxplot() +
+  theme_minimal() 
 
 
 
