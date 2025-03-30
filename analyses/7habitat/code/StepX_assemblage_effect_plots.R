@@ -31,15 +31,15 @@ my_theme <- theme(
   plot.background = element_rect(fill = "white", color = NA)
 )
 
-path <- "analyses/7habitat/output"
-habitat <- "rock_subset"
-focal_group <- "targeted"
-re_string <- "rmy"
-results_file <- paste(habitat, focal_group, re_string, "effects.rds", sep = "_")
-data_file <- paste(habitat, focal_group, re_string, "data.rds", sep = "_")
 
+list2env(list(habitat = "surf_filtered", 
+              focal_group = "targeted",
+              re_string = "m"), envir = .GlobalEnv)
 
-make_effects_plots <- function(focal_group, path, habitat){
+make_effects_plots <- function(habitat, focal_group, re_string){
+  
+  results_file <- paste(habitat, focal_group, re_string, "effects.rds", sep = "_")
+  data_file <- paste(habitat, focal_group, re_string, "data.rds", sep = "_")
   
   print(paste0(habitat, ", ", focal_group))
   
@@ -48,7 +48,12 @@ make_effects_plots <- function(focal_group, path, habitat){
 
   effects_list <- effects$models$effects_list_top
   
-  effect_plots <- lapply(seq_along(effects_list), function(i) {
+  x_vars <- sapply(effects_list, function(x) {
+    x_df <- as.data.frame(x)
+    colnames(x_df)[which(colnames(x_df) != "site_type")[1]]
+  })
+  
+  effect_plots <- setNames(lapply(seq_along(effects_list), function(i) {
     effects_data <- as.data.frame(effects_list[[i]])
     x_var <- colnames(effects_data)[which(colnames(effects_data) != "site_type")[1]]
     const <- min(data_sp$biomass[data_sp$biomass > 0], na.rm = TRUE)
@@ -65,9 +70,14 @@ make_effects_plots <- function(focal_group, path, habitat){
       str_replace_all("_", " ") %>% 
       str_to_sentence() %>% 
       str_replace("cv", "CV") %>% 
-      str_replace("\\d+", paste0(str_extract(., "\\d+"), "m"))
+      str_replace("\\d+", paste0(str_extract(., "\\d+"), "m")) %>% 
+      str_replace("Aquatic vegetation bed", "Max biotic extent")
     
-    show_legend <- (i == length(effects_list))  # Show legend only on the last plot
+    y_var_label <- case_when(habitat %in% c("rock", "rock_filtered") ~ "Biomass (kg per unit effort)",
+                             habitat %in% c("surf", "surf_filtered") ~ "Biomass (kg per haul)",
+                             T~NA)
+    
+    show_legend <- (i == i) #length(effects_list))  # Show legend only on the last plot
 
     if (sum(str_detect(colnames(effects_data), "site_type")) > 0) {
       ggplot(effects_data, aes(x = !!sym(x_var))) +
@@ -78,11 +88,12 @@ make_effects_plots <- function(focal_group, path, habitat){
         scale_fill_manual(values = c("#7e67f8", "#e5188b")) +
         scale_y_continuous(limits = c(0, NA), expand = c(0, 0)) +
         labs(x = x_var_label,
-             y = "Biomass (kg per 100m2)",
+             y = if (habitat %in% c("kelp", "kelp_filtered")) expression("Biomass (kg per 100 m"^2*")") else y_var_label,
              color = NULL, fill = NULL) +
         theme_minimal() +
         theme(legend.position = ifelse(show_legend, "right", "none"),
-              axis.title.y = if (i != 1) element_blank() else element_text()) +
+            #  axis.title.y = if (i != 1) element_blank() else element_text()
+              ) +
         my_theme
       
       
@@ -92,12 +103,16 @@ make_effects_plots <- function(focal_group, path, habitat){
         geom_ribbon(aes(ymin = exp(lower) - const, ymax = exp(upper) - const), alpha = 0.2, show.legend = FALSE) +
         scale_y_continuous(limits = c(0, NA), expand = c(0, 0)) +
         labs(x = x_var_label,
-             y = "Biomass (kg per unit effort)")+
+             y = if (habitat %in% c("kelp", "kelp_filtered")) expression("Biomass (kg per 100 m"^2*")") else y_var_label) +
         theme_minimal() +
-        theme(axis.title.y = if (i != 1) element_blank() else element_text()) +
+     #   theme(axis.title.y = if (i != 1) element_blank() else element_text()) +
         my_theme
     }
-  })
+  }),
+  paste(habitat, x_vars, sep = "_"))
+  
+  saveRDS(effect_plots,
+          file.path("~/ca-mpa/analyses/7habitat/output/effects", paste(habitat, focal_group, re_string, "effects_plots.rds", sep = "_")))
   
   # Combine all effect plots and export
   wrap_plots(effect_plots, ncol = length(effect_plots)) + 
@@ -117,44 +132,111 @@ make_effects_plots <- function(focal_group, path, habitat){
   # ggsave(filename = paste(focal_group, snakecase::to_snake_case(habitat), "effects.png", sep = "_"),
   #        path = path, width = 8, height = 3, dpi = 300, units = "in")
   # 
-  png(paste0(path, "/", focal_group, "_", snakecase::to_snake_case(habitat), "_residuals.png"), width = 5000, height = 1000, res = 300)
+  #png(paste0(path, "/", focal_group, "_", snakecase::to_snake_case(habitat), "_residuals.png"), width = 5000, height = 1000, res = 300)
   
-  plot(effects_list, 
-       confint = list(style = "auto"), 
-       partial.residual = list(smooth = TRUE, span = 0.75, lty = "dashed", col="#E69F00", smooth.col="#E69F00", 
-                                cex = 0.1, pch = 19, col = ""),  # Reduce cex for less dominant points
-       lattice = list(strip = list(cex = 0.8)),
-       axes = list(x = list(rotate = 45, cex = 0.8)),
-       main = NULL# rows = 2, cols = length(effects_list)
-       )  
+  # plot(effects_list, 
+  #      confint = list(style = "auto"), 
+  #      partial.residual = list(smooth = TRUE, span = 0.75, lty = "dashed", col="#E69F00", smooth.col="#E69F00", 
+  #                               cex = 0.1, pch = 19, col = ""),  # Reduce cex for less dominant points
+  #      lattice = list(strip = list(cex = 0.8)),
+  #      axes = list(x = list(rotate = 45, cex = 0.8)),
+  #      main = NULL# rows = 2, cols = length(effects_list)
+  #      )  
   
-  grid.text(paste(focal_group, "-", habitat), x = 0.02, y = 0.95, just = "left", gp = gpar(fontsize = 10, fontface = "bold"))
+ # grid.text(paste(focal_group, "-", habitat), x = 0.02, y = 0.95, just = "left", gp = gpar(fontsize = 10, fontface = "bold"))
 
-  dev.off()
+  #dev.off()
   
 }
 
 
+make_effects_plots("kelp_filtered", "targeted", "msy")
+make_effects_plots("rock_filtered", "targeted", "rmsy")
+make_effects_plots("surf_filtered", "targeted", "m")
 
-focal_groups <- c("targeted", "nontargeted", "all")
+make_effects_plots("kelp", "targeted", "msy")
+make_effects_plots("rock", "targeted", "rmsy")
 
-habitat_paths <- list(
-  "Shallow rocky reef" = c("analyses/7habitat/output/rock/mpa-year", 
-                           "analyses/7habitat/output/rock/region-mpa-year"),
-  "Kelp forest" = c("analyses/7habitat/output/kelp/region-mpa-year", 
-                    "analyses/7habitat/output/kelp/mpa-year", 
-                    "analyses/7habitat/output/kelp/region-mpa-year-drop", 
-                    "analyses/7habitat/output/kelp/mpa-year-drop"))
+make_effects_plots("kelp", "targeted", "my")
+make_effects_plots("rock", "targeted", "rmy")
+make_effects_plots("surf", "targeted", "m")
 
-# Iterate efficiently over all combinations
-purrr::walk2(
-  rep(names(habitat_paths), lengths(habitat_paths)),  
-  unlist(habitat_paths),
-  ~ purrr::walk(focal_groups, \(fg) make_effects_plots(focal_group = fg, path = .y, habitat = .x))
-)
+# Combine all three into one plot with panels
+rm(list = ls()) %>% gc()
+rock <- readRDS(file.path("~/ca-mpa/analyses/7habitat/output/effects", "rock_filtered_targeted_rmsy_effects_plots.rds"))
+kelp <- readRDS(file.path("~/ca-mpa/analyses/7habitat/output/effects", "kelp_filtered_targeted_msy_effects_plots.rds"))
+surf <- readRDS(file.path("~/ca-mpa/analyses/7habitat/output/effects", "surf_filtered_targeted_m_effects_plots.rds"))
+
+all_plots <- c(rock, kelp, surf)
+names(all_plots)  
+
+age_plots <- all_plots[str_detect(names(all_plots), "age_at_survey")]
+wrap_plots(age_plots, ncol = 1)
+
+titles <- c("Shallow reef", "Kelp forest", "Surf zone")
+
+age_plots_named <- Map(function(p, title) {
+  p + ggtitle(title) +
+    theme(axis.text = element_text(size = 8),
+          axis.text.x = element_text(size = 8, angle = 0, hjust = 0.5),
+          axis.title = element_text(size = 8),
+          legend.text = element_text(size = 8))
+    
+}, age_plots, titles)
+
+wrap_plots(age_plots_named, ncol = 1) 
+ggsave("fig1-age-effects.png", 
+       width = 4, height = 6, dpi = 600, units = "in")
+
+habitat_plots <- all_plots[!str_detect(names(all_plots), "age_at_survey")]
+names(habitat_plots)
+wrap_plots(habitat_plots)
+
+rock_plots <- habitat_plots[str_detect(names(habitat_plots), "rock")]
+kelp_plots <- habitat_plots[str_detect(names(habitat_plots), "kelp")]
+surf_plots <- habitat_plots[str_detect(names(habitat_plots), "surf")]
+rock_plots[[1]] <- rock_plots[[1]] + ggtitle("Shallow reef")
+kelp_plots[[1]] <- kelp_plots[[1]] + ggtitle("Kelp forest")
+surf_plots[[1]] <- surf_plots[[1]] + ggtitle("Surf zone")
+# Remove y-axis labels for all but first in each group
+rock_plots[-1] <- lapply(rock_plots[-1], \(p) p + theme(axis.title.y = element_blank()))
+kelp_plots[-1] <- lapply(kelp_plots[-1], \(p) p + theme(axis.title.y = element_blank()))
+surf_plots[-1] <- lapply(surf_plots[-1], \(p) p + theme(axis.title.y = element_blank()))
 
 
+final_plot <- wrap_plots(
+  wrap_plots(rock_plots, ncol = length(rock_plots)),
+  wrap_plots(kelp_plots, ncol = length(kelp_plots)),
+  wrap_plots(surf_plots, ncol = length(surf_plots)),
+  ncol = 1
+) + plot_layout(guides = "collect") & 
+  theme(legend.position = "bottom")
 
+final_plot
+
+ggsave("fig2-habitat-effects.png", 
+       width = 8, height = 8, dpi = 600, units = "in")
+
+# layout <- "
+# ABC##
+# DEGHI
+# J#K#L
+# "
+# 
+# wrap_plots(
+#   A = habitat_plots[["rock_depth_mean_250"]],
+#   B = habitat_plots[["rock_depth_cv_500"]],
+#   C = habitat_plots[["rock_hard_bottom_100"]],
+#   D = habitat_plots[["kelp_depth_mean_250"]],
+#   E = habitat_plots[["kelp_depth_cv_50"]],
+#   G = habitat_plots[["kelp_hard_bottom_25"]],
+#   H = habitat_plots[["kelp_kelp_annual_100"]],
+#   I = habitat_plots[["kelp_aquatic_vegetation_bed_500"]],
+#   J = habitat_plots[["surf_depth_mean_50"]],
+#   K = habitat_plots[["surf_soft_bottom_50"]],
+#   L = habitat_plots[["surf_aquatic_vegetation_bed_250"]],
+#   `#` = plot_spacer()
+# ) + plot_layout(design = layout)
 
 
 
