@@ -13,6 +13,7 @@ library(lattice)
 library(tidyverse)
 library(ncf)
 library(spdep)
+library(gt)
 
 rm(list = ls())
 gc()
@@ -23,7 +24,10 @@ sites <- readRDS(file.path("/home/shares/ca-mpa/data/sync-data/monitoring/proces
 
 # Read the top models 
 path <- "~/ca-mpa/analyses/7habitat/output"
-id <- "rock_subset_targeted_rmy"
+id <- "rock_filtered_targeted_rmsy"
+id <- "kelp_filtered_targeted_msy"
+id <- "surf_filtered_targeted_m"
+
 #id <- "kelp_targeted_my"
 
 top_effects <- readRDS(file.path(path, "effects", paste0(id, "_effects.rds")))
@@ -37,6 +41,7 @@ data_sf <- st_as_sf(data_sp)
 data_sf$resid <- residuals(top_models$top)
 data_sf$time <- as.POSIXct(paste0(data_sf$year, "-01-01"), tz = "UTC")
 
+
 # Aggregate residuals by site (replace 'site_id' with your unique site identifier)
 data_site <- data_sf %>%
   group_by(site) %>%
@@ -45,19 +50,33 @@ data_site <- data_sf %>%
   st_as_sf()
 
 # Extract coordinates from the sf object
+set.seed('123')
 coords <- st_coordinates(data_site)
+hist(dist(coords), breaks = 1000, main = "Pairwise Distances", xlab = "Distance (m)")
 
-max.dist <- max(dist(coords)) / 50
-spline_cor <- spline.correlog(x = coords[,1],
-                              y = coords[,2],
-                              z = data_site$avg_resid,
-                              resamp = 100,
-                              xmax = max.dist)
+if (id == "surf_filtered_targeted_m"){
+  spline_cor <- spline.correlog(x = coords[,1],
+                                y = coords[,2],
+                                z = data_site$avg_resid,
+                                resamp = 100,
+                                xmax = 600000)
+} else {
+  
+  max.dist <- 30000
+  spline_cor <- spline.correlog(x = coords[,1],
+                                y = coords[,2],
+                                z = data_site$avg_resid,
+                                resamp = 100,
+                                xmax = max.dist)
+  
+}
 
 plot(spline_cor, main = NULL,
      xlab = "Distance (m)", ylab = "Spatial Correlation")
 
 summary(spline_cor)
+
+
 # Rocky reef says moderate autocorrelation to 3934m
 
 # Consider cross-correlogram with time
@@ -74,8 +93,8 @@ summary(spline_cor)
 # plot(spline_cor_cross)
 
 # Calculae moran's I
-# Create a nearest-neighbor list (using k = 5, adjust k if needed)
-nb <- knn2nb(knearneigh(coords, k = 8))
+# Create a nearest-neighbor list 
+nb <- knn2nb(knearneigh(coords, k = 5))
 
 # Convert neighbor list to a spatial weights list
 lw <- nb2listw(nb, style = "W")
@@ -83,9 +102,6 @@ lw <- nb2listw(nb, style = "W")
 # Run the global Moran's I test
 moran_result <- moran.test(data_site$avg_resid, lw)
 print(moran_result)
-
-library(gt)
-library(tidyr)
 
 # Extract key values from the Moran's I result
 moran_table <- data.frame(
@@ -110,7 +126,6 @@ moran_gt <- moran_table %>%
   fmt_number(columns = Value, decimals = 3) %>%
   tab_options(table.width = px(350))
 
-# Print the table
 moran_gt
 
 
@@ -138,24 +153,38 @@ ggplot(data_plot %>% filter(adj_p < 0.05)) +
 ggplot(data = data_plot %>% filter(affiliated_mpa == "piedras blancas smr")) + 
   geom_label(aes(geometry = geometry, label = site, color = site_type), stat = "sf_coordinates", size =3, alpha = 0.7)
 
+ggplot(data = data_plot %>% filter(affiliated_mpa == "carrington point smr")) + 
+  geom_label(aes(geometry = geometry, label = site, color = site_type), stat = "sf_coordinates", size =3, alpha = 0.7)
+
+
 dist_matrix <- st_distance(data_site)
 
-dist_df <- as.data.frame(as.table(as.matrix(dist_matrix)))
+dist_df <- as.data.frame(as.table(as.matrix(dist_matrix))) 
 
 colnames(dist_df) <- c("site1", "site2", "distance_m")
 dist_df$site1 <- data_site$site[as.numeric(dist_df$site1)]
 dist_df$site2 <- data_site$site[as.numeric(dist_df$site2)]
 dist_df$site1_type <- data_site$site_type[as.numeric(dist_df$site1)]
 dist_df$site2_type <- data_site$site_type[as.numeric(dist_df$site2)]
-dist_df <- dist_df %>% filter(site1 != site2)
+dist_df <- dist_df %>% filter(site1 != site2) %>% 
+  left_join(site_visit, by = c("site1" = "site")) %>% 
+  left_join(site_visit, by = c("site2" = "site"), suffix = c(".1", ".2"))
+
+dist_df2 <- dist_df %>% 
+  filter(distance_m < 2000)
 
 ggplot(dist_df) +
   geom_density(aes(x = as.numeric(distance_m)))
 
+site_visit <- data_sp %>% 
+  group_by(affiliated_mpa, site_type, site) %>% 
+  summarize(n = n(), .groups = 'drop')
+
 # Consider removing Point Dume SMCA:
 data_adj <- data_sp %>% 
+  filter(!site %in% site_visit$site[site_visit$n <=2])
   #filter(!affiliated_mpa == "point dume smca")
-  filter(!site %in% c("BL29","BL31", "BL26", "BL27", "BL30", "BL43")) # "BL34", "BL31",, "BL44"  "BL30","BL27" ,"BL30", "BL31", "BL34", "BL44", "BL45"
+ # filter(!site %in% c("BL29","BL31", "BL26", "BL27", "BL30", "BL43")) # "BL34", "BL31",, "BL44"  "BL30","BL27" ,"BL30", "BL31", "BL34", "BL44", "BL45"
 
 m <- top_models$top
 
@@ -165,7 +194,7 @@ summary(m2)
 
 data_adj$resid <- residuals(m2)
 
-# Aggregate residuals by site (replace 'site_id' with your unique site identifier)
+# Aggregate residuals by site
 data_site <- data_adj %>%
   group_by(site) %>%
   summarise(avg_resid = mean(resid, na.rm = TRUE),
@@ -175,15 +204,14 @@ data_site <- data_adj %>%
 # Extract coordinates from the sf object
 coords <- st_coordinates(data_site)
 
-max.dist <- max(dist(coords)) / 20
+max.dist <- 30000
 spline_cor <- spline.correlog(x = coords[,1],
                               y = coords[,2],
                               z = data_site$avg_resid,
                               resamp = 100,
                               xmax = max.dist)
 
-plot(spline_cor, main = "Spline Correlogram of Model Residuals",
-     xlab = "Distance (m)", ylab = "Spatial Correlation")
+plot(spline_cor, xlab = "Distance (m)", ylab = "Spatial Correlation")
 
 summary(spline_cor)
 
@@ -211,8 +239,8 @@ data_site$adj_p <- p.adjust(data_site$pvalue, method = "BH")
 data_plot <- data_site %>% 
   left_join(data_sp %>% ungroup() %>%  distinct(site, affiliated_mpa, region4, site_type))
 
-
-
+check_model(m)
+check_model(m2)
 
 # OLD:
 # # Convert to SpatialPointsDataFrame for gstat functions
