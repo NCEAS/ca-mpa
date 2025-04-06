@@ -33,25 +33,14 @@ source("analyses/7habitat/code/Step4a_prep_focal_data.R")
 ltm.dir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_2024"
 
 pred_kelp <- readRDS(file.path("analyses/7habitat/intermediate_data/kelp_predictors.Rds")) %>% filter(pred_group %in% c("all", "combined"))
-pred_rock <- readRDS(file.path("analyses/7habitat/intermediate_data/rock_predictors.Rds")) %>% filter(pred_group %in% c("all", "combined"))
 
 # Define subset for modeling (reduced number of columns)
 data_kelp <- readRDS(file.path(ltm.dir, "combine_tables/kelp_full.Rds")) %>% 
   mutate(site_type = factor(site_type, levels = c("Reference", "MPA"))) %>% 
-  dplyr::select(year:site_type, lat_dd, bioregion:affiliated_mpa, size_km2, age_at_survey,
+  dplyr::select(year:site_type, lat_dd, bioregion:affiliated_mpa, cluster_area_km2, size_km2, age_at_survey,
                 species_code:target_status, assemblage_new, vertical_zonation, name, common_name, weight_kg:count_per_m2, 
                 all_of(pred_kelp$predictor))  %>% 
-  mutate(region5 = if_else(affiliated_mpa %in% c("blue cavern onshore smca", "farnsworth onshore smca", "long point smr"), "S. Channel Islands", region4)) %>% 
-  filter(!(site %in% c("SCAI_SHIP_ROCK", "POINT_CABRILLO_2", "ANACAPA_EAST_ISLE_W"))) %>% # depth criteria not met
   mutate(kg_per_100m2 = kg_per_m2*100)
-
-data_rock <- readRDS(file.path(ltm.dir, "combine_tables/ccfrp_full.Rds")) %>% 
-  mutate(site_type = factor(site_type, levels = c("Reference", "MPA"))) %>% 
-  dplyr::select(year:affiliated_mpa, size_km2, age_at_survey,
-                species_code:target_status, assemblage_new, weight_kg,
-                all_of(pred_rock$predictor)) %>% 
-  # Remove sites that do not fit criteria
-  filter(site != "SW14")  # depth is 8m; minimum 10m
 
 # Prep data
 kelp_sp <- prep_focal_data(
@@ -64,17 +53,6 @@ kelp_sp <- prep_focal_data(
   )
 
 kelp2 <- data2
-
-rock_sp <- prep_focal_data(
-  type = "target_status",
-  focal_group = "targeted",
-  drop_outliers = "no",
-  biomass_variable = "weight_kg",
-  data = data_rock,
-  regions = c("North", "Central", "N. Channel Islands", "South")
-)
-
-rock2 <- data2
 
 # data_sp is the aggregated and scaled version
 # data2 is the aggregated but NOT scaled version
@@ -105,13 +83,17 @@ kelp_sp2 <- kelp_sp %>%
 test <- kelp_sp2 %>% 
   distinct(site, site_type, affiliated_mpa, baseline_biomass, mpa_type_median, baseline_category4) 
 
-ggplot(data = kelp_sp2, 
+ggplot(data = kelp_sp2 %>% mutate(site_type = factor(site_type, levels = c("MPA", "Reference")),
+                                  baseline_category2 = factor(baseline_category2, levels = c("Low", "High"))), 
        aes(x = age_at_survey * kelp_scale + kelp_center, 
-           y = biomass, color = baseline_category2, fill = baseline_category2)) +
+           y = biomass, color = baseline_category2, fill = baseline_category2, linetype = baseline_category2)) +
   #geom_jitter(alpha = 0.2, size = 1) +
   geom_smooth(method = 'lm') +
-  labs(x = "MPA age",
-       y = "Biomass (kg per 100m2)", color = NULL, fill = NULL) +
+  labs(x = "Years since implementation",
+       y = expression("Biomass (kg per 100m"^2*")"), color = NULL, fill = NULL, linetype = NULL) +
+  scale_color_manual(values = c("#4292c6", "#084594")) +
+  scale_fill_manual(values = c("#9ecae1", "#084594")) +
+  scale_linetype_manual(values = c("Low" = "22", "High" = "solid")) +
   theme_minimal() + 
   facet_wrap(~site_type)
 
