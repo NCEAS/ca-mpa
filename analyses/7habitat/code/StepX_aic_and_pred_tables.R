@@ -37,7 +37,7 @@ combined_aicc <- bind_rows(
   mutate(Model = str_replace(Model, "AV", "MB"))
 
 aicc_table <- combined_aicc %>% 
-  filter(delta <= 2) %>% 
+  filter(delta <= 2 | Model == "ST*A") %>% 
   gt(groupname_col = "Ecosystem") %>% 
   cols_label(delta = "ΔAICc",
              weight = "AICc Weight") %>% 
@@ -63,7 +63,7 @@ aicc_table <- combined_aicc %>%
   
 
 aicc_table
-gtsave(aicc_table, "table1-aicc.png",  vwidth = 1200, vheight = 1200)
+gtsave(aicc_table, "table1-aicc.png",  vwidth = 900, vheight = 1200)
 
 
 # Get AIC weights

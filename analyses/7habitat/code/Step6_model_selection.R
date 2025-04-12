@@ -58,7 +58,7 @@ model_selection <- function(results_file, delta_threshold, focal_group, habitat,
   
   # Subset the models within the AICc threshold
   top_models_df <- models_df %>% 
-    filter(delta_AICc <= delta_threshold)
+    filter(delta_AICc <= delta_threshold | model_id == "ST*A") 
   
   # If any are singular, they are likely over-fitting (remove to avoid bias)
   if (sum(top_models_df$singular_status != "OK") > 0){
@@ -145,7 +145,7 @@ model_selection <- function(results_file, delta_threshold, focal_group, habitat,
   
   # Create df with fit and selection details
   model_details <- top_models_df %>% 
-    filter(model_id %in% top_names) %>% 
+    filter(model_id %in% top_names | model_id == "ST*A") %>% 
     mutate(focal_group = focal_group,
            n_sites = length(unique(data_sp$site)),
            n_mpas = length(unique(data_sp$affiliated_mpa)),
