@@ -129,7 +129,7 @@ plot(allEffects(base_model, partial.residuals = T), residuals.pch = 19, residual
 
 
 base_biomass <- lmer(log_c_biomass ~ baseline_biomass * site_type * age_at_survey  + 
-                       (1|affiliated_mpa/site) + (1|year), 
+                       (1|region4/affiliated_mpa/site) + (1|year), 
                      data = kelp_sp2)
 
 summary(base_biomass)
