@@ -51,7 +51,7 @@ buffers <- c(25, 50, 100, 250, 500)
 section_buffers <- expand.grid(section = sections, buffer = buffers)
 
 # Run function and combine all results
-# map2_dfr(section_buffers$section, section_buffers$buffer, calculate_buffers)
+map2_dfr(section_buffers$section, section_buffers$buffer, calculate_buffers)
 
 
 #  Combine across sections ----------------------------------------------------------------
