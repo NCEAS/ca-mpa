@@ -25,21 +25,29 @@ select_scales <- function(data, pred_list, response, random_effects) {
     habitat_vars <- scale_inputs[[var_class]]
     
     models <- lapply(habitat_vars, function(var) {
-      formula_str <- paste(response, "~", fixed, "+", var, "* site_type+", paste0("(1 | ", random_effects, ")", collapse = " + "))
-      lmer(as.formula(formula_str), data = data, REML = FALSE)
+      formula_str <- paste(response, "~", fixed, "+", 
+                           var, " * site_type + ", paste0("(1 | ", random_effects, ")", collapse = " + ")) 
+      lmer(as.formula(formula_str), data = data, 
+           control = lmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 1e8)), REML = FALSE)
     })
     names(models) <- habitat_vars
+    model_tbl <- tibble(Model = names(models), model_obj = models)
     
     aicc_table <- model.sel(models) %>%
       as.data.frame() %>%
       tibble::rownames_to_column("Model") %>%
       mutate(Feature = var_class) %>%
-      dplyr::select(Feature, Model, df, logLik, AICc, delta, weight)
+      dplyr::select(Feature, Model, df, logLik, AICc, delta, weight) %>%
+      left_join(model_tbl, by = "Model")
+    
+    aicc_table$Converged <- map_lgl(models, ~ is.null(.x@optinfo$conv$lme4$messages))[aicc_table$Model]
     
     return(aicc_table)
+    
   })
   
   formatted_table <- all_results %>% 
+    dplyr::select(!c(Converged, model_obj)) %>% 
     mutate(Model = str_to_sentence(str_replace_all(Model, "_", " ")),
            Feature = str_to_sentence(str_replace_all(Feature, "_", " "))) %>% 
     mutate(Model = str_replace_all(Model, "Aquatic vegetation bed", "Max biotic extent") %>% 
@@ -125,6 +133,7 @@ check_nested_models <- function(top_models) {
   candidate_list <- data.frame(model = NULL)
   nested_results <- data.frame(model = NULL, nested = NULL, p = NULL)
   drop_list <- data.frame(model = NULL)
+  top_models <- top_models$model
   
   # Convert models to a model.selection object
   model_set <- model.sel(top_models) %>% arrange(delta)
