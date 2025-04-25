@@ -7,6 +7,7 @@
 
 # Setup -------------------------------------------------------------------------------------------------------------------------
 library(tidyverse) 
+library(gt)
 
 rm(list = ls())
 
@@ -52,11 +53,12 @@ kelp <- kelp_raw %>%
   left_join(sst %>% filter(habitat == "kelp") %>% dplyr::select(-habitat))
 
 # CASPAR_2 did not have depth data; too shallow
-unique(kelp$site[is.na(kelp$depth_mean_25)])
+# unique(kelp$site[is.na(kelp$depth_mean_25)])
 
-kelp <- kelp %>% 
-  filter(site != "CASPAR_2") %>%  # too shallow
-  filter(site != "SCAI_SHIP_ROCK") # too deep
+kelp <- kelp %>%
+  filter(site != "SCAI_SHIP_ROCK") %>%  # too deep
+  filter(site != "CASPAR_2") %>% 
+  filter(site != "POINT_CABRILLO_2")
 
 ## Remove the extreme sites for kelp forest -----------------------------------------------
 
@@ -87,19 +89,41 @@ kelp_flagged_max <- kelp_sites_max %>%
   filter(value > range_max) %>% 
   mutate(pct_diff = round(abs(value - range_max)/(0.5*(value + range_max))*100, 3))
 
-# Make final table for sites removed
+# Set filter to remove sites that are more than X% outside the range
 kelp_remove <- kelp_flagged_max %>% 
   dplyr::select(site, site_type, affiliated_mpa, habitat_variable, value, range_max, pct_diff) %>% 
-  filter(pct_diff > 30) %>% 
-  bind_rows(kelp_sites %>% 
-              filter(affiliated_mpa == "matlahuayl smr" & site_type == "Reference" |
-                       affiliated_mpa == "blue cavern onshore smca" & site_type == "Reference" ) %>% distinct(site, site_type, affiliated_mpa))
+  filter(pct_diff > 30)
+
+# Check balance among MPA/REF for MPAs
+kelp_balance <- kelp %>% 
+  filter(!site %in% kelp_remove$site) %>% 
+  group_by(affiliated_mpa, site_type) %>% 
+  summarise(n = n_distinct(site), .groups = "drop") %>%
+  count(affiliated_mpa) %>%
+  filter(n < 2)
+
+kelp_remove2 <- kelp_remove %>% 
+  bind_rows(
+    kelp_sites %>%
+      filter(affiliated_mpa %in% kelp_balance$affiliated_mpa) %>%
+      distinct(site, site_type, affiliated_mpa) %>%
+      filter(!site %in% kelp_remove$site))
+
+length(unique(kelp_remove2$site))
+
+#   & site_type == "Reference" |
+#            affiliated_mpa ==  & site_type == "Reference"# |
+#     affiliated_mpa == "long point smr" & site_type == "Reference"
+#          ) %>% 
+#  
 
 kelp <- kelp %>% 
-  filter(!site %in% kelp_remove$site) 
+  filter(!site %in% kelp_remove2$site) 
 
-kelp_remove %>% 
+kelp_remove2 %>% 
   arrange(desc(pct_diff)) %>% 
+  mutate(habitat_variable = str_replace_all(habitat_variable, "_", " ") %>% str_to_sentence() %>% str_replace_all("cv", "CV")) %>% 
+  mutate(affiliated_mpa = str_to_title(affiliated_mpa) %>% str_replace_all("Smr", "SMR") %>% str_replace_all("Smca", "SMCA")) %>% 
   gt() %>% 
   cols_label(site = "Site",
              site_type = "Site Type",
@@ -107,12 +131,11 @@ kelp_remove %>%
              habitat_variable = "Variable",
              value = "Site Value",
              range_max = "Range Max Value",
-             pct_diff = "% Difference")
+             pct_diff = "% Difference") %>% 
+  sub_missing(everything(), missing_text = "")
 
 ggplot(data = kelp_sites %>% 
-         filter(site %in% kelp$site) %>% filter(affiliated_mpa %in% kelp$affiliated_mpa) %>% 
-         mutate(habitat_variable = str_to_sentence(str_replace_all(habitat_variable, "_", " ")))
-         ) +
+         filter(site %in% kelp$site) %>% filter(affiliated_mpa %in% kelp$affiliated_mpa)) +
   geom_density(aes(x = value, color = site_type, fill = site_type), alpha = 0.3) + 
   labs(x = "Value of habitat characteristic", y = "Density", fill = NULL, color = NULL)+
   theme_minimal() + 
