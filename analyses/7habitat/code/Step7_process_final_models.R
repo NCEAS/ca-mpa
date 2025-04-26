@@ -127,14 +127,15 @@ process_final_models <- function(habitat, focal_group, re_string){
                          model_formula_base = model_formula_base)
   
   # Combine the coefficient table results
-  all_results <- bind_rows(coef_table, coef_table2, coef_table3) %>% 
+  all_results <- bind_rows(coef_table, #coef_table2,
+                           coef_table3) %>% 
     dplyr::select(term_revised, scale = term_scale, estimate, std_error, statistic, df, p_value, significance, key)
   
   gt_table <- all_results %>% 
     filter(term_revised != "(Intercept)") %>% 
     mutate(p_value = case_when(p_value < 0.001 ~ "< 0.001", T~as.character(round(p_value, 3)))) %>%
     mutate(significance = if_else(significance == "NS", NA_character_, significance)) %>%
-    mutate(term_revised = str_replace_all(term_revised, "_", " ") %>% str_to_sentence()) %>% 
+    mutate(term_revised = str_replace_all(term_revised, "_", " ") %>% str_to_sentence() %>% str_replace_all("cv", "CV")) %>% 
     mutate(term_revised = if_else(term_revised == "Aquatic vegetation bed", "Max bioitic extent", term_revised)) %>% 
     gt() %>%
     tab_header(title = paste0("Model results: ", str_remove(str_to_sentence(habitat), "_filtered"), ", ", focal_group, " fish biomass")) %>% 
@@ -152,7 +153,7 @@ process_final_models <- function(habitat, focal_group, re_string){
     tab_options(heading.align = "left") %>%
     cols_align(align = "center", columns = everything()) %>% 
     tab_row_group(label = "Base Model", rows = key == "Base Model") %>%
-    tab_row_group(label = "Simple Model", rows = key == "Simple Model") %>%
+  #  tab_row_group(label = "Simple Model", rows = key == "Simple Model") %>%
     tab_row_group(label = "Top Model", rows = key == "Top Model") %>% 
     cols_hide(key) %>% 
     tab_source_note(source_note = paste0("Random effects: ", str_replace_all(paste(random_effects, collapse = ", "), "_", " "))) %>% 

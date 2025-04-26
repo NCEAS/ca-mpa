@@ -62,6 +62,7 @@ scale_selection <- select_scales(data_sp,
                                  random_effects = random_effects)
 
 scale_table <- scale_selection$formatted_table
+scale_table
 gtsave(scale_table, paste("tableSX", habitat, re_string, "habitat_scale.png"))
 
 # Only fit models with the top scales

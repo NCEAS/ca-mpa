@@ -32,16 +32,14 @@ library(lmerTest)
 library(effects)
 library(performance)
 library(gt)
-library(dplyr)
-library(MuMIn)
 
 source("analyses/7habitat/code/Step0_helper_functions.R")  
 
-list2env(list(habitat = "rock_filtered", 
+list2env(list(habitat = "kelp_filtered", 
               focal_group = "targeted",
-              re_string = "rmsy", 
+              re_string = "msy", 
               model_type = "lmer",
-              delta_threshold = 4), envir = .GlobalEnv)
+              delta_threshold = 2), envir = .GlobalEnv)
 
 
 # Analyze Focal Models ----------------------------------------------------------------------------
@@ -75,22 +73,23 @@ model_selection <- function(results_file, delta_threshold, focal_group, habitat,
   if (model_type == "lmer"){
     top_models <- top_models_df %>% 
       mutate(model = map(formula, 
-                         ~ lmer(as.formula(.x), data = data_sp, REML = FALSE,
+                         ~ lmer(as.formula(.x), data = data_sp, REML = F,
                                 control = lmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 1e8)))))
   }
   
-  top_names <- top_models_df$model_id
+  top_names <- top_models_df$model_id 
   names(top_models$model) <- top_models$model_id
   aicc_full <- model.sel(top_models$model)
   
   if (length(top_names) > 1) {
-    nested <- check_nested_models(top_models$model) 
+    nested <- check_nested_models(top_models) 
     top_names <- nested$candidate_list$model
     top_models <- top_models$model[top_names]
     print(paste("      Top models:", length(top_names)))
     
    }
   
+  nested_results_table <- nested$nested_results 
 
   # If there are multiple, get the model average. 
   # If there are not, get importance estimates from the top model.
@@ -169,7 +168,8 @@ model_selection <- function(results_file, delta_threshold, focal_group, habitat,
                   aicc_table_full = aicc_table_full,
                   predictor_table = predictor_table,
                   top_results = top_results,
-                  model_details = model_details)
+                  model_details = model_details,
+                  nested_results = nested_results_table)
   
   # Export the results
   saveRDS(results, file = file.path("~/ca-mpa/analyses/7habitat/output/results", 
@@ -186,7 +186,7 @@ model_selection(habitat = "rock_filtered",
                 focal_group = "targeted",
                 re_string = "rmsy", 
                 model_type = "lmer",
-                delta_threshold = 4)
+                delta_threshold = 2)
 # 11 > 1
 # H250+DM500+DCV500*ST+ST*A
 
@@ -194,7 +194,7 @@ model_selection(habitat = "kelp_filtered",
                 focal_group = "targeted",
                 re_string = "msy", 
                 model_type = "lmer",
-                delta_threshold = 4)
+                delta_threshold = 2)
 # 12 > 1
 # H50*ST+K100+DM500+DCV100+ST*A
 
@@ -202,7 +202,7 @@ model_selection(habitat = "surf_filtered",
                 focal_group = "targeted",
                 re_string = "m", 
                 model_type = "lmer",
-                delta_threshold = 4)
+                delta_threshold = 2)
 
 # 19 > 2
 # S25*ST+DCV250*ST+AV500+ST*A

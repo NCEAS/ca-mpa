@@ -13,6 +13,7 @@ library(tidymodels)
 library(lmerTest)
 library(furrr)
 library(parallel)
+library(gt)
 
 rm(list = ls())
 gc()
@@ -32,10 +33,8 @@ pred_kelp_2way <- readRDS(file.path("analyses/7habitat/intermediate_data/kelp_pr
 data_kelp <- readRDS(file.path(ltm.dir, "combine_tables/kelp_full.Rds")) %>% 
   mutate(site_type = factor(site_type, levels = c("Reference", "MPA"))) %>% 
   dplyr::select(year:affiliated_mpa, size_km2, age_at_survey, cluster_area_km2,
-                species_code:target_status, assemblage_new, vertical_zonation, name, common_name, weight_kg:count_per_m2, 
-                all_of(pred_kelp$predictor))  %>% 
-  mutate(kg_per_100m2 = kg_per_m2*100) 
-  
+                species_code:target_status, assemblage_new, vertical_zonation, name, common_name, weight_kg:count_per_m2, kg_per_100m2,
+                all_of(pred_kelp$predictor)) 
 
 # Build Data -------------------------------------------------------------------
 
@@ -59,7 +58,7 @@ data_sp <- prep_focal_data(
 )
 
 # Omit aquatic vegetation for kelp:
-pred_kelp <- filter(pred_kelp, !str_detect(predictor, "aquatic_vegetation|soft_bottom"))
+pred_kelp <- filter(pred_kelp, !str_detect(predictor, "aquatic_vegetation|soft_bottom")) #%>% filter(!predictor == "depth_cv_50")
 pred_kelp_2way <- filter(pred_kelp_2way, !str_detect(predictors, "aquatic_vegetation"))
 
 scale_selection <- select_scales(data_sp, 
@@ -67,25 +66,25 @@ scale_selection <- select_scales(data_sp,
                                  "log_c_biomass", 
                                  random_effects = random_effects)
 
+#scale_results <- scale_selection$results
 scale_table <- scale_selection$formatted_table
+scale_table
 gtsave(scale_table, paste("tableSX", habitat, re_string, "habitat_scale.png"))
 
 # Only fit models with the top scales
 top_scales <- scale_selection$results %>% janitor::clean_names() %>% 
   filter(delta == 0) %>% 
-  mutate(scale = str_extract(model, "\\d+"))
+  pull(model)
 
-pred_kelp_filtered <- pred_kelp_2way %>%
-  filter(is.na(hard_scale) | hard_scale == top_scales$scale[top_scales$feature == "hard_bottom"]) %>% 
-  filter(is.na(kelp_scale) | kelp_scale == top_scales$scale[top_scales$feature == "kelp_annual"]) %>% 
-  filter(is.na(depth_mean_scale) | depth_mean_scale == top_scales$scale[top_scales$feature == "depth_mean"]) %>% 
-  filter(is.na(depth_cv_scale) | depth_cv_scale == top_scales$scale[top_scales$feature == "depth_cv"]) %>% 
-  dplyr::select(predictors, type, model_id)
-  
+pred_kelp <- pred_kelp %>% filter(predictor %in% top_scales)
+
+pred_kelp_3way <- generate_simple_3way(pred_kelp)
+pred_kelp_filtered <- get_2way_list(pred_kelp %>% filter(predictor %in% top_scales), habitat = "kelp")
+
 
 # Run The Models -------------------------------------------------------------------------------------
 
-#n_workers <- round(parallel::detectCores()/5)
+n_workers <- round(parallel::detectCores()/10)
 n_workers <- 5
 plan(multisession, workers = n_workers)
 predictors_df <- pred_kelp_filtered

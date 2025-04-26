@@ -67,25 +67,19 @@ gtsave(scale_table, paste("tableSX", habitat, re_string, "habitat_scale.png"))
 # Only fit models with the top scales
 top_scales <- scale_selection$results %>% janitor::clean_names() %>% 
   filter(delta == 0) %>% 
-  mutate(scale = str_extract(model, "\\d+"))
+  pull(model)
 
 pred_rock <- pred_rock %>% filter(predictor %in% top_scales$model)
 
 pred_rock_3way <- generate_simple_3way(pred_rock)
-
-# pred_rock_filtered <- pred_rock_2way %>%
-#   filter(is.na(hard_scale) | hard_scale == top_scales$scale[top_scales$feature == "hard_bottom"]) %>% 
-#   filter(is.na(kelp_scale) | kelp_scale == top_scales$scale[top_scales$feature == "kelp_annual"]) %>% 
-#   filter(is.na(depth_mean_scale) | depth_mean_scale == top_scales$scale[top_scales$feature == "depth_mean"]) %>% 
-#   filter(is.na(depth_cv_scale) | depth_cv_scale == top_scales$scale[top_scales$feature == "depth_cv"]) %>% 
-#   dplyr::select(predictors, type, model_id)
+pred_rock_filtered <- get_2way_list(pred_rock %>% filter(predictor %in% top_scales), habitat = "rock")
 
 # Run The Models -------------------------------------------------------------------------------------
 
 n_workers <- round(parallel::detectCores()/10)
 n_workers <- 5
 plan(multisession, workers = n_workers)
-predictors_df <- pred_rock_3way
+predictors_df <- pred_rock_filtered #pred_rock_3way
 batch_size <- round(length(predictors_df$model_id)/n_workers)
 batches <- split(predictors_df, (seq_len(nrow(predictors_df)) - 1) %/% batch_size)
 
