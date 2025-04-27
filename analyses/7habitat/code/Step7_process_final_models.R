@@ -135,8 +135,13 @@ process_final_models <- function(habitat, focal_group, re_string){
     filter(term_revised != "(Intercept)") %>% 
     mutate(p_value = case_when(p_value < 0.001 ~ "< 0.001", T~as.character(round(p_value, 3)))) %>%
     mutate(significance = if_else(significance == "NS", NA_character_, significance)) %>%
-    mutate(term_revised = str_replace_all(term_revised, "_", " ") %>% str_to_sentence() %>% str_replace_all("cv", "CV")) %>% 
+    mutate(term_revised = str_replace_all(term_revised, "_", " ") %>% 
+             str_to_sentence() %>% 
+             str_replace_all(regex("depth cv", ignore_case = TRUE), "Depth CV")) %>% 
     mutate(term_revised = if_else(term_revised == "Aquatic vegetation bed", "Max bioitic extent", term_revised)) %>% 
+    mutate(term_revised = str_replace_all(term_revised,  regex("Site type", ignore_case = TRUE), "Protected Status") %>% 
+             str_replace_all(regex("age at survey", ignore_case = TRUE), "MPA Age") %>% 
+             str_replace_all(":", " x ")) %>% 
     gt() %>%
     tab_header(title = paste0("Model results: ", str_remove(str_to_sentence(habitat), "_filtered"), ", ", focal_group, " fish biomass")) %>% 
     cols_label(term_revised = "Term",
@@ -179,15 +184,6 @@ process_final_models <- function(habitat, focal_group, re_string){
   # Export 
   saveRDS(list(results = all_results, models = models, formulas = model_formulas), 
           file = file.path("~/ca-mpa/analyses/7habitat/output/effects", paste(habitat, focal_group, re_string, "effects.rds", sep = "_")))
-  
-  #r2_nakagawa(m)
-  #r2_nakagawa(m3)
-  
-  # dev_exp <- function(mod1, mod2) {
-  #   1 - (deviance(mod1) / deviance(mod2))
-  # }
-  # 
-  # dev_exp(m, m3)
   
 }
 
