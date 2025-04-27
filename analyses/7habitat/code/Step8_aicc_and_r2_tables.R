@@ -14,13 +14,17 @@ get_tables <- function(habitat, focal_group, re_string){
   
   return(list(aicc_table = results$aicc_table,
               aicc_table_full = results$aicc_table_full,
-              predictor_table = results$predictor_table))
+              predictor_table = results$predictor_table,
+              nested_results = results$nested_results))
 }
 
 rock <- get_tables("rock_filtered", "targeted", "rmsy")
 kelp <- get_tables("kelp_filtered", "targeted", "msy")
 surf <- get_tables("surf_filtered", "targeted", "m")
 
+rock_nest <- rock$nested_results
+kelp_nest <- kelp$nested_results
+surf_nest <- surf$nested_results
 
 rock_aicc <- rock$aicc_table_full
 kelp_aicc <- kelp$aicc_table_full
@@ -63,62 +67,49 @@ aicc_table <- combined_aicc %>%
   
 
 aicc_table
+
 gtsave(aicc_table, "table1-aicc.png",  vwidth = 900, vheight = 1200)
 
 
-# Get AIC weights
-aicc_table <- model.sel(top_models) %>% 
-  as.data.frame() %>% 
-  dplyr::select(delta, weight, df) %>% 
-  rownames_to_column("Model") %>% 
-  dplyr::select(Model, delta, weight, K = df) %>% 
-  gt() %>% 
-  cols_label(delta = "ΔAICc",
-             weight = "AICc Weight") %>% 
-  fmt_number(columns = c(delta, weight), decimals = 3) %>% 
-  tab_options(table.width = pct(80), heading.align = "left") %>% 
-  tab_style(style = cell_text(font = "Arial", size = px(14)), 
-            locations = cells_body(columns = everything())) %>% 
-  tab_style(style = cell_text(font = "Arial", size = px(14), weight = "bold"), 
-            locations = cells_column_labels(columns = everything())) %>% 
+combined_nest <- bind_rows(rock = rock_nest,
+                           kelp = kelp_nest,
+                           surf = surf_nest,
+                           .id = "Ecosystem") %>% 
+  mutate(Ecosystem = case_when(Ecosystem == "rock" ~ "Shallow reef",
+                               Ecosystem == "kelp" ~ "Kelp forest",
+                               Ecosystem == "surf" ~ "Surf zone")) %>% 
+  rename(Model = model, Nested = nested, p_value = p) %>% 
+  filter(!Model == "ST*A") %>% 
+  filter(!(Nested == "ST*A" & Ecosystem != "Surf zone")) %>% 
+  add_significance() %>% 
+  mutate(p_value = case_when(p_value < 0.001 ~ "< 0.001", T~as.character(round(p_value, 3)))) %>%
+  mutate(significance = if_else(significance == "NS", NA_character_, significance)) %>%
+  mutate(Model = str_replace(Model, "AV", "MB")) %>% 
+  gt(groupname_col = "Ecosystem") %>% 
+  cols_label(p_value = "p-value",
+             significance = "") %>% 
+  sub_missing(columns = everything(), missing_text = "") %>% 
+  tab_style(style = cell_text(font = "Arial", size = px(12)), 
+            locations = cells_source_notes()) %>%
+  tab_style(style = cell_text(font = "Arial", size = px(12)), 
+            locations = cells_body(columns = everything())) %>%
+  tab_style(style = cell_text(font = "Arial", size = px(12)), 
+            locations = cells_row_groups()) %>%
+  tab_style(style = cell_text(weight = "bold"),
+            locations = cells_body(columns = c(p_value, significance), rows = significance %in% c("***", "**", "*") )) %>%
+  tab_style(style = cell_text(font = "Arial", size = px(12), weight = "bold"), 
+            locations = cells_column_labels(columns = everything())) %>%
+  tab_style(style = cell_text(font = "Arial", size = px(13), weight = "bold"),
+            locations = cells_title(groups = "title")) %>% 
+  tab_options(table.width = pct(70)) %>% 
+  tab_options(data_row.padding = px(6),
+              row_group.padding = px(6))
 
-aicc_table
 
-# Get predictor importance table
-predictor_table <- top_results %>% 
-  dplyr::select(term, term_revised, estimate:importance_sw) %>% 
-  mutate(term = str_replace_all(term, "_", " ") %>% 
-           str_to_sentence() %>% 
-           str_replace("cv", "CV") %>% 
-           str_replace("\\d+", paste0(str_extract(., "\\d+"), "m"))) %>% 
-  mutate(CI = paste0("(", round(conf_low, 2), ", ", round(conf_high,2), ")")) %>% 
-  dplyr::select(term, estimate, CI, importance_abs_t, importance_sw) %>% 
-  arrange(desc(importance_abs_t)) %>% 
-  mutate(rank = 1:nrow(.)) %>% 
-  gt() %>%
-  cols_label(term = "Term",
-             estimate = "Estimate",
-             CI = "95% CI",
-             importance_abs_t = "Absolute t-statistic",
-             importance_sw = "AICc Weight (SW)",
-             rank = "Rank") %>%
-  tab_header(title = paste0("Predictor importance: ", str_to_sentence(habitat), ", ", focal_group, " fish biomass")) %>%
-  fmt_number(columns = c(estimate, importance_abs_t, importance_sw),
-             decimals = 3) %>%
-  tab_options(heading.align = "left") %>%
-  cols_align(align = "center", columns = everything()) %>%
-  cols_align(align = "left", columns = c("term")) %>%
-  tab_style(style = cell_text(font = "Arial", size = px(12)),
-            locations = cells_body(columns = everything())
-  ) %>%
-  tab_style(
-    style = cell_text(font = "Arial", size = px(12), weight = "bold"),
-    locations = cells_column_labels(columns = everything())
-  ) %>%
-  tab_style(
-    style = cell_text(font = "Arial", size = px(13), weight = "bold"),
-    locations = cells_title(groups = "title")
-  )
+combined_nest
+gtsave(combined_nest, "tableSX_nest_results.png",  vwidth = 900, vheight = 1200)
+
+
 
 # Get models for R2 comparison table
 get_models <- function(habitat, focal_group, re_string){
@@ -176,7 +167,19 @@ r2 <- model_long %>%
   tab_options(table.width = pct(30), heading.align = "left") 
 
 r2
-gtsave(r2, "tableSX-r2.png",  vwidth = 1200, vheight = 1200)
+gtsave(r2, "table2-r2.png",  vwidth = 1200, vheight = 1200)
+
+r2_difference <- model_long %>%
+ dplyr::select(-c(Conditional_R2)) %>% 
+  pivot_wider(names_from = Model, values_from = Marginal_R2) %>%
+  mutate(Marginal_R2_diff = (top - base)*100) %>%
+  select(Ecosystem, Marginal_R2_diff)
+r2_difference
+
+
+
+
+
 
 
 
