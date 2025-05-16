@@ -8,42 +8,37 @@ library(performance)
 library(patchwork)
 library(broom.mixed)
 
-# Set up --------------------------------------------------------------------------
+# Setup ------------------------------------------------------------------------
+
 rm(list = ls())
 gc()
 
-
 my_theme <- theme_minimal(base_family = "Arial") + 
-  theme(
-  plot.title = element_text(size = 10, face = "bold"),
-  plot.subtitle = element_text(size = 8),
-  axis.title = element_text(size = 10),
-  axis.text.x = element_text(size = 10),
-  axis.text.y = element_text(size = 10),
-  legend.title = element_text(size = 10),
-  legend.text = element_text(size = 10),
-  plot.caption = element_text(size = 8),
-  strip.text = element_text(size = 8, face = "bold"),
-  panel.background = element_rect(fill = "white", color = NA),  
-  plot.background = element_rect(fill = "white", color = NA)
-)
+  theme(plot.title = element_text(size = 10, face = "bold"),
+        plot.subtitle = element_text(size = 8),
+        axis.title = element_text(size = 10),
+        axis.text.x = element_text(size = 10),
+        axis.text.y = element_text(size = 10),
+        legend.title = element_text(size = 10),
+        legend.text = element_text(size = 10),
+        plot.caption = element_text(size = 8),
+        strip.text = element_text(size = 8, face = "bold"),
+        panel.background = element_rect(fill = "white", color = NA),  
+        plot.background = element_rect(fill = "white", color = NA))
 
 source("analyses/7habitat/code/Step4a_prep_focal_data.R")
 source("analyses/7habitat/code/Step0_helper_functions.R")
 
-
-# Read Data --------------------------------------------------------------------
+# Use the complete dataset 
 ltm.dir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_2024"
-
 pred_kelp <- readRDS(file.path("analyses/7habitat/intermediate_data/kelp_predictors.Rds")) %>% filter(pred_group %in% c("all", "combined"))
 
-# Use the complete dataset 
 kelp_complete <- readRDS(file.path(ltm.dir, "kelp_biomass_complete.Rds")) %>% 
   mutate(site_type = factor(site_type, levels = c("Reference", "MPA"))) %>% 
   mutate(kg_per_100m2 = kg_per_m2*100) 
 
 
-# Prep Data --------------------------------------------------------------------
+# Build data -------------------------------------------------------------------
 
 kelp_sites <- kelp_complete %>% 
   # Identify distinct site-year combinations
@@ -89,7 +84,7 @@ kelp_subset <- kelp_complete %>%
          region4 = as.factor(region4),
          affiliated_mpa = as.factor(affiliated_mpa)) 
 
-# Add a small constant, defined as 10x smaller than the minimum value 
+# Add a small constant, defined as minimum observed nonzero value
 const <- if_else(min(kelp_subset$biomass) > 0, 0, min(kelp_subset$biomass[kelp_subset$biomass > 0], na.rm = TRUE))
 kelp_subset <- kelp_subset %>% mutate(log_c_biomass = log(biomass + const))
 
@@ -252,140 +247,80 @@ fig3
 #ggsave("baseline-fig3.png", plot = fig3, width = 6, height = 4, units = "in", dpi = 600)
 
 
-## 2. Quantile Options 
-
-# kelp_subset4 <- kelp_subset2 %>% 
-#   mutate(area_quant3 = cut(bb, breaks = quantile(kelp_baseline$bb[kelp_baseline$mpa_defacto_class == "smr"], probs = c(0, 1/3, 2/3, 1), na.rm = TRUE), labels = c("Low", "Mid", "High"), include.lowest = TRUE),
-#          area_quant5 = cut(bb, breaks = quantile(kelp_baseline$bb[kelp_baseline$mpa_defacto_class == "smr"], probs = c(0, 1/5, 2/5, 3/5, 4/5, 1), na.rm = TRUE), labels = c("Low", "Low-Mid", "Mid", "Mid-High", "High"), include.lowest = TRUE),
-#          site_quant3 = cut(bb, breaks = quantile(kelp_subset2 %>% distinct(site, bb) %>% pull(bb), probs = c(0, 1/3, 2/3, 1), na.rm = TRUE), labels = c("Low", "Mid", "High"), include.lowest = TRUE),
-#          site_quant5 = cut(bb, breaks = quantile(kelp_subset2 %>% distinct(site, bb) %>% pull(bb), probs = c(0, 1/5, 2/5, 3/5, 4/5, 1), na.rm = TRUE), labels = c("Low", "Low-Mid", "Mid", "Mid-High", "High"), include.lowest = TRUE),
-#          full_quant3 = cut(bb, breaks = quantile(bb, probs = c(0, 1/3, 2/3, 1), na.rm = TRUE), labels = c("Low", "Mid", "High"), include.lowest = TRUE),
-#          full_quant5 = cut(bb, breaks = quantile(bb, probs = c(0, 1/5, 2/5, 3/5, 4/5, 1), na.rm = TRUE), labels = c("Low", "Low-Mid", "Mid", "Mid-High", "High"), include.lowest = TRUE),
-#   )
-# 
-# 
-# ggplot(kelp_subset4 %>% 
-#        pivot_longer(cols = c(area_quant3, area_quant5, site_quant3, site_quant5, full_quant3, full_quant5),
-#                     names_to = "category",
-#                     values_to = "biomass_group"),
-#        aes(x = age_at_survey, y = biomass, fill = biomass_group, color = biomass_group)) +
-#   geom_smooth(method = "lm") +
-#   facet_wrap(site_type ~ category)
-
-
-# ggplot(data = kelp_subset4, 
-#                aes(x = age_at_survey, 
-#                    y = log_c_biomass, color = site_type, fill = site_type)) +
-#  # geom_jitter(alpha = 0.2, size = 1) +
-#   geom_smooth(method = 'lm') +
-#   labs(x = "Years since implementation",
-#        y = "Biomass (kg per 100m2)", color = NULL, fill = NULL) +
-#   scale_color_manual(values = c("#7e67f8", "#e5188b")) +
-#   scale_fill_manual(values = c("#7e67f8", "#e5188b")) +
-#   theme_minimal() + 
-#   facet_wrap(~site_quant5, nrow = 1) +
-#   my_theme
-# 
-# fig3
-# # ggsave("baseline-fig3.png", plot = fig3, width = 6, height = 4, units = "in", dpi = 600)
-
-# 
-# ggplot(data = kelp_subset4, 
-#        aes(x = age_at_survey, 
-#            y = log_c_biomass, color = site_type, fill = site_type)) +
-#   geom_jitter(alpha = 0.2, size = 1) +
-#   geom_smooth(method = 'lm') +
-#   labs(x = "Years since implementation",
-#        y = "Biomass (kg per 100m2)", color = NULL, fill = NULL) +
-#   scale_color_manual(values = c("#7e67f8", "#e5188b")) +
-#   scale_fill_manual(values = c("#7e67f8", "#e5188b")) +
-#   theme_minimal() + 
-#   facet_wrap(~affiliated_mpa) +
-#   my_theme
-
-
 # Models  --------------------------------------------------------------------------
 
 # Log-transform baseline biomass using same constant
 kelp_subset2$log_c_bb <- log(kelp_subset2$bb + const)
 
-# Center baseline biomass
-#kelp_subset2$log_c_bb_scaled <- scale(kelp_subset2$log_c_bb)
-
-## 1. Fit models with the single outlier for Nat Bridges SMR -------------------
-base_model_v1 <- lmer(log_c_biomass ~ site_type * age_at_survey + (1|region4/affiliated_mpa/site) + (1|year), 
+# Fit uniform-effect model
+base_model <- lmer(log_c_biomass ~ site_type * age_at_survey + (1|region4/affiliated_mpa/site) + (1|year), 
                    data = kelp_subset2)
 
-base_biomass_v1 <- lmer(log_c_biomass ~ log_c_bb * site_type * age_at_survey  + 
+# Fit baseline-informed model using log-transformed biomass
+base_biomass <- lmer(log_c_biomass ~ log_c_bb * site_type * age_at_survey  + 
                        (1|region4/affiliated_mpa/site) + (1|year), 
                      data = kelp_subset2)
 
-## 2. Fit models without the outlier -------------------------------------------
-kelp_subset3 <- kelp_subset2 %>% filter(!(affiliated_mpa == "natural bridges smr" & biomass == 0))
 
-base_model_v2 <- lmer(log_c_biomass ~ site_type * age_at_survey + (1|region4/affiliated_mpa/site) + (1|year), 
-                   data = kelp_subset3)
+## Table 1 (Model Results) -----
 
-base_biomass_v2 <- lmer(log_c_biomass ~ log_c_bb * site_type * age_at_survey  + 
-                       (1|region4/affiliated_mpa/site) + (1|year), 
-                     data = kelp_subset3)
-
-## 3. Compare performance and get table for SI ---------------------------------
-
-# Extract fixed effect estimates 
-coefs_b1 <- tidy(base_biomass_v1, effects = "fixed") %>% 
+coef_table <- tidy(base_model, conf.int = TRUE, effect = "fixed") %>%
   mutate(term = str_replace(term, "typeMPA", "type"),
          importance = 1) %>% 
   janitor::clean_names() %>% 
   clean_terms() %>%
-  add_significance() %>% 
-  mutate(key = "Original")
+  add_significance() %>%
+  mutate(key = "Base Model")
 
-coefs_b2 <- tidy(base_biomass_v2, effects = "fixed")%>% 
+
+coef_table2 <- tidy(base_biomass, conf.int = TRUE, effect = "fixed") %>%
   mutate(term = str_replace(term, "typeMPA", "type"),
          importance = 1) %>% 
   janitor::clean_names() %>% 
   clean_terms() %>%
-  add_significance()%>% 
-  mutate(key = "Outlier removed")
+  add_significance() %>%
+  mutate(key = "Top Model")
 
-outlier_comparison <- bind_rows(coefs_b1, coefs_b2) %>% 
+
+all <- bind_rows(coef_table, coef_table2) %>% 
   mutate(term_revised = if_else(is.na(term_revised), term, term_revised)) %>% 
   mutate(term_revised = str_replace_all(term_revised, "log_c_bb", "Baseline")) %>% 
-  dplyr::select(term_revised, estimate, p_value, significance, key) %>% 
+  dplyr::select(term_revised, estimate, std_error, statistic, df, p_value, significance, key) 
+
+
+gt_table <- all %>% 
   filter(term_revised != "(Intercept)") %>% 
   mutate(p_value = case_when(p_value < 0.001 ~ "< 0.001", T~as.character(round(p_value, 3)))) %>%
   mutate(significance = if_else(significance == "NS", NA_character_, significance)) %>%
   mutate(term_revised = str_replace_all(term_revised, "site_type", "Protected Status") %>% 
            str_replace_all("age_at_survey", "MPA Age") %>% 
            str_replace_all(":", " x ")) %>% 
-  pivot_wider(names_from = "key", values_from = c(estimate, p_value, significance), names_glue = "{key}-{.value}") %>% 
-  dplyr::select(term_revised, starts_with("Original"), starts_with("Outlier removed"))
-
-### Table S1 -----
-outlier_comparison_table <- outlier_comparison %>% 
   gt() %>%
-  tab_spanner_delim(delim = "-") %>%
   cols_label(term_revised = "Term",
-             `Original-estimate` = "Estimate",
-             `Original-p_value` = "p-value",
-             `Original-significance` = "",
-             `Outlier removed-estimate` = "Estimate",
-             `Outlier removed-p_value` = "p-value",
-             `Outlier removed-significance` = "") %>%
-  fmt_number(columns = matches("estimate"),decimals = 3) %>% 
+             estimate = "Estimate",
+             std_error = "Std. Error",
+             statistic = "Statistic",
+             df = "df",
+             p_value = "p-value",
+             significance = "") %>%
+  fmt_number(columns = c(estimate, std_error, statistic),  decimals = 3) %>%
+  fmt_number(columns = c(df),  decimals = 0) %>%
   sub_missing(columns = everything(), missing_text = "") %>%
-  tab_options(heading.align = "left") %>% 
+  tab_options(heading.align = "left") %>%
   cols_align(align = "center", columns = everything()) %>% 
-  tab_style(style = cell_text(font = "Arial",  size = px(12), weight = "bold"),
-            locations = cells_column_spanners()) %>%
+  tab_row_group(label = "Model without baseline", rows = key == "Base Model") %>%
+  tab_row_group(label = "Baseline-informed model", rows = key == "Top Model") %>% 
+  cols_hide(key) %>% 
+  tab_source_note(source_note = paste0("Random effects: region/MPA/site, year")) %>% 
   tab_style(style = cell_text(font = "Arial", size = px(12)), 
             locations = cells_source_notes()) %>%
   tab_style(style = cell_text(font = "Arial", size = px(12)), 
             locations = cells_body(columns = everything())) %>%
   tab_style(style = cell_text(font = "Arial", size = px(12)), 
             locations = cells_row_groups()) %>%
-   tab_style(style = cell_text(font = "Arial", size = px(12), weight = "bold"), 
+  tab_style(style = cell_text(weight = "bold"),
+            locations = cells_body(columns = c(p_value, significance), rows = significance %in% c("***", "**", "*") )) %>%
+  tab_style(style = cell_text(font = "Arial", size = px(12), weight = "bold"), 
             locations = cells_column_labels(columns = everything())) %>%
   tab_style(style = cell_text(font = "Arial", size = px(13), weight = "bold"),
             locations = cells_title(groups = "title")) %>% 
@@ -393,42 +328,21 @@ outlier_comparison_table <- outlier_comparison %>%
   tab_options(data_row.padding = px(6),
               row_group.padding = px(6))
 
-outlier_comparison_table
-# gtsave(outlier_comparison_table, "baselines-si-table1.png", vwidth = 1000, vheight = 1000)
+gt_table
 
-### Figure S1 -----
+#gtsave(gt_table, "baselines-table1.png", vwidth = 1200, vheight = 1000)
 
-d1 <- check_outliers(base_biomass_v1, method = "cook")
-d2 <- check_outliers(base_biomass_v2, method = "cook")
-d1
-plot(d1)
-plot(d2)
+## R2 Values ----
 
-
+# Need to refit without the MPA RE to get the R2 values:
+base_biomass_r2 <- lmer(log_c_biomass ~ log_c_bb * site_type * age_at_survey  + 
+                          (1|region4/site) + (1|year), 
+                        data = kelp_subset2)
 
 
-d1 <- check_model(base_biomass_v1, check = "outliers")
-d2 <- check_model(base_biomass_v2, check = "outliers")
-
-png("baselines-si-cookv1.png", width = 6, height = 4, units = "in", res = 300)
-plot(check_model(base_biomass_v1, check = "outliers"))
-dev.off()
-
-png("baselines-si-cookv2.png", width = 6, height = 4, units = "in", res = 300)
-plot(check_model(base_biomass_v2, check = "outliers"))
-dev.off()
-
-library(magick)
-
-# Load the two plots
-img1 <- image_read("baselines-si-cookv1.png")
-img2 <- image_read("baselines-si-cookv2.png")
-
-# Combine them side by side
-combined <- image_append(c(img1, img2))
-
-# Save the combined image
-image_write(combined, path = "baselines-si-cook-combined.png", format = "png")
+r2_nakagawa(base_model)
+r2_nakagawa(base_biomass, tolerance = 1e-30)
+r2_nakagawa(base_biomass_r2)
 
 ## Figure 4 ----
 
@@ -544,87 +458,8 @@ fig4_si
 
 #ggsave("baseline-si-fig4.png", plot = fig4_si, width = 8, height = 8, units = "in", dpi = 600)
 
-## Table 1 (Model Results) -----
 
-coef_table <- tidy(base_model, conf.int = TRUE, effect = "fixed") %>%
-  mutate(term = str_replace(term, "typeMPA", "type"),
-         importance = 1) %>% 
-  janitor::clean_names() %>% 
-  clean_terms() %>%
-  add_significance() %>%
-  mutate(key = "Base Model")
-
-
-coef_table2 <- tidy(base_biomass, conf.int = TRUE, effect = "fixed") %>%
-  mutate(term = str_replace(term, "typeMPA", "type"),
-         importance = 1) %>% 
-  janitor::clean_names() %>% 
-  clean_terms() %>%
-  add_significance() %>%
-  mutate(key = "Top Model")
-
-
-all <- bind_rows(coef_table, coef_table2) %>% 
-  mutate(term_revised = if_else(is.na(term_revised), term, term_revised)) %>% 
-  mutate(term_revised = str_replace_all(term_revised, "log_c_bb", "Baseline")) %>% 
-  dplyr::select(term_revised, estimate, std_error, statistic, df, p_value, significance, key) 
-
-
-gt_table <- all %>% 
-  filter(term_revised != "(Intercept)") %>% 
-  mutate(p_value = case_when(p_value < 0.001 ~ "< 0.001", T~as.character(round(p_value, 3)))) %>%
-  mutate(significance = if_else(significance == "NS", NA_character_, significance)) %>%
-  mutate(term_revised = str_replace_all(term_revised, "site_type", "Protected Status") %>% 
-           str_replace_all("age_at_survey", "MPA Age") %>% 
-           str_replace_all(":", " x ")) %>% 
-  gt() %>%
-  cols_label(term_revised = "Term",
-             estimate = "Estimate",
-             std_error = "Std. Error",
-             statistic = "Statistic",
-             df = "df",
-             p_value = "p-value",
-             significance = "") %>%
-  fmt_number(columns = c(estimate, std_error, statistic),  decimals = 3) %>%
-  fmt_number(columns = c(df),  decimals = 0) %>%
-  sub_missing(columns = everything(), missing_text = "") %>%
-  tab_options(heading.align = "left") %>%
-  cols_align(align = "center", columns = everything()) %>% 
-  tab_row_group(label = "Model without baseline", rows = key == "Base Model") %>%
-  tab_row_group(label = "Baseline-informed model", rows = key == "Top Model") %>% 
-  cols_hide(key) %>% 
-  tab_source_note(source_note = paste0("Random effects: region/MPA/site, year")) %>% 
-  tab_style(style = cell_text(font = "Arial", size = px(12)), 
-            locations = cells_source_notes()) %>%
-  tab_style(style = cell_text(font = "Arial", size = px(12)), 
-            locations = cells_body(columns = everything())) %>%
-  tab_style(style = cell_text(font = "Arial", size = px(12)), 
-            locations = cells_row_groups()) %>%
-  tab_style(style = cell_text(weight = "bold"),
-            locations = cells_body(columns = c(p_value, significance), rows = significance %in% c("***", "**", "*") )) %>%
-  tab_style(style = cell_text(font = "Arial", size = px(12), weight = "bold"), 
-            locations = cells_column_labels(columns = everything())) %>%
-  tab_style(style = cell_text(font = "Arial", size = px(13), weight = "bold"),
-            locations = cells_title(groups = "title")) %>% 
-  tab_options(table.width = pct(50)) %>% 
-  tab_options(data_row.padding = px(6),
-              row_group.padding = px(6))
-
-gt_table
-
-#gtsave(gt_table, "baselines-table1.png", vwidth = 1200, vheight = 1000)
-
-## R2 Values ----
-
-# Need to refit without the MPA RE to get the R2 values:
-base_biomass_r2 <- lmer(log_c_biomass ~ log_c_bb * site_type * age_at_survey  + 
-                       (1|region4/site) + (1|year), 
-                     data = kelp_subset2)
-
-
-r2_nakagawa(base_model)
-r2_nakagawa(base_biomass, tolerance = 1e-30)
-r2_nakagawa(base_biomass_r2)
+# Extension Analyses ------------
 
 
 ## Figure 5 ----
