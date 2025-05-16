@@ -136,9 +136,9 @@ process_final_models <- function(habitat, focal_group, re_string){
     mutate(p_value = case_when(p_value < 0.001 ~ "< 0.001", T~as.character(round(p_value, 3)))) %>%
     mutate(significance = if_else(significance == "NS", NA_character_, significance)) %>%
     mutate(term_revised = str_replace_all(term_revised, "_", " ") %>% 
-             str_to_sentence() %>% 
+             str_to_title() %>% 
              str_replace_all(regex("depth cv", ignore_case = TRUE), "Depth CV")) %>% 
-    mutate(term_revised = if_else(term_revised == "Aquatic vegetation bed", "Max bioitic extent", term_revised)) %>% 
+    mutate(term_revised = if_else(term_revised == "Aquatic Vegetation Bed", "Max Bioitic Extent", term_revised)) %>% 
     mutate(term_revised = str_replace_all(term_revised,  regex("Site type", ignore_case = TRUE), "Protected Status") %>% 
              str_replace_all(regex("age at survey", ignore_case = TRUE), "MPA Age") %>% 
              str_replace_all(":", " x ")) %>% 
