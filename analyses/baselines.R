@@ -90,7 +90,7 @@ kelp_subset <- kelp_complete %>%
          affiliated_mpa = as.factor(affiliated_mpa)) 
 
 # Add a small constant, defined as 10x smaller than the minimum value 
-const <- if_else(min(kelp_subset$biomass) > 0, 0, min(kelp_subset$biomass[kelp_subset$biomass > 0], na.rm = TRUE)/10)
+const <- if_else(min(kelp_subset$biomass) > 0, 0, min(kelp_subset$biomass[kelp_subset$biomass > 0], na.rm = TRUE))
 kelp_subset <- kelp_subset %>% mutate(log_c_biomass = log(biomass + const))
 
 # Prep data
@@ -149,6 +149,9 @@ kelp_subset2 <- kelp_subset %>%
 median(kelp_subset2$bb)
 mean(kelp_subset2$bb)
 
+## REMINDER: FIGURE 1 IS CONCEPTUAL.
+
+## Figure 2 ----
 
 fig2 <- ggplot(data = kelp_baseline %>% filter(mpa_defacto_class == "smr") %>% 
                  mutate(point_shape = if_else(n < 3, "open", "closed")),
@@ -170,7 +173,7 @@ fig2
 
 # Categorize raw data for visuals  ---------------------------------------------------
 
-## 1. High/Low Options --------
+## 1. High/Low Options 
 
 kelp_subset3 <- kelp_subset2 %>% 
   # Create categories for visualizing
@@ -228,6 +231,7 @@ ggplot(kelp_subset3 %>%
   my_theme +
   theme(panel.spacing = unit(0.9, "lines"))
 
+## Figure 3 ----
 
 fig3 <- ggplot(kelp_subset3 %>% mutate(site_type = factor(site_type, levels = c("MPA", "Reference"))),
        aes(x = age_at_survey, y = biomass, color = area_median, fill = area_median, linetype = area_median), alpha = 0.8) +
@@ -248,7 +252,7 @@ fig3
 #ggsave("baseline-fig3.png", plot = fig3, width = 6, height = 4, units = "in", dpi = 600)
 
 
-## 2. Quantile Options --------
+## 2. Quantile Options 
 
 # kelp_subset4 <- kelp_subset2 %>% 
 #   mutate(area_quant3 = cut(bb, breaks = quantile(kelp_baseline$bb[kelp_baseline$mpa_defacto_class == "smr"], probs = c(0, 1/3, 2/3, 1), na.rm = TRUE), labels = c("Low", "Mid", "High"), include.lowest = TRUE),
@@ -300,33 +304,134 @@ fig3
 #   my_theme
 
 
-# Model  --------------------------------------------------------------------------
-
-base_model <- lmer(log_c_biomass ~ site_type * age_at_survey + (1|region4/affiliated_mpa/site) + (1|year), 
-                   data = kelp_subset2)
-
-summary(base_model)  
-
+# Models  --------------------------------------------------------------------------
 
 # Log-transform baseline biomass using same constant
 kelp_subset2$log_c_bb <- log(kelp_subset2$bb + const)
 
 # Center baseline biomass
-kelp_subset2$log_c_bb_scaled <- scale(kelp_subset2$log_c_bb)
+#kelp_subset2$log_c_bb_scaled <- scale(kelp_subset2$log_c_bb)
 
-base_biomass <- lmer(log_c_biomass ~ log_c_bb * site_type * age_at_survey  + 
+## 1. Fit models with the single outlier for Nat Bridges SMR -------------------
+base_model_v1 <- lmer(log_c_biomass ~ site_type * age_at_survey + (1|region4/affiliated_mpa/site) + (1|year), 
+                   data = kelp_subset2)
+
+base_biomass_v1 <- lmer(log_c_biomass ~ log_c_bb * site_type * age_at_survey  + 
                        (1|region4/affiliated_mpa/site) + (1|year), 
                      data = kelp_subset2)
 
-summary(base_biomass)
+## 2. Fit models without the outlier -------------------------------------------
+kelp_subset3 <- kelp_subset2 %>% filter(!(affiliated_mpa == "natural bridges smr" & biomass == 0))
 
-base_biomass2 <- lmer(log_c_biomass ~ log_c_bb_scaled * site_type * age_at_survey  + 
+base_model_v2 <- lmer(log_c_biomass ~ site_type * age_at_survey + (1|region4/affiliated_mpa/site) + (1|year), 
+                   data = kelp_subset3)
+
+base_biomass_v2 <- lmer(log_c_biomass ~ log_c_bb * site_type * age_at_survey  + 
                        (1|region4/affiliated_mpa/site) + (1|year), 
-                     data = kelp_subset2)
+                     data = kelp_subset3)
 
-summary(base_biomass2)
+## 3. Compare performance and get table for SI ---------------------------------
 
-plot(allEffects(base_biomass), x.var = "age_at_survey", multiline = T, confint = list(style = "auto"), rows = 1)
+# Extract fixed effect estimates 
+coefs_b1 <- tidy(base_biomass_v1, effects = "fixed") %>% 
+  mutate(term = str_replace(term, "typeMPA", "type"),
+         importance = 1) %>% 
+  janitor::clean_names() %>% 
+  clean_terms() %>%
+  add_significance() %>% 
+  mutate(key = "Original")
+
+coefs_b2 <- tidy(base_biomass_v2, effects = "fixed")%>% 
+  mutate(term = str_replace(term, "typeMPA", "type"),
+         importance = 1) %>% 
+  janitor::clean_names() %>% 
+  clean_terms() %>%
+  add_significance()%>% 
+  mutate(key = "Outlier removed")
+
+outlier_comparison <- bind_rows(coefs_b1, coefs_b2) %>% 
+  mutate(term_revised = if_else(is.na(term_revised), term, term_revised)) %>% 
+  mutate(term_revised = str_replace_all(term_revised, "log_c_bb", "Baseline")) %>% 
+  dplyr::select(term_revised, estimate, p_value, significance, key) %>% 
+  filter(term_revised != "(Intercept)") %>% 
+  mutate(p_value = case_when(p_value < 0.001 ~ "< 0.001", T~as.character(round(p_value, 3)))) %>%
+  mutate(significance = if_else(significance == "NS", NA_character_, significance)) %>%
+  mutate(term_revised = str_replace_all(term_revised, "site_type", "Protected Status") %>% 
+           str_replace_all("age_at_survey", "MPA Age") %>% 
+           str_replace_all(":", " x ")) %>% 
+  pivot_wider(names_from = "key", values_from = c(estimate, p_value, significance), names_glue = "{key}-{.value}") %>% 
+  dplyr::select(term_revised, starts_with("Original"), starts_with("Outlier removed"))
+
+### Table S1 -----
+outlier_comparison_table <- outlier_comparison %>% 
+  gt() %>%
+  tab_spanner_delim(delim = "-") %>%
+  cols_label(term_revised = "Term",
+             `Original-estimate` = "Estimate",
+             `Original-p_value` = "p-value",
+             `Original-significance` = "",
+             `Outlier removed-estimate` = "Estimate",
+             `Outlier removed-p_value` = "p-value",
+             `Outlier removed-significance` = "") %>%
+  fmt_number(columns = matches("estimate"),decimals = 3) %>% 
+  sub_missing(columns = everything(), missing_text = "") %>%
+  tab_options(heading.align = "left") %>% 
+  cols_align(align = "center", columns = everything()) %>% 
+  tab_style(style = cell_text(font = "Arial",  size = px(12), weight = "bold"),
+            locations = cells_column_spanners()) %>%
+  tab_style(style = cell_text(font = "Arial", size = px(12)), 
+            locations = cells_source_notes()) %>%
+  tab_style(style = cell_text(font = "Arial", size = px(12)), 
+            locations = cells_body(columns = everything())) %>%
+  tab_style(style = cell_text(font = "Arial", size = px(12)), 
+            locations = cells_row_groups()) %>%
+   tab_style(style = cell_text(font = "Arial", size = px(12), weight = "bold"), 
+            locations = cells_column_labels(columns = everything())) %>%
+  tab_style(style = cell_text(font = "Arial", size = px(13), weight = "bold"),
+            locations = cells_title(groups = "title")) %>% 
+  tab_options(table.width = pct(50)) %>% 
+  tab_options(data_row.padding = px(6),
+              row_group.padding = px(6))
+
+outlier_comparison_table
+# gtsave(outlier_comparison_table, "baselines-si-table1.png", vwidth = 1000, vheight = 1000)
+
+### Figure S1 -----
+
+d1 <- check_outliers(base_biomass_v1, method = "cook")
+d2 <- check_outliers(base_biomass_v2, method = "cook")
+d1
+plot(d1)
+plot(d2)
+
+
+
+
+d1 <- check_model(base_biomass_v1, check = "outliers")
+d2 <- check_model(base_biomass_v2, check = "outliers")
+
+png("baselines-si-cookv1.png", width = 6, height = 4, units = "in", res = 300)
+plot(check_model(base_biomass_v1, check = "outliers"))
+dev.off()
+
+png("baselines-si-cookv2.png", width = 6, height = 4, units = "in", res = 300)
+plot(check_model(base_biomass_v2, check = "outliers"))
+dev.off()
+
+library(magick)
+
+# Load the two plots
+img1 <- image_read("baselines-si-cookv1.png")
+img2 <- image_read("baselines-si-cookv2.png")
+
+# Combine them side by side
+combined <- image_append(c(img1, img2))
+
+# Save the combined image
+image_write(combined, path = "baselines-si-cook-combined.png", format = "png")
+
+## Figure 4 ----
+
 effects_list <- allEffects(base_biomass, partial.residuals = T, 
                            xlevels = list(log_c_bb = round(log(quantile(kelp_baseline$bb[kelp_baseline$mpa_defacto_class=="smr"],
                                                                         probs = c(0, 1/4, 2/4, 3/4, 9/10)) + const), digits = 1), 
@@ -346,6 +451,7 @@ effects_list_df <- data.frame(effects_list$`log_c_bb:site_type:age_at_survey`) %
          bb = round(exp(log_c_bb) - const, 3))
 
 bb_vals <- unique(effects_list_df$bb)
+
 
 fig4 <- ggplot(data = effects_list_df %>% 
          filter(bb > bb_vals[1]) %>% 
@@ -369,10 +475,11 @@ fig4 <- ggplot(data = effects_list_df %>%
 
 fig4
 
-ggsave("baseline-fig4.png", plot = fig4, width = 8, height = 4, units = "in", dpi = 600)
+#ggsave("baseline-fig4.png", plot = fig4, width = 8, height = 4, units = "in", dpi = 600)
 
+## Figure S1 (Partial Effects Extended) ------
 
-# Make the plot for the SI that shows more levels
+# Make the plot for the SI that shows more levels 
 effects_list_full <- allEffects(base_biomass, partial.residuals = T, 
                                 xlevels = list(log_c_bb = round(log(quantile(kelp_baseline$bb[kelp_baseline$mpa_defacto_class=="smr"],
                                                                              probs = seq(0, 1, by = 0.05)) + const), digits = 3), 
@@ -437,7 +544,7 @@ fig4_si
 
 #ggsave("baseline-si-fig4.png", plot = fig4_si, width = 8, height = 8, units = "in", dpi = 600)
 
-
+## Table 1 (Model Results) -----
 
 coef_table <- tidy(base_model, conf.int = TRUE, effect = "fixed") %>%
   mutate(term = str_replace(term, "typeMPA", "type"),
@@ -507,148 +614,22 @@ gt_table
 
 #gtsave(gt_table, "baselines-table1.png", vwidth = 1200, vheight = 1000)
 
+## R2 Values ----
+
+# Need to refit without the MPA RE to get the R2 values:
+base_biomass_r2 <- lmer(log_c_biomass ~ log_c_bb * site_type * age_at_survey  + 
+                       (1|region4/site) + (1|year), 
+                     data = kelp_subset2)
 
 
-# Estimate the slope of age_at_survey (i.e., protection effect) across baseline biomass values
-library(emmeans)
-
-# Calculate log-transformed baseline values for use in emtrends()
-log_bb_vals <- log(bb_vals + const)
+r2_nakagawa(base_model)
+r2_nakagawa(base_biomass, tolerance = 1e-30)
+r2_nakagawa(base_biomass_r2)
 
 
-# Run emtrends at each value and add the baseline tag
-full_trends <- map2_dfr(log_bb_vals, bb_vals, ~{
-  emtrends(base_biomass,
-           specs = "site_type",
-           var = "age_at_survey",
-           at = list(log_c_bb = .x)) %>%
-    as.data.frame() %>%
-    mutate(bb = round(.y, 2),
-           model = "With baseline")
-})
-
-
-# Simple model (no baseline biomass)
-simple_trends <- emtrends(base_model,
-                          specs = "site_type",
-                          var = "age_at_survey") %>%
-  as.data.frame() %>%
-  mutate(bb = NA,
-         model = "Without baseline")
-
-# Combine and plot
-slopes <- bind_rows(full_trends, simple_trends) %>%
-  dplyr::select(model, bb, age_at_survey.trend, site_type) %>% 
-  pivot_wider(names_from = site_type, values_from = age_at_survey.trend) %>% 
-  mutate(mpa_diff = MPA - Reference)
-
-base_slope <- slopes$mpa_diff[is.na(slopes$bb)]
-
-ggplot(data = slopes) +
-  geom_point(aes(x = bb, y = mpa_diff)) +
-  geom_hline(aes(yintercept = base_slope), linetype = "22") +
-  geom_hline(aes(yintercept = 0)) +
-  scale_x_continuous(limits = c(0, 8.5), expand = c(0,0)) +
-  labs(x =)
-  
-group_by(model, bb) %>% 
-  summarize(mpa_diff = age_at_survey.trend[])
-  mutate(bb = factor(bb, levels = rev(sort(unique(bb))))) %>%
-  ggplot(aes(x = site_type, y = age_at_survey.trend,
-             color = model, group = interaction(model, bb))) +
-  geom_point(position = position_dodge(width = 0.5)) +
-  geom_errorbar(aes(ymin = lower.CL, ymax = upper.CL),
-                position = position_dodge(width = 0.5), width = 0.2) +
-  facet_wrap(~bb, labeller = label_both, scales = "free_y") +
-  labs(x = NULL, y = "Estimated slope (biomass per year)",
-       title = "Change in biomass over time by site type and baseline biomass",
-       color = "Model") +
-  theme_minimal()
-
-
-
-library(emmeans)
-
+## Figure 5 ----
 # Define baseline biomass values
-bb_vals <- quantile(kelp_subset2$bb[kelp_subset2$site_type == "MPA"], 
-                    probs = c(0.25, 0.5, 0.75, 0.95), na.rm = TRUE)
-log_bb_vals <- log(bb_vals + const)
-
-# emtrends for model with baseline
-emm_full <- emtrends(base_biomass, ~site_type | log_c_bb,
-                     var = "age_at_survey",
-                     at = list(log_c_bb = log_bb_vals))
-
-cont_full <- contrast(emm_full, method = "pairwise", adjust = "none") %>%
-  as.data.frame() %>%
-  mutate(model = "With baseline",
-         bb = round(exp(log_bb_vals) - const, 2))
-
-# emtrends for simple model (no baseline)
-emm_simple <- emtrends(base_model, ~site_type,
-                       var = "age_at_survey")
-
-cont_simple <- contrast(emm_simple, method = "pairwise", adjust = "none") %>%
-  as.data.frame() %>%
-  mutate(model = "Without baseline",
-         bb = NA)
-
-# Combine and plot
-bind_rows(cont_full, cont_simple) %>%
-  ggplot(aes(x = bb, y = estimate, color = model, linetype = model)) +
-  geom_line(size = 1) +
-  geom_ribbon(aes(ymin = lower.CL, ymax = upper.CL, fill = model),
-              alpha = 0.2, color = NA) +
-  labs(x = "Baseline biomass (kg per 100m²)",
-       y = "MPA vs. Reference slope difference",
-       title = "Effect of Including Baseline Biomass on Estimated MPA Effect") +
-  theme_minimal() +
-  scale_color_manual(values = c("With baseline" = "#084594", "Without baseline" = "black")) +
-  scale_fill_manual(values = c("With baseline" = "#084594", "Without baseline" = "grey60"))
-
-
-# Get pairwise contrasts of slopes (MPA - Reference) at each bb value
-slope_diffs <- map2_dfr(log_bb_vals, bb_vals, ~{
-  emtrends(base_biomass,
-           specs = "site_type",
-           var = "age_at_survey",
-           at = list(log_c_bb = .x)) %>%
-    contrast(method = "revpairwise") %>%
-    as.data.frame() %>%
-    mutate(bb = round(.y, 2))
-})
-
-base_diff <- emtrends(base_model,
-                      specs = "site_type",
-                      var = "age_at_survey") %>%
-  contrast(method = "revpairwise") %>%
-  as.data.frame()
-
-ggplot(data = slope_diffs) + 
-  geom_rect(data = base_diff, aes(xmin = -Inf, xmax = Inf, ymin = estimate - SE, ymax = estimate + SE), fill = "gray80") +
-  geom_point(aes(x = bb, y = estimate)) + 
-  geom_errorbar(aes(x = bb, ymin = estimate - SE, ymax = estimate + SE),  position = position_dodge(width = 0.5), width = 0.2) +
-  geom_hline(data = base_diff, aes(yintercept = estimate), linetype = "22") + 
-  scale_x_continuous(limits = c(0,8), expand = c(0,0)) +
-  labs(x = "Baseline biomass", y = "Estimated MPA effect") +
-  my_theme
-
-
-# Combine and plot
-bind_rows(cont_full, cont_simple) %>%
-  ggplot(aes(x = bb, y = estimate, color = model, linetype = model)) +
-  geom_line(size = 1) +
-  geom_ribbon(aes(ymin = lower.CL, ymax = upper.CL, fill = model),
-              alpha = 0.2, color = NA) +
-  labs(x = "Baseline biomass (kg per 100m²)",
-       y = "MPA vs. Reference slope difference",
-       title = "Effect of Including Baseline Biomass on Estimated MPA Effect") +
-  theme_minimal() +
-  scale_color_manual(values = c("With baseline" = "#084594", "Without baseline" = "black")) +
-  scale_fill_manual(values = c("With baseline" = "#084594", "Without baseline" = "grey60"))
-
-
-
+bb_vals <- unique(effects_list_df$bb)
 
 # Constants
 ages <- seq(0, 15, by = 1)
@@ -690,31 +671,142 @@ diff_full <- new_full %>%
   mutate(delta = MPA - Reference,
          model = "With baseline")
 
-bind_rows(diff_simple, diff_full) %>%
+fig5 <- bind_rows(diff_simple, diff_full) %>%
+  mutate(bb = round(bb, 1)) %>% 
   filter(is.na(bb) | bb > 1) %>% 
-  mutate(bb = factor(bb, levels = rev(sort(unique(bb))))) %>%
+  mutate(bb = factor(bb, levels = sort(unique(bb)))) %>%
   ggplot(aes(x = age_at_survey, y = delta, color = factor(bb), linetype = model)) +
   geom_line(size = 1) +
   labs(x = "Years since implementation",
-       y = expression("MPA effect (kg per 100m2)"),
+       y = expression("Biomass difference (kg per 100m"^2*")"), 
        color = "Baseline biomass",
        linetype = "Model") +
   theme_minimal() +
-  scale_color_manual(values = c("#084594", "#2171b5", "#4292c6", "#6baed6", "#9ecae1"), na.value = "black") +
+  scale_color_manual(values = c("#9ecae1","#6baed6", "#4292c6",  "#2171b5", "#084594"), na.value = "black") +
   scale_linetype_manual(values = c("With baseline" = "solid", "Without baseline" = "22")) +
+  scale_y_continuous(limits = c(0,4.6), expand = c(0,0)) +
+  scale_x_continuous(limits = c(0,15), expand = c(0,0)) +
   my_theme
 
-r2_nakagawa(base_model)
-
-base_biomass <- lmer(log_c_biomass ~ log_c_bb * site_type * age_at_survey  + 
-                     + (1|affiliated_mpa/site) + (1|year), 
-                     data = kelp_subset2)
-summary(base_biomass)
-
-r2_nakagawa(base_biomass)
+fig5
+#ggsave("baseline-fig5.png", plot = fig5, width = 5.5, height = 4.5, units = "in", dpi = 600)
 
 
-library(broom.mixed)
+## Figure 6 ----
+# Estimate the protection effect across baseline biomass values
+library(emmeans)
+
+# Calculate slope difference (MPA - Reference) at each baseline biomass level
+bb_vals_grid <- seq(min(kelp_subset2$bb), max(kelp_subset2$bb), by = 0.5)
+bb_vals_grid <- c(bb_vals_grid, unique(kelp_subset2$bb[kelp_subset2$site_type == "MPA"]))
+log_bb_vals_grid <- log(bb_vals_grid + const)
+
+slope_diffs <- map2_dfr(log_bb_vals_grid, bb_vals_grid, ~{
+  emtrends(base_biomass,
+           specs = "site_type",
+           var = "age_at_survey",
+           at = list(log_c_bb = .x)) %>%
+    contrast(method = "revpairwise") %>%
+    as.data.frame() %>%
+    mutate(bb = .y,
+           model = "With baseline")
+})
+
+slope_diffs <- slope_diffs %>% 
+  mutate(mpa_bb = if_else(bb %in% kelp_subset2$bb[kelp_subset2$site_type == "MPA"], 1, 0)) %>% 
+  mutate(est_pct = (exp(estimate) - 1) * 100,
+         lower_pct = (exp(estimate - 1.96 * SE) - 1) * 100,
+         upper_pct = (exp(estimate + 1.96 * SE) - 1) * 100)
+
+# Calculate slope difference from simple model (no baseline)
+base_diff <- emtrends(base_model,
+                      specs = "site_type",
+                      var = "age_at_survey") %>%
+  contrast(method = "revpairwise") %>%
+  as.data.frame() %>%
+  mutate(bb = NA,
+         model = "Without baseline",
+         est_pct = (exp(estimate) - 1) * 100,
+         lower_pct = (exp(estimate - 1.96 * SE) - 1) * 100,
+         upper_pct = (exp(estimate + 1.96 * SE) - 1) * 100)
+
+# Plot contrasts with bars
+ggplot(slope_diffs, aes(x = bb, y = estimate)) +
+  geom_rect(data = base_diff, inherit.aes = FALSE,
+            aes(xmin = -Inf, xmax = Inf, ymin = estimate - SE, ymax = estimate + SE, fill = model, linetype = model)) +
+  geom_point(aes(color = model, fill = model, linetype = model)) + 
+  geom_errorbar(aes(ymin = estimate - SE, ymax = estimate + SE, color = model), size = 0.8, width = 0.2) +
+  geom_hline(data = base_diff, aes(yintercept = estimate, linetype = model, color = model), size = 0.8) + 
+  labs(x = "Baseline biomass (kg per 100m²)",
+       y = "Estimated MPA effect", color = NULL, fill = NULL, linetype = NULL) +
+  scale_color_manual(values = c("With baseline" = "#084594", "Without baseline" = "black")) +
+  scale_fill_manual(values = c("With baseline" = "#084594", "Without baseline" = "grey80")) +
+  scale_linetype_manual(values = c("With baseline" = "solid", "Without baseline" = "22")) +
+  my_theme +
+  theme(legend.position = "inside", 
+        legend.position.inside = c(0.8, 0.9))
+
+# Plot contrasts with ribbon
+ggplot(slope_diffs %>% filter(bb > 0), aes(x = bb, y = estimate)) +
+  geom_rect(data = base_diff, inherit.aes = FALSE,
+            aes(xmin = 0, xmax = max(bb_vals_full), ymin = estimate - SE, ymax = estimate + SE, fill = model, linetype = model)) +
+  geom_ribbon(aes(ymin = estimate - SE, ymax = estimate + SE, fill = model), alpha = 0.4) +
+  geom_line(aes(color = model, linetype = model), size = 0.8) +
+  geom_point(data = slope_diffs %>% filter(mpa_bb == 1), aes(color = model, fill = model)) + 
+  geom_hline(data = base_diff, aes(yintercept = estimate, linetype = model, color = model), size = 0.8) + 
+  labs(x = "Baseline biomass (kg per 100m²)",
+       y = "Estimated MPA effect ", color = NULL, fill = NULL, linetype = NULL) +
+  scale_color_manual(values = c("With baseline" = "#084594", "Without baseline" = "black")) +
+  scale_fill_manual(values = c("With baseline" = "#084594", "Without baseline" = "grey80")) +
+  scale_linetype_manual(values = c("With baseline" = "solid", "Without baseline" = "22")) +
+  coord_cartesian(xlim = c(0, 14.45), ylim = c(-0.03, 0.225), expand = F) +
+  scale_x_continuous(breaks = seq(0, 15, by = 2))+
+  my_theme +
+  theme(legend.position = "inside", 
+        legend.position.inside = c(0.8, 0.9))
+
+# Plot contrasts with ribbon and transformed values to show percent change
+fig6 <- ggplot(slope_diffs %>% filter(bb > 0), aes(x = bb, y = est_pct)) +
+  # Uniform-effect model (95% CI)
+  geom_rect(data = base_diff, inherit.aes = FALSE,
+            aes(xmin = 0, xmax = max(bb_vals_full),
+                ymin = lower_pct, ymax = upper_pct,
+                fill = model, linetype = model)) +
+  geom_hline(data = base_diff, aes(yintercept = est_pct, linetype = model, color = model), size = 0.8) +
+  # Reference line for "No difference" with label + arrow
+  geom_hline(yintercept = 0, linetype = "solid", color = "black", size = 0.5) +
+  annotate("text", x = 1.5, y = -2, label = "No difference", hjust = 0, size = 3.5) +
+  annotate("curve",
+           x = 1.45, y = -2,       # starting point (tip of "No")
+           xend = 1, yend = -0.05,    # endpoint (reference line)
+           curvature = -0.3,         # positive = curve right, negative = left
+           arrow = arrow(length = unit(0.15, "cm"), type = "closed"),
+           color = "black",
+           linewidth = 0.4) +
+  # Baseline-informed model (95% CI)
+  geom_ribbon(aes(ymin = lower_pct, ymax = upper_pct, fill = model), alpha = 0.3) +
+  geom_line(aes(color = model, linetype = model), size = 0.8) +
+  geom_point(data = slope_diffs %>% filter(mpa_bb == 1), aes(color = model, fill = model)) +
+  labs(
+    x = "Baseline biomass (kg per 100 m²)",
+    y = "MPA effect (% change in biomass per year)",
+    color = NULL, fill = NULL, linetype = NULL
+  ) +
+  scale_color_manual(values = c("With baseline" = "#084594", "Without baseline" = "black")) +
+  scale_fill_manual(values = c("With baseline" = "#084594", "Without baseline" = "grey80")) +
+  scale_linetype_manual(values = c("With baseline" = "solid", "Without baseline" = "22")) +
+  coord_cartesian(xlim = c(0, 14.45), ylim = c(-5, 35), expand = F) +
+  scale_x_continuous(breaks = seq(0, 15, by = 2)) +
+  my_theme +
+  theme(legend.position = "inside",
+        legend.position.inside = c(0.75, 0.8))
+
+fig6
+ggsave("baseline-fig6.png", plot = fig6, width = 4.5, height = 3.5, units = "in", dpi = 600)
+
+
+
+## Figure 7 ----
 
 # Get fitted values and residuals from the full model
 model_aug <- augment(base_biomass) %>%
@@ -727,7 +819,7 @@ model_aug <- augment(base_biomass) %>%
                                           str_replace_all("Smr", "SMR") %>% 
                                           str_replace_all("Smca", "SMCA"), mpa_bb))
 
-si2 <- ggplot(data = model_aug, aes(x = age_at_survey, color = site_type, fill = site_type)) +
+fig7 <- ggplot(data = model_aug, aes(x = age_at_survey, color = site_type, fill = site_type)) +
   geom_point(aes(y = observed), alpha = 0.2) +
   geom_smooth(aes(y = observed, linetype = "Observed"), method = "lm", se = F) +
   geom_smooth(aes(y = predicted, linetype = "Predicted"), method = "lm", se = F) +
@@ -745,8 +837,173 @@ si2 <- ggplot(data = model_aug, aes(x = age_at_survey, color = site_type, fill =
         axis.text.y = element_text(size = 7),
         legend.text = element_text(size = 8))
 
-si2 
-ggsave("baseline-si-fig2.png", plot = si2, width = 7.5, height = 7.5, units = "in", dpi = 600)
+fig7
+#ggsave("baseline-fig7.png", plot = fig7, width = 7.5, height = 7.5, units = "in", dpi = 600)
+
+## Figure 8 -----
+
+
+# Fit OLS models for each MPA and its reference sites
+ols_slopes <- model_aug %>%
+  group_by(affiliated_mpa, site_type) %>%
+  do(tidy(lm(observed ~ age_at_survey, data = .))) %>%
+  filter(term == "age_at_survey") %>%
+  select(affiliated_mpa, site_type, estimate) %>%
+  pivot_wider(names_from = site_type, values_from = estimate, names_prefix = "slope_") %>%
+  mutate(observed_mpa_effect = slope_MPA - slope_Reference)
+
+# Extract expected slopes for each MPA-reference pair at their own baseline biomass
+# Get MPA and Ref baseline values separately
+baseline_pairs <- kelp_subset2 %>%
+  distinct(affiliated_mpa, site_type, log_c_bb) 
+
+expected_effects <- pmap_dfr(
+  baseline_pairs,
+  function(affiliated_mpa, site_type, log_c_bb) {
+    emtrends(base_biomass,
+             specs = "site_type",
+             var = "age_at_survey",
+             at = list(log_c_bb = log_c_bb)) %>%
+      as.data.frame() %>%
+      filter(site_type == !!site_type) %>%
+      mutate(affiliated_mpa = affiliated_mpa,
+             site_type_baseline = log_c_bb)
+  }
+)
+
+expected_effects2 <- expected_effects %>%
+  dplyr::select(affiliated_mpa, site_type, trend = age_at_survey.trend, SE, site_type_baseline) %>%
+  pivot_wider(names_from = site_type, values_from = c(trend, SE, site_type_baseline)) %>%
+  mutate(expected_mpa_effect = trend_MPA - trend_Reference,
+    se_expected_mpa_effect = sqrt(SE_MPA^2 + SE_Reference^2)) %>% 
+  mutate(log_bb_difference = site_type_baseline_MPA - site_type_baseline_Reference)
+
+
+expected_effects3 <- expected_effects2 %>% 
+  dplyr::select(affiliated_mpa, expected_mpa_effect)
+
+
+# Join with OLS results and compute deviation
+mpa_deviation <- left_join(ols_slopes, expected_effects3, by = "affiliated_mpa") %>%
+  mutate(
+    deviation = observed_mpa_effect - expected_mpa_effect,
+    deviation_pct = (exp(deviation) - 1) * 100
+  ) %>% 
+  left_join(kelp_baseline %>% distinct(affiliated_mpa, mpa_bb))
+
+
+# Flag outliers
+mpa_deviation <- mpa_deviation %>%
+  mutate(deviation_pct = (exp(deviation) - 1) * 100) %>% 
+  mutate(flag = factor(case_when(between(deviation_pct, -10, 10) ~ "As expected",
+                          deviation_pct <= -10 ~ "Lower than expected",
+                          deviation_pct >= 10 ~ "Higher than expected"),
+                       levels = c("Higher than expected", "As expected","Lower than expected"))) %>% 
+  mutate(affiliated_mpa = str_to_title(affiliated_mpa) %>%
+           str_replace_all("Smr", "SMR") %>%
+           str_replace_all("Smca", "SMCA"))
+
+mpa_deviation_shading <- data.frame(xmin = c(0, 0, 0),
+                                    xmax = c(15, 15, 15),
+                                    ymin = c(-10, 10, -27),
+                                    ymax = c(10, 27, -10),
+                                    fill_color = c("gray90","#2c7bb6", "#d7191c"))
+
+# Plot observed vs. expected MPA effects
+fig8 <- ggplot() +
+  geom_rect(data = mpa_deviation_shading, 
+            aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax, 
+                fill = fill_color), alpha = 0.1, show.legend = F) + 
+  geom_hline(yintercept = 0, linetype = "dashed", color = "gray50") +
+  geom_point(data = mpa_deviation,
+             aes(x = mpa_bb, y = deviation_pct, color = flag), size = 2.5, show.legend = F) +
+  geom_text_repel(data = mpa_deviation %>% mutate(label = if_else(!between(deviation_pct, -5, 5), affiliated_mpa, "")),
+                  aes(x = mpa_bb, y = deviation_pct, label = label, color = flag),
+                  hjust = -0.1, vjust = 0.5, size = 2.5, show.legend = F) +
+  scale_fill_identity() +
+  scale_color_manual(values = c("Higher than expected" = "#2c7bb6",
+                                "Lower than expected" = "#d7191c",
+                                "As expected" = "gray50")) +
+  scale_x_continuous(limits = c(0, 15), expand = c(0,0)) +
+  scale_y_continuous(limits = c(-27, 27), expand = c(0,0)) +
+  labs(x = "Baseline biomass (kg per 100 m²)",
+       y = "Deviation from expected MPA effect\n(% biomass change per year)",
+       color = NULL) +
+  my_theme + 
+  theme(panel.grid.minor = element_blank()) +
+  annotate("text", x = 14.5, y = 25, label = "Stronger MPA effect than predicted", color = "#2c7bb6", hjust = 1, size = 3, fontface = "italic") +
+  annotate("text", x = 14.5, y = -25, label = "Weaker MPA effect than predicted", color = "#d7191c", hjust = 1, size = 3, fontface = "italic")
+fig8
+
+#ggsave("baselines-fig8.png", plot = fig8, width = 5, height = 4, units = "in", dpi = 600)
+
+fig8_si <- ggplot() +
+  geom_rect(data = mpa_deviation_shading, 
+            aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax, 
+                fill = fill_color), alpha = 0.1, show.legend = F) + 
+  geom_hline(yintercept = 0, linetype = "dashed", color = "gray50") +
+  geom_point(data = mpa_deviation,
+             aes(x = mpa_bb, y = deviation_pct, color = flag), size = 2.5, show.legend = F) +
+  geom_text_repel(data = mpa_deviation,
+                  aes(x = mpa_bb, y = deviation_pct, label = affiliated_mpa, color = flag),
+                  hjust = -0.1, vjust = 0.5, size = 2.5, show.legend = F) +
+  scale_fill_identity() +
+  scale_color_manual(values = c("Higher than expected" = "#2c7bb6",
+                                "Lower than expected" = "#d7191c",
+                                "As expected" = "gray50")) +
+  scale_x_continuous(limits = c(0, 15), expand = c(0,0)) +
+  scale_y_continuous(limits = c(-27, 27), expand = c(0,0)) +
+  labs(x = "Baseline biomass (kg per 100 m²)",
+       y = "Deviation from expected MPA effect\n(% biomass change per year)",
+       color = NULL) +
+  my_theme + 
+  theme(panel.grid.minor = element_blank()) +
+  annotate("text", x = 14.5, y = 25, label = "Stronger MPA effect than predicted", color = "#2c7bb6", hjust = 1, size = 3, fontface = "italic") +
+  annotate("text", x = 14.5, y = -25, label = "Weaker MPA effect than predicted", color = "#d7191c", hjust = 1, size = 3, fontface = "italic")
+
+fig8_si
+#ggsave("baselines-si-fig2.png", plot = fig8_si, width = 5, height = 6, units = "in", dpi = 600)
+
+
+
+ggplot(mpa_deviation, aes(x = expected_mpa_effect, y = observed_mpa_effect)) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "gray50") +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "gray50") +
+  geom_abline(intercept = 0, slope = 1, linetype = "solid", color = "black") +
+  geom_point(aes(color = flag), size = 3) +
+  geom_text(
+    data = subset(mpa_deviation, abs(deviation) > threshold),
+    aes(label = affiliated_mpa),
+    hjust = -0.1, vjust = 0.5, size = 3, color = "black"
+  ) +
+  scale_color_manual(
+    values = c(
+      "Higher than expected" = "#2c7bb6",
+      "Lower than expected" = "#d7191c",
+      "As expected" = "gray50"
+    )
+  ) +
+  labs(
+    x = "Expected MPA effect (slope difference)",
+    y = "Observed MPA effect (slope difference)",
+    color = "Performance"
+  ) +
+  theme_minimal()
+
+ggplot(mpa_deviation, aes(x = deviation)) +
+  geom_histogram(bins = 30, fill = "gray70", color = "white") +
+  geom_vline(xintercept = c(-threshold, threshold), linetype = "dashed", color = "red") +
+  theme_minimal()
+
+
+
+## Begin Miscellaneous Explorations...
+
+
+
+
+
+## More explorations...
 
 mpa_trajectory <- model_aug %>%
   group_by(affiliated_mpa, affiliated_label, site_type, age_at_survey) %>%
@@ -979,6 +1236,9 @@ model_aug %>%
   theme_minimal() +my_theme
 
 
+# Begin Sensitivity Analyses ----
+
+## Starting with reviewing effort calculations to get implementation days instead of years
 
 kelp_effort <- kelp_orig %>% 
   # Identify distinct transects - 35251 (after the NA dropped above)
