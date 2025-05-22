@@ -38,16 +38,17 @@ combined_aicc <- bind_rows(
 ) %>% mutate(Ecosystem = case_when(Ecosystem == "rock" ~ "Shallow reef",
                                    Ecosystem == "kelp" ~ "Kelp forest",
                                    Ecosystem == "surf" ~ "Surf zone")) %>% 
-  mutate(Model = str_replace(Model, "AV", "MB"))
+  mutate(Model = str_replace(Model, "AV", "MB")) %>% 
+  mutate(Model = str_replace_all(Model, "ST", "PS")) 
 
 aicc_table <- combined_aicc %>% 
-  filter(delta <= 2 | Model == "ST*A") %>% 
+  filter(delta <= 2 | Model == "PS*A") %>% 
   gt(groupname_col = "Ecosystem") %>% 
   cols_label(delta = "ΔAICc",
              weight = "AICc Weight") %>% 
   fmt_number(columns = c(delta, weight), decimals = 3) %>% 
   tab_source_note(
-    source_note = "H = hard bottom, S = soft bottom, ST = site type, DM = depth mean, DCV = depth coefficient of variation, K = annual kelp canopy cover, MB = maximum biotic extent, A = MPA age"
+    source_note = "H = hard bottom, S = soft bottom, PS = protected status, DM = depth mean, DCV = depth coefficient of variation, K = annual kelp canopy cover, MB = maximum biotic extent, A = MPA age"
   ) %>% 
   tab_style(style = cell_text(font = "Arial", size = px(12)), 
             locations = cells_body(columns = everything())) %>% 
@@ -68,7 +69,7 @@ aicc_table <- combined_aicc %>%
 
 aicc_table
 
-gtsave(aicc_table, "table1-aicc.png",  vwidth = 900, vheight = 1200)
+gtsave(aicc_table, file.path("~/ca-mpa/analyses/7habitat/figures", "table1-aicc.png"),  vwidth = 900, vheight = 1200)
 
 
 combined_nest <- bind_rows(rock = rock_nest,
