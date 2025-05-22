@@ -4,7 +4,7 @@
 
 # Helper Functions -------------------------------------------------------------
 
-select_scales <- function(data, pred_list, response, random_effects) {
+select_scales <- function(data, pred_list, intx.terms, response, random_effects) {
   library(lme4)
   library(MuMIn)
   library(dplyr)
@@ -26,7 +26,7 @@ select_scales <- function(data, pred_list, response, random_effects) {
     
     models <- lapply(habitat_vars, function(var) {
       formula_str <- paste(response, "~", fixed, "+", 
-                           var, " * site_type + ", paste0("(1 | ", random_effects, ")", collapse = " + ")) 
+                           var, " * ", intx.terms, " + ", paste0("(1 | ", random_effects, ")", collapse = " + ")) 
       lmer(as.formula(formula_str), data = data, 
            control = lmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 1e8)), REML = FALSE)
     })
