@@ -26,7 +26,7 @@ select_scales <- function(data, pred_list, intx.terms, response, random_effects)
     
     models <- lapply(habitat_vars, function(var) {
       formula_str <- paste(response, "~", fixed, "+", 
-                           var, " * ", intx.terms, " + ", paste0("(1 | ", random_effects, ")", collapse = " + ")) 
+                           var, intx.terms, " + ", paste0("(1 | ", random_effects, ")", collapse = " + ")) 
       lmer(as.formula(formula_str), data = data, 
            control = lmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 1e8)), REML = FALSE)
     })
@@ -345,27 +345,84 @@ generate_simple_3way <- function(pred_top) {
            intx3 = paste(predictor, "* site_type * age_at_survey"))
   
   pred_3way <- expand.grid(hard = c(NA, 
-                                       pred$predictor[str_detect(pred$predictor, "hard")], 
-                                       pred$intx[str_detect(pred$predictor, "hard")],
-                                       pred$intx2[str_detect(pred$predictor, "hard")],
-                                       pred$intx3[str_detect(pred$predictor, "hard")]),
-                                kelp = c(NA, 
-                                       pred$predictor[str_detect(pred$predictor, "kelp")], 
-                                       pred$intx[str_detect(pred$predictor, "kelp")],
-                                       pred$intx2[str_detect(pred$predictor, "kelp")],
-                                       pred$intx3[str_detect(pred$predictor, "kelp")]),
-                                depm = c(NA, 
-                                       pred$predictor[str_detect(pred$predictor, "depth_mean")], 
-                                       pred$intx[str_detect(pred$predictor, "depth_mean")],
-                                       pred$intx2[str_detect(pred$predictor, "depth_mean")],
-                                       pred$intx3[str_detect(pred$predictor, "depth_mean")]),
-                                depc = c(NA, 
-                                       pred$predictor[str_detect(pred$predictor, "depth_cv")], 
-                                       pred$intx[str_detect(pred$predictor, "depth_cv")],
-                                       pred$intx2[str_detect(pred$predictor, "depth_cv")],
-                                       pred$intx3[str_detect(pred$predictor, "depth_cv")]), stringsAsFactors = F) %>% 
+                                    pred$predictor[str_detect(pred$predictor, "hard")], 
+                                    pred$intx[str_detect(pred$predictor, "hard")],
+                                    pred$intx2[str_detect(pred$predictor, "hard")],
+                                    pred$intx3[str_detect(pred$predictor, "hard")]),
+                           kelp = c(NA, 
+                                    pred$predictor[str_detect(pred$predictor, "kelp")], 
+                                    pred$intx[str_detect(pred$predictor, "kelp")],
+                                    pred$intx2[str_detect(pred$predictor, "kelp")],
+                                    pred$intx3[str_detect(pred$predictor, "kelp")]),
+                           depm = c(NA, 
+                                    pred$predictor[str_detect(pred$predictor, "depth_mean")], 
+                                    pred$intx[str_detect(pred$predictor, "depth_mean")],
+                                    pred$intx2[str_detect(pred$predictor, "depth_mean")],
+                                    pred$intx3[str_detect(pred$predictor, "depth_mean")]),
+                           depc = c(NA, 
+                                    pred$predictor[str_detect(pred$predictor, "depth_cv")], 
+                                    pred$intx[str_detect(pred$predictor, "depth_cv")],
+                                    pred$intx2[str_detect(pred$predictor, "depth_cv")],
+                                    pred$intx3[str_detect(pred$predictor, "depth_cv")]), stringsAsFactors = F) %>% 
     mutate(base = "site_type * age_at_survey") %>% 
     unite("predictors", c(hard, kelp, depm, depc, base), sep = " + ", na.rm = TRUE, remove = FALSE) %>% 
+    mutate(model_id = 
+             str_replace_all(predictors, "hard_bottom_(\\d+)", "H\\1") %>% 
+             str_replace_all("soft_bottom_(\\d+)", "S\\1") %>% 
+             str_replace_all("kelp_annual_(\\d+)", "K\\1") %>% 
+             str_replace_all("depth_mean_(\\d+)", "DM\\1") %>% 
+             str_replace_all("depth_sd_(\\d+)", "DSD\\1") %>% 
+             str_replace_all("depth_cv_(\\d+)", "DCV\\1") %>% 
+             str_replace_all("site_type", "ST") %>%
+             str_replace_all("age_at_survey", "A") %>% 
+             str_replace_all("aquatic_vegetation_bed_(\\d+)", "AV\\1") %>% 
+             str_replace_all("\\s+", "")) 
+  
+  return(pred_3way)
+  
+}
+
+
+
+generate_surf_3way <- function(pred_top) {
+  
+  pred <- pred_top %>% 
+    mutate(intx = paste(predictor, "* site_type"),
+           intx2 = paste(predictor, "* age_at_survey"),
+           intx3 = paste(predictor, "* site_type * age_at_survey"))
+  
+  pred_3way <- expand.grid(hard = c(NA, 
+                                    pred$predictor[str_detect(pred$predictor, "hard")], 
+                                    pred$intx[str_detect(pred$predictor, "hard")],
+                                    pred$intx2[str_detect(pred$predictor, "hard")],
+                                    pred$intx3[str_detect(pred$predictor, "hard")]),
+                           soft = c(NA, 
+                                    pred$predictor[str_detect(pred$predictor, "soft")], 
+                                    pred$intx[str_detect(pred$predictor, "soft")],
+                                    pred$intx2[str_detect(pred$predictor, "soft")],
+                                    pred$intx3[str_detect(pred$predictor, "soft")]),
+                           kelp = c(NA, 
+                                    pred$predictor[str_detect(pred$predictor, "kelp")], 
+                                    pred$intx[str_detect(pred$predictor, "kelp")],
+                                    pred$intx2[str_detect(pred$predictor, "kelp")],
+                                    pred$intx3[str_detect(pred$predictor, "kelp")]),
+                           depm = c(NA, 
+                                    pred$predictor[str_detect(pred$predictor, "depth_mean")], 
+                                    pred$intx[str_detect(pred$predictor, "depth_mean")],
+                                    pred$intx2[str_detect(pred$predictor, "depth_mean")],
+                                    pred$intx3[str_detect(pred$predictor, "depth_mean")]),
+                           depc = c(NA, 
+                                    pred$predictor[str_detect(pred$predictor, "depth_cv")], 
+                                    pred$intx[str_detect(pred$predictor, "depth_cv")],
+                                    pred$intx2[str_detect(pred$predictor, "depth_cv")],
+                                    pred$intx3[str_detect(pred$predictor, "depth_cv")]),
+                           aquv = c(NA, 
+                                    pred$predictor[str_detect(pred$predictor, "aquatic")], 
+                                    pred$intx[str_detect(pred$predictor, "aquatic")],
+                                    pred$intx2[str_detect(pred$predictor, "aquatic")],
+                                    pred$intx3[str_detect(pred$predictor, "aquatic")]), stringsAsFactors = F) %>% 
+    mutate(base = "site_type * age_at_survey") %>% 
+    unite("predictors", c(hard, soft, kelp, depm, depc, aquv, base), sep = " + ", na.rm = TRUE, remove = FALSE) %>% 
     mutate(model_id = 
              str_replace_all(predictors, "hard_bottom_(\\d+)", "H\\1") %>% 
              str_replace_all("soft_bottom_(\\d+)", "S\\1") %>% 
