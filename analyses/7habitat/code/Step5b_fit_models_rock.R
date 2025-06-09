@@ -24,7 +24,7 @@ source("analyses/7habitat/code/Step4b_build_habitat_models.R")  # Load the funct
 
 # Read Data --------------------------------------------------------------------
 ltm.dir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_2024"
-
+fig.dir <- "analyses/7habitat/figures/3way-figures"
 pred_rock <- readRDS(file.path("analyses/7habitat/intermediate_data/rock_predictors.Rds")) %>% filter(pred_group %in% c("all", "combined")) %>% filter(!str_detect(predictor, "aquatic_vegetation|soft_bottom"))
 pred_rock_2way <- readRDS(file.path("analyses/7habitat/intermediate_data/rock_predictors_2way.Rds")) %>% filter(!str_detect(predictors, "aquatic_vegetation"))
 
@@ -40,8 +40,8 @@ data_rock <- readRDS(file.path(ltm.dir, "combine_tables/ccfrp_full.Rds")) %>%
 
 # Provide some of the global variables
 habitat <- "rock"
-re_string <- "rmsy"
-random_effects <- c("region4/affiliated_mpa/site", "year")
+re_string <- "rmy"
+random_effects <- c("region4/affiliated_mpa", "year")
 regions <- c("North", "Central", "N. Channel Islands", "South")
 print(paste0("Starting: ", habitat))
 print(paste0("RE Structure: ", paste(random_effects, collapse = ", ")))
@@ -59,17 +59,19 @@ data_sp <- prep_focal_data(
 scale_selection <- select_scales(data_sp, 
                                  pred_list = pred_rock,
                                  "log_c_biomass", 
+                                 intx.terms = "* site_type * age_at_survey", # for the interaction with the habitat variable
                                  random_effects = random_effects)
 
 scale_table <- scale_selection$formatted_table
-gtsave(scale_table, paste("tableSX", habitat, re_string, "habitat_scale.png"))
+scale_table
+gtsave(scale_table, file.path(fig.dir, paste("tableSX", habitat, re_string, "habitat_scale.png", sep = "-")))
 
 # Only fit models with the top scales
 top_scales <- scale_selection$results %>% janitor::clean_names() %>% 
   filter(delta == 0) %>% 
   pull(model)
 
-pred_rock <- pred_rock %>% filter(predictor %in% top_scales$model)
+pred_rock <- pred_rock %>% filter(predictor %in% top_scales)
 
 pred_rock_3way <- generate_simple_3way(pred_rock)
 pred_rock_filtered <- get_2way_list(pred_rock %>% filter(predictor %in% top_scales), habitat = "rock")
@@ -79,7 +81,7 @@ pred_rock_filtered <- get_2way_list(pred_rock %>% filter(predictor %in% top_scal
 n_workers <- round(parallel::detectCores()/10)
 n_workers <- 5
 plan(multisession, workers = n_workers)
-predictors_df <- pred_rock_filtered #pred_rock_3way
+predictors_df <- pred_rock_3way # pred_rock_filtered for the 2-way
 batch_size <- round(length(predictors_df$model_id)/n_workers)
 batches <- split(predictors_df, (seq_len(nrow(predictors_df)) - 1) %/% batch_size)
 
@@ -135,7 +137,7 @@ models_df <- bind_rows(results_list) %>%
 
 
 saveRDS(list(models_df = models_df, data_sp = data_sp),
-        file.path("analyses/7habitat/output/models",
+        file.path("analyses/7habitat/output/models", "3way", # remove 3way for 2way options
                   paste(habitat, "filtered", focal_group, re_string, "models.rds", sep = "_")))
 
 

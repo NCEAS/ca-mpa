@@ -40,8 +40,8 @@ data_kelp <- readRDS(file.path(ltm.dir, "combine_tables/kelp_full.Rds")) %>%
 
 # Provide some of the global variables
 habitat <- "kelp"
-re_string <- "msy"
-random_effects <- c("affiliated_mpa/site", "year")
+re_string <- "my"
+random_effects <- c("affiliated_mpa", "year")
 regions <- c("North", "Central", "N. Channel Islands", "South")
 print(paste0("Starting: ", habitat))
 print(paste0("RE Structure: ", paste(random_effects, collapse = ", ")))
@@ -64,12 +64,15 @@ pred_kelp_2way <- filter(pred_kelp_2way, !str_detect(predictors, "aquatic_vegeta
 scale_selection <- select_scales(data_sp, 
                                  pred_list = pred_kelp,
                                  "log_c_biomass", 
+                                 intx.terms = "",
                                  random_effects = random_effects)
 
 #scale_results <- scale_selection$results
 scale_table <- scale_selection$formatted_table
 scale_table
-gtsave(scale_table, paste("tableSX", habitat, re_string, "habitat_scale.png"))
+
+fig.dir <- "analyses/7habitat/figures/3way-figures"
+gtsave(scale_table, file.path(fig.dir, paste("tableSX", habitat, re_string, "habitat_scale.png", sep = "-")))
 
 # Only fit models with the top scales
 top_scales <- scale_selection$results %>% janitor::clean_names() %>% 
@@ -87,7 +90,7 @@ pred_kelp_filtered <- get_2way_list(pred_kelp %>% filter(predictor %in% top_scal
 n_workers <- round(parallel::detectCores()/10)
 n_workers <- 5
 plan(multisession, workers = n_workers)
-predictors_df <- pred_kelp_filtered
+predictors_df <- pred_kelp_3way #pred_kelp_filtered
 batch_size <- round(length(predictors_df$model_id)/n_workers)
 batches <- split(predictors_df, (seq_len(nrow(predictors_df)) - 1) %/% batch_size)
 
@@ -144,7 +147,7 @@ models_df <- bind_rows(results_list) %>%
 
 
 saveRDS(list(models_df = models_df, data_sp = data_sp),
-        file.path("analyses/7habitat/output/models",
+        file.path("analyses/7habitat/output/models", "3way", # remove 3way for 2way results
                   paste(habitat, "filtered", focal_group, re_string, "models.rds", sep = "_")))
 
 

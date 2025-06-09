@@ -24,7 +24,7 @@ source("analyses/7habitat/code/Step4b_build_habitat_models.R")
 
 # Read Data --------------------------------------------------------------------
 ltm.dir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_2024"
-#ltm.dir <- "/Users/lopazanski/Desktop/ltm/update_2024"
+fig.dir <- "~/ca-mpa/analyses/7habitat/figures/3way-figures"
 
 pred_surf <- readRDS(file.path("analyses/7habitat/intermediate_data/surf_predictors.Rds")) %>% filter(pred_group %in% c("all", "combined"))
 pred_surf_2way <- readRDS(file.path("analyses/7habitat/intermediate_data/surf_predictors_2way.Rds")) #%>% filter(!str_detect(predictors, "aquatic_vegetation"))
@@ -59,11 +59,12 @@ data_sp <- prep_focal_data(
 scale_selection <- select_scales(data_sp, 
                                  pred_list = pred_surf,
                                  "log_c_biomass", 
+                                 intx.terms = "* site_type",
                                  random_effects = random_effects)
 
 scale_table <- scale_selection$formatted_table
 scale_table
-gtsave(scale_table, paste("tableSX", habitat, re_string, "habitat_scale.png"))
+gtsave(scale_table, file.path(fig.dir, paste("tableSX", habitat, re_string, "habitat_scale.png", sep = "-")))
 
 # Only fit models with the top scales
 top_scales <- scale_selection$results %>% janitor::clean_names() %>% 
@@ -72,12 +73,13 @@ top_scales <- scale_selection$results %>% janitor::clean_names() %>%
 
 pred_surf_filtered <- get_2way_list(pred_surf %>% filter(predictor %in% top_scales), habitat = "surf")
 # pred_surf_filtered <- pred_surf_filtered %>% filter(!str_detect(predictors, "aquatic_vegetation"))
+pred_surf_3way <- generate_surf_3way(pred_surf %>% filter(predictor %in% top_scales))
 
 # Run The Models -------------------------------------------------------------------------------------
 
 n_workers <- round(parallel::detectCores()/10)
 plan(multisession, workers = n_workers)
-predictors_df <- pred_surf_filtered
+predictors_df <- pred_surf_3way #pred_surf_filtered
 batch_size <- round(length(predictors_df$model_id)/n_workers)
 batches <- split(predictors_df, (seq_len(nrow(predictors_df)) - 1) %/% batch_size)
 
@@ -135,7 +137,7 @@ models_df <- bind_rows(results_list) %>%
   arrange(delta_AICc)
 
 saveRDS(list(models_df = models_df, data_sp = data_sp),
-        file.path("analyses/7habitat/output/models",
+        file.path("analyses/7habitat/output/models", "3way",
                   paste(habitat, "filtered", focal_group, re_string, "models.rds", sep = "_")))
  
 
