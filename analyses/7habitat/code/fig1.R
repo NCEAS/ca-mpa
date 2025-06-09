@@ -2,7 +2,7 @@
 # Cori Lopazanski
 # April 2025
 
-
+library(terra)
 library(tidyverse)
 library(sf)
 library(cowplot)
@@ -11,8 +11,22 @@ library(tmap)
 library(rnaturalearth)
 library(patchwork)
 
-ltm.dir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_2024"
+my_theme <- theme_minimal(base_family = "Arial") + 
+  theme(plot.title = element_text(size = 10, face = "bold"),
+        plot.subtitle = element_text(size = 8),
+        axis.title = element_text(size = 10),
+        axis.text.x = element_text(size = 10),
+        axis.text.y = element_text(size = 10),
+        legend.title = element_text(size = 10),
+        legend.text = element_text(size = 10),
+        legend.margin = margin(t = 0, unit='cm'),
+        plot.caption = element_text(size = 8),
+        strip.text = element_text(size = 8, face = "bold"),
+        panel.background = element_rect(fill = "white", color = NA),  
+        plot.background = element_rect(fill = "white", color = NA))
 
+ltm.dir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_2024"
+fig.dir <- "~/ca-mpa/analyses/7habitat/figures"
 
 
 historical <- read_sf("/home/shares/ca-mpa/data/sync-data/gis_data/raw/MPA_CA_MPA_preMLPA_2005") %>%  st_as_sf()
@@ -55,20 +69,24 @@ bg_footprint <- st_union(mpa_poly) %>%
   st_simplify(dTolerance = 4000) %>% 
   st_crop(ca_bb)
 
-# 1. Build main statewide plot with dots for each site, colored by ecosystem
+# 1. Build main statewide plot with dots for each site, colored by ecosystem ----
 
-eco_colors <- c("Shallow reef"  = "firebrick",
-                "Kelp forest" = "darkgreen",
-                "Surf zone"   = "steelblue")
+eco_colors <- c("Shallow reef" ="#b3332f",  
+                "Kelp forest"  = "darkgreen"  ,  
+                "Surf zone"    = "#4e79a7")
+
+  # cool medium blue — distinct from green and brown
+   # darker natural green — richer and cooler than #7fcd8b
+   # warm rust/brown-red — deeper and redder than #b89d7a
 
 tmap_mode("plot")
 
-tm_shape(ca_land) +
+site_map <- tm_shape(ca_land) +
   tm_polygons(col = "gray80", border.col = NULL) +
   tm_shape(mpa_poly) + tm_borders() +
   tm_shape(sites) +
   tm_dots(fill = "habitat", fill_alpha = 0.8, 
-          fill.scale = tm_scale_categorical(values = eco_colors), size = 0.5,
+          fill.scale = tm_scale_categorical(values = eco_colors), size = 1,
           fill.legend = tm_legend(title = "", frame = FALSE)) +
   tm_graticules(lines = F) +
   tm_scalebar(position = tm_pos_in(pos.h = "left", pos.v = "bottom")) +
@@ -80,77 +98,27 @@ tm_shape(ca_land) +
     inner.margins = c(0.01, 0.03, 0.01, 0.01),    
     outer.margins = c(0.01, 0.01, 0, 0))
 
-## Test the stacked panels for each ecosystem
-panels <- lapply(names(eco_colors), function(h) {
-  ids <- unique(included_sites$affiliated_mpa[included_sites$habitat == h])
-  mpa_sub <- mpa_poly %>% 
-    filter(affiliated_mpa %in% ids)
-  
-  tm_shape(bg_footprint) +
-   tm_polygons(col = "white", border.col = NULL) + 
-    tm_shape(ca_land, bbox = bb) +
-    tm_polygons(col = "gray90", border.col = NULL) +
-    #tm_borders(col = "black", lwd = 1.5) + 
-    tm_shape(mpa_sub) + tm_polygons(fill = "gray80", lwd = 1.5) +
-    tm_shape(subset(sites, habitat == h)) +
-    tm_dots(size = 0.8, fill = eco_colors[h], fill_alpha = 0.5) +
-    tm_title(h, size = 0.8) +
-    tm_layout(bg.color = "transparent",
-      frame = FALSE,
-      inner.margins = c(0,0,0,0),
-      outer.margins = c(0,0,0,0))
-  
-   
-})
+site_map
 
-grobs <- lapply(panels, tmap_grob)
+tmap_save(site_map, file.path(fig.dir, "habitat-fig1-sites.png"), dpi = 600)
 
-ggdraw(xlim = c(0, 2), ylim = c(0, 1), clip = "off") +
-  draw_grob(grobs[[1]], x = 0, y = 0, width = 1, height = 1, hjust = 0) +
-  draw_grob(grobs[[2]], x = 0.45, y = 0, width = 1, height = 1, hjust = 0) +
-  draw_grob(grobs[[3]], x = 0.9, y = 0, width = 1, height = 1, hjust = 0)
+#geom_text(data=region_labels, mapping=aes(x=long_dd, y=lat_dd, label=label, fontface="bold"), hjust=0, size=2.3) +
+#geom_hline(mapping=aes(yintercept=region_lats)) +
+# MPA regions
+# CA/OR, Alder Creek, Pigeon Point, Point Conception, CA/MEX 
+# region_lats <- c(39.0, 37.18, 34.5)
+# 
+# # Region labels
+# region_labels <- tibble(long_dd=c(-123.9, -122.9, -121, -118#, -119.5
+# ),
+# lat_dd=c(40.5, 38.7, 36, 34.1#, 34.8
+# ),
+# label=c("North\n(Dec 2012)", "North Central\n(May 2010)", "Central\n(Sep 2007)", "South\n(Jan 2012)"#, "N. Channel\nIslands (2003)"
+# ))
 
 
-# Function to make a map for one habitat
-make_habitat_map <- function(h) {
-  ids <- unique(included_sites$affiliated_mpa[included_sites$habitat == h])
-  mpa_sub <- mpa_poly %>% filter(affiliated_mpa %in% ids)
-  sites_h <- sites %>% filter(habitat == h)
-  
-  ggplot() +
-    geom_sf(data = bg_footprint, fill = "grey90", color = NA) +
-    geom_sf(data = ca_land, color = "black", fill = "white", lwd = 0.5) +
-    # geom_sf(data = usa, fill = "gray90", color = NA) +
-    geom_sf(data = mpa_sub, fill = "gray80", color = NA, linewidth = 0.3) +
-    geom_sf(data = sites_h, aes(color = habitat), size = 2, alpha = 0.5, show.legend = FALSE) +
-    scale_color_manual(values = eco_colors) +
-    coord_sf(xlim = c(ca_bb["xmin"], ca_bb["xmax"]),
-             ylim = c(ca_bb["ymin"], ca_bb["ymax"]),
-             expand = FALSE) +
-    theme_void() +
-    ggtitle(h) +
-    theme(
-      plot.title = element_text(hjust = 0, size = 10, face = "bold"),
-      plot.margin = margin(0, 0, 0, 0)
-    )
-}
+# 2. Build inset for point lobos --------------------------------------------------------------------
 
-# Create each habitat map
-main_map <- make_habitat_map("Shallow reef")
-inset_1  <- make_habitat_map("Kelp forest")
-inset_2  <- make_habitat_map("Surf zone")
-
-# Combine with overlapping insets
-p <- ggdraw(xlim = c(0., 2)) +
-  draw_plot(main_map, x = 0,    y = 0,    width = 1,   height = 1) +
-  draw_plot(inset_1,  x = 0.45, y = 0, width = 1, height = 1) +
-  draw_plot(inset_2,  x = 0.9, y = 0, width = 1, height = 1)
-
-p
-ggsave("fig1.png", plot = p, dpi = 600, width = 6.5, height = 6.5, bg = "white", units = c("in"))
-
-
-# 2. Build inset for point lobos 
 lobos_sites <- sites %>% filter(site %in% included_sites$site[included_sites$affiliated_mpa == "point lobos smr"]) 
 lobos_mpa <- mpa_poly %>%filter(affiliated_mpa == "point lobos smr")
 
@@ -189,61 +157,73 @@ ggplot() +
         legend.spacing = unit(2, "pt"),
         plot.margin = margin(0, 0, 0, 0))
 
-#geom_text(data=region_labels, mapping=aes(x=long_dd, y=lat_dd, label=label, fontface="bold"), hjust=0, size=2.3) +
-#geom_hline(mapping=aes(yintercept=region_lats)) +
-# MPA regions
-# CA/OR, Alder Creek, Pigeon Point, Point Conception, CA/MEX 
-# region_lats <- c(39.0, 37.18, 34.5)
-# 
-# # Region labels
-# region_labels <- tibble(long_dd=c(-123.9, -122.9, -121, -118#, -119.5
-# ),
-# lat_dd=c(40.5, 38.7, 36, 34.1#, 34.8
-# ),
-# label=c("North\n(Dec 2012)", "North Central\n(May 2010)", "Central\n(Sep 2007)", "South\n(Jan 2012)"#, "N. Channel\nIslands (2003)"
-# ))
+
 
 # Point lobos with habitat data 
 habitat <- readRDS(file.path("/home/shares/ca-mpa/data/sync-data/habitat_pmep/processed_v2/combined",
                              "combined_mpas_23_30_31_32.Rds"))
+
+kelp <- terra::rast(file.path("/home/shares/ca-mpa/data/sync-data/kelpwatch/2024/processed",
+                          "kelp_canopy_2014.tif"))
+
 lobos_habitat <- habitat %>% 
   filter(affiliated_mpa == "point lobos smr") %>% 
   mutate(habitat_class = if_else(habitat_class %in% c("Aquatic Vascular Vegetation", "Aquatic Vegetation Bed"), "Max Biotic Extent", habitat_class)) %>% 
   mutate(habitat_class = factor(habitat_class, levels = c("Max Biotic Extent", "Hard Bottom", "Soft Bottom"))) %>% 
   arrange(habitat_class)
 
+inset_ext <- terra::ext(lobos_habitat)
+inset_ext <- project(inset_ext, from = crs(lobos_habitat), to = crs(kelp))
+
+kelp_crop <- crop(kelp, inset_ext)
+kelp_crop <- terra::project(kelp_crop, crs(lobos_sites))
+
+kelp_poly <- as.polygons(kelp_crop) %>% 
+  st_as_sf() %>% 
+  st_union() %>% st_as_sf() %>% 
+  mutate(habitat_class = "Kelp (Shown for 2014)")
+
+
 hab_colors <- c(
   "Hard Bottom" = "#b89d7a",     # medium taupe-brown
   "Soft Bottom" = "#e6d8ab",     # warm sand
-  "Max Biotic Extent" = "#7fcd8b"  # stronger green with visibility
+  "Max Biotic Extent" = "#7fcd8b",  # stronger green with visibility
+  "Kelp (Shown for 2014)" = "#ce8300"
 )
 
-ggplot() +
+
+lobos_inset <- ggplot() +
   geom_sf(data = ca_land, fill = "gray90", color = NA) +
-  geom_sf(data = lobos_habitat %>% filter(habitat_class %in% c("Hard Bottom", "Soft Bottom")), aes(fill = habitat_class), color = NA) + 
+  geom_sf(data = lobos_habitat %>% filter(habitat_class %in% c("Hard Bottom", "Soft Bottom")), aes(fill = habitat_class)) + 
   geom_sf(data = lobos_habitat %>% filter(!habitat_class %in% c("Hard Bottom", "Soft Bottom")), 
-          aes(fill = habitat_class), color = NA) + 
+          aes(fill = habitat_class)) + 
+  geom_sf(data = kelp_poly, aes(fill = habitat_class))+
+ # geom_tile(data = kelp_df, aes(x = x, y = y, fill = habitat_class)) + 
   geom_sf(data = lobos_mpa, fill = "transparent", color = "black", lwd = 0.7) +
   geom_segment(data = lobos_label, aes(x = top_edge$X - 0.02, y = top_edge$Y, xend = x, yend = y), color = "black", linewidth = 0.3) +
   geom_label(data = lobos_label, aes(x = x, y = y, label = name), size = 4) +
-  geom_sf(data = lobos_sites, aes(color = habitat), size = 2, alpha = 1, show.legend = F) +
-  coord_sf(xlim = c(-121.99, -121.90),
+  geom_sf(data = lobos_sites, aes(color = habitat), size = 3, alpha = 1, show.legend = F) +
+  coord_sf(xlim = c(-122.02, -121.92),
            ylim = c(36.445, 36.585),
            expand = T)+
   scale_color_manual(values = eco_colors) +
   scale_fill_manual(values = hab_colors) +
   labs(color = NULL, fill = NULL)+
   theme_void() +
-  theme(legend.position = c(0.8, 0.98),     
-        legend.justification = c("right", "top"),
+  theme(legend.position = c(0.88, 0.93),     
         legend.text = element_text(size = 10),
         legend.background = element_rect(fill = NA, color = NA),
         legend.key.height = unit(10, "pt"),
+        panel.background = element_rect(fill = "transparent", color = NA),
+        plot.background = element_rect(fill = "transparent", color = NA),
         legend.spacing = unit(2, "pt"),
         plot.margin = margin(0, 0, 0, 0))
 
+lobos_inset
+ggsave(file.path(fig.dir, "habitat-fig1-lobos.png"), plot = lobos_inset, width = 4.5, height = 5.5, units = 'in', dpi = 600)
 
-# Now try the site-level plots?
+# 3. Build inset for sites --------------------------------------------------------------------
+
 site_buffers <- readRDS(file.path("/home/shares/ca-mpa/data/sync-data/habitat_pmep/processed_v2/combined/buffers",
                                   "habitat_buffers_500m.Rds")) %>% 
   filter(site %in% lobos_sites$site)
@@ -257,13 +237,9 @@ site_buffers2 <- site_buffers %>%
   arrange(habitat_class)
 
 unique(site_buffers2$site)
-tmap_mode('plot')
 
-tm_shape(site_buffers2) +
-  tm_polygons(fill = "habitat_class", col = NULL,
-              fill.scale = tm_scale_categorical(values = hab_colors), fill_alpha = 0.8) +
-  tm_facets_grid(rows = "habitat", columns = "site_type", free.coords = T)
-
+# To pick which sites, can run this to explore which to include:
+tmap_mode('view')
 
 tm_shape(site_buffers2 %>% filter(habitat_class != "Max Biotic Extent")) +
   tm_polygons(fill = "habitat_class",
@@ -272,36 +248,48 @@ tm_shape(site_buffers2 %>% filter(habitat_class != "Max Biotic Extent")) +
   tm_polygons(fill = "habitat_class",
               fill.scale = tm_scale_categorical(values = hab_colors), 
               fill.legend = tm_legend_hide()) +
-#  tm_shape(lobos) +
- # tm_borders(col = "black") +
   tm_shape(lobos_sites) +
   tm_dots(fill = "habitat", 
           fill.scale = tm_scale_categorical(values = eco_colors),
           size = 1) 
- # tm_labels(text = "site") 
 
-sites_sub <- st_transform(sites_sub, crs = st_crs(site_buffers2))
+# Process plots for each site
+sites_sub <- st_transform(lobos_sites, crs = st_crs(site_buffers2))
+kelp_sub <- st_transform(kelp_poly, crs = st_crs(site_buffers2))
 
 site_plot_data <- site_buffers2 %>%
   group_split(habitat, site_type, site) %>%
   map(~ {
     dat <- .x
+    kelp <- st_intersection(kelp_sub, dat)
     label <- paste(unique(dat$habitat), unique(dat$site_type), unique(dat$site), sep = " | ")
     
     plot <- ggplot(dat) +
-      geom_sf(aes(fill = habitat_class), color = NA, alpha = 0.9) +
+      geom_sf(aes(fill = habitat_class), color = NA, alpha = 1) +
+      geom_sf(data = kelp, aes(fill = habitat_class)) + 
       scale_fill_manual(values = hab_colors, drop = FALSE) +
-      geom_circle(data = sites_sub %>% filter(site == unique(dat$site)),
+      ggforce::geom_circle(data = sites_sub %>% filter(site == unique(dat$site)),
                   aes(x0 = st_coordinates(geometry)[,1],
                       y0 = st_coordinates(geometry)[,2],
                       r = 500,
                       color = habitat),
                   fill = NA, linewidth = 1) +
+      ggforce::geom_circle(data = sites_sub %>% filter(site == unique(dat$site)),
+                           aes(x0 = st_coordinates(geometry)[,1],
+                               y0 = st_coordinates(geometry)[,2],
+                               r = 250,
+                               color = habitat),
+                           fill = NA, linewidth = 1) +
+      ggforce::geom_circle(data = sites_sub %>% filter(site == unique(dat$site)),
+                           aes(x0 = st_coordinates(geometry)[,1],
+                               y0 = st_coordinates(geometry)[,2],
+                               r = 50,
+                               color = habitat),
+                           fill = NA, linewidth = 1) +
       scale_color_manual(values = eco_colors, drop = FALSE) +
-      coord_sf(expand = FALSE) +
+      coord_sf(expand = T) +
       theme_void() +
-      theme(
-        legend.position = "none",
+      theme(legend.position = "none",
         legend.background = element_rect(fill = "transparent"),
         plot.background = element_rect(fill = "transparent", color = NA),
         panel.background = element_rect(fill = "transparent", color = NA)
@@ -312,23 +300,33 @@ site_plot_data <- site_buffers2 %>%
 
 plot_list <- map(site_plot_data, "plot")
 names(plot_list) <- map_chr(site_plot_data, "name")
-plot_list[3]
+mpa_inset <- plot_list[[6]] # weston uc
+mpa_inset
+ggsave(file.path(fig.dir, "habitat-fig1-mpa-inset.png"), plot = mpa_inset, dpi = 600, width = 3, height = 3)
 
-# Step 1: Parse names into metadata
+ref_inset <- plot_list[[10]] # soberanes
+ref_inset
+ggsave(file.path(fig.dir, "habitat-fig1-ref-inset.png"), plot = ref_inset, dpi = 600, width = 3, height = 3)
+
+rock_inset <- plot_list[[15]]
+rock_inset
+ggsave(file.path(fig.dir, "habitat-fig1-rock-inset.png"), plot = rock_inset, dpi = 600, width = 3, height = 3)
+
+# Test a combination plot with all the sites (this didn't work very well)
+# Parse names into metadata
 plot_df <- tibble(
   name = names(plot_list),
   plot = plot_list
 ) %>%
   separate(name, into = c("habitat", "site_type", "site"), sep = " \\| ")
 
-# Step 2: Nest by habitat × site_type
+# Nest by habitat × site_type
 grouped <- plot_df %>%
   group_by(habitat, site_type) %>%
   group_modify(~ tibble(patch = list(plot_grid(plotlist = .x$plot, nrow = ceiling(length(.x$plot) / 4))))) %>% 
   ungroup()
 
-# Step 3: Rebuild grid with labels
-# One row per habitat, columns = MPA/Reference
+# Rebuild grid with labels; One row per habitat, columns = MPA/Reference
 habitats <- unique(grouped$habitat)
 site_types <- unique(grouped$site_type)
 
@@ -342,14 +340,9 @@ rows <- map(habitats, function(h) {
   plot_grid(row_label, plotlist = row_plots, nrow = 1, rel_widths = c(0.2, rep(1, length(row_plots))))
 })
 
-# Step 4: Add top column labels
-col_labels <- plot_grid(
-  NULL,
-  plot_grid(plotlist = map(site_types, ~ ggdraw() + draw_label(.x, fontface = "bold", hjust = 0.5)),
-            nrow = 1),
-  nrow = 2,
-  rel_heights = c(0.1, 1)
-)
+col_labels <- plot_grid(NULL,
+                        plot_grid(plotlist = map(site_types, ~ ggdraw() + draw_label(.x, fontface = "bold", hjust = 0.5)),
+                                  nrow = 1), rel_heights = c(0.1, 1))
 
 # Step 5: Combine everything
 final_plot <- plot_grid(col_labels, plot_grid(plotlist = rows, ncol = 1), nrow = 2, rel_heights = c(0.1, 1))
@@ -357,5 +350,29 @@ final_plot <- plot_grid(col_labels, plot_grid(plotlist = rows, ncol = 1), nrow =
 # Done!
 final_plot
 
-plot_list[1]
+# 4. Create additional visuals for the presentation --------------------------------------------
+
+ggplot() +
+  geom_sf(data = ca_land, fill = "gray90", color = NA) +
+  geom_sf(data = lobos_habitat %>% filter(habitat_class %in% c("Hard Bottom", "Soft Bottom")), 
+          aes(fill = habitat_class), show.legend = F) + 
+  geom_sf(data = lobos_habitat %>% filter(!habitat_class %in% c("Hard Bottom", "Soft Bottom")), 
+          aes(fill = habitat_class), show.legend = F) + 
+  geom_sf(data = kelp_poly, aes(fill = habitat_class), show.legend = F)+
+  geom_sf(data = lobos_mpa, fill = "transparent", color = "black", lwd = 0.7) +
+ # geom_segment(data = lobos_label, aes(x = top_edge$X - 0.02, y = top_edge$Y, xend = x, yend = y), color = "black", linewidth = 0.3) +
+ # geom_label(data = lobos_label, aes(x = x, y = y, label = name), size = 4) +
+#  geom_sf(data = lobos_sites, aes(color = habitat), size = 3, alpha = 1, show.legend = F) +
+  coord_sf(xlim = c(-121.98, -121.925),
+           ylim = c(36.48, 36.53),
+           expand = T)+
+ # scale_color_manual(values = eco_colors) +
+  scale_fill_manual(values = hab_colors) +
+  labs(color = NULL, fill = NULL)+
+  theme_void() +
+  theme(panel.background = element_rect(fill = "transparent", color = NA),
+        plot.background = element_rect(fill = "transparent", color = NA),
+        plot.margin = margin(0, 0, 0, 0))
+
+ggsave(file.path(fig.dir, "habitat-pres-lobos.png"), dpi = 600, width = 6, height = 6)
 
