@@ -37,10 +37,21 @@ source("analyses/7habitat/code/Step0_helper_functions.R")
 
 list2env(list(habitat = "kelp_filtered", 
               focal_group = "targeted",
-              re_string = "msy", 
+              re_string = "my", 
               model_type = "lmer",
               delta_threshold = 2), envir = .GlobalEnv)
 
+list2env(list(habitat = "rock_filtered", 
+              focal_group = "targeted",
+              re_string = "rmy", 
+              model_type = "lmer",
+              delta_threshold = 2), envir = .GlobalEnv)
+
+list2env(list(habitat = "surf_filtered", 
+              focal_group = "targeted",
+              re_string = "m", 
+              model_type = "lmer",
+              delta_threshold = 4), envir = .GlobalEnv)
 
 # Analyze Focal Models ----------------------------------------------------------------------------
 
@@ -50,7 +61,7 @@ model_selection <- function(results_file, delta_threshold, focal_group, habitat,
   print(paste(results_file))
   
   # Read model fit results and data_sp used
-  results <- readRDS(file.path("~/ca-mpa/analyses/7habitat/output/models", results_file))
+  results <- readRDS(file.path("~/ca-mpa/analyses/7habitat/output/models", "3way", results_file))
   models_df <- results$models_df
   data_sp <- results$data_sp
   
@@ -84,7 +95,7 @@ model_selection <- function(results_file, delta_threshold, focal_group, habitat,
   if (length(top_names) > 1) {
     nested <- check_nested_models(top_models) 
     top_names <- nested$candidate_list$model
-    top_models <- top_models$model[top_names]
+    top_models_sel <- top_models$model[top_names]
     print(paste("      Top models:", length(top_names)))
     
    }
@@ -94,7 +105,7 @@ model_selection <- function(results_file, delta_threshold, focal_group, habitat,
   # If there are multiple, get the model average. 
   # If there are not, get importance estimates from the top model.
   if (length(top_names) > 1) {
-    model_avg <- model.avg(top_models, fit = TRUE)
+    model_avg <- model.avg(top_models_sel, fit = TRUE)
     coef_table <- data.frame(coefTable(model_avg)) %>%
       rownames_to_column("term") %>% 
       filter(!term == "(Intercept)") %>% 
@@ -108,7 +119,7 @@ model_selection <- function(results_file, delta_threshold, focal_group, habitat,
              importance_sw = sw(model_avg)[term]) %>% 
       arrange(desc(importance_abs_t))
   } else {
-    coef_table <- tidy(top_models[[1]], conf.int = TRUE, effect = "fixed") %>%
+    coef_table <- tidy(top_models$model[[1]], conf.int = TRUE, effect = "fixed") %>%
       mutate(term = str_replace(term, "typeMPA", "type"),
              importance_abs_t = abs(estimate/std.error),
              importance_relative = importance_abs_t / max(importance_abs_t, na.rm = TRUE),  # Scale max = 1
@@ -122,7 +133,7 @@ model_selection <- function(results_file, delta_threshold, focal_group, habitat,
     mutate(key = if_else(length(top_names) > 1, "Top Models (Average)", "Top Model v. Base Model")) 
   
   # Get AIC weights
-  aicc_table <- model.sel(top_models) %>% 
+  aicc_table <- model.sel(top_models_sel) %>% 
     as.data.frame() %>% 
     dplyr::select(delta, weight, df) %>% 
     rownames_to_column("Model") %>% 
@@ -168,15 +179,16 @@ model_selection <- function(results_file, delta_threshold, focal_group, habitat,
                   aicc_table_full = aicc_table_full,
                   predictor_table = predictor_table,
                   top_results = top_results,
+                  top_models = top_models,
                   model_details = model_details,
                   nested_results = nested_results_table)
   
   # Export the results
-  saveRDS(results, file = file.path("~/ca-mpa/analyses/7habitat/output/results", 
+  saveRDS(results, file = file.path("~/ca-mpa/analyses/7habitat/output/results", "3way",
                            paste(habitat, focal_group, re_string, "selection_results.rds", sep = "_")))
   
   # Export the data used for the models (will refer to this a bunch)
-  saveRDS(data_sp, file = file.path("~/ca-mpa/analyses/7habitat/output/data", 
+  saveRDS(data_sp, file = file.path("~/ca-mpa/analyses/7habitat/output/data", "3way",
                                     paste(habitat, focal_group, re_string, "data.rds", sep = "_")))
   
 }
