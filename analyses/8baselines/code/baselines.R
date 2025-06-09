@@ -32,7 +32,7 @@ source("analyses/7habitat/code/Step4a_prep_focal_data.R")
 source("analyses/7habitat/code/Step0_helper_functions.R")
 
 # Use the complete dataset 
-fig.dir <- "~/ca-mpa/analyses/8baseline/figures"
+fig.dir <- "~/ca-mpa/analyses/8baselines/figures"
 ltm.dir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_2024"
 pred_kelp <- readRDS(file.path("analyses/7habitat/intermediate_data/kelp_predictors.Rds")) %>% filter(pred_group %in% c("all", "combined"))
 
@@ -90,6 +90,12 @@ kelp_subset <- kelp_complete %>%
 # Add a small constant, defined as minimum observed nonzero value
 const <- if_else(min(kelp_subset$biomass) > 0, 0, min(kelp_subset$biomass[kelp_subset$biomass > 0], na.rm = TRUE))
 kelp_subset <- kelp_subset %>% mutate(log_c_biomass = log(biomass + const))
+
+length(unique(kelp_subset$site))
+length(unique(kelp_subset$affiliated_mpa))
+length(unique(kelp_subset$affiliated_mpa[kelp_subset$mpa_defacto_class == "smr"]))
+
+
 
 # Prep data
 # kelp_sp <- prep_focal_data(
@@ -159,15 +165,15 @@ fig2 <- ggplot(data = kelp_baseline %>% filter(mpa_defacto_class == "smr") %>%
                      xmax = bb + bb_se),
                  linewidth = 1.5, alpha = 0.3) +
   geom_point(size = 2.5) + # aes(shape = point_shape), 
-  scale_color_manual(values = c("Reference" = "#7e67f8", "MPA" =  "#e5188b")) +
- # scale_shape_manual(values = c("open" = 1, "closed" = 16)) +
+  scale_color_manual(values = c("Reference" = "#6d55aa", "MPA" =  "#c42119")) + # c("Reference" = "#7e67f8", "MPA" =  "#e5188b")
+ # scale_shape_manual(values = c("open" = 1, "closed" = 16)) + # c(, "#c42119")
   labs(x = "Baseline biomass (kg per 100m²)", y = NULL, color = NULL) +
   theme_minimal() +
   my_theme + 
   theme(legend.position = "top") 
 
 fig2
-ggsave("baselines-fig2.png", plot = fig2, width = 7, height = 5, units = "in", dpi = 600)
+ggsave(file.path(fig.dir, "baselines-fig2.png"), plot = fig2, width = 7, height = 5, units = "in", dpi = 600)
 
 # Categorize raw data for visuals  ---------------------------------------------------
 
@@ -231,7 +237,7 @@ ggplot(kelp_subset3 %>%
 
 ## Figure 3 ----
 
-fig3 <- ggplot(kelp_subset3 %>% mutate(site_type = factor(site_type, levels = c("MPA", "Reference"))),
+figX<- ggplot(kelp_subset3 %>% mutate(site_type = factor(site_type, levels = c("MPA", "Reference"))),
        aes(x = age_at_survey, y = biomass, 
            color = site_mean, fill = site_mean, linetype = site_mean), alpha = 0.8) +
   geom_smooth(method = 'lm') +
@@ -247,8 +253,8 @@ fig3 <- ggplot(kelp_subset3 %>% mutate(site_type = factor(site_type, levels = c(
   my_theme +
   theme(panel.spacing = unit(0.9, "lines"))
                  
-fig3
-ggsave(file.path(fig.dir, "baselines-fig3.png"), plot = fig3, width = 6, height = 4, units = "in", dpi = 600)
+figX
+#ggsave(file.path(fig.dir, "baselines-figX.png"), plot = figX, width = 6, height = 4, units = "in", dpi = 600)
 
 ## Examine trajectories relative to median within each region:
 kelp_subset4 <- kelp_subset2 %>%
@@ -317,6 +323,14 @@ base_biomass <- lmer(log_c_biomass ~ log_c_bb * site_type * age_at_survey  +
                        (1|region4/affiliated_mpa/site) + (1|year), 
                      data = kelp_subset2)
 
+base_biomass <- lmer(log_c_biomass ~ log_c_bb * site_type * age_at_survey  + 
+                       (1|region4/site) + (1|year), 
+                     data = kelp_subset2)
+
+
+base_biomass2 <- lmer(log_c_biomass ~ log_c_bb * site_type * age_at_survey  + 
+                       (1|region4/site) + (1|year), 
+                     data = kelp_subset2)
 
 ## Table 1 (Model Results) -----
 
@@ -399,7 +413,7 @@ r2_nakagawa(base_biomass)
 #r2_nakagawa(base_biomass_r2)
 
 
-## Figure 4 ----
+## Figure 3 ----
 
 effects_list <- allEffects(base_biomass, partial.residuals = T, 
                            xlevels = list(log_c_bb = round(log(quantile(kelp_baseline$bb[kelp_baseline$mpa_defacto_class=="smr"],
@@ -422,33 +436,37 @@ effects_list_df <- data.frame(effects_list$`log_c_bb:site_type:age_at_survey`) %
 bb_vals <- unique(effects_list_df$bb)
 
 
-fig4 <- ggplot(data = effects_list_df %>% 
-         filter(bb > bb_vals[1]) %>% 
-         mutate(bb = case_when(bb == bb_vals[2] ~ paste0("25% (Baseline = ", round(bb_vals[2], 1), ")"),
-                               bb == bb_vals[3] ~ paste0("50% (Baseline = ", round(bb_vals[3], 1), ")"),
-                               bb == bb_vals[4] ~ paste0("75% (Baseline = ", round(bb_vals[4], 1), ")"),
-                               bb == bb_vals[5] ~ paste0("90% (Baseline = ", round(bb_vals[5], 1), ")"))),
-       aes(x = age_at_survey,
-           y = fit, fill = site_type)) +
+fig3 <- ggplot(data = effects_list_df %>% 
+                 filter(bb > bb_vals[1]) %>% 
+                 mutate(bb_linetype = case_when(bb < 3.3 & age_at_survey > 16 ~ "22", 
+                                                T~"solid")) %>% 
+                 mutate(bb = case_when(bb == bb_vals[2] ~ paste0("25% (Baseline = ", round(bb_vals[2], 1), ")"),
+                                       bb == bb_vals[3] ~ paste0("50% (Baseline = ", round(bb_vals[3], 1), ")"),
+                                       bb == bb_vals[4] ~ paste0("75% (Baseline = ", round(bb_vals[4], 1), ")"),
+                                       bb == bb_vals[5] ~ paste0("90% (Baseline = ", round(bb_vals[5], 1), ")"))),
+               aes(x = age_at_survey,
+                   y = fit, fill = site_type)) +
   geom_ribbon(aes(ymin = lower, ymax = upper, fill = site_type),
               alpha = 0.2, stat = "identity") +
-  geom_smooth(aes(color = site_type), method = "loess") +
+  geom_smooth(aes(color = site_type, linetype = bb_linetype), method = "loess") +
   facet_wrap(~bb, nrow = 1) +
   labs(x = "Years since implementation",
-       y = expression("Biomass (kg per 100m"^2*")"), color = NULL, fill = NULL) +
-  scale_color_manual(values = c("#7e67f8", "#e5188b")) +
-  scale_fill_manual(values = c("#7e67f8", "#e5188b")) +
-  scale_x_continuous(limits = c(0, 20), expand = c(0,0)) + 
-  scale_y_continuous(limits = c(0, 15), expand = c(0,0)) +
+       y = expression("Biomass (kg per 100m"^2*")"), color = NULL, fill = NULL, linetype = NULL) +
+  scale_linetype_manual(values = c("solid" = "solid", "22" = "22")) +
+  guides(linetype = "none") +
+  scale_color_manual(values = c("#6d55aa","#c42119")) + #  c("#7e67f8", "#e5188b")
+  scale_fill_manual(values =  c("#6d55aa","#c42119")) +
+  scale_x_continuous(limits = c(0, 15), expand = c(0,0)) + 
+  scale_y_continuous(limits = c(0, 12), expand = c(0,0)) +
   my_theme +
   theme(legend.position = "top",
         panel.grid.minor = element_blank(),
-        panel.spacing = unit(1, "lines"),
+        panel.spacing = unit(1.1, "lines"),
         legend.key.size = unit(1, "lines"))
 
-fig4
+fig3
 
-ggsave(file.path(fig.dir, "baselines-fig4.png"), plot = fig4, width = 6, height = 3, units = "in", dpi = 600)
+ggsave(file.path(fig.dir, "baselines-fig3.png"), plot = fig3, width = 7, height = 3, units = "in", dpi = 600)
 
 ## Figure S1 (Partial Effects Extended) ------
 
@@ -506,8 +524,8 @@ fig4_si <- ggplot(data = effects_list_full_df2 %>%
        y = expression("Biomass (kg per 100m"^2*")"), 
        color = NULL, fill = NULL, linetype = NULL) +
   guides(linetype = "none") +
-  scale_color_manual(values = c("#7e67f8", "#e5188b")) +
-  scale_fill_manual(values = c("#7e67f8", "#e5188b")) +
+  scale_color_manual(values = c("#6d55aa","#c42119")) + # c("#7e67f8", "#e5188b") 
+  scale_fill_manual(values = c("#6d55aa","#c42119")) +
   coord_cartesian(ylim = c(0, 15), expand = F) +
   scale_x_continuous(limits = c(0, 20), expand = c(0,0))+
   my_theme +
@@ -653,16 +671,16 @@ fig6 <- bind_rows(diff_simple, diff_full) %>%
   mutate(bb = factor(bb, levels = sort(unique(bb))),
          bb = if_else(is.na(bb), "Without baseline", bb)) %>%
   ggplot(aes(x = age_at_survey, y = delta, color = bb, linetype = bb)) +
-  geom_line(size = 1) +
+  geom_line(size = 1.5) +
   theme_minimal() +
-  scale_color_manual(name = "Baseline biomass\n(kg per 100m²)", values = c("#9ecae1","#6baed6", "#4292c6",  "#2171b5","black")) +
+  scale_color_manual(name = "Baseline biomass\n(kg per 100m²)", values = c("#c6dbef", "#6baed6", "#3182bd", "#08519c", "black")) +
   scale_linetype_manual(name = "Baseline biomass\n(kg per 100m²)", values = c("3.2" = "solid", "5.4" = "solid","7.3" = "solid", "8.1" = "solid",  "Without baseline" = "22")) +
-  scale_y_continuous(limits = c(0,4.6), expand = c(0,0)) +
+  scale_y_continuous(limits = c(0,4.5), expand = c(0,0)) +
   scale_x_continuous(limits = c(0,15), expand = c(0,0)) +
   labs(x = "Years since implementation",
        y = expression("Biomass difference within MPAs (kg per 100m"^2*")"),
        color = expression("Baseline biomass\n(kg per 100m"^2*")")) +
-  my_theme
+  my_theme + theme(panel.grid.minor = element_blank())
 
 fig6
 ggsave(file.path(fig.dir, "baselines-fig6.png"), plot = fig6, width = 5.5, height = 4.5, units = "in", dpi = 600)
@@ -688,8 +706,8 @@ fig7 <- ggplot(data = model_aug, aes(x = age_at_survey, color = site_type, fill 
   geom_smooth(aes(y = observed, linetype = "Observed"), method = "lm", se = F) +
   geom_smooth(aes(y = predicted, linetype = "Predicted"), method = "lm", se = F) +
   facet_wrap(~affiliated_label, scales = "free_y", ncol = 4) +
-  scale_color_manual(values = c("#7e67f8", "#e5188b")) +
-  scale_fill_manual(values = c("#7e67f8", "#e5188b")) +
+  scale_color_manual(values = c("#6d55aa","#c42119")) + # c("#7e67f8", "#e5188b")
+  scale_fill_manual(values =  c("#6d55aa","#c42119")) +
   scale_linetype_manual(values = c("Observed" = "solid", "Predicted" = "22")) +
   labs(x = "Years since implementation",
        y = "Log Biomass", color = NULL, fill = NULL, linetype = NULL) +
@@ -705,6 +723,31 @@ fig7
 ggsave(file.path(fig.dir,"baselines-fig7.png"), plot = fig7, width = 7.5, height = 7.5, units = "in", dpi = 600)
 
 
+sl <- ggplot(data = model_aug %>% 
+               filter(affiliated_label == "South La Jolla SMR"), 
+             aes(x = age_at_survey, color = site_type, fill = site_type)) +
+  geom_point(aes(y = observed), alpha = 0.3) +
+  geom_smooth(aes(y = observed, linetype = "Observed"), method = "lm", se = F) +
+  geom_smooth(aes(y = predicted, linetype = "Predicted"), method = "lm", se = F) +
+  facet_wrap(~affiliated_label, scales = "free_y", ncol = 4) +
+  scale_color_manual(values = c("#6d55aa", "#c42119")) +
+  scale_fill_manual(values = c("#6d55aa", "#c42119")) + # c("#7e67f8", "#e5188b")
+  scale_linetype_manual(values = c("Observed" = "solid", "Predicted" = "22")) +
+  coord_cartesian(xlim = c(0, 11), ylim = c(-2, 2.1)) +
+  scale_x_continuous(expand = c(0.01, 0.01))+
+  scale_y_continuous(expand = c(0,0))+
+  labs(x = "MPA Age (years)",
+       y = "Log Biomass", color = NULL, fill = NULL, linetype = NULL) +
+  guides(linetype = guide_legend(override.aes = list(color = "grey30"))) +
+  my_theme +
+  theme(legend.position = "top",
+        strip.text = element_text(size = 8),
+        axis.text.x = element_text(size = 7),
+        axis.text.y = element_text(size = 7),
+        legend.text = element_text(size = 8))
+sl
+
+ggsave(file.path(fig.dir,"baselines-pres-sl.png"), plot = sl, width = 2.5, height = 2.5, units = "in", dpi = 600)
 
 ### Figure 8 -----
 
@@ -773,7 +816,7 @@ mpa_deviation_shading <- data.frame(xmin = c(0, 0, 0),
                                     xmax = c(15, 15, 15),
                                     ymin = c(-10, 10, -22),
                                     ymax = c(10, 22, -10),
-                                    fill_color = c("gray90","#e5188b", "#7e67f8"))
+                                    fill_color = c("gray90","#c42119", "#6d55aa")) # "#e5188b", "#7e67f8"
 
 # Plot observed vs. expected MPA effects
 fig8 <- ggplot() +
@@ -787,8 +830,8 @@ fig8 <- ggplot() +
                   aes(x = mpa_bb, y = deviation_pct, label = label, color = flag),
                   hjust = -0.1, vjust = 0.5, size = 2.5, show.legend = F) +
   scale_fill_identity() +
-  scale_color_manual(values = c("Higher than expected" = "#e5188b",
-                                "Lower than expected" = "#7e67f8",
+  scale_color_manual(values = c("Higher than expected" = "#c42119",
+                                "Lower than expected" =  "#6d55aa",
                                 "As expected" = "gray50")) +
   scale_x_continuous(limits = c(0, 15), expand = c(0,0)) +
   scale_y_continuous(limits = c(-22,22), expand = c(0,0)) +
@@ -796,9 +839,9 @@ fig8 <- ggplot() +
        y = "Deviation from expected MPA effect\n(% biomass change per year)",
        color = NULL) +
   my_theme + 
-  theme(panel.grid.minor = element_blank()) +
-  annotate("text", x = 14.5, y = 21, label = "Stronger MPA effect than predicted", color = "#e5188b", hjust = 1, size = 3, fontface = "italic") +
-  annotate("text", x = 14.5, y = -21, label = "Weaker MPA effect than predicted", color = "#7e67f8", hjust = 1, size = 3, fontface = "italic")
+  theme(panel.grid.minor = element_blank())# +
+ # annotate("text", x = 14.5, y = 21, label = "Stronger MPA effect than predicted", color = "#c42119", hjust = 1, size = 3, fontface = "italic") +
+ # annotate("text", x = 14.5, y = -21, label = "Weaker MPA effect than predicted", color =  "#6d55aa", hjust = 1, size = 3, fontface = "italic")
 fig8
 
 ggsave(file.path(fig.dir, "baselines-fig8.png"), plot = fig8, width = 5, height = 4, units = "in", dpi = 600)
