@@ -48,7 +48,7 @@ prep_focal_data <- function(type, focal_group, drop_outliers, biomass_variable, 
   if (drop_outliers == "yes") {
     # Remove sites with extreme values in static vars (depth and hard bottom)
     extreme_site <- site_static %>% 
-      pivot_longer(cols = depth_cv_100:soft_bottom_500, names_to = "variable", values_to = "value") %>% 
+      pivot_longer(cols = depth_cv_100:hard_bottom_500, names_to = "variable", values_to = "value") %>% 
       filter(!str_detect(variable, "depth_sd")) %>% 
       filter(!str_detect(variable, "depth_cv_25")) %>% 
       filter(!between(value, -3.5, 3.5)) %>% 
@@ -68,7 +68,7 @@ prep_focal_data <- function(type, focal_group, drop_outliers, biomass_variable, 
       filter(!affiliated_mpa %in% extreme_site_balance$affiliated_mpa)
     
     print(paste("  Number of extreme sites dropped:", length(extreme_site$site)))
-    print(paste("  Number of extreme MPAs dropped:", length(extreme_site_balance$site)))
+    print(paste("  Number of extreme MPAs dropped:", length(extreme_site_balance$affiliated_mpa)))
     
   } else {
     data2 <- data1
@@ -90,7 +90,8 @@ prep_focal_data <- function(type, focal_group, drop_outliers, biomass_variable, 
     mutate_at(vars(grep("^age|size", names(.), value = TRUE)), scale) %>% 
     # Scale the kelp within each year (so it's relative to the annual average instead of across all years)
     group_by(year) %>%
-    mutate_at(vars(grep("^kelp", names(.), value = TRUE)), scale) %>% ungroup()
+    mutate_at(vars(grep("^kelp", names(.), value = TRUE)), scale) %>% ungroup() %>% 
+    mutate(site = as.factor(site))
   
   # Save final output for the model
   data_sp <- data3
