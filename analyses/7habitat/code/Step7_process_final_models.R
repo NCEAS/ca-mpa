@@ -35,7 +35,7 @@ process_final_models <- function(habitat, focal_group, re_string){
   # 1. Refit the top model with REML
   response <- unique(results$model_details$response)
   random_effects <- unlist(str_split(unique(results$model_details$random_effects), ", "))
-  top_formula <- as.formula(results$model_details$formula[1])   # Just use the top model
+  top_formula <- as.formula(results$model_details$formula[1])   # top model is #1, base model is #2
   
   m <- lmer(top_formula, data = data_sp, REML = TRUE,
             control = lmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 1e8)))
@@ -83,32 +83,12 @@ process_final_models <- function(habitat, focal_group, re_string){
     add_significance() %>%
     mutate(key = "Base Model")
 
-  # 2. Refit the core models with REML
-  # -- This is where we would add that back in if someone wants the forest plots
-  # -- Currently this won't work because we need the formulas from the last stage
-  # -- So would go back to Step6 and extract formulas for each of the core/base models
-  
-  # core_names <- unlist(results$model_details$core_names)
-  
-  # core_results <- lapply(core_names, function(model_id) {
-  #   tidy(data$models[[model_id]], conf.int = TRUE, effect = "fixed") %>%
-  #     janitor::clean_names() %>% 
-  #     clean_terms() %>%
-  #     add_significance() %>%
-  #     mutate(model_id = model_id)
-  # }) 
-  
-  # Combine core model results
-  # core_results <- do.call(rbind, core_results) %>% 
-  #   left_join(., models_df %>% dplyr::select(model_id, scale, type), by = "model_id") %>% 
-  #   mutate(key = if_else(model_id == "ST*A", NA, "Full Model"))
-  
-  
   # Calculate the effects 
-  assign("data_sp", data_sp, envir = .GlobalEnv)
-  effects_list_top <- allEffects(m, data = data_sp, xlevels = 50, partial.residuals = TRUE)
-  effects_list_base <- allEffects(m3, data = data_sp, xlevels = 50, partial.residuals = TRUE)
-  effects_list_simple <- allEffects(m2, data = data_sp, xlevels = 50, partial.residuals = TRUE)
+  # For 3-way interactions, we do this in the next step to help with plotting
+  #assign("data_sp", data_sp, envir = .GlobalEnv)
+  #effects_list_top <- allEffects(m, data = data_sp, xlevels = 50, partial.residuals = TRUE)
+  #effects_list_base <- allEffects(m3, data = data_sp, xlevels = 50, partial.residuals = TRUE)
+  #effects_list_simple <- allEffects(m2, data = data_sp, xlevels = 50, partial.residuals = TRUE)
   
   # plot(effects_list_top, multiline = T, confint = list(style = 'auto'))
   # plot(effects_list_base, multiline = T, confint = list(style = 'auto'))
@@ -118,9 +98,9 @@ process_final_models <- function(habitat, focal_group, re_string){
   models <- list(base = m3,
                  # simple = m2,
                  top = m
-                 #effects_list_top = effects_list_top,
+                 # effects_list_top = effects_list_top,
                  # effects_list_simple = effects_list_simple,
-                # effects_list_base = effects_list_base
+                 # effects_list_base = effects_list_base
                 )
 
   
@@ -135,16 +115,18 @@ process_final_models <- function(habitat, focal_group, re_string){
   
   gt_table <- all_results %>% 
     filter(term_revised != "(Intercept)") %>% 
-    mutate(p_value = case_when(p_value < 0.001 ~ "< 0.001", T~as.character(signif(p_value, 2)))) %>%
+    mutate(p_value = case_when(p_value < 0.001 ~ "< 0.001", T~as.character(round(p_value, 3)))) %>%
     mutate(significance = if_else(significance == "NS", NA_character_, significance)) %>%
     mutate(term_revised = str_replace_all(term_revised, "_", " ") %>% 
              str_to_title() %>% 
              str_replace_all(regex("depth cv", ignore_case = TRUE), "Depth CV")) %>% 
-    mutate(term_revised = if_else(term_revised == "Aquatic Vegetation Bed", "Max Bioitic Extent", term_revised)) %>% 
+    mutate(term_revised = if_else(term_revised == "Aquatic Vegetation Bed", "Max Biotic Extent", term_revised)) %>% 
     mutate(term_revised = str_replace_all(term_revised,  regex("Site type", ignore_case = TRUE), "Protected Status") %>% 
              str_replace_all(regex("age at survey", ignore_case = TRUE), "MPA Age") %>% 
              str_replace_all(":", " x ") %>% 
-             str_replace_all("hard", "Hard")) %>% 
+             str_replace_all("hard", "Hard") %>% 
+             str_replace_all("kelp", "Kelp") %>% 
+             str_replace_all("soft", "Soft")) %>% 
     gt() %>%
     tab_header(title = paste0("Model results: ", str_remove(str_to_sentence(habitat), "_filtered"), ", ", focal_group, " fish biomass")) %>% 
     cols_label(term_revised = "Term",
@@ -185,7 +167,7 @@ process_final_models <- function(habitat, focal_group, re_string){
   gtsave(gt_table, file.path(fig.dir, paste("tableSX", habitat, re_string, "fit.png", sep = "-")),  vwidth = 1000, vheight = 1000)
   
   # Export 
-  saveRDS(list(results = all_results, models = models, formulas = model_formulas), 
+  saveRDS(list(results = all_results, models = models, formulas = model_formulas, predictors = predictors_simple), 
           file = file.path("~/ca-mpa/analyses/7habitat/output/effects", "3way", paste(habitat, focal_group, re_string, "effects.rds", sep = "_")))
   
 }
@@ -196,28 +178,11 @@ process_final_models(habitat = "surf_filtered",
 
 process_final_models(habitat = "rock_filtered",
                      focal_group = "targeted",
-                     re_string = "rmsy")
+                     re_string = "rmy")
 
 process_final_models(habitat = "kelp_filtered",
                      focal_group = "targeted",
-                     re_string = "msy")
-
-process_final_models(habitat = "surf",
-                     focal_group = "targeted",
-                     re_string = "m")
-
-process_final_models(habitat = "kelp",
-                     focal_group = "targeted",
-                     re_string = "msy")
-
-process_final_models(habitat = "kelp",
-                     focal_group = "targeted",
                      re_string = "my")
 
-process_final_models(habitat = "rock",
-                     focal_group = "targeted",
-                     re_string = "rmsy")
 
-process_final_models(habitat = "rock",
-                     focal_group = "targeted",
-                     re_string = "rmy")
+
