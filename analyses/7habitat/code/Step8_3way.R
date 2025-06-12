@@ -17,6 +17,7 @@ my_theme <- theme_minimal(base_family = "Arial") +
         plot.caption = element_text(size = 8),
         panel.grid.minor = element_blank(),
         strip.text = element_text(size = 8, face = "bold"),
+        legend.background = element_rect(fill = "white", color = NA),  
         panel.background = element_rect(fill = "white", color = NA),  
         plot.background = element_rect(fill = "white", color = NA))
 
@@ -296,12 +297,12 @@ ggsave(file.path(fig.dir, "habitat-rock-hard-mpaeffect.png"),
 
 
 
-# Kelp forest
+# Kelp forest -----------
 
 rm(list = setdiff(ls(), c("my_theme", "fig.dir", "mpa_colors")))
 
 
-list2env(list(habitat = "kelp",
+list2env(list(habitat = "kelp_filtered",
               focal_group = "targeted",
               re_string = "my"), envir = .GlobalEnv)
 
@@ -310,49 +311,118 @@ data_sp <- readRDS(file.path("~/ca-mpa/analyses/7habitat/output/data", "3way", p
 
 focal_model <- results$models$top
 
-# Make the plot for the SI that shows more levels 
-effects_list_full <- allEffects(focal_model, partial.residuals = T, 
-                                xlevels = list(depth_cv_100 = round(quantile(data_sp$depth_cv_100, probs = seq(0, 1, by = 0.05)), digits = 3), 
-                                               age_at_survey = round(quantile(data_sp$age_at_survey, probs = seq(0, 1, by = 0.05)), digits = 3))) 
+auto_xlevels <- function(model, data, probs = seq(0, 1, by = 0.05), digits = 3) {
+  terms <- attr(terms(model), "term.labels")
+  vars  <- unique(unlist(strsplit(terms, ":")))
+  num   <- vars[sapply(data[vars], is.numeric)]
+  xlvls <- map(num, ~ round(quantile(data[[.]], probs = probs, na.rm = TRUE), digits))
+  names(xlvls) <- num
+  xlvls
+}
 
+xlevels_auto  <- auto_xlevels(focal_model, data_sp)
+effects_list  <- allEffects(focal_model, partial.residuals = TRUE, xlevels = xlevels_auto)
 
 const <- min(data_sp$biomass[data_sp$biomass > 0], na.rm = TRUE)
-cv_center <- attr(data_sp[["depth_cv_500"]], "scaled:center")
-cv_scale  <- attr(data_sp[["depth_cv_500"]], "scaled:scale")
-age_center <- attr(data_sp[["age_at_survey"]], "scaled:center")
-age_scale  <- attr(data_sp[["age_at_survey"]], "scaled:scale")
 
-effects_cv <- data.frame(effects_list_full$`site_type:depth_cv_100:age_at_survey`) %>% 
+i <- 4
+effects_data <- as.data.frame(effects_list[[i]]) %>% 
   mutate(fit = exp(fit) - const,
          lower = exp(lower) - const,
-         upper = exp(upper) - const,
-         depth_cv_100 = round(depth_cv_100 * cv_scale + cv_center, digits = 2),
-         age_at_survey = round(age_at_survey * age_scale + age_center, digits = 1)) 
+         upper = exp(upper) - const)
 
-dcv_vals <- sort(unique(effects_cv$depth_cv_100))
+hab_var <- colnames(effects_data)[which(colnames(effects_data) != "site_type")[1]]
 
-effects_cv2 <- effects_cv %>% 
-  mutate(dcv = fct_reorder(paste0(seq(0, 100, by = 5)[match(depth_cv_100, dcv_vals)], "% (DCV = ", round(depth_cv_100, 1), ")"), depth_cv_100)) 
+hab_list <- data.frame(hab_var = xlevels_auto[[hab_var]],
+                       pct = attr(xlevels_auto[[hab_var]], "names")) %>% 
+  mutate(pct = fct_reorder(pct, hab_var))
+
+names(hab_list)[1] <- hab_var
+
+effects_data <- effects_data %>% 
+  left_join(hab_list)
+
+# Reverse scaling for the habitat variable
+var_center <- attr(data_sp[[hab_var]], "scaled:center")
+var_scale <- attr(data_sp[[hab_var]], "scaled:scale")
+
+if (!is.null(var_center) && !is.null(var_scale)) {    
+  effects_data[[hab_var]] <- effects_data[[hab_var]] * var_scale + var_center
+}
+
+if (sum(str_detect(colnames(effects_data), "age")) == 1){
+  age_center <- attr(data_sp[["age_at_survey"]], "scaled:center")
+  age_scale  <- attr(data_sp[["age_at_survey"]], "scaled:scale")
+  
+  effects_data[["age_at_survey"]] <- round(effects_data[["age_at_survey"]] * age_scale + age_center, 0)
+}
+
+  
+x_var_label <- hab_var %>% 
+  str_replace_all("_", " ") %>% 
+  str_to_sentence() %>% 
+  str_replace("cv", "CV") %>% 
+  str_replace("\\d+", paste0(str_extract(., "\\d+"), "m")) %>% 
+  str_replace("Aquatic vegetation bed", "Max biotic extent")
+
+y_var_label <- case_when(habitat %in% c("rock", "rock_filtered") ~ "Biomass (kg per unit effort)",
+                         habitat %in% c("surf", "surf_filtered") ~ "Biomass (kg per haul)",
+                         T~NA)
 
 
-ggplot(data = effects_cv2 %>% 
-         filter(str_detect(dcv, "25|50|75|95")), 
-       aes(x = age_at_survey, y = fit, fill = site_type)) +
-  geom_ribbon(aes(ymin = lower, ymax = upper, fill = site_type),
-              alpha = 0.2, stat = 'identity') +
-  geom_smooth(aes(color = site_type), method = "loess") +
-  facet_wrap(~dcv, nrow = 1) +
-  labs(x = "MPA Age (years)",
-       y = "Biomass (kg per unit effort)", color = NULL, fill = NULL) +
-  scale_color_manual(values = mpa_colors) +
-  scale_fill_manual(values = mpa_colors) +
-  scale_x_continuous(limits = c(0, 20), expand = c(0,0)) + 
- # scale_y_continuous(limits = c(0, 33.2), expand = c(0,0)) +
-  my_theme +
-  theme(legend.position = "top",
-        panel.grid.minor = element_blank(),
-        panel.spacing = unit(1, "lines"),
-        legend.key.size = unit(1, "lines"))
+if (sum(str_detect(colnames(effects_data), "site_type")) == 0) {
+  
+  # Plot the standard effects
+  ggplot(effects_data, aes(x = !!sym(hab_var))) +
+    geom_smooth(aes(y = fit), color = "black", show.legend = FALSE, method = "loess", formula = y ~ x) +
+    geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, show.legend = FALSE) +
+    scale_y_continuous(limits = c(0, NA), expand = c(0, 0)) +
+    labs(x = x_var_label,
+         y = if (habitat %in% c("kelp", "kelp_filtered")) expression("Biomass (kg per 100 m"^2*")") else y_var_label) +
+    theme_minimal() +
+    my_theme
+  
+} 
+
+if (sum(str_detect(colnames(effects_data), "site_type")) == 1 & sum(str_detect(colnames(effects_data), "age")) == 0) {
+  ggplot(effects_data, aes(x = !!sym(hab_var), fill = site_type)) +
+    geom_ribbon(aes(ymin = lower, ymax = upper, fill = site_type),
+                alpha = 0.2,  stat = "identity") +
+    geom_smooth(aes(y = fit, color = site_type), method = loess) +
+    scale_color_manual(values = mpa_colors) +
+    scale_fill_manual(values = mpa_colors) +
+    scale_y_continuous(limits = c(0, NA), expand = c(0, 0)) +
+    labs(x = x_var_label,
+         y = if (habitat %in% c("kelp", "kelp_filtered")) expression("Biomass (kg per 100 m"^2*")") else y_var_label,
+         color = NULL, fill = NULL) +
+    theme_minimal() +
+    my_theme
+  
+} 
+
+if (sum(str_detect(colnames(effects_data), "site_type")) == 1 & sum(str_detect(colnames(effects_data), "age")) == 1) {
+  ggplot(data = effects_data %>% 
+           filter(str_detect(pct, "25|50|75|95")), 
+         aes(x = age_at_survey, y = fit, fill = site_type)) +
+    geom_ribbon(aes(ymin = lower, ymax = upper, fill = site_type),
+                alpha = 0.2, stat = 'identity') +
+    geom_smooth(aes(color = site_type), method = "loess") +
+    facet_wrap(~pct, nrow = 1) +
+    labs(x = "MPA Age (years)",
+         y = "Biomass (kg per unit effort)", color = NULL, fill = NULL) +
+    scale_color_manual(values = mpa_colors) +
+    scale_fill_manual(values = mpa_colors) +
+    scale_x_continuous(limits = c(0, 20), expand = c(0,0)) + 
+    # scale_y_continuous(limits = c(0, 33.2), expand = c(0,0)) +
+    my_theme +
+    theme(legend.position = "top",
+          panel.grid.minor = element_blank(),
+          panel.spacing = unit(1, "lines"),
+          legend.key.size = unit(1, "lines"))
+}
+
+
+
 
 ggsave(file.path(fig.dir, "habitat-kelp-dcv.png"), width = 6, height = 3, units = "in", dpi = 600)
 

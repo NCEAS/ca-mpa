@@ -3,14 +3,14 @@
 library(gt)
 library(tidyverse)
 
-list2env(list(habitat = "rock_filtered",
+list2env(list(habitat = "kelp_filtered",
               focal_group = "targeted",
-              re_string = "rmsy"), envir = .GlobalEnv)
+              re_string = "my"), envir = .GlobalEnv)
 
 get_tables <- function(habitat, focal_group, re_string){
   
   results_file <- paste(habitat, focal_group, re_string, "selection_results.rds", sep = "_")
-  results <- readRDS(file.path("~/ca-mpa/analyses/7habitat/output/results", results_file)) 
+  results <- readRDS(file.path("~/ca-mpa/analyses/7habitat/output/results/3way", results_file)) 
   
   return(list(aicc_table = results$aicc_table,
               aicc_table_full = results$aicc_table_full,
@@ -18,8 +18,8 @@ get_tables <- function(habitat, focal_group, re_string){
               nested_results = results$nested_results))
 }
 
-rock <- get_tables("rock_filtered", "targeted", "rmsy")
-kelp <- get_tables("kelp_filtered", "targeted", "msy")
+rock <- get_tables("rock_filtered", "targeted", "rmy")
+kelp <- get_tables("kelp_filtered", "targeted", "my")
 surf <- get_tables("surf_filtered", "targeted", "m")
 
 rock_nest <- rock$nested_results
