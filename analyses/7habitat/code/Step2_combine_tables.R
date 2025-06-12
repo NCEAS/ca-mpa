@@ -52,9 +52,6 @@ kelp <- kelp_raw %>%
   left_join(habitat_kelp) %>% 
   left_join(sst %>% filter(habitat == "kelp") %>% dplyr::select(-habitat))
 
-# CASPAR_2 did not have depth data; too shallow
-# unique(kelp$site[is.na(kelp$depth_mean_25)])
-
 kelp <- kelp %>%
   filter(site != "SCAI_SHIP_ROCK") %>%  # too deep
   filter(site != "CASPAR_2") %>% 
@@ -103,25 +100,19 @@ kelp_balance <- kelp %>%
   filter(n < 2)
 
 kelp_remove2 <- kelp_remove %>% 
-  bind_rows(
-    kelp_sites %>%
-      filter(affiliated_mpa %in% kelp_balance$affiliated_mpa) %>%
-      distinct(site, site_type, affiliated_mpa) %>%
-      filter(!site %in% kelp_remove$site))
+  bind_rows(kelp_sites %>%
+              filter(affiliated_mpa %in% kelp_balance$affiliated_mpa) %>%
+              distinct(site, site_type, affiliated_mpa) %>%
+              filter(!site %in% kelp_remove$site))
 
 length(unique(kelp_remove2$site))
-
-#   & site_type == "Reference" |
-#            affiliated_mpa ==  & site_type == "Reference"# |
-#     affiliated_mpa == "long point smr" & site_type == "Reference"
-#          ) %>% 
-#  
 
 kelp <- kelp %>% 
   filter(!site %in% kelp_remove2$site) 
 
 kelp_remove2 %>% 
   arrange(desc(pct_diff)) %>% 
+  arrange(site) %>% 
   mutate(habitat_variable = str_replace_all(habitat_variable, "_", " ") %>% str_to_sentence() %>% str_replace_all("cv", "CV")) %>% 
   mutate(affiliated_mpa = str_to_title(affiliated_mpa) %>% str_replace_all("Smr", "SMR") %>% str_replace_all("Smca", "SMCA")) %>% 
   gt() %>% 
@@ -142,7 +133,6 @@ ggplot(data = kelp_sites %>%
   theme(legend.position = "top",
         axis.text.x = element_text(angle = 45, hjust = 1)) +
   facet_wrap(~habitat_variable, scales = "free", ncol = 5)
-
 
 # Rock (CCFRP) ----------------------------------------------------------------------------------------------
 rock_raw <- readRDS(file.path(ltm.dir, "rock_biomass_subset.Rds")) 
