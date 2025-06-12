@@ -22,9 +22,6 @@
 #     and the base model (site * age)
 # 3. Combine results into a single dataframe and export
 
-rm(list = ls())
-gc()
-
 library(tidyverse)
 library(MuMIn) # for model averaging
 library(broom.mixed) # for extracting fit info
@@ -33,9 +30,12 @@ library(effects)
 library(performance)
 library(gt)
 
+rm(list = ls())
+gc()
+
 source("analyses/7habitat/code/Step0_helper_functions.R")  
 
-list2env(list(habitat = "kelp_filtered", 
+list2env(list(habitat = "kelp_filtered", # without _filtered means all scales were run
               focal_group = "targeted",
               re_string = "my", 
               model_type = "lmer",
@@ -51,7 +51,7 @@ list2env(list(habitat = "surf_filtered",
               focal_group = "targeted",
               re_string = "m", 
               model_type = "lmer",
-              delta_threshold = 4), envir = .GlobalEnv)
+              delta_threshold = 2), envir = .GlobalEnv)
 
 # Analyze Focal Models ----------------------------------------------------------------------------
 
@@ -93,11 +93,12 @@ model_selection <- function(results_file, delta_threshold, focal_group, habitat,
   aicc_full <- model.sel(top_models$model)
   
   if (length(top_names) > 1) {
-    nested <- check_nested_models(top_models) 
-    top_names <- nested$candidate_list$model
-    top_models_sel <- top_models$model[top_names]
+   # nested <- check_nested_models(top_models) 
+    nested <- evaluate_nested_models(top_models$model, delta_threshold = delta_threshold, alpha = 0.05)
+    top_names <- nested$candidates
+    top_models <- top_models$model[top_names]
     print(paste("      Top models:", length(top_names)))
-    
+    print(paste("      ", paste(top_names)))
    }
   
   nested_results_table <- nested$nested_results 
@@ -119,7 +120,7 @@ model_selection <- function(results_file, delta_threshold, focal_group, habitat,
              importance_sw = sw(model_avg)[term]) %>% 
       arrange(desc(importance_abs_t))
   } else {
-    coef_table <- tidy(top_models$model[[1]], conf.int = TRUE, effect = "fixed") %>%
+    coef_table <- tidy(top_models[[1]], conf.int = TRUE, effect = "fixed") %>%
       mutate(term = str_replace(term, "typeMPA", "type"),
              importance_abs_t = abs(estimate/std.error),
              importance_relative = importance_abs_t / max(importance_abs_t, na.rm = TRUE),  # Scale max = 1
@@ -131,27 +132,6 @@ model_selection <- function(results_file, delta_threshold, focal_group, habitat,
   top_results <- coef_table %>%
     clean_terms() %>%
     mutate(key = if_else(length(top_names) > 1, "Top Models (Average)", "Top Model v. Base Model")) 
-  
-  # Get AIC weights
-  aicc_table <- model.sel(top_models_sel) %>% 
-    as.data.frame() %>% 
-    dplyr::select(delta, weight, df) %>% 
-    rownames_to_column("Model") %>% 
-    dplyr::select(Model, delta, weight, K = df) 
-  
-  print(paste("  ", aicc_table$Model[[1]]))
-  
-  # Get predictor importance table
-  predictor_table <- top_results %>% 
-    dplyr::select(term, term_revised, estimate:importance_sw) %>% 
-    mutate(term = str_replace_all(term, "_", " ") %>% 
-             str_to_sentence() %>% 
-             str_replace("cv", "CV") %>% 
-             str_replace("\\d+", paste0(str_extract(., "\\d+"), "m"))) %>% 
-    mutate(CI = paste0("(", round(conf_low, 2), ", ", round(conf_high,2), ")")) %>% 
-    dplyr::select(term, estimate, CI, importance_abs_t, importance_sw) %>% 
-    arrange(desc(importance_abs_t)) %>% 
-    mutate(rank = 1:nrow(.))
   
   # Create df with fit and selection details
   model_details <- top_models_df %>% 
@@ -175,9 +155,7 @@ model_selection <- function(results_file, delta_threshold, focal_group, habitat,
     dplyr::select(Model, delta, weight, K = df) %>% 
     mutate(top = if_else(Model %in% top_names, TRUE, FALSE))
   
-  results <- list(aicc_table = aicc_table,
-                  aicc_table_full = aicc_table_full,
-                  predictor_table = predictor_table,
+  results <- list(aicc_table_full = aicc_table_full,
                   top_results = top_results,
                   top_models = top_models,
                   model_details = model_details,
@@ -196,19 +174,16 @@ model_selection <- function(results_file, delta_threshold, focal_group, habitat,
 ### Filtered versions ---------------------------
 model_selection(habitat = "rock_filtered", 
                 focal_group = "targeted",
-                re_string = "rmsy", 
+                re_string = "rmy", 
                 model_type = "lmer",
                 delta_threshold = 2)
-# 11 > 1
-# H250+DM500+DCV500*ST+ST*A
 
 model_selection(habitat = "kelp_filtered", 
                 focal_group = "targeted",
-                re_string = "msy", 
+                re_string = "my", 
                 model_type = "lmer",
                 delta_threshold = 2)
-# 12 > 1
-# H50*ST+K100+DM500+DCV100+ST*A
+
 
 model_selection(habitat = "surf_filtered", 
                 focal_group = "targeted",
