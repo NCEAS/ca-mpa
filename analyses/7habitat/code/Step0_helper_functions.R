@@ -126,7 +126,55 @@ add_significance <- function(df) {df %>%
                                            TRUE ~ "NS"), levels = c("***", "**", "*", "NS", "NA")))
 }
 
-
+evaluate_nested_models <- function(models, delta_threshold, alpha) {
+  library(MuMIn)
+  library(dplyr)
+  
+  model_set <- model.sel(models)
+  model_set <- model_set[model_set$delta <= delta_threshold, , drop = FALSE]
+  selected_names  <- rownames(model_set)
+  selected_models <- models[selected_names]
+  
+  nested_list <- nested(model_set, indices = "rownames")
+  
+  nested_results <- tibble::tibble(
+    larger  = character(),
+    smaller = character(),
+    p       = numeric()
+  )
+  
+  for (larger in names(nested_list)) {
+    for (smaller in nested_list[[larger]]) {
+      p_val <- anova(
+        selected_models[[larger]],
+        selected_models[[smaller]]
+      )$`Pr(>Chisq)`[2]
+      
+      nested_results <- nested_results %>%
+        add_row(larger = larger, smaller = smaller, p = p_val)
+    }
+  }
+  
+  decision <- nested_results %>%
+    group_by(larger) %>%
+    summarize(drop_larger = any(p >= alpha),
+              keep_smaller = list(smaller[p >= alpha]),
+              drop_smaller = list(smaller[p < alpha]))
+  
+  candidates <- decision %>%
+    filter(!drop_larger) %>% # keep larger models that were significantly better fit
+    pull(larger) %>% 
+    union(unlist(decision$keep_smaller)) %>% # add the smaller models that were just as good as their nested larger model
+    setdiff(., unlist(decision$drop_smaller)) %>% # drop the smaller models where at least one larger model was significantly better
+    setdiff(., unlist(decision$larger[decision$drop_larger])) # drop the models where at least one smaller model was significantly better
+  
+  
+  list(
+    candidates = candidates,
+    nested_results   = nested_results,
+    decision = decision
+  )
+}
 
 check_nested_models <- function(top_models) {
   
@@ -134,9 +182,10 @@ check_nested_models <- function(top_models) {
   nested_results <- data.frame(model = NULL, nested = NULL, p = NULL)
   drop_list <- data.frame(model = NULL)
   top_models <- top_models$model
-  
+
   # Convert models to a model.selection object
-  model_set <- model.sel(top_models) %>% arrange(delta)
+  model_set <- model.sel(top_models)
+  names(top_models) <- rownames(model_set) 
   
   # Check whether they are nested
   nested <- nested(model_set, indices = "rownames")
@@ -422,6 +471,7 @@ generate_surf_3way <- function(pred_top) {
                                     pred$intx2[str_detect(pred$predictor, "aquatic")],
                                     pred$intx3[str_detect(pred$predictor, "aquatic")]), stringsAsFactors = F) %>% 
     mutate(base = "site_type * age_at_survey") %>% 
+    filter(!(!is.na(hard) & !is.na(soft))) %>% 
     unite("predictors", c(hard, soft, kelp, depm, depc, aquv, base), sep = " + ", na.rm = TRUE, remove = FALSE) %>% 
     mutate(model_id = 
              str_replace_all(predictors, "hard_bottom_(\\d+)", "H\\1") %>% 
