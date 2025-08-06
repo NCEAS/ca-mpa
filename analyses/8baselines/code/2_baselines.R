@@ -1,4 +1,4 @@
-# Step 5. Fit Targeted Fish Model
+# Baselines Analyses
 # Cori Lopazanski
 # Feb 2025
 
@@ -8,6 +8,9 @@ library(performance)
 library(patchwork)
 library(broom.mixed)
 library(emmeans)
+library(broom)
+library(gt)
+library(effects)
 
 # Setup ------------------------------------------------------------------------
 
@@ -28,17 +31,13 @@ my_theme <- theme_minimal(base_family = "Arial") +
         panel.background = element_rect(fill = "white", color = NA),  
         plot.background = element_rect(fill = "white", color = NA))
 
-source("analyses/7habitat/code/Step4a_prep_focal_data.R")
+#source("analyses/7habitat/code/Step4a_prep_focal_data.R")
 source("analyses/7habitat/code/Step0_helper_functions.R")
 
-# Use the complete dataset 
+out.dir <-  "~/ca-mpa/analyses/8baselines/output"
 fig.dir <- "~/ca-mpa/analyses/8baselines/figures"
-ltm.dir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_2024"
-pred_kelp <- readRDS(file.path("analyses/7habitat/intermediate_data/kelp_predictors.Rds")) %>% filter(pred_group %in% c("all", "combined"))
 
-kelp_complete <- readRDS(file.path(ltm.dir, "kelp_biomass_complete.Rds")) %>% 
-  mutate(site_type = factor(site_type, levels = c("Reference", "MPA"))) %>% 
-  mutate(kg_per_100m2 = kg_per_m2*100) 
+kelp_complete <- readRDS(file.path(out.dir, "kelp_complete.Rds"))
 
 
 # Build data -------------------------------------------------------------------
@@ -60,7 +59,6 @@ kelp_sites <- kelp_complete %>%
   filter(!is.na(site_type)) %>%  
   # Keep sites that have been visited at least 5 times after implementation
   filter(n_after >= 5) %>%  
- # filter(n_baseline > 0) %>% 
   # Keep MPAs that still have at least one MPA site and one Reference site
   group_by(affiliated_mpa) %>% 
   filter(n_distinct(site_type) == 2) %>% 
@@ -95,22 +93,6 @@ length(unique(kelp_subset$site))
 length(unique(kelp_subset$affiliated_mpa))
 length(unique(kelp_subset$affiliated_mpa[kelp_subset$mpa_defacto_class == "smr"]))
 
-
-
-# Prep data
-# kelp_sp <- prep_focal_data(
-#   type = "target_status",
-#   focal_group = "targeted",
-#   drop_outliers = "no",
-#   biomass_variable = "kg_per_100m2",
-#   data = data_kelp,
-#   regions = c("North", "Central", "N. Channel Islands", "South")
-#   )
-
-# kelp2 <- data2
-# data_sp is the aggregated and scaled version
-# data2 is the aggregated but NOT scaled version
-
 # Calculate baseline biomass ----------
 
 kelp_baseline <- kelp_subset %>%
@@ -138,7 +120,39 @@ median(kelp_baseline$bb)
 mean(kelp_baseline$bb)
 median(kelp_baseline$bb[kelp_baseline$mpa_defacto_class == "smr"])
 mean(kelp_baseline$bb[kelp_baseline$mpa_defacto_class == "smr"])
+sd(kelp_baseline$bb[kelp_baseline$mpa_defacto_class == "smr"])
+
 length(unique(kelp_baseline$affiliated_mpa[kelp_baseline$mpa_defacto_class != "smr"])) # 7 additional SMCAs
+
+# Get some basic stats for results section -------------------------------------
+
+# Subset
+kelp_baseline_smr <- subset(kelp_baseline, mpa_defacto_class == "smr")
+
+# Check normality
+shapiro.test(kelp_baseline_smr$bb[kelp_baseline_smr$site_type == "MPA"])
+shapiro.test(kelp_baseline_smr$bb[kelp_baseline_smr$site_type == "Reference"])
+
+# Check variance
+var.test(bb ~ site_type, data = kelp_baseline_smr)
+
+# Run t-test 
+t.test(bb ~ site_type, data = kelp_baseline_smr)
+
+# Get mean and sd
+mean(kelp_baseline_smr$bb[kelp_baseline_smr$site_type == "MPA"])
+sd(kelp_baseline_smr$bb[kelp_baseline_smr$site_type == "MPA"])
+
+mean(kelp_baseline_smr$bb[kelp_baseline_smr$site_type == "Reference"])
+sd(kelp_baseline_smr$bb[kelp_baseline_smr$site_type == "Reference"])
+
+# Check the correlation:
+agg <- kelp_baseline_smr %>%
+  group_by(affiliated_mpa, site_type) %>%
+  summarize(mean_bb = mean(bb, na.rm = TRUE), .groups = "drop") %>%
+  pivot_wider(names_from = site_type, values_from = mean_bb)
+
+cor.test(agg$MPA, agg$Reference, method = "pearson")
 
 
 # Join baseline info to data ---------------------------------------------------
@@ -150,10 +164,8 @@ kelp_subset2 <- kelp_subset %>%
   # Focus on SMRs
   filter(mpa_defacto_class == "smr")
 
-median(kelp_subset2$bb)
-mean(kelp_subset2$bb)
 
-## REMINDER: FIGURE 1 IS CONCEPTUAL.
+## REMINDER: FIGURE 1 IS CONCEPTUAL. START WITH FIGURE 2.
 
 ## Figure 2 ----
 
@@ -175,139 +187,6 @@ fig2 <- ggplot(data = kelp_baseline %>% filter(mpa_defacto_class == "smr") %>%
 fig2
 ggsave(file.path(fig.dir, "baselines-fig2.png"), plot = fig2, width = 7, height = 5, units = "in", dpi = 600)
 
-# Categorize raw data for visuals  ---------------------------------------------------
-
-## 1. High/Low Options 
-
-kelp_subset3 <- kelp_subset2 %>% 
-  # Create categories for visualizing
-  mutate(area_median = if_else(bb > median(kelp_baseline$bb[kelp_baseline$mpa_defacto_class == "smr"]), "High", "Low"),
-         area_mean   = if_else(bb > mean(kelp_baseline$bb[kelp_baseline$mpa_defacto_class == "smr"]), "High", "Low"),
-         site_median = if_else(bb > median(kelp_subset2 %>% distinct(site, bb) %>% pull(bb)), "High", "Low"),
-         site_mean   = if_else(bb > mean(kelp_subset2 %>% distinct(site, bb) %>% pull(bb)), "High", "Low"),
-         full_median = if_else(bb > median(kelp_subset2$bb), "High", "Low"),
-         full_mean   = if_else(bb > mean(kelp_subset2$bb), "High", "Low")) %>% 
-  mutate(across(c(area_median, area_mean, site_median, site_mean, full_median, full_mean), ~factor(., levels = c("Low", "High"))))
-
-breakpoints <- tibble(
-  category = c("area_median", "area_mean",  "site_median", "site_mean", "full_median", "full_mean"),
-  breakpoint = c(
-    median(kelp_baseline$bb[kelp_baseline$mpa_defacto_class == "smr"]),
-    mean(kelp_baseline$bb[kelp_baseline$mpa_defacto_class == "smr"]),
-    median(kelp_subset2 %>% distinct(site, bb) %>% pull(bb)),
-    mean(kelp_subset2 %>% distinct(site, bb) %>% pull(bb)),
-    median(kelp_subset2$bb),
-    mean(kelp_subset2$bb)))
-
-kelp_subset3 %>% 
-  group_by(site_type, site_median) %>% 
-  summarize(n_sites = length(unique(site)),
-            n_mpas = length(unique(affiliated_mpa))) %>% 
-  group_by(site_type) %>% 
-  mutate(pct_sites = n_sites/sum(n_sites),
-         pct_mpas = n_mpas/sum(n_mpas)) %>% ungroup() 
-
-
-# Explore these values - not huge difference, but "full" especially makes less conceptual sense (since overweights by visitation)
-# Will likely go with "base" - which is based on the actual
-ggplot(kelp_subset3 %>% 
-         pivot_longer(cols = c(area_median, area_mean,  site_median, site_mean, full_median, full_mean),
-                      names_to = "category",
-                      values_to = "biomass_group") %>%
-         mutate(site_type = factor(site_type, levels = c("MPA", "Reference")),
-                biomass_group = factor(biomass_group, levels = c("Low", "High")),
-                category = factor(category, levels = c("area_median", "area_mean",  "site_median", "site_mean", "full_median", "full_mean"))), 
-       aes(x = age_at_survey, 
-           y = biomass, 
-           color = biomass_group, 
-           fill = biomass_group, 
-           linetype = biomass_group), alpha = 0.8) +
-  geom_hline(data = breakpoints, aes(yintercept = breakpoint), linetype = "dotted", color = "gray30") +
-  geom_smooth(method = 'lm') +
-  labs(x = "Years since implementation",
-       y = expression("Biomass (kg per 100m"^2*")"), color = NULL, fill = NULL, linetype = NULL) +
-  scale_color_manual(values = c("Low" = "#4292c6", "High" = "#084594")) +
-  scale_fill_manual(values = c("Low" = "#9ecae1", "High" = "#084594")) +
-  scale_linetype_manual(values = c("Low" = "22", "High" = "solid")) +
-  scale_x_continuous(limits = c(0, 20), expand = c(0, 0))+
-  theme_minimal() + 
-  facet_grid(site_type ~ category) +
-  my_theme +
-  theme(panel.spacing = unit(0.9, "lines"))
-
-## Figure 3 ----
-
-figX<- ggplot(kelp_subset3 %>% mutate(site_type = factor(site_type, levels = c("MPA", "Reference"))),
-       aes(x = age_at_survey, y = biomass, 
-           color = site_mean, fill = site_mean, linetype = site_mean), alpha = 0.8) +
-  geom_smooth(method = 'lm') +
-  labs(x = "Years since implementation",
-       y = expression("Biomass (kg per 100m"^2*")"), 
-       color = expression("Baseline \ncategory"), fill = expression("Baseline \ncategory"), linetype = expression("Baseline \ncategory")) +
-  scale_color_manual(values = c("Low" = "#4292c6", "High" = "#084594")) +
-  scale_fill_manual(values = c("Low" = "#9ecae1", "High" = "#084594")) +
-  scale_linetype_manual(values = c("Low" = "22", "High" = "solid")) +
-  scale_x_continuous(limits = c(0, 20), expand = c(0, 0.3))+
-  theme_minimal() + 
-  facet_wrap(~site_type) +
-  my_theme +
-  theme(panel.spacing = unit(0.9, "lines"))
-                 
-figX
-#ggsave(file.path(fig.dir, "baselines-figX.png"), plot = figX, width = 6, height = 4, units = "in", dpi = 600)
-
-## Examine trajectories relative to median within each region:
-kelp_subset4 <- kelp_subset2 %>%
-  
-  # AREA-LEVEL: mean and median of biomass from areas by region
-  left_join(kelp_baseline %>%
-              filter(mpa_defacto_class == "smr") %>%
-              group_by(region4) %>%
-              summarize(area_median_val = median(bb, na.rm = TRUE),
-                        area_mean_val = mean(bb, na.rm = TRUE)), by = "region4") %>%
-  
-  # SITE-LEVEL: mean and median across sites (i.e. unique site values) within region
-  left_join(kelp_subset2 %>% 
-              distinct(region4, site, bb, affiliated_mpa) %>%  
-              group_by(region4) %>%
-              summarize(site_median_val = median(bb, na.rm = TRUE),
-                     site_mean_val   = mean(bb, na.rm = TRUE)), by = "region4") %>% 
-  
-  # Categorize based on region-specific thresholds
-  mutate(area_median_region = if_else(bb > area_median_val, "High", "Low"),
-         area_mean_region   = if_else(bb > area_mean_val,   "High", "Low"),
-         site_median_region = if_else(bb > site_median_val, "High", "Low"),
-         site_mean_region   = if_else(bb > site_mean_val,   "High", "Low")) %>%
-  mutate(across(ends_with("_region"), ~factor(., levels = c("Low", "High"))))
-
-
-ggplot(kelp_subset4 %>% 
-         pivot_longer(cols = ends_with("_region"),
-                      names_to = "category",
-                      values_to = "biomass_group") %>%
-         mutate(site_type = factor(site_type, levels = c("MPA", "Reference")),
-                biomass_group = factor(biomass_group, levels = c("Low", "High")),
-                category = factor(category, levels = c("area_median_region", "area_mean_region",  
-                                                       "site_median_region", "site_mean_region"))), 
-       aes(x = age_at_survey, 
-           y = biomass, 
-           color = biomass_group, 
-           fill = biomass_group, 
-           linetype = biomass_group), alpha = 0.8) +
-#  geom_hline(data = breakpoints, aes(yintercept = breakpoint), linetype = "dotted", color = "gray30") +
-  geom_smooth(method = 'lm') +
-  labs(x = "Years since implementation",
-       y = expression("Biomass (kg per 100m"^2*")"), color = NULL, fill = NULL, linetype = NULL) +
-  scale_color_manual(values = c("Low" = "#4292c6", "High" = "#084594")) +
-  scale_fill_manual(values = c("Low" = "#9ecae1", "High" = "#084594")) +
-  scale_linetype_manual(values = c("Low" = "22", "High" = "solid")) +
-  scale_x_continuous(limits = c(0, 20), expand = c(0, 0))+
-  theme_minimal() + 
-  facet_grid(site_type ~ category) +
-  my_theme +
-  theme(panel.spacing = unit(0.9, "lines"))
-
-
 
 # Models  --------------------------------------------------------------------------
 
@@ -323,14 +202,13 @@ base_biomass <- lmer(log_c_biomass ~ log_c_bb * site_type * age_at_survey  +
                        (1|region4/affiliated_mpa/site) + (1|year), 
                      data = kelp_subset2)
 
-base_biomass <- lmer(log_c_biomass ~ log_c_bb * site_type * age_at_survey  + 
-                       (1|region4/site) + (1|year), 
-                     data = kelp_subset2)
+# Singular Fit: MPA-level variance is zero. This does not bias fixed effects 
+# coefficients, by retaining we can calculate MPA-level expectations (later)
 
+# base_biomass <- lmer(log_c_biomass ~ log_c_bb * site_type * age_at_survey  + 
+#                        (1|region4/site) + (1|year), 
+#                      data = kelp_subset2)
 
-base_biomass2 <- lmer(log_c_biomass ~ log_c_bb * site_type * age_at_survey  + 
-                       (1|region4/site) + (1|year), 
-                     data = kelp_subset2)
 
 ## Table 1 (Model Results) -----
 
@@ -400,7 +278,7 @@ gt_table <- all %>%
 
 gt_table
 
-gtsave(gt_table, file.path(fig.dir, "baseline-table1.png"), vwidth = 1200, vheight = 1000)
+gtsave(gt_table, file.path(fig.dir, "baselines-table1.png"), vwidth = 1200, vheight = 1000)
 
 ## R2 ----
 r2_nakagawa(base_model)
@@ -536,7 +414,7 @@ fig4_si <- ggplot(data = effects_list_full_df2 %>%
 
 fig4_si
 
-#ggsave(file.path(fig.dir, "baselines-si-fig4.png"), plot = fig4_si, width = 6.5, height = 6.5, units = "in", dpi = 600)
+ggsave(file.path(fig.dir, "baselines-si-fig1.png"), plot = fig4_si, width = 6.5, height = 6.5, units = "in", dpi = 600)
 
 
 # Extension Analyses ------------
@@ -544,7 +422,7 @@ fig4_si
 
 ## Estimate the MPA effect across baseline biomass values ----
 
-### Figure 5 ----
+### Figure 4 ----
 
 
 # Calculate slope difference (MPA - Reference) at each baseline biomass level
@@ -582,7 +460,7 @@ base_diff <- emtrends(base_model,
          upper_pct = (exp(estimate + 1.96 * SE) - 1) * 100)
 
 # Plot contrasts with ribbon and transformed values to show percent change
-fig5 <- ggplot(slope_diffs, aes(x = bb, y = est_pct)) +
+fig4 <- ggplot(slope_diffs, aes(x = bb, y = est_pct)) +
   # Uniform-effect model (95% CI)
   geom_rect(data = base_diff, inherit.aes = FALSE,
             aes(xmin = 0, xmax = max(bb_vals_full),
@@ -618,13 +496,13 @@ fig5 <- ggplot(slope_diffs, aes(x = bb, y = est_pct)) +
         legend.position.inside = c(0.75, 0.8),
         panel.grid.minor = element_blank())
 
-fig5
-ggsave(file.path(fig.dir, "baselines-fig5.png"), plot = fig5, width = 4.5, height = 3.5, units = "in", dpi = 600)
+fig4
+ggsave(file.path(fig.dir, "baselines-fig4.png"), plot = fig4, width = 4.5, height = 3.5, units = "in", dpi = 600)
 
 
 ## Compare magnitude of MPA-Ref difference through time -----
 
-### Figure 6 ----
+### Figure 5 ----
 
 # Define baseline biomass values
 bb_vals <- unique(effects_list_df$bb)
@@ -665,7 +543,7 @@ diff_full <- new_full %>%
   mutate(delta = MPA - Reference,
          model = "With baseline")
 
-fig6 <- bind_rows(diff_simple, diff_full) %>%
+fig5 <- bind_rows(diff_simple, diff_full) %>%
   mutate(bb = round(bb, 1)) %>% 
   filter(is.na(bb) | bb > 1) %>% 
   mutate(bb = factor(bb, levels = sort(unique(bb))),
@@ -682,13 +560,13 @@ fig6 <- bind_rows(diff_simple, diff_full) %>%
        color = expression("Baseline biomass\n(kg per 100m"^2*")")) +
   my_theme + theme(panel.grid.minor = element_blank())
 
-fig6
-ggsave(file.path(fig.dir, "baselines-fig6.png"), plot = fig6, width = 5.5, height = 4.5, units = "in", dpi = 600)
+fig5
+ggsave(file.path(fig.dir, "baselines-fig5.png"), plot = fig5, width = 5.5, height = 4.5, units = "in", dpi = 600)
 
 
 ## Evaluate MPA deviations ----
 
-### Figure 7 ----
+### Figure 6 ----
 
 # Get fitted values and residuals from the full model
 model_aug <- augment(base_biomass) %>%
@@ -701,7 +579,7 @@ model_aug <- augment(base_biomass) %>%
                                           str_replace_all("Smr", "SMR") %>% 
                                           str_replace_all("Smca", "SMCA"), mpa_bb))
 
-fig7 <- ggplot(data = model_aug, aes(x = age_at_survey, color = site_type, fill = site_type)) +
+fig6 <- ggplot(data = model_aug, aes(x = age_at_survey, color = site_type, fill = site_type)) +
   geom_point(aes(y = observed), alpha = 0.2) +
   geom_smooth(aes(y = observed, linetype = "Observed"), method = "lm", se = F) +
   geom_smooth(aes(y = predicted, linetype = "Predicted"), method = "lm", se = F) +
@@ -719,8 +597,8 @@ fig7 <- ggplot(data = model_aug, aes(x = age_at_survey, color = site_type, fill 
         axis.text.y = element_text(size = 7),
         legend.text = element_text(size = 8))
 
-fig7
-ggsave(file.path(fig.dir,"baselines-fig7.png"), plot = fig7, width = 7.5, height = 7.5, units = "in", dpi = 600)
+fig6
+ggsave(file.path(fig.dir,"baselines-fig6.png"), plot = fig6, width = 7.5, height = 7.5, units = "in", dpi = 600)
 
 
 sl <- ggplot(data = model_aug %>% 
@@ -749,7 +627,7 @@ sl
 
 ggsave(file.path(fig.dir,"baselines-pres-sl.png"), plot = sl, width = 2.5, height = 2.5, units = "in", dpi = 600)
 
-### Figure 8 -----
+### Figure 7 -----
 
 # Fit OLS models for each MPA and its reference sites
 ols_slopes <- model_aug %>%
@@ -819,7 +697,7 @@ mpa_deviation_shading <- data.frame(xmin = c(0, 0, 0),
                                     fill_color = c("gray90","#c42119", "#6d55aa")) # "#e5188b", "#7e67f8"
 
 # Plot observed vs. expected MPA effects
-fig8 <- ggplot() +
+fig7 <- ggplot() +
   geom_rect(data = mpa_deviation_shading, 
             aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax, 
                 fill = fill_color), alpha = 0.1, show.legend = F) + 
@@ -842,11 +720,11 @@ fig8 <- ggplot() +
   theme(panel.grid.minor = element_blank())# +
  # annotate("text", x = 14.5, y = 21, label = "Stronger MPA effect than predicted", color = "#c42119", hjust = 1, size = 3, fontface = "italic") +
  # annotate("text", x = 14.5, y = -21, label = "Weaker MPA effect than predicted", color =  "#6d55aa", hjust = 1, size = 3, fontface = "italic")
-fig8
 
-ggsave(file.path(fig.dir, "baselines-fig8.png"), plot = fig8, width = 5, height = 4, units = "in", dpi = 600)
+fig7
+ggsave(file.path(fig.dir, "baselines-fig7.png"), plot = fig7, width = 5, height = 4, units = "in", dpi = 600)
 
-fig8_si <- ggplot() +
+fig7_si <- ggplot() +
   geom_rect(data = mpa_deviation_shading, 
             aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax, 
                 fill = fill_color), alpha = 0.1, show.legend = F) + 
@@ -857,8 +735,8 @@ fig8_si <- ggplot() +
                   aes(x = mpa_bb, y = deviation_pct, label = affiliated_mpa, color = flag),
                   hjust = -0.1, vjust = 0.5, size = 2.5, show.legend = F) +
   scale_fill_identity() +
-  scale_color_manual(values = c("Higher than expected" = "#e5188b",
-                                "Lower than expected" =  "#7e67f8",
+  scale_color_manual(values = c("Higher than expected" = "#c42119",
+                                "Lower than expected" =   "#6d55aa",
                                 "As expected" = "gray30")) +
   scale_x_continuous(limits = c(0, 15), expand = c(0,0)) +
   scale_y_continuous(limits = c(-22, 22), expand = c(0,0)) +
@@ -867,88 +745,10 @@ fig8_si <- ggplot() +
        color = NULL) +
   my_theme + 
   theme(panel.grid.minor = element_blank()) +
-  annotate("text", x = 14.5, y = 21, label = "Stronger MPA effect than predicted", color = "#e5188b", hjust = 1, size = 3, fontface = "italic") +
-  annotate("text", x = 14.5, y = -21, label = "Weaker MPA effect than predicted", color =  "#7e67f8", hjust = 1, size = 3, fontface = "italic")
+  annotate("text", x = 14.5, y = 21, label = "Stronger MPA effect than predicted", color ="#c42119", hjust = 1, size = 3, fontface = "italic") +
+  annotate("text", x = 14.5, y = -21, label = "Weaker MPA effect than predicted", color =  "#6d55aa", hjust = 1, size = 3, fontface = "italic")
 
-fig8_si
-ggsave(file.path(fig.dir, "baselines-si-fig2.png"), plot = fig8_si, width = 6.5, height = 6.5, units = "in", dpi = 600)
-
-
-
-# Sensitivity Analyses ----
-
-## Starting with reviewing effort calculations to get implementation days instead of years
-
-kelp_effort <- kelp_orig %>% 
-  # Identify distinct transects - 35251 (after the NA dropped above)
-  distinct(year, month, day, site, zone, transect, 
-           bioregion, region4, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation) %>% 
-  # Identify distinct "sampling events" (e.g. visits to a site)
-  group_by(year, month, day, site, bioregion, region4, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation) %>% 
-  summarize(n_rep = n(), .groups = 'drop') %>%  # total number of transects for that event
-  # Join implementation dates
-  left_join(mpas %>% dplyr::select(affiliated_mpa, implementation_date, implementation_year, size_km2, cluster_area_km2)) %>% 
-  mutate(survey_date = lubridate::make_date(year, month, day),
-         implementation_date = as.Date(implementation_date),
-         site_type = if_else(mpa_defacto_designation == "ref", "Reference", "MPA"),
-         age_at_survey_days = as.numeric(survey_date - implementation_date),   # Calculate actual age at survey
-         age_at_survey = year - implementation_year, # Calculate age at survey by year
-         before = if_else(age_at_survey_days < 0, n_rep, 0),
-         after = if_else(age_at_survey_days >= 0, n_rep, 0)) %>% 
-  # Drop sites with no affiliation
-  filter(!is.na(site_type)) %>% 
-  # Keep sites visited at least 5 distinct years after MPA implementation
-  group_by(site, site_type, affiliated_mpa) %>% 
-  filter(n_distinct(year[after > 0]) >= 5) %>% ungroup() %>% 
-  # Keep MPAs that have at least one inside and one outside site
-  group_by(affiliated_mpa) %>% 
-  filter(n_distinct(site_type) == 2) %>% 
-  # Keep MPAs with in/out data within 2 years of implementation
-  filter(any(site_type == "MPA" & sum(n_rep[between(age_at_survey_days, -731, 731)]) > 0) &
-           any(site_type == "Reference" & sum(n_rep[between(age_at_survey_days, -731, 731)]) > 0)) %>% ungroup()
-
-length(unique(kelp_effort$affiliated_mpa)) # 32 total within 2 years 
-length(unique(kelp_effort$affiliated_mpa[kelp_effort$mpa_defacto_class == "smr"])) # 25 SMRs within 2 years
-
-
-kelp <- kelp_orig %>% 
-  group_by(year, month, day, site, bioregion, region4, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation, target_status) %>% 
-  # Total biomass of targeted species per site per **day**
-  summarise(weight_kg = sum(weight_kg),
-            count = sum(count), .groups = 'drop') %>%
-  filter(!target_status == "NO_ORG") %>%    # drop these bc aren't true zeroes
-  select(-target_status)
-
-# kelp_missing <- kelp %>%  # 7 sites with no info about inside/outside
-#   filter(is.na(site_type)) %>% 
-#   group_by(site, affiliated_mpa, mpa_defacto_designation, bioregion, site_type) %>% 
-#   summarize(n_years = length(unique(year)),
-#             n_fish = sum(total_count))
-
-kelp_complete <- kelp_effort2 %>% 
-  # Add counts and weights (those that were not seen will be NA)
-  left_join(kelp) %>% 
-  # Change NAs to zeroes (those species were not observed in that site-year)
-  mutate_at(vars(weight_kg), ~ replace(., is.na(.), 0)) %>% 
-  mutate_at(vars(count), ~ replace(., is.na(.), 0)) %>% 
-  mutate(site_type = if_else(mpa_defacto_designation == "ref", "Reference", "MPA")) %>% 
-  mutate(kg_per_m2 = weight_kg/(n_rep*60), # 30x2x2m but JC says typical density is per m2 (60)
-         count_per_m2 = count/(n_rep*60),
-         age_at_survey = year - implementation_year) %>% 
-  dplyr::select(year, site, site_type, 
-                bioregion, region4, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation, implementation_year, size_km2, cluster_area_km2,
-                age_at_survey, age_at_survey_days, n_rep, weight_kg, count, kg_per_m2, count_per_m2)
-
-
-
-# Filter for the surveys within 365 days of implementation
-kelp_baseline <- kelp_effort2 %>% 
-  filter(between(age_at_survey_days, -365, 365)) %>% 
-  group_by(affiliated_mpa, site, mpa_defacto_designation) %>% 
-  summarize(n_rep = sum(n_rep))
-
-
-
-
+fig7_si
+ggsave(file.path(fig.dir, "baselines-si-fig2.png"), plot = fig7_si, width = 6.5, height = 6.5, units = "in", dpi = 600)
 
 
