@@ -40,9 +40,9 @@ my_theme <- theme_minimal(base_family = "Arial") +
 
 mpa_colors <- c("Reference" = "#6d55aa", "MPA" = "#c42119")
 
-list2env(list(habitat = "surf_filtered", 
+list2env(list(habitat = "rock_filtered", 
               focal_group = "targeted",
-              re_string = "m"), envir = .GlobalEnv)
+              re_string = "rmy"), envir = .GlobalEnv)
 
 
 auto_xlevels <- function(focal_model, data_sp,
@@ -89,8 +89,10 @@ make_effects_plots <- function(habitat, focal_group, re_string){
     # Extract the effects dataframe and transform
     effects_data <- as.data.frame(effects_list[[i]]) %>% 
       mutate(fit = exp(fit) - const,
-             lower = exp(lower) - const,
-             upper = exp(upper) - const) %>% distinct()
+             lower = exp(lower) - const, 
+             upper = exp(upper) - const) %>% distinct() 
+    
+    effects_data <- droplevels(effects_data)
     
     # Pull habitat variable and its associated percentiles
     hab_var <- setdiff(names(effects_data), c("site_type", "age_at_survey"))[1]
@@ -101,9 +103,11 @@ make_effects_plots <- function(habitat, focal_group, re_string){
     effects_data <- left_join(effects_data, hab_list)
     
     # Reverse scaling for the habitat variable
+    var_center <- attr(data_sp[[hab_var]], "scaled:center")
+    var_scale <- attr(data_sp[[hab_var]], "scaled:scale")
+    
+    
     if (sum(str_detect(colnames(effects_data), "kelp")) == 0){
-      var_center <- attr(data_sp[[hab_var]], "scaled:center")
-      var_scale <- attr(data_sp[[hab_var]], "scaled:scale")
       effects_data[[hab_var]] <- effects_data[[hab_var]] * var_scale + var_center
     }
   
@@ -143,7 +147,7 @@ make_effects_plots <- function(habitat, focal_group, re_string){
              "10" = {
                ggplot(effects_data, aes(x = !!sym(hab_var), y = fit, fill = site_type)) +
                  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = .2) +
-                 geom_smooth(aes(color = site_type), method = "loess", se = FALSE) +
+                 geom_smooth(aes(color = site_type), linewidth = 1.2, method = "loess", se = FALSE) +
                  scale_color_manual(values = mpa_colors) +
                  scale_fill_manual(values = mpa_colors) +
                  coord_cartesian(ylim = c(0, NA), expand = F) +
@@ -153,7 +157,13 @@ make_effects_plots <- function(habitat, focal_group, re_string){
                  my_theme
              },
              "11" = {
-               ggplot(effects_data %>% filter(str_detect(pct, "25|50|75|95")),
+               ggplot(effects_data %>%
+                        filter(str_detect(pct, "25|50|75|95")) %>%
+                        group_by(age_at_survey, site_type, pct) %>%
+                        summarise(fit   = mean(fit),
+                                  lower = mean(lower),
+                                  upper = mean(upper),
+                                  .groups = "drop"),
                       aes(x = age_at_survey, y = fit, fill = site_type)) +
                  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = .2) +
                  geom_smooth(aes(color = site_type), method = "loess", se = FALSE) +
@@ -174,7 +184,7 @@ make_effects_plots <- function(habitat, focal_group, re_string){
       p2 <- ggplot(data = effects_data %>% filter(age_at_survey %in% c(0, 5, 10, 15)), 
                    aes(x = !!sym(hab_var), y = fit, fill = site_type)) +
         geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2) +
-        geom_smooth(aes(color = site_type), method = "loess", se = F) +
+        geom_smooth(aes(color = site_type), method = "loess", se = F, linewidth = 1.2) +
         facet_wrap(~age_at_survey, nrow = 1) +
         scale_color_manual(values = mpa_colors) +
         scale_fill_manual(values = mpa_colors) +
@@ -185,6 +195,27 @@ make_effects_plots <- function(habitat, focal_group, re_string){
         my_theme
       
       effect_plots[[paste0(habitat, "_", names(effects_list)[i], "_v2")]] <- p2
+      
+      eff_hab <- ggpredict(focal_model, terms = c(paste(hab_var, "[n = 100]"), "site_type")) %>% 
+        as.data.frame() %>% 
+        filter(between(x, min(data_sp[hab_var]), max(data_sp[hab_var]))) %>% 
+        mutate(x = x*var_scale+var_center) %>% 
+        rename(site_type = group) 
+        
+      p3 <- ggplot(eff_hab, 
+                   aes(x = x, y = exp(predicted) - const, fill = site_type)) +
+        geom_ribbon(aes(ymin = exp(conf.low) - const, ymax = exp(conf.high) - const), alpha = 0.2) +
+        geom_smooth(aes(color = site_type), se = F, linewidth = 1.2) +
+        scale_color_manual(values = mpa_colors) +
+        scale_fill_manual(values = mpa_colors) +
+        coord_cartesian(ylim = c(0, NA), expand = F) +
+        labs(
+          x = x_var_label,
+          y = if (habitat %in% c("kelp", "kelp_filtered")) expression("Biomass (kg per 100 m"^2*")") else y_var_label,
+          color =  NULL, fill = NULL) + 
+        my_theme
+      
+      effect_plots[[paste0(habitat, "_", names(effects_list)[i], "_habitat")]] <- p3
     }
   }
   
@@ -193,7 +224,7 @@ make_effects_plots <- function(habitat, focal_group, re_string){
   
   # Plot the average predicted biomass trajectories
   age <- ggplot(eff_age, aes(x = x * age_scale + age_center, y = exp(predicted) - const, color = group)) +
-    geom_line(size = 1.2) +
+    geom_line(linewidth = 1.2) +
     geom_ribbon(aes(ymin = exp(conf.low) - const, ymax = exp(conf.high) - const, fill = group), alpha = 0.2, color = NA) +
     scale_color_manual(values = mpa_colors) +
     scale_fill_manual(values = mpa_colors) +
@@ -213,6 +244,10 @@ make_effects_plots <- function(habitat, focal_group, re_string){
   
 }
 
+(guide_area() / wrap_plots(effect_plots[3:4], axis_titles = "collect_x", ncol = 1)) + 
+  plot_layout(guides = "collect", heights = unit(c(0.4, 1), c("cm", "null"))) + 
+  theme(legend.position = "top")
+
 
 # This will both save the plots (via functions above) and keep them in the environment
 kelp <- make_effects_plots("kelp_filtered", "targeted", "my")
@@ -221,9 +256,9 @@ surf <- make_effects_plots("surf_filtered", "targeted", "m")
 
 
 # Combine all three into one plot with panels
-#rock <- readRDS(file.path("~/ca-mpa/analyses/7habitat/output/effects/3way", "rock_filtered_targeted_rmsy_effects_plots.rds"))
-#kelp <- readRDS(file.path("~/ca-mpa/analyses/7habitat/output/effects/3way", "kelp_filtered_targeted_msy_effects_plots.rds"))
-#surf <- readRDS(file.path("~/ca-mpa/analyses/7habitat/output/effects/3way", "surf_filtered_targeted_m_effects_plots.rds"))
+rock <- readRDS(file.path("~/ca-mpa/analyses/7habitat/output/effects/3way", "rock_filtered_targeted_rmsy_effects_plots.rds"))
+kelp <- readRDS(file.path("~/ca-mpa/analyses/7habitat/output/effects/3way", "kelp_filtered_targeted_msy_effects_plots.rds"))
+surf <- readRDS(file.path("~/ca-mpa/analyses/7habitat/output/effects/3way", "surf_filtered_targeted_m_effects_plots.rds"))
 
 rm(data_sp, focal_group, habitat, re_string)
 
@@ -231,7 +266,7 @@ all_plots <- c(rock, kelp, surf)
 names(all_plots)  
 
 age_plots <- all_plots[str_detect(names(all_plots), "_overall")]
-wrap_plots(age_plots, ncol = 1)
+wrap_plots(age_plots, ncol = 1) 
 
 titles <- c("Shallow reef", "Kelp forest", "Surf zone")
 
@@ -240,7 +275,8 @@ age_plots_named <- Map(function(p, title) {
     theme(axis.text = element_text(size = 8),
           axis.text.x = element_text(size = 8, angle = 0, hjust = 0.5),
           axis.text.y =  element_text(size = 8, angle = 0, hjust = 0.5),
-          axis.title = element_text(size = 10),
+          axis.title.x = element_text(size = 10),
+          axis.title.y = element_text(size = 10, hjust = 0.5, vjust = 0),
           legend.text = element_text(size = 8))
     
 }, age_plots, titles)
@@ -250,11 +286,12 @@ age_plots_named <- Map(function(p, title) {
   theme(legend.position = "top")
 
 
-ggsave("fig1-age-effects.png", 
+ggsave(file.path(fig.dir, "fig3-age-effects.png"), 
        width = 3, height = 6, dpi = 600, units = "in")
 
 
-habitat_plots <- all_plots[!str_detect(names(all_plots), "overall")]
+
+habitat_plots <- all_plots[!str_detect(names(all_plots), "overall|v2|v3") & (str_count(names(all_plots), ":") == 1 | str_detect(names(all_plots), "habitat"))]
 
 names(habitat_plots)
 wrap_plots(habitat_plots)
@@ -262,47 +299,73 @@ wrap_plots(habitat_plots)
 rock_plots <- habitat_plots[str_detect(names(habitat_plots), "rock")]
 kelp_plots <- habitat_plots[str_detect(names(habitat_plots), "kelp")]
 surf_plots <- habitat_plots[str_detect(names(habitat_plots), "surf")]
-rock_plots[[1]] <- rock_plots[[1]] + ggtitle("Shallow reef")
-kelp_plots[[1]] <- kelp_plots[[1]] + ggtitle("Kelp forest")
-surf_plots[[1]] <- surf_plots[[1]] + ggtitle("Surf zone")
+
+rock_plots[[1]] <- rock_plots[[1]] + ggtitle("Shallow reef") + 
+  labs(x = bquote(.(gsub(" [0-9]+m$", "", rock_plots[[1]]$labels$x)) ~ "("*m^2*")")) + 
+  annotate("text", x = -Inf, y = Inf, label = "**", hjust = -0.5, vjust = 1.5, fontface = "bold", size = 4)+ 
+  theme(axis.title.x = element_text(size = 10),
+        axis.title.y = element_text(size = 10, vjust = 0))
+
+rock_plots[[2]] <- rock_plots[[2]] + 
+  labs(x = "Depth variability (CV)",
+       y = NULL) + 
+  annotate("text", x = -Inf, y = Inf, label = "**", hjust = -0.5, vjust = 1.5, fontface = "bold", size = 4)+ 
+  theme(axis.title.x = element_text(size = 10),
+        axis.title.y = element_text(size = 10, vjust = 0))
+
+kelp_plots[[1]] <- kelp_plots[[1]] + ggtitle("Kelp forest") + 
+  labs(x = "Kelp (± SD from annual mean)") +
+  theme(axis.title.x = element_text(size = 10),
+        axis.title.y = element_text(size = 10, vjust = 0,  margin = margin(0,0,0,0)))
+
+kelp_plots[[2]] <- kelp_plots[[2]] +
+  labs(x = "Depth variability (CV)") + 
+  annotate("text", x = -Inf, y = Inf, label = "**", hjust = -0.5, vjust = 1.5, fontface = "bold", size = 4)+ 
+  theme(axis.title.x = element_text(size = 10),
+        axis.title.y = element_text(size = 10, vjust = 0, margin = margin(0,0,0,0)))
+
+surf_plots[[1]] <- surf_plots[[1]] + ggtitle("Surf zone") + 
+  labs(x = bquote(.(gsub(" [0-9]+m$", "", surf_plots[[1]]$labels$x)) ~ "("*m^2*")")) + 
+  theme(axis.title.x = element_text(size = 10),
+        axis.title.y = element_text(size = 10, vjust = 0))
+
+surf_plots[[2]] <- surf_plots[[2]] +
+  labs(x = "Depth variability (CV)") + 
+  theme(axis.title.x = element_text(size = 10),
+        axis.title.y = element_text(size = 10, vjust = 0))
+
 
 # Remove y-axis labels for all but first in each group
-rock_plots[-1] <- lapply(rock_plots[-1], \(p) p + theme(axis.title.y = element_blank()))
-kelp_plots[-1] <- lapply(kelp_plots[-1], \(p) p + theme(axis.title.y = element_blank()))
-surf_plots[-1] <- lapply(surf_plots[-1], \(p) p + theme(axis.title.y = element_blank()))
+#rock_plots[-1] <- lapply(rock_plots[-1], \(p) p + theme(axis.title.y = element_blank()))
+#kelp_plots[-1] <- lapply(kelp_plots[-1], \(p) p + theme(axis.title.y = element_blank()))
+#surf_plots[-1] <- lapply(surf_plots[-1], \(p) p + theme(axis.title.y = element_blank()))
 
 
-final_plot <- wrap_plots(
-  wrap_plots(rock_plots, ncol = length(rock_plots)),
-  wrap_plots(kelp_plots, ncol = length(kelp_plots)),
-  wrap_plots(surf_plots, ncol = length(surf_plots)),
-  ncol = 1
-) + plot_layout(guides = "collect") & 
-  theme(legend.position = "bottom")
+habitat_plots <- c(rock_plots, kelp_plots, surf_plots)
 
-final_plot
+(guide_area() / wrap_plots(habitat_plots, axis_titles = "collect_y", ncol = 2)) + 
+  plot_layout(guides = "collect", heights = unit(c(0.4, 1), c("cm", "null"))) + 
+  theme(legend.position = "top")
 
-ggsave("fig2-habitat-effects.png", 
-       width = 8, height = 8, dpi = 600, units = "in")
+ggsave(file.path(fig.dir, "fig4-habitat-effects.png"), 
+       width = 6, height = 7, dpi = 600, units = "in")
 
-# layout <- "
-# ABC##
-# DEGHI
-# J#K#L
-# "
-# 
-# wrap_plots(
-#   A = habitat_plots[["rock_depth_mean_250"]],
-#   B = habitat_plots[["rock_depth_cv_500"]],
-#   C = habitat_plots[["rock_hard_bottom_100"]],
-#   D = habitat_plots[["kelp_depth_mean_250"]],
-#   E = habitat_plots[["kelp_depth_cv_50"]],
-#   G = habitat_plots[["kelp_hard_bottom_25"]],
-#   H = habitat_plots[["kelp_kelp_annual_100"]],
-#   I = habitat_plots[["kelp_aquatic_vegetation_bed_500"]],
-#   J = habitat_plots[["surf_depth_mean_50"]],
-#   K = habitat_plots[["surf_soft_bottom_50"]],
-#   L = habitat_plots[["surf_aquatic_vegetation_bed_250"]],
-#   `#` = plot_spacer()
-# ) + plot_layout(design = layout)
 
+
+three_plots <- all_plots[str_count(names(all_plots), ":") == 2 & !str_detect(names(all_plots), "_v2|habitat")]
+names(three_plots)
+
+three_plots[[1]] <- three_plots[[1]] + ggtitle("Shallow reef: hard bottom") + theme(axis.title.x = element_text(size = 10),
+                                                                                    axis.title.y = element_text(size = 10, vjust = 0))
+three_plots[[2]] <- three_plots[[2]] + ggtitle("Shallow reef: structural complexity") + theme(axis.title.x = element_text(size = 10),
+                                                                                              axis.title.y = element_text(size = 10, vjust = 0))
+three_plots[[3]] <- three_plots[[3]] + ggtitle("Kelp forest: structural complexity") + theme(axis.title.x = element_text(size = 10),
+                                                                                             axis.title.y = element_text(size = 10, vjust = 0))
+
+
+(guide_area() / wrap_plots(three_plots , axis_titles = "collect_x", ncol = 1)) + 
+  plot_layout(guides = "collect", heights = unit(c(0.4, 1), c("cm", "null"))) + 
+  theme(legend.position = "top")
+
+ggsave(file.path(fig.dir, "fig5-habitat-threeway-effects.png"), 
+       width = 6, height = 7, dpi = 600, units = "in")
