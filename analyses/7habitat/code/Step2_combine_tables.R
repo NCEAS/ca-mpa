@@ -41,6 +41,28 @@ sst <- readRDS("/home/shares/ca-mpa/data/sync-data/environmental/processed/envr_
   filter(!is.na(sst_annual_obs)) %>% 
   mutate(affiliated_mpa = recode(affiliated_mpa, "ano nuevo smr" = "año nuevo smr"))
 
+# Add plotting details
+fig.dir <- "~/ca-mpa/analyses/7habitat/figures/3way-figures"
+
+my_theme <- theme_minimal(base_family = "Arial") + 
+  theme(plot.title = element_text(size = 10, face = "bold"),
+        plot.subtitle = element_text(size = 8),
+        axis.title = element_text(size = 10),
+        axis.text.x = element_text(size = 10),
+        axis.text.y = element_text(size = 10),
+        legend.title = element_text(size = 10),
+        legend.text = element_text(size = 10),
+        legend.margin = margin(t = 0, unit='cm'),
+        plot.caption = element_text(size = 8),
+        panel.grid.minor = element_blank(),
+        strip.text = element_text(size = 8, face = "bold"),
+        panel.background = element_rect(fill = "white", color = NA),  
+        plot.background = element_rect(fill = "white", color = NA),
+        legend.position = "top",
+        panel.spacing = unit(1, "lines"),
+        legend.key.size = unit(1, "lines"))
+
+mpa_colors <- c("Reference" = "#6d55aa", "MPA" = "#c42119")
 
 # Kelp -------------------------------------------------------------------------------------------------------------------
 
@@ -68,7 +90,11 @@ kelp_sites <- kelp %>%
   mutate(scale = as.numeric(str_extract(habitat_variable, "\\d+"))) %>% 
   mutate(habitat = str_remove(habitat_variable, "_\\d+")) %>% 
   arrange(desc(habitat), scale) %>% 
-  mutate(habitat_variable = factor(habitat_variable, levels = unique(habitat_variable)))
+  mutate(habitat_variable = factor(habitat_variable, levels = unique(habitat_variable))) %>% 
+  mutate(habitat_variable_label = paste0(str_replace_all(habitat_variable, "_", " ") %>% 
+                                           str_to_sentence() %>% 
+                                           str_replace_all("cv", "CV"), "m")) %>% 
+  mutate(habitat_variable_label = factor(habitat_variable_label, levels = unique(habitat_variable_label)))
 
 kelp_max <- kelp_sites %>% 
   group_by(site_type, habitat_variable, scale) %>% 
@@ -126,13 +152,20 @@ kelp_remove2 %>%
   sub_missing(everything(), missing_text = "")
 
 ggplot(data = kelp_sites %>% 
-         filter(site %in% kelp$site) %>% filter(affiliated_mpa %in% kelp$affiliated_mpa)) +
+         filter(site %in% kelp$site) %>% 
+         filter(affiliated_mpa %in% kelp$affiliated_mpa)) +
   geom_density(aes(x = value, color = site_type, fill = site_type), alpha = 0.3) + 
+  scale_fill_manual(values = mpa_colors)+
+  scale_color_manual(values = mpa_colors)+
   labs(x = "Value of habitat characteristic", y = "Density", fill = NULL, color = NULL)+
-  theme_minimal() + 
+  my_theme+
   theme(legend.position = "top",
         axis.text.x = element_text(angle = 45, hjust = 1)) +
-  facet_wrap(~habitat_variable, scales = "free", ncol = 5)
+  facet_wrap(~habitat_variable_label, scales = "free", ncol = 5)
+
+ggsave(file.path(fig.dir, "si-fig4-kelp-dist.png"), 
+       width = 9, height = 6, dpi = 600, units = "in")
+
 
 # Rock (CCFRP) ----------------------------------------------------------------------------------------------
 rock_raw <- readRDS(file.path(ltm.dir, "rock_biomass_subset.Rds")) 
@@ -152,7 +185,11 @@ rock_sites <- rock %>%
   mutate(scale = as.numeric(str_extract(habitat_variable, "\\d+"))) %>% 
   mutate(habitat = str_remove(habitat_variable, "_\\d+")) %>% 
   arrange(desc(habitat), scale) %>% 
-  mutate(habitat_variable = factor(habitat_variable, levels = unique(habitat_variable)))
+  mutate(habitat_variable = factor(habitat_variable, levels = unique(habitat_variable))) %>% 
+  mutate(habitat_variable_label = paste0(str_replace_all(habitat_variable, "_", " ") %>% 
+                                           str_to_sentence() %>% 
+                                           str_replace_all("cv", "CV"), "m")) %>% 
+  mutate(habitat_variable_label = factor(habitat_variable_label, levels = unique(habitat_variable_label)))
 
 rock_max <- rock_sites %>% 
   group_by(site_type, habitat_variable, scale) %>% 
@@ -193,12 +230,16 @@ ggplot(data = rock_sites %>%
          filter(site %in% rock$site) %>% 
          filter(affiliated_mpa %in% rock$affiliated_mpa)) +
   geom_density(aes(x = value, color = site_type, fill = site_type), alpha = 0.3) + 
+  scale_fill_manual(values = mpa_colors) +
+  scale_color_manual(values = mpa_colors) +
   labs(x = "Value of habitat characteristic", y = "Density", fill = NULL, color = NULL)+
-  theme_minimal() + 
+  my_theme + 
   theme(legend.position = "top",
         axis.text.x = element_text(angle = 45, hjust = 1)) +
-  facet_wrap(~habitat_variable, scales = "free", ncol = 5)
+  facet_wrap(~habitat_variable_label, scales = "free", ncol = 5)
 
+ggsave(file.path(fig.dir, "si-fig4-rock-dist.png"), 
+       width = 9, height = 6, dpi = 600, units = "in")
 
 # Surf zone (seines) ----------------------------------------------------------------------------------------------
 
@@ -219,7 +260,11 @@ surf_sites <- surf %>%
   mutate(scale = as.numeric(str_extract(habitat_variable, "\\d+"))) %>%
   mutate(habitat = str_remove(habitat_variable, "_\\d+")) %>%
   arrange(desc(habitat), scale) %>%
-  mutate(habitat_variable = factor(habitat_variable, levels = unique(habitat_variable)))
+  mutate(habitat_variable = factor(habitat_variable, levels = unique(habitat_variable))) %>% 
+  mutate(habitat_variable_label = paste0(str_replace_all(habitat_variable, "_", " ") %>% 
+                                           str_to_sentence() %>% 
+                                           str_replace_all("cv", "CV"), "m")) %>% 
+  mutate(habitat_variable_label = factor(habitat_variable_label, levels = unique(habitat_variable_label)))
 
 surf_max <- surf_sites %>%
   group_by(site_type, habitat_variable, scale) %>%
@@ -237,6 +282,21 @@ surf_flagged_max <- surf_sites_max %>%
   filter(value > range_max) %>% 
   mutate(pct_diff = round(abs(value - range_max)/(0.5*(value + range_max))*100, 3)) %>% 
   filter(pct_diff > 0) %>% arrange(pct_diff)
+
+ggplot(data = surf_sites) +
+  geom_density(aes(x = value, color = site_type, fill = site_type), alpha = 0.3) + 
+  scale_fill_manual(values = mpa_colors) +
+  scale_color_manual(values = mpa_colors) +
+  labs(x = "Value of habitat characteristic", y = "Density", fill = NULL, color = NULL)+
+  my_theme + 
+  theme(legend.position = "top",
+        axis.text.x = element_text(angle = 45, hjust = 1)) +
+  facet_wrap(~habitat_variable_label, scales = "free", ncol = 5)
+
+ggsave(file.path(fig.dir, "si-fig4-surf-dist.png"), 
+       width = 9, height = 9, dpi = 600, units = "in")
+
+
 
 # Deep ----------------------------------------------------------------------------------------------
 deep_raw <- readRDS(file.path(ltm.dir, "deep_biomass_subset.Rds")) 
