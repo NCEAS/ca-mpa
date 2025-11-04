@@ -36,6 +36,11 @@ outdir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data"
 surf_zone_raw <- read.csv(file.path(datadir, "monitoring_sandy-beach/surf_zone_fish_seine_data.csv")) %>%
   clean_names()
 
+surf_zone_raw2 <- read.csv("/home/shares/ca-mpa/data/sync-data/monitoring/monitoring_sandy-beach/update_2024/seine_fish_19_24.csv", na.strings = c("", "NA")) %>% 
+  clean_names() %>% 
+  rename(site_type = mpa_status,
+         mpa_name_short = ca_mpa_name_short) 
+
 # Read taxonomy lookup table
 taxon_tab <- read.csv("/home/shares/ca-mpa/data/sync-data/species_traits/processed/species_key.csv") %>% 
   clean_names()%>%
@@ -59,26 +64,32 @@ defacto_smr_surf <- readxl::read_excel("/home/shares/ca-mpa/data/sync-data/mpa_t
 # Process Data ------------------------------------------------------------------------
 
 # Identify paired mpa-reference sites
-# Surf zone used an alphabetic naming convention ('site_pair') to identify matched pairs (inside vs. out)
+pair_key <- surf_zone_raw2 %>% 
+  distinct(site_type, mpa_name_short, site_pair) %>% 
+  filter(site_type == "MPA") %>% 
+  mutate(affiliated_mpa = mpa_name_short) %>% 
+  select(site_pair, affiliated_mpa)
 
-pairs <- surf_zone_raw %>% 
-  dplyr::select(site_code, site_type, site_name, mpa_name_short, affiliated_mpa, site_pair, mpa_status, mpa_type) %>% 
+# Surf zone used an alphabetic naming convention ('site_pair') to identify matched pairs (inside vs. out)
+pairs <- surf_zone_raw2 %>% 
+  dplyr::select(site_type, site_name, mpa_name_short, site_pair) %>% # site_code, affiliated_mpa,  mpa_status,  mpa_type
   distinct() %>%
+  left_join(pair_key) %>% 
   # Surf zone called any SMR or SMCA a 'MPA', so use the affiliated_mpa name to identify the state class 
   mutate(mpa_state_class = tolower(word(affiliated_mpa, -1)),
-         mpa_state_designation = ifelse(mpa_status == "Reference", "ref", mpa_state_class)) %>% 
+         mpa_state_designation = ifelse(site_type == "Reference", "ref", mpa_state_class)) %>% 
   # Creat column that notes that the reference is an SMCA - 6 in surf zone
-  mutate(ref_is_mpa = if_else(mpa_status == "Reference" & !(mpa_name_short == ""), "yes", "no"))
+  mutate(ref_is_mpa = if_else(site_type == "Reference" & !is.na(mpa_name_short), "yes", "no"))
 
 
-data <- surf_zone_raw %>% 
+data <- surf_zone_raw2 %>% 
   # Add paired mpa-reference sites
   left_join(pairs) %>% 
   rename(weight_g = fish_weight_individual,
          total_weight_g = fish_weight) %>%
-  mutate(total_weight_kg = total_weight_g / 1000,
-         tl_cm = tl_mm / 10, # changed to calculate from tl_mm instead of fish_length -JGS
-         sl_cm = sl_mm / 10,
+  mutate(total_weight_kg = total_weight_g/1000,
+         tl_cm = tl_mm/10, # changed to calculate from tl_mm instead of fish_length -JGS
+         sl_cm = sl_mm/10,
          affiliated_mpa = tolower(affiliated_mpa)) %>% 
   # Add de-facto smr designations
   left_join(defacto_smr_surf) %>% 
