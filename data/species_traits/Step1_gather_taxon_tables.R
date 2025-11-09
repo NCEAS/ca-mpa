@@ -35,7 +35,11 @@ export_path <- "/home/shares/ca-mpa/data/sync-data/species_traits/processed"
 # Surf zone has multiple sampling methods each with a unique taxonomy table. 
 # We are only using the seine data so will load that table only. 
 
-surf_taxon1 <- read.csv(file.path("/home/shares/ca-mpa/data/sync-data/monitoring/taxonomy_tables","surf_zone_fish_seine_species.csv"))
+# This is the original table that contains species for the 2019-2020 dataset:
+# surf_taxon1 <- read.csv(file.path("/home/shares/ca-mpa/data/sync-data/monitoring/taxonomy_tables","surf_zone_fish_seine_species.csv"))
+
+# This is the updated 2025 table that was used for the 2019-2024 dataset:
+surf_taxon1 <- readxl::read_excel(file.path("/home/shares/ca-mpa/data/sync-data/monitoring/taxonomy_tables","surfzone_MASTER_species_2025.xlsx"))
 
 # Rocky intertidal has two survey types (biodiversity and long term) each with 
 # a unique taqxonomy table. We are only using the long term data here so will
@@ -72,6 +76,7 @@ deep_reef_data <- read.csv(
 
 surf_taxon <- surf_taxon1 %>%
   mutate(habitat = "Surf Zone") %>%
+  filter(category == "fish") %>% 
   dplyr::select(habitat, habitat_specific_code = "species_code", habitat_specific_spp_name = "ScientificName_accepted",
                 Kingdom, Phylum, Class, Order, Family, Genus = genus, Species = species, target_status = Targeted) %>%
   distinct() %>% 
@@ -83,7 +88,14 @@ surf_taxon <- surf_taxon1 %>%
     habitat_specific_code == "RFYOY" ~"Rockfish young of year",
     TRUE ~ habitat_specific_spp_name)) %>% 
   # Drop the NA row with no species info
-  filter(!is.na(habitat_specific_code)) 
+  filter(!is.na(habitat_specific_code)) %>% 
+  # Fix missing Phylum
+  mutate(Phylum = case_when(habitat_specific_spp_name == "Anthopleura elegantissima" ~ "Cnidaria",
+                            habitat_specific_spp_name == "Callianax biplicata" ~ "Mollusca",
+                            habitat_specific_spp_name == "Carybdea confusa" ~ "Cnidaria",
+                            habitat_specific_spp_name == "Cancer productus" ~ "Arthropoda",
+                            habitat_specific_spp_name == "Emerita analoga" ~  "Arthropoda",
+                            T~Phylum))
 
 # add rows that are in the raw data but not in the taxonomy table
 HALI <-  data.frame(
@@ -366,6 +378,8 @@ taxon_tab[taxon_tab == "Non-targeted"] <- "Nontargeted"
 #write.csv(taxon_tab, file.path(export_path, "full_taxon_table_new.csv"), row.names = FALSE)
 # last write Oct 19, 2023
 
+write.csv(taxon_tab, file.path(export_path, "full_taxon_table_2025.csv"), row.names = FALSE)
+# last write Nov 9, 2025
 
 
 

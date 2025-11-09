@@ -31,11 +31,11 @@ datadir <- file.path(basedir, "species_traits")
 
 # Read Data ---------------------------------------------------------------------------
 # Length-weight parameters pulled from fishbase in Step 3
-fishbase_params <- read.csv(file.path(datadir, "processed/fishbase_lw_parameters.csv")) %>% 
+fishbase_params <- read.csv(file.path(datadir, "processed/fishbase_lw_parameters_2025.csv")) %>% 
   mutate(source = "Fishbase")
 
 # Read the cleaned species key to match the taxonomy to that in fishbase
-spp_orig <- read.csv(file.path("/home/shares/ca-mpa/data/sync-data/species_traits/processed/species_key.csv"), as.is=T) %>% 
+spp_orig <- read.csv(file.path("/home/shares/ca-mpa/data/sync-data/species_traits/processed/species_key_2025.csv"), as.is=T) %>% 
   clean_names() 
 
 # Length-weight parameters from CCFRP literature review
@@ -341,7 +341,10 @@ deep_subset <- deep_params3 %>%
   filter(!sciname %in% params2$sciname) # 0 remain
 
 # Write to csv
-write.csv(params2, file.path(datadir, "processed/lw_parameters_fish.csv"), row.names = F)
+write.csv(params2, file.path(datadir, "processed/lw_parameters_fish_2025.csv"), row.names = F)
+
+
+#write.csv(params2, file.path(datadir, "processed/lw_parameters_fish.csv"), row.names = F)
 # last write Feb 15 2024
 # this last write updated to include kelp forest parameters
 
