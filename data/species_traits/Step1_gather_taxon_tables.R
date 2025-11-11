@@ -81,12 +81,15 @@ surf_taxon <- surf_taxon1 %>%
                 Kingdom, Phylum, Class, Order, Family, Genus = genus, Species = species, target_status = Targeted) %>%
   distinct() %>% 
   # Fix incorrect species code
-  mutate(habitat_specific_code = if_else(habitat_specific_spp_name == "Genyonemus lineatus", "GELI", habitat_specific_code)) %>% 
+  mutate(habitat_specific_code = case_when(habitat_specific_spp_name == "Genyonemus lineatus" ~"GELI", 
+                                           T ~ habitat_specific_code)) %>% 
   mutate(habitat_specific_spp_name = case_when(
     habitat_specific_code == "FFUN" ~ "Unidentified flatfish", 
     habitat_specific_code == "HALI" ~ "Unidentified halibut",
     habitat_specific_code == "RFYOY" ~"Rockfish young of year",
     TRUE ~ habitat_specific_spp_name)) %>% 
+  mutate(habitat_specific_spp_name = case_when(is.na(habitat_specific_spp_name) & !is.na(Genus) & !is.na(Species) ~ paste(Genus, Species),
+                                               T~ habitat_specific_spp_name)) %>% 
   # Drop the NA row with no species info
   filter(!is.na(habitat_specific_code)) %>% 
   # Fix missing Phylum
@@ -98,20 +101,6 @@ surf_taxon <- surf_taxon1 %>%
                             T~Phylum))
 
 # add rows that are in the raw data but not in the taxonomy table
-HALI <-  data.frame(
-    habitat = "Surf Zone", 
-    habitat_specific_code = "HALI",
-    habitat_specific_spp_name = "Unidentified halibut",
-    Kingdom = "Animalia",
-    Phylum = "Chordata",
-    Class = "Actinopteri",
-    Order = "Pleuronectimformes",
-    Family = "Paralichthyidae",
-    Genus = NA,
-    Species = NA,
-    target_status = NA
-  )
-
 unspecified <-  data.frame(
   habitat = "Surf Zone", 
   habitat_specific_code = "unspecified",
@@ -140,21 +129,9 @@ RFYOY <-  data.frame(
   target_status = NA
 )
 
-FFUN <-   data.frame(
-  habitat = "Surf Zone", 
-  habitat_specific_code = "FFUN",
-  habitat_specific_spp_name = "Unidentified flatfish",
-  Kingdom = "Animalia",
-  Phylum = "Chordata",
-  Class = "Actinopteri",
-  Order = "Pleuronectimformes",
-  Family = NA,
-  Genus = NA,
-  Species = NA,
-  target_status = NA
-)
 
-surf_taxon <- rbind(surf_taxon, HALI, unspecified, RFYOY, FFUN)
+surf_taxon <- rbind(surf_taxon, unspecified, RFYOY)
+
 
 surf_taxon$Species[surf_taxon$Species %in% c("sp.", "spp")] <- NA
 surf_taxon$Genus[surf_taxon$Genus == surf_taxon$Family] <- NA

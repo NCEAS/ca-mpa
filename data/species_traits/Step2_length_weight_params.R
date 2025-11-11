@@ -180,7 +180,7 @@ taxa_match <- spp %>%
          Order, Order.x, Order.y, Order.match,
          Class, Class.x, Class.y, Class.match) 
 
-match_class <- taxa_match %>% filter(!Class.match) # 277 will update -- 310
+match_class <- taxa_match %>% filter(!Class.match) # 277 will update -- 313
 match_family <- taxa_match %>% filter(!Family.match) # 43 will update -- 47
 match_genus <- taxa_match %>% filter(!Genus.match)  # 16 will update -- 15
 match_order <- taxa_match %>% filter(!Order.match) # 155 will update -- 162
@@ -227,7 +227,7 @@ spp_corrected <- spp_corrected %>%
 #write.csv(spp_corrected, file=file.path(datadir, "species_key.csv"), row.names = F)
 # last write Feb 15, 2024
 
-# write.csv(spp_corrected, file=file.path(datadir, "species_key_2025.csv"), row.names = F)
+write.csv(spp_corrected, file=file.path(datadir, "species_key_2025.csv"), row.names = F)
 # last write Nov 9, 2025
 
 
@@ -255,4 +255,4 @@ lw <- plyr::rbind.fill(lw_fb, lw_slb) %>%
 
 # Write length weight parameters to csv ----------------------------------------------------------
 write.csv(lw, file=file.path(datadir, "species_lw_parameters_from_fishbase_full_new.csv"), row.names = F)
-# last write Nov 9, 2023
+# last write Nov 9, 2025

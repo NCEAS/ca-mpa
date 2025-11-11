@@ -52,7 +52,7 @@ kelp_params <-readxl::read_excel(file.path(taxadir, "Kelp-Taxonomy.xlsx"), sheet
   mutate(source = "Kelp forest")
 
 # Length weight parameters from surf zone literature review
-surf_params <- read.csv(file.path(taxadir,"surf_zone_fish_seine_species.csv")) %>% 
+surf_params <- readxl::read_excel(file.path(taxadir,"surfzone_MASTER_species_2025.xlsx")) %>% #old: "surf_zone_fish_seine_species.csv"
   clean_names() %>% 
   select(species_code, scientific_name_accepted, wl_a:ll_equation_for_wl) %>% 
   mutate(source = "Surf zone")
@@ -248,8 +248,8 @@ surf_params2 <- surf_params1 %>%
                              units_w == "kg" & units_l == "mm" ~ a*10^b*1000,
                              T~NA)) %>% 
   # Fix the length-length conversion 
-  mutate(slope_ll_prime = if_else(conversion_type == "REVERSE", 1/slope_ll, slope_ll),
-         intercept_ll_prime = if_else(conversion_type == "REVERSE", -1*intercept_ll/slope_ll, intercept_ll)) %>% 
+  mutate(slope_ll_prime = if_else(conversion_type == "REVERSE" & slope_ll > 0, 1/slope_ll, slope_ll),
+         intercept_ll_prime = if_else(conversion_type == "REVERSE" & slope_ll > 0, -1*intercept_ll/slope_ll, intercept_ll)) %>% 
   # Demonstrate that regardless of cm/mm input, conversion will produce appropriate output:
   mutate(test_25_cm = 25*slope_ll_prime + intercept_ll_prime, # 25 cm TL > convert to SL
          test_250_mm = 250*slope_ll_prime + intercept_ll_prime) # 250 cm TL > convert to SL
@@ -320,7 +320,8 @@ deep_params3 <- deep_params2 %>%
 fishbase_params_subset <- fishbase_params %>% 
   filter(!sciname %in% ccfrp_params3$sciname) %>% 
   filter(!sciname %in% kelp_params3$sciname) %>% 
-  filter(!lw_type == "Unknown")
+  filter(!lw_type == "Unknown") %>% 
+  rename("level" = "lw_source")
 
 # Combine fishbase subset with CCFRP data
 params <- full_join(ccfrp_params3, fishbase_params_subset)

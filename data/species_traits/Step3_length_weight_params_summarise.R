@@ -178,7 +178,7 @@ data <- spp_fish %>%
 #write.csv(data, file=file.path(datadir, "fishbase_lw_parameters.csv"), row.names = F)
 # last write Oct 19 2023
 
-#write.csv(data, file=file.path(datadir, "fishbase_lw_parameters_2025.csv"), row.names = F)
+write.csv(data, file=file.path(datadir, "fishbase_lw_parameters_2025.csv"), row.names = F)
 # last write Nov 9 2025
 
 
