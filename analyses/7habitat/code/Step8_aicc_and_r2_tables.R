@@ -174,6 +174,9 @@ rock <- get_models("rock_filtered", "targeted", "rmy")
 kelp <- get_models("kelp_filtered", "targeted", "my")
 surf <- get_models("surf_filtered", "targeted", "m")
 
+rock_results <- rock$results
+kelp_results <- kelp$results
+surf_results <- surf$results
 
 rock <- rock$models
 kelp <- kelp$models
@@ -224,6 +227,8 @@ r2_difference <- model_long %>%
   mutate(Marginal_R2_diff = (top - base)*100) %>%
   select(Ecosystem, Marginal_R2_diff)
 r2_difference
+
+
 
 
 
@@ -313,3 +318,44 @@ aicc_table_with_r2 <- aicc_with_r2 %>%
       "Abbreviations: H = hard bottom; S = soft bottom; P = protected status; DM = depth mean; DCV = depth coefficient of variation; K = annual kelp canopy cover; MB = maximum biotic extent; A = MPA age.")) 
 
 aicc_table_with_r2
+
+
+# Get percent comparisons
+
+get_base_beta <- function(results, ecosystem_name){
+  row <- results %>%
+    filter(key == "Base Model", term_revised == "site_type:age_at_survey") %>%
+    slice(1)
+  
+  beta <- row$estimate
+  se <- row$std_error
+  ci_low <- beta - 1.96 * se
+  ci_high <- beta + 1.96 * se
+  
+  pct <- (exp(beta) - 1) * 100
+  pct_low <- (exp(ci_low) - 1) * 100
+  pct_high <- (exp(ci_high) - 1) * 100
+  
+  tibble(
+    ecosystem = ecosystem_name,
+    beta = beta,
+    se = se,
+    pct_per_year = round(pct, 2),
+    pct_low = round(pct_low, 2),
+    pct_high = round(pct_high, 2)
+  )
+}
+
+ecosystem_list <- list(rock_results, kelp_results, surf_results)
+ecosystem_names <- c("shallow_reef", "kelp_forest", "surf_zone")
+
+pct_base <- map2_dfr(ecosystem_list, ecosystem_names, get_base_beta)
+
+# formatted table with CI column
+pct_base_table <- pct_base %>%
+  mutate(pct_CI = sprintf("%0.2f%% (%0.2f to %0.2f%%)", pct_per_year, pct_low, pct_high)) %>%
+  select(ecosystem, beta, se, pct_CI) %>% 
+  gt() %>% 
+  fmt_number(decimals = 2)
+
+pct_base_table
