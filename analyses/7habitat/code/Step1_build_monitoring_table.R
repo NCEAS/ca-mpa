@@ -31,7 +31,7 @@ ltm.dir <-"/home/shares/ca-mpa/data/sync-data/monitoring/processed_data"
 sp.dir <- "/home/shares/ca-mpa/data/sync-data/species_traits/processed"
 
 surf_orig <- read_csv(file.path(ltm.dir,"update_2024/surf_zone_fish_biomass_updated.csv")) %>%
-  filter(!is.na(weight_g)) %>%  # drop for now - these are all fishes that are unknown or species with no lengths (WARNING: currently drops one full haul!)
+  filter(!is.na(weight_g)) %>%  # drop for now - these are all fishes that are unknown or species with no lengths 
   mutate(target_status = if_else(species_code == "NO_ORG", "NO_ORG", target_status)) %>%  # helpful for inspecting
   filter(!is.na(target_status))  # this drops: RFYOY, FFUN, HALI, Zoarcidae spp (after previous step to avoid dropping NO_ORG)
 
@@ -46,10 +46,10 @@ rock_orig <- read_csv(file.path(ltm.dir,"update_2024/ccfrp_fish_biomass_updated.
   filter(!is.na(target_status)) %>% # drop for now - spp without target status identified (see notes for details)
   filter(!affiliated_mpa == "trinidad NA")
 
-deep_orig <- read_csv(file.path(ltm.dir,"update_2024/deep_reef_fish_biomass_updated.csv")) %>% #WARNING: NA REMOVALS DROPS 12 TRANSECTS
-  filter(!is.na(weight_kg)) %>% # drop fishes unknown or without lengths/conversion params
-  mutate(target_status = if_else(species_code == "NO_ORG" & is.na(target_status), "NO_ORG", target_status)) %>%  # helpful for inspecting
-  filter(!is.na(target_status))
+# deep_orig <- read_csv(file.path(ltm.dir,"update_2024/deep_reef_fish_biomass_updated.csv")) %>% #WARNING: NA REMOVALS DROPS 12 TRANSECTS
+#   filter(!is.na(weight_kg)) %>% # drop fishes unknown or without lengths/conversion params
+#   mutate(target_status = if_else(species_code == "NO_ORG" & is.na(target_status), "NO_ORG", target_status)) %>%  # helpful for inspecting
+#   filter(!is.na(target_status))
 
 # Read the original species table
 # mlpa_sp <- read_csv(file.path(sync.dir, "species_traits/processed/species_key.csv")) %>% 
@@ -183,7 +183,7 @@ kelp_complete <- kelp_effort %>%
 surf_sites <- readRDS("/home/shares/ca-mpa/data/sync-data/monitoring/site_tables/processed/surf_site_names.Rds") 
 
 surf_effort <- surf_orig %>% 
-  # Identify distinct hauls - 857 (after NA droped above)
+  # Identify distinct hauls - 2607 (after NA droped above)
   distinct(year, month, day, bioregion, region4, affiliated_mpa,  mpa_defacto_class, mpa_defacto_designation, ref_is_mpa, site_name, haul_number) %>% 
   # Caclulate effort as total n hauls per site (mpa/ref) per year
   group_by(year, bioregion, region4, site_name, affiliated_mpa,  mpa_defacto_class,  mpa_defacto_designation, ref_is_mpa) %>% 
@@ -210,8 +210,8 @@ surf_complete <- surf_effort %>%
   mutate_at(vars(weight_kg), ~ replace(., is.na(.), 0)) %>% 
   mutate_at(vars(count), ~ replace(., is.na(.), 0)) %>% 
   mutate(site_type = if_else(mpa_defacto_designation == "ref", "Reference", "MPA")) %>% 
-  mutate(kg_per_haul = weight_kg/(n_rep), # 30x2x2m but JC says typical density is per m2 (60)
-         count_per_haul = count/(n_rep),
+  mutate(kg_per_haul = weight_kg/(n_rep), # 
+       #  count_per_haul = count/(n_rep), # this probably no longer accurate after expanding in processing
          age_at_survey = year - implementation_year) %>% 
   mutate(region = case_when(bioregion == "South" ~ "scb",
                             bioregion == "Central" ~ "cce",
@@ -224,7 +224,7 @@ surf_complete <- surf_effort %>%
   dplyr::select(year, site, site_name, site_type, 
                 bioregion, region4, affiliated_mpa, mpa_defacto_class, mpa_defacto_designation, implementation_year, size_km2, cluster_area_km2,
                 age_at_survey, n_rep, species_code, sciname, genus, target_status, assemblage, assemblage_new,
-                weight_kg, count, kg_per_haul, count_per_haul)
+                weight_kg, count, kg_per_haul)
 
 ## Rock (CCFRP) ----
 rock_effort <- rock_orig %>% 
@@ -333,14 +333,23 @@ deep_complete <- deep_effort %>%
 #saveRDS(deep, file.path(ltm.dir, "update_2024/biomass/biomass_site_year/deep_biomass_site_year.Rds"))
 
 
-saveRDS(kelp_effort, file.path(ltm.dir, "update_2024/kelp_site_year_effort.Rds"))
-saveRDS(rock_effort, file.path(ltm.dir, "update_2024/ccfrp_site_year_effort.Rds"))
-saveRDS(deep_effort, file.path(ltm.dir, "update_2024/deep_site_year_effort.Rds"))
+# saveRDS(kelp_effort, file.path(ltm.dir, "update_2024/kelp_site_year_effort.Rds"))
+# saveRDS(rock_effort, file.path(ltm.dir, "update_2024/ccfrp_site_year_effort.Rds"))
+# saveRDS(deep_effort, file.path(ltm.dir, "update_2024/deep_site_year_effort.Rds"))
+# 
+# saveRDS(kelp_complete, file.path(ltm.dir, "update_2024/kelp_biomass_complete.Rds")) # last write Feb 21 2025
+# saveRDS(rock_complete, file.path(ltm.dir, "update_2024/rock_biomass_complete.Rds")) # last write Feb 21 2025
+# saveRDS(surf_complete, file.path(ltm.dir, "update_2024/surf_biomass_complete.Rds")) # last write Feb 21 2025
+# saveRDS(deep_complete, file.path(ltm.dir, "update_2024/deep_biomass_complete.Rds")) # last write 3 Mar 2025
 
-saveRDS(kelp_complete, file.path(ltm.dir, "update_2024/kelp_biomass_complete.Rds")) # last write Feb 21 2025
-saveRDS(rock_complete, file.path(ltm.dir, "update_2024/rock_biomass_complete.Rds")) # last write Feb 21 2025
-saveRDS(surf_complete, file.path(ltm.dir, "update_2024/surf_biomass_complete.Rds")) # last write Feb 21 2025
-saveRDS(deep_complete, file.path(ltm.dir, "update_2024/deep_biomass_complete.Rds")) # last write 3 Mar 2025
+saveRDS(kelp_effort, file.path(ltm.dir, "update_2024/2025/kelp_site_year_effort.Rds"))
+saveRDS(rock_effort, file.path(ltm.dir, "update_2024/2025/ccfrp_site_year_effort.Rds"))
+saveRDS(deep_effort, file.path(ltm.dir, "update_2024/2025/deep_site_year_effort.Rds"))
+
+saveRDS(kelp_complete, file.path(ltm.dir, "update_2024/2025/kelp_biomass_complete.Rds")) # last write Feb 21 2025
+saveRDS(rock_complete, file.path(ltm.dir, "update_2024/2025/rock_biomass_complete.Rds")) # last write Feb 21 2025
+saveRDS(surf_complete, file.path(ltm.dir, "update_2024/2025/surf_biomass_complete.Rds")) # last write Feb 21 2025
+saveRDS(deep_complete, file.path(ltm.dir, "update_2024/2025/deep_biomass_complete.Rds")) # last write 3 Mar 2025
 
 # Clean Subsets -----------------------------------------------------------------------------
 
@@ -467,10 +476,17 @@ deep_subset3 <- deep_subset2 %>%
 
 
 
-saveRDS(kelp_subset, file.path(ltm.dir, "update_2024/kelp_biomass_subset.Rds")) 
-saveRDS(rock_subset, file.path(ltm.dir, "update_2024/rock_biomass_subset.Rds")) 
-saveRDS(surf_subset, file.path(ltm.dir, "update_2024/surf_biomass_subset.Rds"))
-saveRDS(deep_subset3, file.path(ltm.dir, "update_2024/deep_biomass_subset.Rds")) 
+# saveRDS(kelp_subset, file.path(ltm.dir, "update_2024/kelp_biomass_subset.Rds")) 
+# saveRDS(rock_subset, file.path(ltm.dir, "update_2024/rock_biomass_subset.Rds")) 
+# saveRDS(surf_subset, file.path(ltm.dir, "update_2024/surf_biomass_subset.Rds"))
+# saveRDS(deep_subset3, file.path(ltm.dir, "update_2024/deep_biomass_subset.Rds")) 
+
+saveRDS(kelp_subset, file.path(ltm.dir, "update_2024/2025/kelp_biomass_subset.Rds"))
+saveRDS(rock_subset, file.path(ltm.dir, "update_2024/2025/rock_biomass_subset.Rds"))
+saveRDS(surf_subset, file.path(ltm.dir, "update_2024/2025/surf_biomass_subset.Rds"))
+#saveRDS(deep_subset3, file.path(ltm.dir, "update_2024/2025/deep_biomass_subset.Rds"))
+
+
 
 
 # library(vegan)
