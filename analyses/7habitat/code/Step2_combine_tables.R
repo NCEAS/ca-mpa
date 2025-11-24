@@ -12,7 +12,7 @@ library(gt)
 rm(list = ls())
 
 # Directories
-ltm.dir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_2024"
+ltm.dir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_2024/2025"
 sp.dir <- "/home/shares/ca-mpa/data/sync-data/species_traits/processed"
 int.dir <- "~/ca-mpa/analyses/7habitat/intermediate_data"
 kw.dir <- "/home/shares/ca-mpa/data/sync-data/kelpwatch/2024/processed"
@@ -283,6 +283,23 @@ surf_flagged_max <- surf_sites_max %>%
   mutate(pct_diff = round(abs(value - range_max)/(0.5*(value + range_max))*100, 3)) %>% 
   filter(pct_diff > 0) %>% arrange(pct_diff)
 
+# Make final table for sites removed
+surf_remove <- surf_flagged_max %>% 
+  dplyr::select(site, site_type, affiliated_mpa, habitat_variable, value, range_max, pct_diff) %>% 
+  filter(pct_diff > 35) 
+
+
+surf_remove %>% 
+  arrange(desc(pct_diff)) %>% 
+  gt() %>% 
+  cols_label(site = "Site",
+             site_type = "Site Type",
+             affiliated_mpa = "MPA",
+             habitat_variable = "Variable",
+             value = "Site Value",
+             range_max = "Range Max Value",
+             pct_diff = "% Difference")
+
 ggplot(data = surf_sites) +
   geom_density(aes(x = value, color = site_type, fill = site_type), alpha = 0.3) + 
   scale_fill_manual(values = mpa_colors) +
@@ -343,5 +360,5 @@ deep <- deep_raw %>%
 saveRDS(kelp, file.path(ltm.dir, "combine_tables/kelp_full.Rds")) 
 saveRDS(surf, file.path(ltm.dir, "combine_tables/surf_full.Rds")) 
 saveRDS(rock, file.path(ltm.dir, "combine_tables/ccfrp_full.Rds")) 
-saveRDS(deep, file.path(ltm.dir, "combine_tables/deep_full.Rds"))  
+#saveRDS(deep, file.path(ltm.dir, "combine_tables/deep_full.Rds"))  
 
