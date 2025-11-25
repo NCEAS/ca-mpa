@@ -61,7 +61,7 @@ model_selection <- function(results_file, delta_threshold, focal_group, habitat,
   print(paste(results_file))
   
   # Read model fit results and data_sp used
-  results <- readRDS(file.path("~/ca-mpa/analyses/7habitat/output/models", "3way", results_file))
+  results <- readRDS(file.path("~/ca-mpa/analyses/7habitat/output/models", "3way", "2025", results_file))
   models_df <- results$models_df
   data_sp <- results$data_sp
   
@@ -95,7 +95,7 @@ model_selection <- function(results_file, delta_threshold, focal_group, habitat,
   if (length(top_names) > 1) {
    # nested <- check_nested_models(top_models) 
     nested <- evaluate_nested_models(top_models$model, delta_threshold = delta_threshold, alpha = 0.05)
-    top_names <- nested$candidates
+    top_names <- if(length(nested$candidates) > 0) nested$candidates else top_names[1]
     top_models <- top_models$model[top_names]
     print(paste("      Top models:", length(top_names)))
     print(paste("      ", paste(top_names)))
@@ -142,6 +142,7 @@ model_selection <- function(results_file, delta_threshold, focal_group, habitat,
            response = str_trim(str_extract(formula, "^[^~]+")),
            random_effects = case_when(re_string == "rmy" ~ "region4/affiliated_mpa, year",
                                       re_string == "rmsy" ~ "region4/affiliated_mpa/site, year",
+                                      re_string == "rm" ~ "region4/affiliated_mpa",
                                       re_string == "m" ~ "affiliated_mpa",
                                       re_string == "my" ~ "affiliated_mpa, year",
                                       re_string == "msy" ~ "affiliated_mpa/site, year",

@@ -26,7 +26,6 @@ get_tables <- function(habitat, focal_group, re_string){
   
   return(list(aicc_table = results$aicc_table,
               aicc_table_full = results$aicc_table_full,
-              predictor_table = results$predictor_table,
               nested_results = results$nested_results))
 }
 

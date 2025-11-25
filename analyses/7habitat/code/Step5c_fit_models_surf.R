@@ -23,24 +23,25 @@ source("analyses/7habitat/code/Step4a_prep_focal_data.R")
 source("analyses/7habitat/code/Step4b_build_habitat_models.R")  
 
 # Read Data --------------------------------------------------------------------
-ltm.dir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_2024"
+ltm.dir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_2024/2025"
 fig.dir <- "~/ca-mpa/analyses/7habitat/figures/3way-figures"
 
-pred_surf <- readRDS(file.path("analyses/7habitat/intermediate_data/surf_predictors.Rds")) %>% filter(pred_group %in% c("all", "combined"))
+pred_surf <- readRDS(file.path("analyses/7habitat/intermediate_data/surf_predictors.Rds")) %>% 
+  filter(pred_group %in% c("all", "combined"))
 
 # Define subset for modeling (reduced number of columns)
 data_surf <- readRDS(file.path(ltm.dir, "combine_tables/surf_full.Rds")) %>% 
   mutate(site_type = factor(site_type, levels = c("Reference", "MPA"))) %>% 
   dplyr::select(year:affiliated_mpa, size_km2, cluster_area_km2, age_at_survey,species_code:target_status, 
-                assemblage_new, weight_kg, count, kg_per_haul, count_per_haul, 
+                assemblage_new, weight_kg, count, kg_per_haul, 
                 all_of(pred_surf$predictor), matches("^aquatic_vegetation_bed"))
 
 
 # Build Data --------------------------------------------------------------------------
 # Provide some of the global variables
 habitat <- "surf"
-re_string <- "m"
-random_effects <- c("affiliated_mpa")
+re_string <- "rm"
+random_effects <- c("region4/affiliated_mpa")
 regions <- c("North", "Central", "N. Channel Islands", "South")
 print(paste0("Starting: ", habitat))
 print(paste0("RE Structure: ", paste(random_effects, collapse = ", ")))
@@ -120,7 +121,7 @@ fit_batch <- function(batch_df, data_sp, response, random_effects) {
 results_list <- future_map(batches, ~fit_batch(.x, 
                                                data_sp, 
                                                response = "log_c_biomass", 
-                                               random_effects = c("affiliated_mpa")),
+                                               random_effects = c("region4/affiliated_mpa")),
                            .options = furrr_options(seed = TRUE))
 
 models_df <- bind_rows(results_list) %>%
@@ -128,7 +129,7 @@ models_df <- bind_rows(results_list) %>%
   arrange(delta_AICc)
 
 saveRDS(list(models_df = models_df, data_sp = data_sp),
-        file.path("analyses/7habitat/output/models", "3way",
+        file.path("analyses/7habitat/output/models", "3way", "2025",
                   paste(habitat, "filtered", focal_group, re_string, "models.rds", sep = "_")))
  
 
