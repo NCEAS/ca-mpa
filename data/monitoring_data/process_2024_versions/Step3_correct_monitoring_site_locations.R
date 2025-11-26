@@ -31,7 +31,7 @@ sites <- readRDS(file.path("/home/shares/ca-mpa/data/sync-data/monitoring/proces
 # Load the state waters polygon
 state_waters_poly <- readRDS(file.path(gis.dir, "CA_state_waters_polygons.Rds")) %>% 
   st_transform(., crs = 26910) %>% 
-  st_buffer(., dist = -5) # shrink to ensure sites are a litle ofshore/line up with habitat edges
+  st_buffer(., dist = -10) # shrink to ensure sites are a litle ofshore/line up with habitat edges
 
 # Load the site table with the errors
 # sites_review <- readRDS(file.path(hab.dir, "review", "sites_review.Rds"))
@@ -40,10 +40,10 @@ coast <- sf::st_read(file.path("/home/shares/ca-mpa/data/sync-data/gis_data/raw"
   st_transform(., crs = 26910)
 
 # Check which site points are not within state waters (on land)
-# inside_indices <- st_within(sites, state_waters_poly)  
-# inside_logical <- lengths(inside_indices) > 0  
-# sites_outside <- sites[!inside_logical, ] %>% 
-#   filter(!habitat %in% c("Deep reef", "Rocky reef", "Kelp forest")) # these are outside state waters but still in the actual water
+inside_indices <- st_within(sites, state_waters_poly)
+inside_logical <- lengths(inside_indices) > 0
+sites_outside <- sites[!inside_logical, ] %>%
+  filter(!habitat %in% c("Deep reef", "Rocky reef", "Kelp forest")) # these are outside state waters but still in the actual water
 
 
 # Fix Surf Sites ----------------------------------------------------------------------------
@@ -69,7 +69,7 @@ for (my_site in unique(sites_surf$site)) {
   # Get the boundary (edges) of the water polygon
   water_boundary <- st_cast(state_waters_poly, "MULTILINESTRING")
   
-  # Move to the nearest point 5m from MHW line
+  # Move to the nearest point 10m from MHW line
   nearest_lines <- st_nearest_points(site_point, water_boundary)
   
   # Extract the nearest edge point
@@ -105,9 +105,8 @@ for (my_site in unique(sites_surf$site)) {
   plot <- ggplot() +
     geom_sf(data = coast, color = "blue", lwd = 0.6) +
     geom_sf(data = state_waters_poly, fill = "lightblue", alpha = 0.5) +
-    geom_sf(data = habitat_df, aes(fill = habitat_class), show.legend = F) +
-    geom_sf(data = site_point_corrected, color = "red", size = 2) +
-    geom_sf(data = site_point_corrected2, color = "orange", size = 2) +
+    geom_sf(data = habitat_df, aes(fill = habitat_class), show.legend = F, alpha = 0.5) +
+    geom_sf(data = corrected_points_list[[my_site]], color = "red", size = 2) +
     geom_sf(data = site_point, color = "black", size = 2) +
     coord_sf(
       xlim = c(site_bbox["xmin"], site_bbox["xmax"]),
@@ -131,20 +130,14 @@ for (my_site in unique(sites_surf$site)) {
   # Store the plot
   plots[[my_site]] <- plot
   
+  ggsave(filename = paste0("~/ca-mpa/analyses/7habitat/figures/site-plots", "/", my_site, "_plot.png"), plot = plot, width = 5, height = 5, units = "in", dpi = 300)
+  
   
   }
 
 
-wrap_plots(plots, ncol = 5)
-
-# Combine all corrected points into a single dataframe
-corrected_points_df <- bind_rows(corrected_points_list)
-
-# Merge corrected points back into the original sites dataframe
-sites_updated <- sites %>%
-  filter(!site %in% sites_surf$site) %>% 
-  bind_rows(corrected_points_df)
-
+surf_maps <- wrap_plots(plots, ncol = 7)
+surf_maps
 
 
 ## 1. Sites that are too far offshore --------------------------------------------------------
@@ -165,7 +158,7 @@ for (my_site in unique(sites_surf_offshore$site)) {
   # Get the boundary (edges) of the water polygon
   water_boundary <- st_cast(state_waters_poly, "MULTILINESTRING")
   
-  # Move to the nearest point 5m from MHW line
+  # Move to the nearest point 10m from MHW line
   nearest_lines <- st_nearest_points(site_point, water_boundary)
   
   # Extract the nearest edge point
@@ -175,8 +168,23 @@ for (my_site in unique(sites_surf_offshore$site)) {
   site_point_corrected <- site_point %>%
     mutate(geometry = nearest_edge_point)
   
-  # Append corrected points to the list
-  corrected_points_list[[my_site]] <- site_point_corrected
+  # Some sites are still completely outside the habitat data
+  point_in_habitat <- st_within(site_point_corrected, habitat_poly, sparse = FALSE)[1, 1]
+  
+  if (isFALSE(point_in_habitat)) {
+    # If the new point is outside the 500m habitat_poly buffer, move it to the nearest edge 
+    nearest_lines <- st_nearest_points(site_point_corrected, habitat_poly)
+    nearest_edge_point <- st_cast(nearest_lines, "POINT")[2]
+    
+    site_point_corrected2 <- site_point %>%
+      mutate(geometry = nearest_edge_point)
+    
+    corrected_points_list[[my_site]] <- site_point_corrected2
+    
+  } else {
+    corrected_points_list[[my_site]] <- site_point_corrected
+  }
+  
   
   # Create a bounding box around the site and corrected points
   site_bbox <- st_bbox(st_buffer(st_union(st_geometry(habitat_df), st_geometry(site_point_corrected)), dist = 100)) 
@@ -185,8 +193,8 @@ for (my_site in unique(sites_surf_offshore$site)) {
   plot <- ggplot() +
     geom_sf(data = coast, color = "blue", lwd = 0.6) +
     geom_sf(data = state_waters_poly, fill = "lightblue", alpha = 0.5) +
-    geom_sf(data = habitat_df, aes(fill = habitat_class)) +
-    geom_sf(data = site_point_corrected, color = "red", size = 2) +
+    geom_sf(data = habitat_df, aes(fill = habitat_class), show.legend = F, alpha = 0.5) +
+    geom_sf(data = corrected_points_list[[my_site]], color = "red", size = 2) +
     geom_sf(data = site_point, color = "black", size = 2) +
     coord_sf(
       xlim = c(site_bbox["xmin"], site_bbox["xmax"]),
@@ -209,19 +217,20 @@ for (my_site in unique(sites_surf_offshore$site)) {
   plots[[my_site]] <- plot
   
   
-  
+  ggsave(filename = paste0("~/ca-mpa/analyses/7habitat/figures/site-plots", "/", my_site, "_plot.png"), plot = plot, width = 5, height = 5, units = "in", dpi = 300)
+
   
 }
 
-wrap_plots(plots, ncol = 4)
 
 # Combine all corrected points into a single dataframe
 corrected_points_df <- bind_rows(corrected_points_list)
 
 # Merge corrected points back into the original sites dataframe
 sites_updated <- sites %>%
-  filter(!site %in% sites_surf_offshore$site) %>% 
+  filter(!site %in% sites_surf$site) %>% 
   bind_rows(corrected_points_df)
+
 
 saveRDS(sites_updated,
         file.path("/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_2024", "site_locations_corrected.Rds")) 

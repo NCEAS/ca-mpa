@@ -119,15 +119,15 @@ surf <- surf_sites %>%
 
 
 ## Deep Reef -------------
-deep_sites <- readRDS(file.path(data.dir,"processed_data/update_2024/deep_reef_transect_metadata.Rds"))
-
-deep <- deep_sites %>% 
-  mutate(habitat = "Deep reef") %>% 
-  mutate(designation = str_sub(transect_id_desig, -3)) %>% 
-  mutate(site_type = if_else(designation == "ref", "Reference", "MPA")) %>% 
-  dplyr::select(habitat, site = transect_id_desig, site_type, lat_dd = avg_lat, lon_dd = avg_lon) %>% 
-  distinct() 
-  
+# deep_sites <- readRDS(file.path(data.dir,"processed_data/update_2024/deep_reef_transect_metadata.Rds"))
+# 
+# deep <- deep_sites %>% 
+#   mutate(habitat = "Deep reef") %>% 
+#   mutate(designation = str_sub(transect_id_desig, -3)) %>% 
+#   mutate(site_type = if_else(designation == "ref", "Reference", "MPA")) %>% 
+#   dplyr::select(habitat, site = transect_id_desig, site_type, lat_dd = avg_lat, lon_dd = avg_lon) %>% 
+#   distinct() 
+#   
 
 ## Rocky process ------------------------
 # rocky_sites <- read.csv(file.path(data_path,  "/monitoring_rocky-intertidal/CA_MPA_sites_20210907b.csv"))
@@ -144,7 +144,7 @@ deep <- deep_sites %>%
 
 
 # Join --------------------------------------------------------------------
-site_locations <- bind_rows(ccfrp, kelp, surf, deep)
+site_locations <- bind_rows(ccfrp, kelp, surf)
 
 # Export
 saveRDS(site_locations, file.path("/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_2024", "site_locations.Rds"))

@@ -14,14 +14,14 @@ site_table <- read.csv("/home/shares/ca-mpa/data/sync-data/monitoring/site_table
   distinct(group, mlpa_region, site_name, affiliated_mpa, tier, mpa_designation, lat_wgs84, lon_wgs84) %>% 
   filter(group == "Surf zone") %>% 
   dplyr::select(site_name, lat_dd = lat_wgs84, long_dd = lon_wgs84) %>% 
-  mutate(lat_dd = round(lat_dd, 2),
-         long_dd = round(long_dd, 3))
+  mutate(lat_dd = round(lat_dd, 5),
+         long_dd = round(long_dd, 5))
 
 site_clean <- readRDS("/home/shares/ca-mpa/data/sync-data/monitoring/monitoring_sites_clean.Rds") %>% 
   dplyr::select(habitat, affiliated_mpa = mpa, site, site_type, lat_dd, long_dd) %>% 
   filter(habitat == "Surf zone") %>% 
-  mutate(lat_dd = round(lat_dd, 2),
-         long_dd = round(long_dd, 3))
+  mutate(lat_dd = round(lat_dd, 5),
+         long_dd = round(long_dd, 5))
 
 
 surf <- full_join(site_clean, site_table)

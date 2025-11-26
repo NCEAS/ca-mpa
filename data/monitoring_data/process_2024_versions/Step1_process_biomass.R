@@ -49,7 +49,10 @@ traitsdir <- "/home/shares/ca-mpa/data/sync-data/species_traits/processed"
 datadir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data"
 
 # Read monitoring data
-surf  <- read_csv(file.path(datadir, "update_2024/surf_zone_processed.csv")) %>% clean_names()
+surf  <- read_csv(file.path(datadir, "update_2024/surf_zone_processed.csv")) %>% 
+  clean_names() %>% 
+  dplyr::select(!c(weight_g, total_weight_g, total_weight_kg)) # drop other weight cols
+
 #deep  <- read_csv(file.path(datadir, "update_2024/deep_reef_processed.csv")) 
 ccfrp <- read_csv(file.path(datadir, "update_2024/ccfrp_processed.2024.csv")) # updated CL 
 kelp  <- read_csv(file.path(datadir, "update_2024/kelp_processed.6.csv"))  # updated CL
@@ -161,10 +164,10 @@ surf_biomass1 <- surf_biomass
 
 
 # Write to csv ----------------------------------------------------------------
-write.csv(surf_biomass1, row.names = F,  file.path(datadir,"/update_2024/surf_zone_fish_biomass_updated.csv"))  #last write 7 Jan 2025
-write.csv(kelp_biomass1, row.names = F,  file.path(datadir,"/update_2024/kelpforest_fish_biomass_updated.6.csv")) #last write 13 Mar 2025
-write.csv(ccfrp_biomass1, row.names = F, file.path(datadir,"/update_2024/ccfrp_fish_biomass_updated.2024.csv")) #last write  2 Mar 2025
-#write.csv(deep_biomass1, row.names = F,  file.path(datadir,"/update_2024/deep_reef_fish_biomass_updated.csv")) #last write  3 Mar 2025
+write.csv(surf_biomass1, row.names = F,  file.path(datadir,"/update_2024/surf_zone_fish_biomass_updated.csv"))  
+write.csv(kelp_biomass1, row.names = F,  file.path(datadir,"/update_2024/kelpforest_fish_biomass_updated.6.csv")) 
+write.csv(ccfrp_biomass1, row.names = F, file.path(datadir,"/update_2024/ccfrp_fish_biomass_updated.2024.csv")) 
+#write.csv(deep_biomass1, row.names = F,  file.path(datadir,"/update_2024/deep_reef_fish_biomass_updated.csv")) 
 
 # IN PROGRESS: Explore everything that's going wrong -----------------------------------
 

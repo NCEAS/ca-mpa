@@ -16,9 +16,6 @@
 # - Some of the lengths seem to be already converted to centimeters -8/31/23 used tl_mm instead (not fish_length) -JGS
 # - There are some taxa that don't match fully (mostly higher groupings) - 8/31/23 added these to taxon table -JGS
 
-# NOTE: THIS IS IN THE PROCESS 2024 VERSIONS FOLDER, BUT THERE IS NO UPDATED DATA JUST YET.
-# THE ONLY CHANGE FOR THE HABITAT ANALYSES IS ADDING BACK THE SITE NAME TO FIGURE OUT WHAT
-# SITE THE DATA ARE FROM.
 
 # Setup --------------------------------------------------------------------------------
 rm(list=ls())
@@ -116,7 +113,7 @@ data <- surf_zone_raw %>%
                                   is.na(species_code) & count > 0 ~ "UNKNOWN", # length data but missing species data
                                   T~species_code)) %>% 
   # Drop 2024 to match other habitats and because we don't have the kelp data 
-  filter(year < 2024) %>% 
+  #filter(year < 2024) %>% 
   # Drop a few rows with no count data
   filter(!is.na(count)) %>% 
   # Uncount so each row is a fish
@@ -158,7 +155,9 @@ inferred_tl_cm <- na_with_dist %>%
 data2 <- data %>%
   left_join(inferred_tl_cm, by = ".row") %>%
   mutate(tl_cm = coalesce(tl_cm, tl_cm_inferred)) %>%
-  select(-tl_cm_inferred, - .row)
+  select(-tl_cm_inferred, - .row) %>% 
+  # Adjust so each count is 1
+  mutate(count = 1)
 
 #new dist
 ggplot(data2 %>% filter(habitat_specific_spp_name %in% c("Seriphus politus", "Atherinops affinis")), aes(x = tl_cm)) +
