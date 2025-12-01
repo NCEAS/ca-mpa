@@ -8,18 +8,18 @@
 
 # Step 0. Process monitoring data
 # Make sure these have each been properly exported. 
-# source("~/ca-mpa/data/monitoring_data/processing_code/process_2024_versions/Step0_fix_surf_site_names.R")
-# source("~/ca-mpa/data/monitoring_data/processing_code/process_2024_versions/Step0_process_ccfrp.R")
-# source("~/ca-mpa/data/monitoring_data/processing_code/process_2024_versions/Step0_process_deep.R")
-# source("~/ca-mpa/data/monitoring_data/processing_code/process_2024_versions/Step0_process_kelp.R")
-# source("~/ca-mpa/data/monitoring_data/processing_code/process_2024_versions/Step0_process_surf.R")
-# source("~/ca-mpa/data/monitoring_data/processing_code/process_2024_versions/Step1_process_biomass.R")
+# source("~/ca-mpa/data/monitoring_data/process_2024_versions/Step0_fix_surf_site_names.R")
+# source("~/ca-mpa/data/monitoring_data/process_2024_versions/Step0_process_ccfrp.R")
+# source("~/ca-mpa/data/monitoring_data/process_2024_versions/Step0_process_deep.R")
+# source("~/ca-mpa/data/monitoring_data/process_2024_versions/Step0_process_kelp.R")
+# source("~/ca-mpa/data/monitoring_data/process_2024_versions/Step0_process_surf.R")
+# source("~/ca-mpa/data/monitoring_data/process_2024_versions/Step1_process_biomass.R")
 
 # Step 1. Process monitoring sites
 # Ensure that the sites are correctly updated from the Step0 processing steps 
 # for each monitoring dataset. If they are ready to go:
-# source("~/ca-mpa/data/monitoring_data/processing_code/process_2024_versions/Step2_process_monitoring_sites.R")
-# source("~/ca-mpa/data/monitoring_data/processing_code/process_2024_versions/Step3_correct_monitoring_site_locations.R")
+# source("~/ca-mpa/data/monitoring_data/process_2024_versions/Step2_process_monitoring_sites.R")
+# source("~/ca-mpa/data/monitoring_data/process_2024_versions/Step3_correct_monitoring_site_locations.R")
 
 # Step 2. Get substrate and biotic characteristics for each site  -----
 print("Step 2: Substrate and Biotic")
