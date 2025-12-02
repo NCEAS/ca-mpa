@@ -17,9 +17,10 @@ ltm.dir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_
 
 sites <- readRDS(file.path("/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_2024",
                            "site_locations_corrected.Rds")) %>% 
+  filter(!habitat == "Deep reef") %>% 
   st_transform(., crs = 4326) %>% 
-  mutate(lon_dd = st_coordinates(.)[, "X"],
-         lat_dd = st_coordinates(.)[, "Y"]) %>% 
+  mutate(lon_dd = round(st_coordinates(.)[, "X"], 3),
+         lat_dd = round(st_coordinates(.)[, "Y"], 3)) %>% 
   st_drop_geometry()
 
 habitat <- readRDS(file.path(hab.dir, "buffers", "habitat_buffers_combined.Rds")) 
