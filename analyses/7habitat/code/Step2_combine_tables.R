@@ -27,22 +27,13 @@ habitat_combined <- readRDS(file.path(int.dir, "habitat_buffers_by_site_combined
   dplyr::select(-habitat) %>% ungroup()
 
 # Annual kelp canopy cover
-habitat_kelp <- readRDS(file.path(kw.dir, "kelp_site_buffers.Rds")) %>% dplyr::select(-habitat, -site_id) %>% distinct()
-
-# Sea surface temperatures (calculated average for each MPA and reference area - not each site)
-# Note: Missing Matlahuayl (OK because gets dropped) & data for 2023
-sst <- readRDS("/home/shares/ca-mpa/data/sync-data/environmental/processed/envr_anomalies_at_mpas.Rds") %>% 
-  group_by(group, mpa_name, mpa_designation, year) %>% 
-  summarize(sst_annual_obs = mean(sst_annual_obs, na.rm = T),
-            sst_monthly_anom = mean(sst_monthly_anom, na.rm = T), .groups = 'drop') %>% 
-  mutate(site_type = factor(case_when(mpa_designation == "ref" ~ "Reference", T~"MPA"), levels = c("Reference", "MPA"))) %>% 
-  rename(affiliated_mpa = mpa_name) %>% 
-  dplyr::select(habitat = group, affiliated_mpa, year, site_type, sst_annual_obs, sst_monthly_anom) %>% 
-  filter(!is.na(sst_annual_obs)) %>% 
-  mutate(affiliated_mpa = recode(affiliated_mpa, "ano nuevo smr" = "año nuevo smr"))
+habitat_kelp <- readRDS(file.path(kw.dir, "kelp_site_buffers.Rds")) %>% 
+  dplyr::select(-habitat, -site_id) %>% 
+  distinct() %>% 
+  mutate(year = as.numeric(year))
 
 # Add plotting details
-fig.dir <- "~/ca-mpa/analyses/7habitat/figures/3way-figures"
+fig.dir <- "~/ca-mpa/analyses/7habitat/figures"
 
 my_theme <- theme_minimal(base_family = "Arial") + 
   theme(plot.title = element_text(size = 10, face = "bold"),
@@ -69,10 +60,8 @@ mpa_colors <- c("Reference" = "#6d55aa", "MPA" = "#c42119")
 kelp_raw <- readRDS(file.path(ltm.dir, "kelp_biomass_subset.Rds")) 
 
 kelp <- kelp_raw %>%
- # left_join(habitat) %>% 
   left_join(habitat_combined) %>% 
-  left_join(habitat_kelp) %>% 
-  left_join(sst %>% filter(habitat == "kelp") %>% dplyr::select(-habitat))
+  left_join(habitat_kelp) 
 
 kelp <- kelp %>%
   filter(site != "SCAI_SHIP_ROCK") %>%  # too deep
@@ -171,10 +160,8 @@ ggsave(file.path(fig.dir, "si-fig4-kelp-dist.png"),
 rock_raw <- readRDS(file.path(ltm.dir, "rock_biomass_subset.Rds")) 
 
 rock <- rock_raw %>% 
-  #left_join(habitat) %>%
   left_join(habitat_combined) %>% 
-  left_join(habitat_kelp) %>% 
-  left_join(sst %>% filter(habitat == "ccfrp") %>% dplyr::select(-habitat))
+  left_join(habitat_kelp)
 
 # Examine the range for each habitat characteristic
 rock_sites <- rock %>% 
@@ -246,10 +233,8 @@ ggsave(file.path(fig.dir, "si-fig4-rock-dist.png"),
 surf_raw <- readRDS(file.path(ltm.dir, "surf_biomass_subset.Rds")) 
 
 surf <- surf_raw %>% 
- # left_join(habitat) %>%
   left_join(habitat_combined) %>% 
-  left_join(habitat_kelp) %>% 
-  left_join(sst %>% filter(habitat == "surf_zone") %>% dplyr::select(-habitat))
+  left_join(habitat_kelp, by = c("year", "site", "site_type")) 
 
 # Examine the range for each habitat characteristic
 surf_sites <- surf %>%
@@ -314,51 +299,8 @@ ggsave(file.path(fig.dir, "si-fig4-surf-dist.png"),
        width = 9, height = 9, dpi = 600, units = "in")
 
 
-
-# Deep ----------------------------------------------------------------------------------------------
-deep_raw <- readRDS(file.path(ltm.dir, "deep_biomass_subset.Rds")) 
-
-# Since we have upscaled deep from transect to dive, pull the IDs to match the new sites
-deep_match <- readRDS(file.path(ltm.dir, "deep_biomass_complete.Rds")) %>% 
-  distinct(year, site, site_type, dive) %>% 
-  mutate(year_dive_type = paste(year, dive, site_type, sep = "-")) %>% 
-  dplyr::select(-dive)
-
-# Join the habitat data with the transect-level metadata, summarize across "sites"
-deep_site <- deep_match %>% 
-  left_join(habitat_combined) %>% 
-  left_join(habitat_kelp) %>% 
-  dplyr::select(-site) %>% 
-  group_by(year, year_dive_type, site_type) %>% 
-  summarize(across(everything(), mean, na.rm = TRUE), .groups = 'drop') %>% 
-  rename(site = year_dive_type)
-
-# Join site data to fish data
-deep <- deep_raw %>% 
-  left_join(deep_site)
-
-# deep_subset2 <- deep_subset %>% 
-#   mutate(year_dive_type = paste(year, dive, site_type, sep = "-")) %>% 
-#   group_by(year, year_dive_type, site_type, bioregion, region4, affiliated_mpa, mpa_defacto_class,
-#            mpa_defacto_designation, implementation_year, size_km2, age_at_survey, species_code, sciname, genus,
-#            target_status, assemblage, assemblage_new) %>% 
-#   summarize(biomass_kg = sum(biomass_kg),
-#             count = sum(count),
-#             kg_per_m2 = sum(kg_per_m2)/n(),
-#             count_per_m2 = sum(count_per_m2)/n(), .groups = 'drop')
-# 
-# deep_subset3 <- deep_subset2 %>% 
-#   rename(site = year_dive_type)
-
-# deep <- deep_raw %>%  
-#  # left_join(habitat) %>% 
-#   left_join(habitat_combined) %>% 
-#   left_join(habitat_kelp) 
-
-
 # Export 
 saveRDS(kelp, file.path(ltm.dir, "combine_tables/kelp_full.Rds")) 
 saveRDS(surf, file.path(ltm.dir, "combine_tables/surf_full.Rds")) 
 saveRDS(rock, file.path(ltm.dir, "combine_tables/ccfrp_full.Rds")) 
-#saveRDS(deep, file.path(ltm.dir, "combine_tables/deep_full.Rds"))  
 
