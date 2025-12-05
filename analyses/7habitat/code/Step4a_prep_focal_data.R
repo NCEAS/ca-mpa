@@ -19,18 +19,18 @@ prep_focal_data <- function(type, focal_group, drop_outliers, biomass_variable, 
     
   } else if (type == "target_status" & focal_group %in% c("targeted", "nontargeted")) {
     data1 <- data %>%
-      group_by(year, site, site_type, bioregion, region4, affiliated_mpa, size_km2, cluster_area_km2, age_at_survey,
+      group_by(year, site, site_type, bioregion, region4, affiliated_mpa, size_km2, age_at_survey,
                target_status, across(matches("^hard|soft|depth|kelp|aquatic"))) %>%
       summarize(biomass = sum(!!sym(biomass_variable), na.rm = T), .groups = 'drop') %>%
       filter(target_status == str_to_sentence(focal_group))
   } else if (type == "target_status" & focal_group == "all"){
     data1 <- data %>%
-      group_by(year, site, site_type, bioregion, region4, affiliated_mpa, size_km2, cluster_area_km2, age_at_survey,
+      group_by(year, site, site_type, bioregion, region4, affiliated_mpa, size_km2, age_at_survey,
                across(matches("^hard|soft|depth|kelp|aquatic"))) %>%
       summarize(biomass = sum(!!sym(biomass_variable), na.rm = T), .groups = 'drop')
   } else if (type == "targeted_vert"){
     data1 <- data %>%
-      group_by(year, site, site_type, bioregion, region4, affiliated_mpa, size_km2, cluster_area_km2, age_at_survey,
+      group_by(year, site, site_type, bioregion, region4, affiliated_mpa, size_km2, age_at_survey,
                target_status, vertical_zonation, across(matches("^hard|soft|depth|kelp|aquatic"))) %>%
       summarize(biomass = sum(!!sym(biomass_variable), na.rm = T), .groups = 'drop') %>%
       filter(target_status == "Targeted") %>% 
