@@ -1,11 +1,20 @@
 # Next Piece
 # Cori Lopazanski
 
+library(tidyverse)
+library(MuMIn) # for model averaging
+library(broom.mixed) # for extracting fit info
+library(lmerTest)
+library(effects)
+library(performance)
+library(gt)
+
 rm(list = ls())
 gc()
 
 source("analyses/7habitat/code/Step0_helper_functions.R")  # Load the function from the file
-fig.dir <- "~/ca-mpa/analyses/7habitat/figures/3way-figures"
+
+fig.dir <- "~/ca-mpa/analyses/7habitat/figures"
 
 list2env(list(habitat = "rock_filtered",
               focal_group = "targeted",
@@ -15,9 +24,9 @@ list2env(list(habitat = "kelp_filtered",
               focal_group = "targeted",
               re_string = "my"), envir = .GlobalEnv)
 
-list2env(list(habitat = "surf_filtered",
+list2env(list(habitat = "surf",
               focal_group = "targeted",
-              re_string = "m"), envir = .GlobalEnv)
+              re_string = "r"), envir = .GlobalEnv)
   
 process_final_models <- function(habitat, focal_group, re_string){
   
@@ -26,11 +35,11 @@ process_final_models <- function(habitat, focal_group, re_string){
   print(paste(results_file))
   
   # Read the model selection results
-  results <- readRDS(file.path("~/ca-mpa/analyses/7habitat/output/results", "3way", results_file)) 
+  results <- readRDS(file.path("~/ca-mpa/analyses/7habitat/output/results", results_file)) 
   names(results)
   
   # Read the data used to fit the models
-  data_sp <- readRDS(file.path("~/ca-mpa/analyses/7habitat/output/data","3way", data_file)) 
+  data_sp <- readRDS(file.path("~/ca-mpa/analyses/7habitat/output/data", data_file)) 
   
   # 1. Refit the top model with REML
   response <- unique(results$model_details$response)
@@ -86,11 +95,11 @@ process_final_models <- function(habitat, focal_group, re_string){
   # Calculate the effects 
   # For 3-way interactions, we do this in the next step to help with plotting
   #assign("data_sp", data_sp, envir = .GlobalEnv)
-  #effects_list_top <- allEffects(m, data = data_sp, xlevels = 50, partial.residuals = TRUE)
+  effects_list_top <- allEffects(m, data = data_sp, xlevels = 50, partial.residuals = TRUE)
   #effects_list_base <- allEffects(m3, data = data_sp, xlevels = 50, partial.residuals = TRUE)
   #effects_list_simple <- allEffects(m2, data = data_sp, xlevels = 50, partial.residuals = TRUE)
   
-  # plot(effects_list_top, multiline = T, confint = list(style = 'auto'))
+  plot(effects_list_top, multiline = T, confint = list(style = 'auto'))
   # plot(effects_list_base, multiline = T, confint = list(style = 'auto'))
   # plot(effects_list_simple, multiline = T, confint = list(style = 'auto'))
   
@@ -168,13 +177,13 @@ process_final_models <- function(habitat, focal_group, re_string){
   
   # Export 
   saveRDS(list(results = all_results, models = models, formulas = model_formulas, predictors = predictors_simple), 
-          file = file.path("~/ca-mpa/analyses/7habitat/output/effects", "3way", paste(habitat, focal_group, re_string, "effects.rds", sep = "_")))
+          file = file.path("~/ca-mpa/analyses/7habitat/output/effects", paste(habitat, focal_group, re_string, "effects.rds", sep = "_")))
   
 }
 
-process_final_models(habitat = "surf_filtered",
+process_final_models(habitat = "surf",
                      focal_group = "targeted",
-                     re_string = "m")
+                     re_string = "r")
 
 process_final_models(habitat = "rock_filtered",
                      focal_group = "targeted",

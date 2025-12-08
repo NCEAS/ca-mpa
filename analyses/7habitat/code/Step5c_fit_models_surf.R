@@ -24,27 +24,27 @@ source("analyses/7habitat/code/Step4b_build_habitat_models.R")
 
 # Read Data --------------------------------------------------------------------
 ltm.dir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_2024/2025"
-fig.dir <- "~/ca-mpa/analyses/7habitat/figures/3way-figures"
+fig.dir <- "~/ca-mpa/analyses/7habitat/figures"
 
 pred_surf <- readRDS(file.path("analyses/7habitat/intermediate_data/surf_predictors.Rds")) %>% 
-  filter(pred_group %in% c("all", "combined"))
+  filter(pred_group %in% c("all", "combined")) %>% 
+  filter(!predictor %in% c("depth_cv_500", "depth_mean_25")) # 
 
 # Define subset for modeling (reduced number of columns)
 data_surf <- readRDS(file.path(ltm.dir, "combine_tables/surf_full.Rds")) %>% 
   mutate(site_type = factor(site_type, levels = c("Reference", "MPA"))) %>% 
-  dplyr::select(year:affiliated_mpa, size_km2, cluster_area_km2, age_at_survey,species_code:target_status, 
+  dplyr::select(year:affiliated_mpa, size_km2, age_at_survey,species_code:target_status, 
                 assemblage_new, weight_kg, count, kg_per_haul, 
-                all_of(pred_surf$predictor), matches("^aquatic_vegetation_bed"))
+                all_of(pred_surf$predictor), matches("^aquatic_vegetation_bed")) # %>% 
+  # Two sites to remove
+  #filter(!affiliated_mpa %in% c("laguna beach smr", "reading rock smca"))
 
 
 # Build Data --------------------------------------------------------------------------
 # Provide some of the global variables
 habitat <- "surf"
-re_string <- "rm"
-random_effects <- c("region4/affiliated_mpa")
 regions <- c("North", "Central", "N. Channel Islands", "South")
 print(paste0("Starting: ", habitat))
-print(paste0("RE Structure: ", paste(random_effects, collapse = ", ")))
 focal_group <- "targeted"
 
 data_sp <- prep_focal_data(
@@ -56,23 +56,29 @@ data_sp <- prep_focal_data(
   regions = c("North", "Central", "N. Channel Islands", "South")
 )
 
+
+# Univariate analyses to select scales ----------------------------
+
+re_string <- "r"
+random_effects <- c("region4")
+print(paste0("RE Structure: ", paste(random_effects, collapse = ", ")))
+
+
 scale_selection <- select_scales(data_sp, 
                                  pred_list = pred_surf,
                                  "log_c_biomass", 
-                                 intx.terms = "",
+                                 intx.terms = "* site_type",
                                  random_effects = random_effects)
 
 scale_table <- scale_selection$formatted_table
 scale_table
-gtsave(scale_table, file.path(fig.dir, paste("tableSX", habitat, re_string, "habitat_scale.png", sep = "-")))
+gtsave(scale_table, file.path(fig.dir, paste("tableSX", habitat, re_string, "habitat-scale.png", sep = "-")))
 
 # Only fit models with the top scales
 top_scales <- scale_selection$results %>% janitor::clean_names() %>% 
   filter(delta == 0) %>% 
   pull(model)
 
-# pred_surf_filtered <- get_2way_list(pred_surf %>% filter(predictor %in% top_scales), habitat = "surf")
-# pred_surf_filtered <- pred_surf_filtered %>% filter(!str_detect(predictors, "aquatic_vegetation"))
 pred_surf_3way <- generate_surf_3way(pred_surf %>% filter(predictor %in% top_scales))
 
 # Run The Models -------------------------------------------------------------------------------------
@@ -121,7 +127,7 @@ fit_batch <- function(batch_df, data_sp, response, random_effects) {
 results_list <- future_map(batches, ~fit_batch(.x, 
                                                data_sp, 
                                                response = "log_c_biomass", 
-                                               random_effects = c("region4/affiliated_mpa")),
+                                               random_effects = random_effects),
                            .options = furrr_options(seed = TRUE))
 
 models_df <- bind_rows(results_list) %>%
@@ -129,8 +135,8 @@ models_df <- bind_rows(results_list) %>%
   arrange(delta_AICc)
 
 saveRDS(list(models_df = models_df, data_sp = data_sp),
-        file.path("analyses/7habitat/output/models", "3way", "2025",
-                  paste(habitat, "filtered", focal_group, re_string, "models.rds", sep = "_")))
+        file.path("analyses/7habitat/output/models",
+                  paste(habitat, focal_group, re_string, "models.rds", sep = "_")))
  
 
 
