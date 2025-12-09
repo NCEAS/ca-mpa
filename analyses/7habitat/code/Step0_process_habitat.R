@@ -8,24 +8,24 @@
 
 # Step 0. Process monitoring data
 # Make sure these have each been properly exported. 
-# source("~/ca-mpa/data/monitoring_data/process_2024_versions/Step0_fix_surf_site_names.R")
-# source("~/ca-mpa/data/monitoring_data/process_2024_versions/Step0_process_ccfrp.R")
-# source("~/ca-mpa/data/monitoring_data/process_2024_versions/Step0_process_deep.R")
-# source("~/ca-mpa/data/monitoring_data/process_2024_versions/Step0_process_kelp.R")
-# source("~/ca-mpa/data/monitoring_data/process_2024_versions/Step0_process_surf.R")
-# source("~/ca-mpa/data/monitoring_data/process_2024_versions/Step1_process_biomass.R")
+# source("~/ca-mpa/analyses/7habitat/code/data-prep/monitoring/Step0_fix_surf_site_names.R")
+# source("~/ca-mpa/analyses/7habitat/code/data-prep/monitoring/Step0_process_ccfrp.R")
+# source("~/ca-mpa/analyses/7habitat/code/data-prep/monitoring/Step0_process_deep.R")
+# source("~/ca-mpa/analyses/7habitat/code/data-prep/monitoring/Step0_process_kelp.R")
+# source("~/ca-mpa/analyses/7habitat/code/data-prep/monitoring/Step0_process_surf.R")
+# source("~/ca-mpa/analyses/7habitat/code/data-prep/monitoring/Step1_process_biomass.R")
 
 # Step 0. Prep bathymetry layers
 # Make sure this has been properly exported (resamples and preps bathy layers)
-# source("~/ca-mpa/analyses/7habitat/code/Step0_prep_bathy.R")
+# source("~/ca-mpa/analyses/7habitat/code/data-prep/bathy/Step0_prep_bathy.R")
 # can skip this one: Step1_confirm_bathy_approach.R (exploration to confirm plan)
-# source("~/ca-mpa/analyses/7habitat/code/Step2_combine_bathy.R")
+# source("~/ca-mpa/analyses/7habitat/code/data-prep/bathy/Step2_combine_bathy.R")
 
 # Step 1. Process monitoring sites
 # Ensure that the sites are correctly updated from the Step0 processing steps 
 # for each monitoring dataset. If they are ready to go:
-# source("~/ca-mpa/data/monitoring_data/process_2024_versions/Step2_process_monitoring_sites.R")
-# source("~/ca-mpa/data/monitoring_data/process_2024_versions/Step3_correct_monitoring_site_locations.R")
+# source("~/ca-mpa/analyses/7habitat/code/data-prep/monitoring/Step2_process_monitoring_sites.R")
+# source("~/ca-mpa/analyses/7habitat/code/data-prep/monitoring/Step3_correct_monitoring_site_locations.R")
 
 # Step 2. Get substrate and biotic characteristics for each site  -----
 print("Step 2: Substrate and Biotic")
@@ -41,7 +41,7 @@ source("~/ca-mpa/data/habitat_pmep/Step3_calculate_buffers.R")
 
 # Step 4. Get depth for each site  -----
 print("Step 4: Processing Bathymetry")
-# source("~/ca-mpa/analyses/7habitat/code/Step2_combine_bathy.R") NOTE: not fully updated yet.
+# source("~/ca-mpa/analyses/7habitat/code/data-prep/bathy/Step3_process_bathy_buffers.R") NOTE: not fully updated yet.
 
 # Anytime after Step 1:
 
