@@ -130,14 +130,14 @@ for (my_site in unique(sites_surf$site)) {
   # Store the plot
   plots[[my_site]] <- plot
   
-  ggsave(filename = paste0("~/ca-mpa/analyses/7habitat/figures/site-plots", "/", my_site, "_plot.png"), plot = plot, width = 5, height = 5, units = "in", dpi = 300)
+  ggsave(filename = paste0("~/ca-mpa/analyses/7habitat/figures/site-plots/surf-corrections/", my_site, ".png"), plot = plot, width = 5, height = 5, units = "in", dpi = 300)
   
   
   }
 
 
-surf_maps <- wrap_plots(plots, ncol = 7)
-surf_maps
+# surf_maps <- wrap_plots(plots, ncol = 7)
+# surf_maps
 
 
 ## 1. Sites that are too far offshore --------------------------------------------------------
@@ -217,8 +217,8 @@ for (my_site in unique(sites_surf_offshore$site)) {
   plots[[my_site]] <- plot
   
   
-  ggsave(filename = paste0("~/ca-mpa/analyses/7habitat/figures/site-plots", "/", my_site, "_plot.png"), plot = plot, width = 5, height = 5, units = "in", dpi = 300)
-
+  ggsave(filename = paste0("~/ca-mpa/analyses/7habitat/figures/site-plots/surf-corrections/", my_site, ".png"), plot = plot, width = 5, height = 5, units = "in", dpi = 300)
+  
   
 }
 
