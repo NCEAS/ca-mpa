@@ -27,7 +27,7 @@ habitat <- readRDS(file.path(hab.dir, "buffers", "habitat_buffers_combined.Rds")
 
 habitat_bathy <- readRDS(file.path(ltm.dir, "site_depth_agg.Rds")) %>%  # drop agg for last version
   mutate(site_type = if_else(site_type == "REF", "Reference", site_type)) %>% 
-  dplyr::select(site, site_type, depth_mean_25:depth_cv_500)
+  dplyr::select(site, site_type, depth_mean_25:tri_mean_500)
 
 habitat_depth <- habitat %>% # create identifier matching depth to the habitat_depth combined class
   distinct(habitat_class, habitat_depth, depth_zone)
@@ -49,14 +49,13 @@ habitat2 <- habitat %>%
   filter(!(habitat_type == "biotic" & depth_zone %in% c("30_100m", "100_200m", "200m")))
 
 # Convert to wide format
-habitat3 <- habitat2 %>% # should be 828
+habitat3 <- habitat2 %>% # should be 826?
   dplyr::select(habitat, site, site_type, area_m2, habitat_depth_buffer) %>% 
   pivot_wider(names_from = "habitat_depth_buffer", values_from = "area_m2") 
 
 # Add bathy
 habitat4 <- habitat3 %>% 
   left_join(habitat_bathy, by = c("site", "site_type")) %>% 
-  mutate_at(vars(grep("^depth_mean|depth_cv", names(.), value = TRUE)), ~ .x * -1) %>% 
   left_join(sites)
 
 saveRDS(habitat4, file.path(int.dir, "habitat_buffers_by_site_v3.Rds")) # v2 has the non-agg depth metrics and other sites
@@ -71,7 +70,6 @@ habitat_combined <- habitat %>%
   pivot_wider(names_from = habitat_buffer, values_from = area_m2) %>% 
   mutate_at(vars(grep("^(hard|soft|aq|sea)", names(.), value = TRUE)), ~ replace(., is.na(.), 0)) %>% 
   left_join(habitat_bathy,  by = c("site", "site_type")) %>% 
-  mutate_at(vars(grep("^depth_mean|depth_cv", names(.), value = TRUE)), ~ .x * -1) %>% 
   left_join(sites)
 
 saveRDS(habitat_combined, file.path(int.dir, "habitat_buffers_by_site_combined_v3.Rds")) 

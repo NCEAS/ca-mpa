@@ -143,11 +143,11 @@ kelp_complete <- kelp_effort %>%
 
 
 ## Surf ----
-# Read the site names for matching with the habitat site names (boo Chris bad processing making extra work!)
+# Read the site names for matching with the habitat site names
 surf_sites <- readRDS("/home/shares/ca-mpa/data/sync-data/monitoring/site_tables/processed/surf_site_names.Rds") 
 
 surf_effort <- surf_orig %>% 
-  # Identify distinct hauls
+  # Identify distinct hauls: 2609
   distinct(year, month, day, bioregion, region4, affiliated_mpa,  mpa_defacto_class, mpa_defacto_designation, ref_is_mpa, site_name, haul_number) %>% 
   # Caclulate effort as total n hauls per site (mpa/ref) per year
   group_by(year, bioregion, region4, site_name, affiliated_mpa,  mpa_defacto_class,  mpa_defacto_designation, ref_is_mpa) %>% 
@@ -329,16 +329,14 @@ rock_subset <- rock_complete %>%
 
 ## Surf ----
 
+# Explore site visitation per year to ensure balance across sites (as above)
 surf_sites <- surf_complete %>% 
   # Identify distinct site-year combinations
   distinct(year, site, site_name, site_type, bioregion, region4, affiliated_mpa, mpa_defacto_class, implementation_year) %>% 
   # Count number of years each site was visited before and after the MPA was implemented
   group_by(site, site_name, bioregion, region4, affiliated_mpa, mpa_defacto_class, implementation_year, site_type) %>% 
   summarize(n_total = n(), .groups = 'drop') %>%  # Started in 2019 so no need to do BA breakdown
-  mutate(site = paste(site_name, site_type)) %>% 
-  # ten mile reference only 3x, and low # hauls per effort table above - remove it
-  filter(!affiliated_mpa  == "ten mile smr")
-
+  mutate(site = paste(site_name, site_type)) # Looks solid balance at least 5 years for all sites
 
 surf_subset <- surf_complete %>% 
   mutate(site = paste(site_name, site_type)) %>% 
@@ -346,24 +344,13 @@ surf_subset <- surf_complete %>%
   # Join habitat and site visitation information
   left_join(surf_sites) 
 
-# Test whether surf has any empty targeted hausl
+# Test whether surf has any empty targeted hauls
 test <- surf_complete %>% 
   group_by(year, site, site_type, region4, affiliated_mpa, target_status) %>% 
   summarize(kg_per_haul = sum(kg_per_haul, na.rm = F)) %>% 
-  filter(target_status == "Targeted") # just one at ten mile, which we drop anyway
+  filter(target_status == "Targeted") %>% 
+  filter(kg_per_haul == 0) # 3 at ten mile
   
-
-surf_effort <- surf_orig %>% 
-  # Identify distinct hauls
-  distinct(year, month, day, bioregion, region4, affiliated_mpa,  mpa_defacto_class, mpa_defacto_designation, ref_is_mpa, site_name, haul_number) %>% 
-  # Caclulate effort as total n hauls per site (mpa/ref) per year
-  group_by(year, bioregion, region4, site_name, affiliated_mpa,  mpa_defacto_class,  mpa_defacto_designation, ref_is_mpa) %>% 
-  summarize(n_rep = n()) %>%
-  # Join MPA metadata (region, implementation year)
-  left_join(mpas %>% dplyr::select(affiliated_mpa, implementation_year, size_km2)) %>% 
-  left_join(surf_sites) 
-
-
 
 saveRDS(kelp_subset, file.path(ltm.dir, "update_2024/2025/kelp_biomass_subset.Rds"))
 saveRDS(rock_subset, file.path(ltm.dir, "update_2024/2025/rock_biomass_subset.Rds"))

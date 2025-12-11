@@ -24,7 +24,8 @@ habitat <- readRDS(file.path(int.dir, "habitat_buffers_by_site_v3.Rds")) %>% # v
 
 # Area of each habitat by buffer (across all depths)
 habitat_combined <- readRDS(file.path(int.dir, "habitat_buffers_by_site_combined_v3.Rds")) %>% 
-  dplyr::select(-habitat) %>% ungroup()
+  dplyr::select(-habitat) %>% ungroup() %>% 
+  select(-tri_mean_25, -contains("slope")) # drop lowest tri (NAs) + slope (corr with tri)
 
 # Annual kelp canopy cover
 habitat_kelp <- readRDS(file.path(kw.dir, "kelp_site_buffers.Rds")) %>% 
@@ -61,21 +62,21 @@ kelp_raw <- readRDS(file.path(ltm.dir, "kelp_biomass_subset.Rds"))
 
 kelp <- kelp_raw %>%
   left_join(habitat_combined) %>% 
-  left_join(habitat_kelp) 
+  left_join(habitat_kelp, by = c("year", "site", "site_type")) 
 
 kelp <- kelp %>%
-  filter(site != "SCAI_SHIP_ROCK") %>%  # too deep
-  filter(site != "CASPAR_2") %>% 
-  filter(site != "POINT_CABRILLO_2")
+  filter(site != "SCAI_SHIP_ROCK") # %>%  # too deep
+ # filter(site != "CASPAR_2") %>% 
+ # filter(site != "POINT_CABRILLO_2")
 
 ## Remove the extreme sites for kelp forest -----------------------------------------------
 
 # Examine the range for each habitat characteristic
 kelp_sites <- kelp %>% 
-  dplyr::select(site, site_type, affiliated_mpa, hard_bottom_25:depth_cv_500) %>% distinct() %>% 
-  pivot_longer(cols = hard_bottom_25:depth_cv_500, names_to = "habitat_variable", values_to = "value") %>% 
+  dplyr::select(site, site_type, affiliated_mpa, hard_bottom_25:tri_mean_500) %>% distinct() %>% 
+  pivot_longer(cols = hard_bottom_25:tri_mean_500, names_to = "habitat_variable", values_to = "value") %>% 
   filter(!str_detect(habitat_variable, "aquatic|soft|seagrass|depth_sd")) %>% 
-  filter(!habitat_variable == "depth_cv_25") %>% 
+  filter(!habitat_variable %in% c("depth_cv_25", "depth_tri_25")) %>% 
   mutate(scale = as.numeric(str_extract(habitat_variable, "\\d+"))) %>% 
   mutate(habitat = str_remove(habitat_variable, "_\\d+")) %>% 
   arrange(desc(habitat), scale) %>% 
@@ -83,7 +84,19 @@ kelp_sites <- kelp %>%
   mutate(habitat_variable_label = paste0(str_replace_all(habitat_variable, "_", " ") %>% 
                                            str_to_sentence() %>% 
                                            str_replace_all("cv", "CV"), "m")) %>% 
-  mutate(habitat_variable_label = factor(habitat_variable_label, levels = unique(habitat_variable_label)))
+  mutate(habitat_variable_label = factor(habitat_variable_label, levels = unique(habitat_variable_label))) %>% 
+  dplyr::bind_rows(tibble(habitat_variable = c("depth_cv_25", "tri_mean_25"),
+                          scale       = c(25, 25),
+                          value       = NA_real_,
+                          site_type   = NA_character_)) %>% 
+  mutate(habitat_cat = factor(case_when(str_detect(habitat_variable, "tri") ~ "TRI",
+                                        str_detect(habitat_variable, "hard") ~ "Hard bottom",
+                                        str_detect(habitat_variable, "soft") ~ "Soft bottom",
+                                        str_detect(habitat_variable, "depth_mean") ~ "Depth mean",
+                                        str_detect(habitat_variable, "depth_cv") ~ "Depth CV",
+                                        T~habitat_variable), 
+                              levels = c("Hard bottom", "Soft bottom", "Depth mean", "Depth CV", "TRI")))
+
 
 kelp_max <- kelp_sites %>% 
   group_by(site_type, habitat_variable, scale) %>% 
@@ -128,7 +141,8 @@ kelp <- kelp %>%
 kelp_remove2 %>% 
   arrange(desc(pct_diff)) %>% 
   arrange(site) %>% 
-  mutate(habitat_variable = str_replace_all(habitat_variable, "_", " ") %>% str_to_sentence() %>% str_replace_all("cv", "CV")) %>% 
+  mutate(habitat_variable = str_replace_all(habitat_variable, "_", " ") %>% 
+           str_to_sentence() %>%   str_replace_all("cv", "CV") %>%  str_replace_all("Tri", "TRI")) %>% 
   mutate(affiliated_mpa = str_to_title(affiliated_mpa) %>% str_replace_all("Smr", "SMR") %>% str_replace_all("Smca", "SMCA")) %>% 
   gt() %>% 
   cols_label(site = "Site",
@@ -141,16 +155,20 @@ kelp_remove2 %>%
   sub_missing(everything(), missing_text = "")
 
 ggplot(data = kelp_sites %>% 
-         filter(site %in% kelp$site) %>% 
-         filter(affiliated_mpa %in% kelp$affiliated_mpa)) +
+         filter(site %in% kelp$site | is.na(site)) %>% 
+         filter(affiliated_mpa %in% kelp$affiliated_mpa | is.na(affiliated_mpa))) +
   geom_density(aes(x = value, color = site_type, fill = site_type), alpha = 0.3) + 
+  geom_blank() +
   scale_fill_manual(values = mpa_colors)+
   scale_color_manual(values = mpa_colors)+
   labs(x = "Value of habitat characteristic", y = "Density", fill = NULL, color = NULL)+
-  my_theme+
+  my_theme +
   theme(legend.position = "top",
         axis.text.x = element_text(angle = 45, hjust = 1)) +
-  facet_wrap(~habitat_variable_label, scales = "free", ncol = 5)
+  facet_wrap(~ habitat_cat + scale,
+    nrow = length(unique(kelp_sites$habitat_cat)),
+    ncol = length(unique(kelp_sites$scale)),
+    scales = "free")
 
 ggsave(file.path(fig.dir, "si-fig4-kelp-dist.png"), 
        width = 9, height = 6, dpi = 600, units = "in")
@@ -161,12 +179,12 @@ rock_raw <- readRDS(file.path(ltm.dir, "rock_biomass_subset.Rds"))
 
 rock <- rock_raw %>% 
   left_join(habitat_combined) %>% 
-  left_join(habitat_kelp)
+  left_join(habitat_kelp, by = c("year", "site", "site_type"))
 
 # Examine the range for each habitat characteristic
 rock_sites <- rock %>% 
-  dplyr::select(site, site_type, affiliated_mpa, hard_bottom_25:depth_cv_500) %>% distinct() %>% 
-  pivot_longer(cols = hard_bottom_25:depth_cv_500, names_to = "habitat_variable", values_to = "value") %>% 
+  dplyr::select(site, site_type, affiliated_mpa, hard_bottom_25:tri_mean_500) %>% distinct() %>% 
+  pivot_longer(cols = hard_bottom_25:tri_mean_500, names_to = "habitat_variable", values_to = "value") %>% 
   filter(!str_detect(habitat_variable, "aquatic|soft|seagrass|depth_sd")) %>% 
   filter(!habitat_variable == "depth_cv_25") %>% 
   mutate(scale = as.numeric(str_extract(habitat_variable, "\\d+"))) %>% 
@@ -238,8 +256,8 @@ surf <- surf_raw %>%
 
 # Examine the range for each habitat characteristic
 surf_sites <- surf %>%
-  dplyr::select(site, site_type, affiliated_mpa, hard_bottom_25:depth_cv_500) %>% distinct() %>%
-  pivot_longer(cols = hard_bottom_25:depth_cv_500, names_to = "habitat_variable", values_to = "value") %>%
+  dplyr::select(site, site_type, affiliated_mpa, hard_bottom_25:tri_mean_500) %>% distinct() %>%
+  pivot_longer(cols = hard_bottom_25:tri_mean_500, names_to = "habitat_variable", values_to = "value") %>%
   filter(!str_detect(habitat_variable, "aquatic|seagrass|depth_sd")) %>%
   filter(!habitat_variable == "depth_cv_25") %>%
   mutate(scale = as.numeric(str_extract(habitat_variable, "\\d+"))) %>%
@@ -249,7 +267,18 @@ surf_sites <- surf %>%
   mutate(habitat_variable_label = paste0(str_replace_all(habitat_variable, "_", " ") %>% 
                                            str_to_sentence() %>% 
                                            str_replace_all("cv", "CV"), "m")) %>% 
-  mutate(habitat_variable_label = factor(habitat_variable_label, levels = unique(habitat_variable_label)))
+  mutate(habitat_variable_label = factor(habitat_variable_label, levels = unique(habitat_variable_label))) %>% 
+  dplyr::bind_rows(tibble(habitat_variable = c("depth_cv_25", "tri_mean_25"),
+                          scale       = c(25, 25),
+                          value       = NA_real_,
+                          site_type   = NA_character_)) %>% 
+  mutate(habitat_cat = factor(case_when(str_detect(habitat_variable, "tri") ~ "TRI",
+                                        str_detect(habitat_variable, "hard") ~ "Hard bottom",
+                                        str_detect(habitat_variable, "soft") ~ "Soft bottom",
+                                        str_detect(habitat_variable, "depth_mean") ~ "Depth mean",
+                                        str_detect(habitat_variable, "depth_cv") ~ "Depth CV",
+                                        T~habitat_variable), 
+                              levels = c("Hard bottom", "Soft bottom", "Depth mean", "Depth CV", "TRI")))
 
 surf_max <- surf_sites %>%
   group_by(site_type, habitat_variable, scale) %>%
@@ -287,13 +316,20 @@ surf_remove %>%
 
 ggplot(data = surf_sites) +
   geom_density(aes(x = value, color = site_type, fill = site_type), alpha = 0.3) + 
+  geom_blank() +
   scale_fill_manual(values = mpa_colors) +
   scale_color_manual(values = mpa_colors) +
   labs(x = "Value of habitat characteristic", y = "Density", fill = NULL, color = NULL)+
   my_theme + 
   theme(legend.position = "top",
         axis.text.x = element_text(angle = 45, hjust = 1)) +
-  facet_wrap(~habitat_variable_label, scales = "free", ncol = 5)
+  facet_wrap(
+    ~ habitat_cat + scale,
+    nrow = length(unique(surf_sites$habitat_cat)),
+    ncol = length(unique(surf_sites$scale)),
+    scales = "free"
+  )
+  #facet_wrap(~habitat_variable_label, scales = "free", ncol = 5)
 
 ggsave(file.path(fig.dir, "si-fig4-surf-dist.png"), 
        width = 9, height = 9, dpi = 600, units = "in")

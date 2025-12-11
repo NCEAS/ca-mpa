@@ -16,7 +16,8 @@ select_scales <- function(data, pred_list, intx.terms, response, random_effects)
     depth_mean = pred_list$predictor[str_detect(pred_list$predictor, "depth_mean")],
     depth_cv = pred_list$predictor[str_detect(pred_list$predictor, "depth_cv")],
     kelp_annual = pred_list$predictor[str_detect(pred_list$predictor, "kelp_annual")],
-    aquatic_vegetation = pred_list$predictor[str_detect(pred_list$predictor, "aquatic_vegetation")]
+    aquatic_vegetation = pred_list$predictor[str_detect(pred_list$predictor, "aquatic_vegetation")],
+    tri = pred_list$predictor[str_detect(pred_list$predictor, "tri")]
   ) %>% compact()
   
   fixed <- "site_type * age_at_survey"
@@ -51,9 +52,11 @@ select_scales <- function(data, pred_list, intx.terms, response, random_effects)
     mutate(Model = str_to_sentence(str_replace_all(Model, "_", " ")),
            Feature = str_to_sentence(str_replace_all(Feature, "_", " "))) %>% 
     mutate(Model = str_replace_all(Model, "Aquatic vegetation bed", "Max biotic extent") %>% 
-             str_replace_all("cv", "CV")) %>% 
+             str_replace_all("cv", "CV") %>% 
+             str_replace_all("Tri_mean", "TRI")) %>% 
     mutate(Feature = str_replace_all(Feature,"Aquatic vegetation", "Max biotic extent") %>% 
-             str_replace_all("cv", "CV")) %>% 
+             str_replace_all("cv", "CV") %>% 
+             str_replace_all("Tri_mean", "TRI")) %>% 
     gt(groupname_col = "Feature") %>% 
     cols_label(delta = "ΔAICc",
                weight = "AICc Weight") %>% 
@@ -285,89 +288,6 @@ check_nested_models <- function(top_models) {
 # }
 
 
-# Include only 2-way interactions  ----
-get_2way_list <- function(predictors_df, habitat){
-  
-  predictors_df <- predictors_df %>% 
-    filter(pred_group %in% c("all", "combined")) %>% 
-    filter(!str_detect(predictor, "depth_sd")) %>% 
-    mutate(predictor2 = paste0(predictor, " * site_type"))
-  
-  K25_absent <- sum(predictors_df$predictor == "kelp_annual_25") == 0
-  DCV25_absent <- sum(predictors_df$predictor == "depth_cv_25") == 0
-  
-  hard_vars  <- predictors_df %>% filter(str_detect(predictor, "hard")) %>% pull(predictor)
-  soft_vars  <- predictors_df %>% filter(str_detect(predictor, "soft")) %>% pull(predictor)
-  kelp_vars  <- predictors_df %>% filter(str_detect(predictor, "kelp")) %>% pull(predictor)
-  depth_vars <- predictors_df %>% filter(str_detect(predictor, "depth")) %>% pull(predictor)
-  aqua_vars  <- predictors_df %>% filter(str_detect(predictor, "aquatic")) %>% pull(predictor)
-  
-  hard_intx <- predictors_df %>% filter(str_detect(predictor, "hard")) %>% pull(predictor2)
-  soft_intx <- predictors_df %>% filter(str_detect(predictor, "soft")) %>% pull(predictor2)
-  kelp_intx <- predictors_df %>% filter(str_detect(predictor, "kelp")) %>% pull(predictor2)
-  depth_intx <- predictors_df %>% filter(str_detect(predictor, "depth")) %>% pull(predictor2)
-  aqua_intx  <- predictors_df %>% filter(str_detect(predictor, "aquatic")) %>% pull(predictor2)
-  
-  # Version with both depths matching scales
-  # depth_comb <- predictors_df %>% filter(str_detect(predictor, "depth")) %>% 
-  #   group_by(scale) %>%
-  #   summarize(d1 = paste(predictor, collapse = " + "),
-  #             d2 = paste(predictor2, collapse = " + "),
-  #             d3 = paste(predictor[1], predictor2[2], sep = " + ", collapse = " + "),
-  #             d4 = paste(predictor2[1], predictor[2], sep = " + ", collapse = " + ")) %>%
-  #   pivot_longer(cols = d1:d4, values_to = "predictor") %>% pull(predictor)
-  
-  # Version with both depths all scales
-  depth_comb <- expand.grid(depth_mean = c(depth_vars[str_detect(depth_vars, "depth_mean")], depth_intx[str_detect(depth_intx, "depth_mean")]),
-                            depth_cv = c(depth_vars[str_detect(depth_vars, "depth_cv")], depth_intx[str_detect(depth_intx, "depth_cv")])) %>%
-    unite("predictors", c(depth_mean, depth_cv), sep = " + ") %>% pull(predictors)
-  
-  # Generate all models (all combinations of H, K, and D at any scale)
-  if (habitat == "surf"){
-    pred_list <-  expand.grid(hard  = c(NA, hard_vars, hard_intx, soft_vars, soft_intx),
-                              kelp  = c(NA, kelp_vars, kelp_intx),
-                              depth = c(NA, depth_vars, depth_intx, depth_comb), # add depth_comb here if multiple depths
-                              aqua = c(NA, aqua_vars, aqua_intx),
-                              stringsAsFactors = FALSE) 
-  } else {
-    pred_list <-  expand.grid(hard  = c(NA, hard_vars, hard_intx),
-                              kelp  = c(NA, kelp_vars, kelp_intx),
-                              depth = c(NA, depth_vars, depth_intx, depth_comb), # add depth_comb here if multiple depths
-                              aqua = c(NA, aqua_vars, aqua_intx),
-                              stringsAsFactors = FALSE)
-  }
-  
-  pred_list <-  pred_list %>% 
-    mutate(hard_scale  = str_extract(hard, "\\d+"),
-           kelp_scale  = str_extract(kelp, "\\d+"),
-           aqua_scale = str_extract(aqua, "\\d+"),
-           depth_scale = str_extract(depth, "\\d+"),
-           depth_scale2 = str_extract_all(depth, "\\d+") %>% map_chr(~ .x[2] %||% NA)
-    ) %>% 
-    mutate(base_terms = "site_type * age_at_survey") %>% 
-    unite("predictors", c(hard, kelp, depth, aqua, base_terms), sep = " + ", na.rm = TRUE, remove = FALSE) %>% 
-    mutate(type = case_when(hard_scale == kelp_scale & kelp_scale == depth_scale & depth_scale == aqua_scale &
-                              str_detect(hard, "site") & str_detect(kelp, "site") & str_count(depth, "site") == 2 & depth_scale == depth_scale2 & str_detect(aqua, "site") ~ "core",
-                            predictors == "site_type * age_at_survey" ~ "base",
-                            T~NA)) %>% 
-    mutate(model_id = 
-             str_replace_all(predictors, "hard_bottom_(\\d+)", "H\\1") %>% 
-             str_replace_all("soft_bottom_(\\d+)", "S\\1") %>% 
-             str_replace_all("kelp_annual_(\\d+)", "K\\1") %>% 
-             str_replace_all("depth_mean_(\\d+)", "DM\\1") %>% 
-             str_replace_all("depth_sd_(\\d+)", "DSD\\1") %>% 
-             str_replace_all("depth_cv_(\\d+)", "DCV\\1") %>% 
-             str_replace_all("site_type", "ST") %>%
-             str_replace_all("age_at_survey", "A") %>% 
-             str_replace_all("aquatic_vegetation_bed_(\\d+)", "AV\\1") %>% 
-             str_replace_all("\\s+", "")) %>% 
-    dplyr::select(predictors, type, model_id, hard_scale, kelp_scale, depth_mean_scale = depth_scale, depth_cv_scale = depth_scale2, aqua_scale) %>% 
-    mutate(type = if_else(K25_absent & str_detect(model_id, stringr::fixed("H25*ST+DM25*ST+DCV25*ST+AV25*ST+ST*A")), "core", type)) %>% 
-    mutate(type = if_else(DCV25_absent & str_detect(model_id, stringr::fixed("H25*ST+K25*ST+DM25*ST+AV25*ST+ST*A")), "core", type))
-  
-  return(pred_list)
-}
-
 predictors_to_model_id <- function(predictor_df){
   predictor_df <- predictor_df %>% 
     mutate(model_id = 
@@ -412,9 +332,15 @@ generate_simple_3way <- function(pred_top) {
                                     pred$predictor[str_detect(pred$predictor, "depth_cv")], 
                                     pred$intx[str_detect(pred$predictor, "depth_cv")],
                                     pred$intx2[str_detect(pred$predictor, "depth_cv")],
-                                    pred$intx3[str_detect(pred$predictor, "depth_cv")]), stringsAsFactors = F) %>% 
+                                    pred$intx3[str_detect(pred$predictor, "depth_cv")]), 
+                           trim = c(NA, 
+                                    pred$predictor[str_detect(pred$predictor, "tri_mean")], 
+                                    pred$intx[str_detect(pred$predictor, "tri_mean")],
+                                    pred$intx2[str_detect(pred$predictor, "tri_mean")],
+                                    pred$intx3[str_detect(pred$predictor, "tri_mean")]),
+                           stringsAsFactors = F) %>% 
     mutate(base = "site_type * age_at_survey") %>% 
-    unite("predictors", c(hard, kelp, depm, depc, base), sep = " + ", na.rm = TRUE, remove = FALSE) %>% 
+    unite("predictors", c(hard, kelp, depm, depc, trim, base), sep = " + ", na.rm = TRUE, remove = FALSE) %>% 
     mutate(model_id = 
              str_replace_all(predictors, "hard_bottom_(\\d+)", "H\\1") %>% 
              str_replace_all("soft_bottom_(\\d+)", "S\\1") %>% 
@@ -422,6 +348,7 @@ generate_simple_3way <- function(pred_top) {
              str_replace_all("depth_mean_(\\d+)", "DM\\1") %>% 
              str_replace_all("depth_sd_(\\d+)", "DSD\\1") %>% 
              str_replace_all("depth_cv_(\\d+)", "DCV\\1") %>% 
+             str_replace_all("tri_mean_(\\d+)", "TRI\\1") %>% 
              str_replace_all("site_type", "ST") %>%
              str_replace_all("age_at_survey", "A") %>% 
              str_replace_all("aquatic_vegetation_bed_(\\d+)", "AV\\1") %>% 
@@ -465,6 +392,11 @@ generate_surf_3way <- function(pred_top) {
                                     pred$intx[str_detect(pred$predictor, "depth_cv")],
                                     pred$intx2[str_detect(pred$predictor, "depth_cv")],
                                     pred$intx3[str_detect(pred$predictor, "depth_cv")]),
+                           trim = c(NA, 
+                                    pred$predictor[str_detect(pred$predictor, "tri_mean")], 
+                                    pred$intx[str_detect(pred$predictor, "tri_mean")],
+                                    pred$intx2[str_detect(pred$predictor, "tri_mean")],
+                                    pred$intx3[str_detect(pred$predictor, "tri_mean")]),
                            aquv = c(NA, 
                                     pred$predictor[str_detect(pred$predictor, "aquatic")], 
                                     pred$intx[str_detect(pred$predictor, "aquatic")],
@@ -472,7 +404,7 @@ generate_surf_3way <- function(pred_top) {
                                     pred$intx3[str_detect(pred$predictor, "aquatic")]), stringsAsFactors = F) %>% 
     mutate(base = "site_type * age_at_survey") %>% 
     filter(!(!is.na(hard) & !is.na(soft))) %>% 
-    unite("predictors", c(hard, soft, kelp, depm, depc, aquv, base), sep = " + ", na.rm = TRUE, remove = FALSE) %>% 
+    unite("predictors", c(hard, soft, kelp, depm, depc, trim, aquv, base), sep = " + ", na.rm = TRUE, remove = FALSE) %>% 
     mutate(model_id = 
              str_replace_all(predictors, "hard_bottom_(\\d+)", "H\\1") %>% 
              str_replace_all("soft_bottom_(\\d+)", "S\\1") %>% 
@@ -480,6 +412,7 @@ generate_surf_3way <- function(pred_top) {
              str_replace_all("depth_mean_(\\d+)", "DM\\1") %>% 
              str_replace_all("depth_sd_(\\d+)", "DSD\\1") %>% 
              str_replace_all("depth_cv_(\\d+)", "DCV\\1") %>% 
+             str_replace_all("tri_mean_(\\d+)", "TRI\\1") %>% 
              str_replace_all("site_type", "ST") %>%
              str_replace_all("age_at_survey", "A") %>% 
              str_replace_all("aquatic_vegetation_bed_(\\d+)", "AV\\1") %>% 

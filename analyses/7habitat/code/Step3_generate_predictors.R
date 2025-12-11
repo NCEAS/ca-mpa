@@ -20,24 +20,20 @@ rm(list = ls())
 gc()
 
 # Load the data to examine the habitat characteristics across sites for each ecosystem
-ltm.dir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_2024"
+ltm.dir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_2024/2025"
 
 # This selecting excludes the biotic habitats from PMEP (kelp only from kelpwatch)
 data_kelp <- readRDS(file.path(ltm.dir, "combine_tables/kelp_full.Rds")) %>% # 148 sites
-  dplyr::select(year, site, site_type, bioregion, all_of(grep("^(hard|soft|kelp|depth|aquatic_vegetation)", names(.), value = TRUE))) %>% 
+  dplyr::select(year, site, site_type, bioregion, all_of(grep("^(hard|soft|kelp|depth|aquatic_vegetation|tri)", names(.), value = TRUE))) %>% 
   distinct() 
   
 data_surf <- readRDS(file.path(ltm.dir, "combine_tables/surf_full.Rds")) %>% # 26 sites
-  dplyr::select(year, site, site_type, bioregion, all_of(grep("^(hard|soft|kelp|depth|aquatic_vegetation)", names(.), value = TRUE))) %>% 
+  dplyr::select(year, site, site_type, bioregion, all_of(grep("^(hard|soft|kelp|depth|aquatic_vegetation|tri)", names(.), value = TRUE))) %>% 
   distinct()
 
 data_rock <- readRDS(file.path(ltm.dir, "combine_tables/ccfrp_full.Rds")) %>% # 335 sites (grid cells)
-  dplyr::select(year, site, site_type, bioregion, all_of(grep("^(hard|soft|kelp|depth|aquatic_vegetation)", names(.), value = TRUE))) %>% 
+  dplyr::select(year, site, site_type, bioregion, all_of(grep("^(hard|soft|kelp|depth|aquatic_vegetation|tri)", names(.), value = TRUE))) %>% 
   distinct() 
-
-data_deep <- readRDS(file.path(ltm.dir, "combine_tables/deep_full.Rds")) %>% 
-  dplyr::select(year, site, site_type, bioregion, all_of(grep("^(hard|soft|kelp|depth)", names(.), value = TRUE))) %>% 
-  distinct()
 
 # Build initial predictor lists ----
 # Identify the predictors to retain for each ecosystem 
@@ -83,36 +79,13 @@ surf_predictors <- data_surf %>%
                                 str_detect(predictor, "kelp|depth|aquatic") ~ "all",
                                 T ~ "combined")) %>% 
   filter(!predictor == "depth_cv_25") %>% 
-  filter(!predictor == "kelp_annual_100")
-
-
-# surf_na <- data_surf  %>% 
-#   filter(if_any(everything(), is.na)) %>% # Keep rows with any NA
-#   dplyr::select(site, where(~ any(is.na(.))))          # Keep columns with any
-
-# STOP for now: Depth data NAN.
-# deep_predictors <- data_deep %>% 
-#   dplyr::select(year, site, site_type, bioregion, where(~ max(., na.rm = T) > 0)) %>%
-#   pivot_longer(cols = -c(year, site, site_type, bioregion), names_to = "predictor", values_to = "value") %>%
-#   group_by(bioregion, predictor) %>%
-#   summarize(sd = sd(value), .groups = "drop") %>% 
-#   pivot_wider(names_from = "bioregion", values_from = "sd") %>% 
-#   filter(!str_detect(predictor, "landward")) %>% 
-#   filter(!str_detect(predictor, "kelp_annual_100")) %>% 
-#   filter(!str_detect(predictor, "kelp_annual_250")) %>% 
-#   filter(!str_detect(predictor, "bottom_200m")) %>% 
-#   dplyr::select(predictor) %>% 
-#   mutate(scale = sub("_", "", str_sub(predictor, -3, -1)),
-#          pred_group = case_when(str_detect(predictor, "0_30m|30_100m|100_200m|200m") ~ "depth",
-#                                 str_detect(predictor, "kelp|depth") ~ "all",
-#                                 T ~ "combined")) 
+  filter(!predictor %in% c("kelp_annual_25", "kelp_annual_50", "kelp_annual_100"))
 
 
 # Save the predictor list for subsetting the dataset to only the variables of interest
 saveRDS(kelp_predictors, file.path("analyses/7habitat/intermediate_data", "kelp_predictors.Rds")) 
 saveRDS(rock_predictors, file.path("analyses/7habitat/intermediate_data", "rock_predictors.Rds")) 
 saveRDS(surf_predictors, file.path("analyses/7habitat/intermediate_data", "surf_predictors.Rds")) 
-#saveRDS(deep_predictors, file.path("analyses/7habitat/intermediate_data", "deep_predictors.Rds"))
 
 
 # Examine correlation -----
@@ -121,7 +94,6 @@ saveRDS(surf_predictors, file.path("analyses/7habitat/intermediate_data", "surf_
 kelp <- data_kelp %>% dplyr::select(site, site_type, bioregion, all_of(kelp_predictors$predictor))
 rock <- data_rock %>% dplyr::select(site, site_type, bioregion, all_of(rock_predictors$predictor))
 surf <- data_surf %>% dplyr::select(site, site_type, bioregion, all_of(surf_predictors$predictor))
-#deep <- data_deep %>% dplyr::select(site, site_type, bioregion, all_of(deep_predictors$predictor))
 
 # Plot correlations
 
@@ -224,111 +196,6 @@ rock_site_corr <- plot_site_corr(site_table = rock, predictor_list = rock_predic
 # - Probably still okay to cross scales ACROSS habitat metrics (e.g. hard 250 + kelp 100)
 
 # Generate combinations independent of scale for the depth and kelp, using hard only
-
-
-# Include only 2-way interactions  ----
-get_2way_list <- function(predictors_df, habitat){
-  
-  predictors_df <- predictors_df %>% 
-    filter(pred_group %in% c("all", "combined")) %>% 
-    filter(!str_detect(predictor, "depth_sd")) %>% 
-    mutate(predictor2 = paste0(predictor, " * site_type"))
-  
-  K25_absent <- sum(predictors_df$predictor == "kelp_annual_25") == 0
-  DCV25_absent <- sum(predictors_df$predictor == "depth_cv_25") == 0
-  
-  hard_vars  <- predictors_df %>% filter(str_detect(predictor, "hard")) %>% pull(predictor)
-  soft_vars  <- predictors_df %>% filter(str_detect(predictor, "soft")) %>% pull(predictor)
-  kelp_vars  <- predictors_df %>% filter(str_detect(predictor, "kelp")) %>% pull(predictor)
-  depth_vars <- predictors_df %>% filter(str_detect(predictor, "depth")) %>% pull(predictor)
-  aqua_vars  <- predictors_df %>% filter(str_detect(predictor, "aquatic")) %>% pull(predictor)
-
-  hard_intx <- predictors_df %>% filter(str_detect(predictor, "hard")) %>% pull(predictor2)
-  soft_intx <- predictors_df %>% filter(str_detect(predictor, "soft")) %>% pull(predictor2)
-  kelp_intx <- predictors_df %>% filter(str_detect(predictor, "kelp")) %>% pull(predictor2)
-  depth_intx <- predictors_df %>% filter(str_detect(predictor, "depth")) %>% pull(predictor2)
-  aqua_intx  <- predictors_df %>% filter(str_detect(predictor, "aquatic")) %>% pull(predictor2)
-  
-  # Version with both depths matching scales
-  # depth_comb <- predictors_df %>% filter(str_detect(predictor, "depth")) %>% 
-  #   group_by(scale) %>%
-  #   summarize(d1 = paste(predictor, collapse = " + "),
-  #             d2 = paste(predictor2, collapse = " + "),
-  #             d3 = paste(predictor[1], predictor2[2], sep = " + ", collapse = " + "),
-  #             d4 = paste(predictor2[1], predictor[2], sep = " + ", collapse = " + ")) %>%
-  #   pivot_longer(cols = d1:d4, values_to = "predictor") %>% pull(predictor)
-  
-  # Version with both depths all scales
-  depth_comb <- expand.grid(depth_mean = c(depth_vars[str_detect(depth_vars, "depth_mean")], depth_intx[str_detect(depth_intx, "depth_mean")]),
-                            depth_cv = c(depth_vars[str_detect(depth_vars, "depth_cv")], depth_intx[str_detect(depth_intx, "depth_cv")])) %>%
-    unite("predictors", c(depth_mean, depth_cv), sep = " + ") %>% pull(predictors)
-  
-  # Generate all models (all combinations of H, K, and D at any scale)
-  if (habitat == "surf"){
-    pred_list <-  expand.grid(hard  = c(NA, hard_vars, hard_intx, soft_vars, soft_intx),
-                              kelp  = c(NA, kelp_vars, kelp_intx),
-                              depth = c(NA, depth_vars, depth_intx, depth_comb), # add depth_comb here if multiple depths
-                              aqua = c(NA, aqua_vars, aqua_intx),
-                              stringsAsFactors = FALSE) 
-  } else {
-    pred_list <-  expand.grid(hard  = c(NA, hard_vars, hard_intx),
-                              kelp  = c(NA, kelp_vars, kelp_intx),
-                              depth = c(NA, depth_vars, depth_intx, depth_comb), # add depth_comb here if multiple depths
-                              aqua = c(NA, aqua_vars, aqua_intx),
-                              stringsAsFactors = FALSE)
-  }
-
-  pred_list <-  pred_list %>% 
-    mutate(hard_scale  = str_extract(hard, "\\d+"),
-           kelp_scale  = str_extract(kelp, "\\d+"),
-           aqua_scale = str_extract(aqua, "\\d+"),
-           depth_scale = str_extract(depth, "\\d+"),
-           depth_scale2 = str_extract_all(depth, "\\d+") %>% map_chr(~ .x[2] %||% NA)
-          ) %>% 
-    mutate(base_terms = "site_type * age_at_survey") %>% 
-    unite("predictors", c(hard, kelp, depth, aqua, base_terms), sep = " + ", na.rm = TRUE, remove = FALSE) %>% 
-    mutate(type = case_when(hard_scale == kelp_scale & kelp_scale == depth_scale & depth_scale == aqua_scale &
-                              str_detect(hard, "site") & str_detect(kelp, "site") & str_count(depth, "site") == 2 & depth_scale == depth_scale2 & str_detect(aqua, "site") ~ "core",
-                            predictors == "site_type * age_at_survey" ~ "base",
-                            T~NA)) %>% 
-    mutate(model_id = 
-             str_replace_all(predictors, "hard_bottom_(\\d+)", "H\\1") %>% 
-             str_replace_all("soft_bottom_(\\d+)", "S\\1") %>% 
-             str_replace_all("kelp_annual_(\\d+)", "K\\1") %>% 
-             str_replace_all("depth_mean_(\\d+)", "DM\\1") %>% 
-             str_replace_all("depth_sd_(\\d+)", "DSD\\1") %>% 
-             str_replace_all("depth_cv_(\\d+)", "DCV\\1") %>% 
-             str_replace_all("site_type", "ST") %>%
-             str_replace_all("age_at_survey", "A") %>% 
-             str_replace_all("aquatic_vegetation_bed_(\\d+)", "AV\\1") %>% 
-             str_replace_all("\\s+", "")) %>% 
-    dplyr::select(predictors, type, model_id, hard_scale, kelp_scale, depth_mean_scale = depth_scale, depth_cv_scale = depth_scale2, aqua_scale) %>% 
-    mutate(type = if_else(K25_absent & str_detect(model_id, stringr::fixed("H25*ST+DM25*ST+DCV25*ST+AV25*ST+ST*A")), "core", type)) %>% 
-    mutate(type = if_else(DCV25_absent & str_detect(model_id, stringr::fixed("H25*ST+K25*ST+DM25*ST+AV25*ST+ST*A")), "core", type))
-  
-  return(pred_list)
-}
-
-kelp_list <- get_2way_list(kelp_predictors, habitat = "kelp") # 2541 
-rock_list <- get_2way_list(rock_predictors, habitat = "rock") # 2541 
-surf_list <- get_2way_list(surf_predictors, habitat = "surf") # 1155 
-# deep_list <- get_2way_list(deep_predictors) # 693 
-
-
-# Fix surf core types
-surf_list2 <- surf_list %>% 
-  mutate(type = case_when(str_detect(model_id, stringr::fixed("H50*ST+DM50*ST+DCV50*ST+AV50*ST+ST*A")) ~ "core", 
-                          str_detect(model_id, stringr::fixed("H100*ST+DM100*ST+DCV100+AV100*ST+ST*A")) ~ "core", 
-                          str_detect(model_id, stringr::fixed("H25*ST+DM25*ST+AV25*ST+ST*A")) ~ "core",
-                          str_detect(model_id, stringr::fixed("S50*ST+DM50*ST+DCV50*ST+AV50*ST+ST*A")) ~ "core", 
-                          str_detect(model_id, stringr::fixed("S100*ST+DM100*ST+DCV100+AV100*ST+ST*A")) ~ "core", 
-                          str_detect(model_id, stringr::fixed("S25*ST+DM25*ST+AV25*ST+ST*A")) ~ "core",
-                          T~type))
-
-saveRDS(kelp_list, file.path("analyses/7habitat/intermediate_data", "kelp_predictors_2way.Rds"))  
-saveRDS(rock_list, file.path("analyses/7habitat/intermediate_data", "rock_predictors_2way.Rds")) 
-saveRDS(surf_list2, file.path("analyses/7habitat/intermediate_data", "surf_predictors_2way.Rds")) 
-#saveRDS(deep_list, file.path("analyses/7habitat/intermediate_data", "deep_predictors_2way.Rds")) 
 
 
 # Add soft and aquatic vegetation bed
