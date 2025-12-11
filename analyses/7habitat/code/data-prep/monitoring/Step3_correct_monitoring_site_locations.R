@@ -21,7 +21,8 @@ gis.dir <- "/home/shares/ca-mpa/data/sync-data/gis_data/processed"
 # The smaller sized buffers are excluded (expect b/c no overlap due to the given
 # lat/lon of the site) so will examine the smallest one available
 habitat <- readRDS(file.path(hab.dir, "combined/buffers", paste0("habitat_buffers_", 500, "m.Rds"))) %>% 
-  filter(depth_zone != "landward")
+  filter(depth_zone != "landward") %>% 
+  mutate(habitat_class = factor(habitat_class, levels = c("Soft Bottom", "Hard Bottom", "Aquatic Vegeetation Bed", "Aquatic Vascular Vegetation", "Seagrass")))
 
 # Load the cleaned monitoring site table
 sites <- readRDS(file.path("/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_2024", "site_locations.Rds")) %>% 
@@ -54,7 +55,7 @@ sites_surf <- sites %>%
 # Create a list to store plots and a dataframe to store corrected points
 plots <- list()
 corrected_points_list <- list()
-my_site <- sites_surf$site[21]
+my_site <- sites_surf$site[13]
 
 # Process each site
 for (my_site in unique(sites_surf$site)) {
@@ -100,20 +101,24 @@ for (my_site in unique(sites_surf$site)) {
   } else {
     corrected_points_list[[my_site]] <- site_point_corrected
   }
+  
+  # Create 25m buffer for comparison
+  site_buffer_25 <- st_buffer(corrected_points_list[[my_site]], dist = 25)
 
   # Create the plot
   plot <- ggplot() +
     geom_sf(data = coast, color = "blue", lwd = 0.6) +
     geom_sf(data = state_waters_poly, fill = "lightblue", alpha = 0.5) +
-    geom_sf(data = habitat_df, aes(fill = habitat_class), show.legend = F, alpha = 0.5) +
+    geom_sf(data = habitat_df, aes(fill = habitat_class), color = "grey20", show.legend = F) +
     geom_sf(data = corrected_points_list[[my_site]], color = "red", size = 2) +
     geom_sf(data = site_point, color = "black", size = 2) +
+    geom_sf(data = site_buffer_25, color = "red", fill = NA) +
     coord_sf(
       xlim = c(site_bbox["xmin"], site_bbox["xmax"]),
       ylim = c(site_bbox["ymin"], site_bbox["ymax"])
     ) +
     labs(fill = NULL) +
-    ggtitle(paste("Site:", my_site)) +
+    ggtitle(paste(my_site)) +
     theme_minimal() +
     scale_fill_manual(
       values = c(
@@ -124,13 +129,14 @@ for (my_site in unique(sites_surf$site)) {
         "Seagrass" = "darkgreen"
       )
     ) +
-    theme(title = element_text(size = 8),
-          axis.text.x = element_text(size = 8))
+    theme(plot.background = element_rect(fill = "white", color = NA),
+          title = element_text(size = 6),
+          axis.text = element_text(size = 6))
   
   # Store the plot
   plots[[my_site]] <- plot
   
-  ggsave(filename = paste0("~/ca-mpa/analyses/7habitat/figures/site-plots/surf-corrections/", my_site, ".png"), plot = plot, width = 5, height = 5, units = "in", dpi = 300)
+  ggsave(filename = paste0("~/ca-mpa/analyses/7habitat/figures/site-plots/surf-corrections/", my_site, ".png"), plot = plot, width = 6, height = 6, units = "in", dpi = 300)
   
   
   }
@@ -189,19 +195,23 @@ for (my_site in unique(sites_surf_offshore$site)) {
   # Create a bounding box around the site and corrected points
   site_bbox <- st_bbox(st_buffer(st_union(st_geometry(habitat_df), st_geometry(site_point_corrected)), dist = 100)) 
   
+  # Create 25m buffer for comparison
+  site_buffer_25 <- st_buffer(corrected_points_list[[my_site]], dist = 25)
+  
   # Create the plot
   plot <- ggplot() +
     geom_sf(data = coast, color = "blue", lwd = 0.6) +
     geom_sf(data = state_waters_poly, fill = "lightblue", alpha = 0.5) +
-    geom_sf(data = habitat_df, aes(fill = habitat_class), show.legend = F, alpha = 0.5) +
+    geom_sf(data = habitat_df, aes(fill = habitat_class), show.legend = F) +
     geom_sf(data = corrected_points_list[[my_site]], color = "red", size = 2) +
     geom_sf(data = site_point, color = "black", size = 2) +
+    geom_sf(data = site_buffer_25, color = "red", fill = NA) +
     coord_sf(
       xlim = c(site_bbox["xmin"], site_bbox["xmax"]),
       ylim = c(site_bbox["ymin"], site_bbox["ymax"])
     ) +
     labs(fill = NULL) +
-    ggtitle(paste("Site:", my_site)) +
+    ggtitle(paste(my_site)) +
     theme_minimal() +
     scale_fill_manual(
       values = c(
@@ -211,7 +221,10 @@ for (my_site in unique(sites_surf_offshore$site)) {
         "Aquatic Vascular Vegetation" = "darkgreen",
         "Seagrass" = "darkgreen"
       )
-    )
+    ) +
+    theme(plot.background = element_rect(fill = "white", color = NA),
+          title = element_text(size = 6),
+          axis.text = element_text(size = 6))
   
   # Store the plot
   plots[[my_site]] <- plot
