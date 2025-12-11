@@ -26,8 +26,12 @@ proc.dir <- "/home/shares/ca-mpa/data/sync-data/habitat_anita/processed"
 # Get files for the 30m CSMP layer
 bathy_30m <- rast(file.path(caba.dir, "depth_30m_all_CA.tif"))
 
+# Remove single error (~963m depth)
+bathy_30m_masked <- app(bathy_30m, fun = function(x) ifelse(x < -900, NA, x))
+
 # Remove land (>= 0 depth) from CSMP layer and write to proc.dir
-bathy_30m_masked <- app(bathy_30m, fun = function(x) ifelse(x >= 0, NA, x))
+bathy_30m_masked <- app(bathy_30m_masked, fun = function(x) ifelse(x >= 0, NA, x))
+
 writeRaster(bathy_30m_masked, file.path(proc.dir, "csmp_30m_bathy.tif"), overwrite=TRUE)
 
 rm(bathy_30m, bathy_30m_masked) # clean up
