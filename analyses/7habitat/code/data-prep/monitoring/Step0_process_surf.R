@@ -30,8 +30,8 @@ datadir <- "/home/shares/ca-mpa/data/sync-data/monitoring/"
 outdir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data"
 
 # Read surf monitoring data
-surf_zone_raw <- read.csv(file.path(datadir, "monitoring_sandy-beach/surf_zone_fish_seine_data.csv")) %>%
-  clean_names()
+# surf_zone_raw <- read.csv(file.path(datadir, "monitoring_sandy-beach/surf_zone_fish_seine_data.csv")) %>%
+#   clean_names()
 
 surf_zone_raw <- read.csv("/home/shares/ca-mpa/data/sync-data/monitoring/monitoring_sandy-beach/update_2024/seine_fish_19_24.csv", na.strings = c("", "NA")) %>% 
   clean_names() %>% 
@@ -112,19 +112,22 @@ data <- surf_zone_raw %>%
   mutate(species_code = case_when(species_code %in% c("unspecified", "FFUN") ~ "UNKNOWN",
                                   is.na(species_code) & count > 0 ~ "UNKNOWN", # length data but missing species data
                                   T~species_code)) %>% 
-  # Drop 2024 to match other habitats and because we don't have the kelp data 
-  #filter(year < 2024) %>% 
-  # Drop a few rows with no count data
+  filter(!species_code %in% c("UNKNOWN", "YOY", "RFYOY")) %>% 
+  # Drop a few observations with no count data
   filter(!is.na(count)) %>% 
+  # Temporarily set count = 1 for NO_ORG to retain those when uncounting:
+  mutate(count = if_else(species_code == "NO_ORG", 1, count)) %>% 
   # Uncount so each row is a fish
-  uncount(weights = count, .remove = F) 
+  uncount(weights = count, .remove = F) %>% # duplicates based on number in count col but retains that count value
+  # Reset count = 0 for NO_ORG:
+  mutate(count = if_else(species_code == "NO_ORG", 0, count)) 
 
 
 # estimate tl_cm for schooling fishes ------------------------------------------
 
 data <- data %>% mutate(.row = row_number())
 
-site_keys <- c("year","month","day","bioregion","region4","affiliated_mpa",
+site_keys <- c("year","month","day","bioregion","region4","affiliated_mpa", "site_name",
                "mpa_state_class","mpa_state_designation","mpa_defacto_class",
                "mpa_defacto_designation","species_code")
 
@@ -157,7 +160,10 @@ data2 <- data %>%
   mutate(tl_cm = coalesce(tl_cm, tl_cm_inferred)) %>%
   select(-tl_cm_inferred, - .row) %>% 
   # Adjust so each count is 1
-  mutate(count = 1)
+  mutate(count = if_else(species_code != "NO_ORG", 1, count)) %>% 
+  clean_names() %>% 
+  dplyr::select(!c(weight_g, total_weight_g, total_weight_kg)) # drop other weight cols
+
 
 #new dist
 ggplot(data2 %>% filter(habitat_specific_spp_name %in% c("Seriphus politus", "Atherinops affinis")), aes(x = tl_cm)) +
@@ -170,37 +176,13 @@ ggplot(data %>% filter(habitat_specific_spp_name %in% c("Seriphus politus", "Ath
   facet_wrap(~ habitat_specific_spp_name, scales = "free_x") 
 
 
-# Check taxa NAs
-taxa_na <- #data %>% #old
-  data2 %>%
-  filter(is.na(sciname) & !(species_code == "NO_ORG"))
-
-# Test for matching taxa
-taxa_match <- #data %>% #old
-  data2 %>%
-  distinct(species_code) %>% 
-  filter(!is.na(species_code)) %>% 
-  filter(!(species_code == "NO_ORG")) %>% 
-  filter(!(species_code %in% taxon_tab$habitat_specific_code))
-
-## Note: There are still 4 with no taxonomic info that need to be updated in 
-## the main species_key if we want to include beyond tracking effort (e.g. 
-## manually fill in appropriate taxa information across columns when processing
-## surf zone taxon table)
-
-#added above to surf zone taxon table on 8/31/23 -JGS
-# Unspecified, HALI, RFYOY, FFUN
-
-
 # Write data ------------------------------------------------------------------------
 #write.csv(data, row.names = FALSE, file.path(outdir, "surf_zone_fish_processed.csv"))
 # last write 13 Sept 2023
-
 
 #write.csv(inferred_size, row.names = FALSE, file.path(outdir, "surf_zone_processed.csv"))
 #last export 16 Feb 2024
 
 outdir <-  "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_2024"
 write.csv(data2, row.names = FALSE, file.path(outdir, "surf_zone_processed.csv"))
-#last export 10 Nov 2025
 
