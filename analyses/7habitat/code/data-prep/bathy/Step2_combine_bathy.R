@@ -69,13 +69,15 @@ writeRaster(final_ca, file.path(proc.dir, "combined_30m_bathy_ca.tif"), overwrit
 
 # Get slope and TRI ----------------------------
 
+final_ca <- rast(file.path(proc.dir, "combined_30m_bathy_ca.tif"))
+
 slope  <- terra::terrain(final_ca, v = "slope", unit = "degrees", neighbors = 8)
 writeRaster(slope, file.path(proc.dir, "combined_30m_bathy_ca_slope.tif"), overwrite=TRUE)
 
 tri    <- terra::terrain(final_ca, v = "TRI", neighbors = 8)
 writeRaster(tri, file.path(proc.dir, "combined_30m_bathy_ca_tri.tif"), overwrite=TRUE)
 
-
-
-
-
+# Both slope and TRI have extremes at edges because of missing data near land,
+# so will mask to only include these where they have a full 8-cell neighborhood
+# - Tested using terra::focal on full raster and was not possible due to memory
+#   creep, so will do that on the next step with the buffers loaded instead...
