@@ -17,8 +17,8 @@ select_scales <- function(data, pred_list, intx.terms, response, random_effects)
     depth_cv = pred_list$predictor[str_detect(pred_list$predictor, "depth_cv")],
     kelp_annual = pred_list$predictor[str_detect(pred_list$predictor, "kelp_annual")],
     aquatic_vegetation = pred_list$predictor[str_detect(pred_list$predictor, "aquatic_vegetation")],
-    tri = pred_list$predictor[str_detect(pred_list$predictor, "tri")]
-  ) %>% compact()
+    tri = pred_list$predictor[str_detect(pred_list$predictor, "tri")],
+    slope_sd = pred_list$predictor[str_detect(pred_list$predictor, "slope_sd")]) %>% compact()
   
   fixed <- "site_type * age_at_survey"
   
@@ -179,115 +179,6 @@ evaluate_nested_models <- function(models, delta_threshold, alpha) {
   )
 }
 
-check_nested_models <- function(top_models) {
-  
-  candidate_list <- data.frame(model = NULL)
-  nested_results <- data.frame(model = NULL, nested = NULL, p = NULL)
-  drop_list <- data.frame(model = NULL)
-  top_models <- top_models$model
-
-  # Convert models to a model.selection object
-  model_set <- model.sel(top_models)
-  names(top_models) <- rownames(model_set) 
-  
-  # Check whether they are nested
-  nested <- nested(model_set, indices = "rownames")
-  nested_lengths <- sapply(nested, length)
-  
-  # Output is a list with one object per model
-  for (i in 1:length(nested)) {
-    current_model <- names(nested)[i]
-    nested_status <- nested_lengths[current_model]
-  
-    if (nested_status == 0) {
-      candidate_list <- bind_rows(candidate_list, data.frame(model = current_model))
-      results <- data.frame(model = current_model)
-      nested_results <- bind_rows(nested_results, results)
-      
-    } else {
-      
-      nested_models <- nested[[i]]
-      
-      for (j in 1:length(nested_models)) {
-        nested_model <- nested_models[j]
-        lrt <- anova(top_models[[current_model]], top_models[[nested_model]])
-        p <- lrt$`Pr(>Chisq)`[2]
-        
-        if (p >= 0.05) {
-          candidate_list <- bind_rows(candidate_list, data.frame(model = nested_model))
-          drop_list <- bind_rows(drop_list, data.frame(model = current_model))
-        } else {
-          candidate_list <- bind_rows(candidate_list, data.frame(model = current_model))
-          drop_list <- bind_rows(drop_list, data.frame(model = nested_model))
-        }
-        
-        results <- data.frame(model = current_model, nested = nested_model, p = p)
-        nested_results <- bind_rows(nested_results, results)
-        
-        }
-      }
-  }
-  
-  candidate_list <- candidate_list %>% 
-    filter(!model %in% drop_list$model) %>% 
-    distinct()
-  
-  return(list(candidate_list = candidate_list, nested_results = nested_results))
-}
-
-
-
-# check_nested_models <- function(top_models) {
-#   
-#   nested_results <- data.frame(model = character(),
-#                                nested = character(),
-#                                p = numeric(),
-#                                stringsAsFactors = FALSE)
-#   
-#   model_set <- model.sel(top_models$model) %>% arrange(delta)
-#   nested_list <- nested(model_set, indices = "rownames")
-#   
-#   all_models <- names(top_models$model)
-#   drop_list <- c()
-#   
-#   for (i in seq_along(nested_list)) {
-#     current_model <- names(nested_list)[i]
-#     nested_models <- nested_list[[i]]
-#     
-#     if (length(nested_models) == 0) next
-#     
-#     for (nested_model in nested_models) {
-#       lrt <- anova(top_models$model[[current_model]], top_models$model[[nested_model]])
-#       p <- lrt$`Pr(>Chisq)`[2]
-#       
-#       nested_results <- bind_rows(nested_results, data.frame(
-#         model = current_model,
-#         nested = nested_model,
-#         p = p
-#       ))
-#     }
-#   }
-#   
-#   # Identify models to drop
-#   for (model in all_models) {
-#     nested_comparisons <- nested_results %>% filter(model == !!model)
-#     if (nrow(nested_comparisons) > 0) {
-#       if (any(nested_comparisons$p >= 0.05)) {
-#         drop_list <- c(drop_list, model)
-#       }
-#     }
-#   }
-#   
-#   candidate_list <- setdiff(all_models, drop_list)
-#   
-#   return(list(
-#     candidate_list = candidate_list,
-#     drop_list = drop_list,
-#     nested_results = nested_results
-#   ))
-# }
-
-
 predictors_to_model_id <- function(predictor_df){
   predictor_df <- predictor_df %>% 
     mutate(model_id = 
@@ -303,8 +194,6 @@ predictors_to_model_id <- function(predictor_df){
            str_replace_all("\\s+", "")) 
   return(predictor_df)
 }
-
-
 
 generate_simple_3way <- function(pred_top) {
   
@@ -338,9 +227,14 @@ generate_simple_3way <- function(pred_top) {
                                     pred$intx[str_detect(pred$predictor, "tri_mean")],
                                     pred$intx2[str_detect(pred$predictor, "tri_mean")],
                                     pred$intx3[str_detect(pred$predictor, "tri_mean")]),
+                           slsd = c(NA, 
+                                    pred$predictor[str_detect(pred$predictor, "slope_sd")], 
+                                    pred$intx[str_detect(pred$predictor, "slope_sd")],
+                                    pred$intx2[str_detect(pred$predictor, "slope_sd")],
+                                    pred$intx3[str_detect(pred$predictor, "slope_sd")]),
                            stringsAsFactors = F) %>% 
     mutate(base = "site_type * age_at_survey") %>% 
-    unite("predictors", c(hard, kelp, depm, depc, trim, base), sep = " + ", na.rm = TRUE, remove = FALSE) %>% 
+    unite("predictors", c(hard, kelp, depm, depc, trim, slsd, base), sep = " + ", na.rm = TRUE, remove = FALSE) %>% 
     mutate(model_id = 
              str_replace_all(predictors, "hard_bottom_(\\d+)", "H\\1") %>% 
              str_replace_all("soft_bottom_(\\d+)", "S\\1") %>% 
@@ -349,6 +243,7 @@ generate_simple_3way <- function(pred_top) {
              str_replace_all("depth_sd_(\\d+)", "DSD\\1") %>% 
              str_replace_all("depth_cv_(\\d+)", "DCV\\1") %>% 
              str_replace_all("tri_mean_(\\d+)", "TRI\\1") %>% 
+             str_replace_all("slope_sd_(\\d+)", "SSD\\1") %>% 
              str_replace_all("site_type", "ST") %>%
              str_replace_all("age_at_survey", "A") %>% 
              str_replace_all("aquatic_vegetation_bed_(\\d+)", "AV\\1") %>% 
@@ -357,8 +252,6 @@ generate_simple_3way <- function(pred_top) {
   return(pred_3way)
   
 }
-
-
 
 generate_surf_3way <- function(pred_top) {
   
@@ -397,6 +290,11 @@ generate_surf_3way <- function(pred_top) {
                                     pred$intx[str_detect(pred$predictor, "tri_mean")],
                                     pred$intx2[str_detect(pred$predictor, "tri_mean")],
                                     pred$intx3[str_detect(pred$predictor, "tri_mean")]),
+                           slsd = c(NA, 
+                                    pred$predictor[str_detect(pred$predictor, "slope_sd")], 
+                                    pred$intx[str_detect(pred$predictor, "slope_sd")],
+                                    pred$intx2[str_detect(pred$predictor, "slope_sd")],
+                                    pred$intx3[str_detect(pred$predictor, "slope_sd")]),
                            aquv = c(NA, 
                                     pred$predictor[str_detect(pred$predictor, "aquatic")], 
                                     pred$intx[str_detect(pred$predictor, "aquatic")],
@@ -404,7 +302,7 @@ generate_surf_3way <- function(pred_top) {
                                     pred$intx3[str_detect(pred$predictor, "aquatic")]), stringsAsFactors = F) %>% 
     mutate(base = "site_type * age_at_survey") %>% 
     filter(!(!is.na(hard) & !is.na(soft))) %>% 
-    unite("predictors", c(hard, soft, kelp, depm, depc, trim, aquv, base), sep = " + ", na.rm = TRUE, remove = FALSE) %>% 
+    unite("predictors", c(hard, soft, kelp, depm, depc, trim, slsd, aquv, base), sep = " + ", na.rm = TRUE, remove = FALSE) %>% 
     mutate(model_id = 
              str_replace_all(predictors, "hard_bottom_(\\d+)", "H\\1") %>% 
              str_replace_all("soft_bottom_(\\d+)", "S\\1") %>% 
@@ -413,6 +311,7 @@ generate_surf_3way <- function(pred_top) {
              str_replace_all("depth_sd_(\\d+)", "DSD\\1") %>% 
              str_replace_all("depth_cv_(\\d+)", "DCV\\1") %>% 
              str_replace_all("tri_mean_(\\d+)", "TRI\\1") %>% 
+             str_replace_all("slope_sd_(\\d+)", "SSD\\1") %>% 
              str_replace_all("site_type", "ST") %>%
              str_replace_all("age_at_survey", "A") %>% 
              str_replace_all("aquatic_vegetation_bed_(\\d+)", "AV\\1") %>% 
