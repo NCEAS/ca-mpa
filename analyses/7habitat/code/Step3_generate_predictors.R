@@ -24,21 +24,22 @@ ltm.dir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_
 
 # This selecting excludes the biotic habitats from PMEP (kelp only from kelpwatch)
 data_kelp <- readRDS(file.path(ltm.dir, "combine_tables/kelp_full.Rds")) %>% # 148 sites
-  dplyr::select(year, site, site_type, bioregion, all_of(grep("^(hard|soft|kelp|depth|aquatic_vegetation|tri)", names(.), value = TRUE))) %>% 
+  dplyr::select(year, site, site_type, bioregion, all_of(grep("^(hard|soft|kelp|depth|aquatic_vegetation|tri|slope)", names(.), value = TRUE))) %>% 
   distinct() 
   
 data_surf <- readRDS(file.path(ltm.dir, "combine_tables/surf_full.Rds")) %>% # 26 sites
-  dplyr::select(year, site, site_type, bioregion, all_of(grep("^(hard|soft|kelp|depth|aquatic_vegetation|tri)", names(.), value = TRUE))) %>% 
+  dplyr::select(year, site, site_type, bioregion, all_of(grep("^(hard|soft|kelp|depth|aquatic_vegetation|tri|slope)", names(.), value = TRUE))) %>% 
   distinct()
 
 data_rock <- readRDS(file.path(ltm.dir, "combine_tables/ccfrp_full.Rds")) %>% # 335 sites (grid cells)
-  dplyr::select(year, site, site_type, bioregion, all_of(grep("^(hard|soft|kelp|depth|aquatic_vegetation|tri)", names(.), value = TRUE))) %>% 
+  dplyr::select(year, site, site_type, bioregion, all_of(grep("^(hard|soft|kelp|depth|aquatic_vegetation|tri|slope)", names(.), value = TRUE))) %>% 
   distinct() 
 
 # Build initial predictor lists ----
 # Identify the predictors to retain for each ecosystem 
 # -- Remove predictors that are zero across all of the sites 
 # -- Explore those that are limited in variability within a region (could skew results)
+  
 
 kelp_predictors <- data_kelp %>%
   dplyr::select(year, site, site_type, bioregion, where(~ max(.) > 0)) %>% 
@@ -47,11 +48,7 @@ kelp_predictors <- data_kelp %>%
   summarize(sd = sd(value), .groups = "drop") %>%
   pivot_wider(names_from = "bioregion", values_from = "sd") %>% 
   dplyr::select(predictor) %>% 
-  mutate(scale = sub("_", "", str_sub(predictor, -3, -1)),
-         pred_group = case_when(str_detect(predictor, "0_30m|30_100m|100_200m|200m") ~ "depth",
-                                str_detect(predictor, "kelp|depth|aquatic") ~ "all",
-                                T ~ "combined")) %>% 
-  filter(!predictor == "depth_cv_25")
+  mutate(scale = sub("_", "", str_sub(predictor, -3, -1))) 
 
 rock_predictors <- data_rock %>%
   dplyr::select(year, site, site_type, bioregion, where(~ max(., na.rm = T) > 0)) %>%
@@ -60,12 +57,8 @@ rock_predictors <- data_rock %>%
   summarize(sd = sd(value), .groups = "drop") %>% 
   pivot_wider(names_from = "bioregion", values_from = "sd") %>% 
   dplyr::select(predictor) %>% 
-  mutate(scale = sub("_", "", str_sub(predictor, -3, -1)),
-         pred_group = case_when(str_detect(predictor, "0_30m|30_100m|100_200m|200m") ~ "depth",
-                                str_detect(predictor, "kelp|depth") ~ "all",
-                                T ~ "combined")) %>% 
-  filter(!predictor == "kelp_annual_25") %>% 
-  filter(!predictor == "depth_cv_25")
+  mutate(scale = sub("_", "", str_sub(predictor, -3, -1))) %>% 
+  filter(!predictor == "kelp_annual_25") 
 
 surf_predictors <- data_surf %>%
   dplyr::select(year, site, site_type, bioregion, where(~ max(., na.rm = T) > 0)) %>%
@@ -74,10 +67,7 @@ surf_predictors <- data_surf %>%
   summarize(sd = sd(value, na.rm = T), .groups = "drop") %>%
   pivot_wider(names_from = "bioregion", values_from = "sd") %>% 
   dplyr::select(predictor) %>% 
-  mutate(scale = sub("_", "", str_sub(predictor, -3, -1)),
-         pred_group = case_when(str_detect(predictor, "0_30m|30_100m|100_200m|200m") ~ "depth",
-                                str_detect(predictor, "kelp|depth|aquatic") ~ "all",
-                                T ~ "combined")) %>% 
+  mutate(scale = sub("_", "", str_sub(predictor, -3, -1))) %>% 
   filter(!predictor == "depth_cv_25") %>% 
   filter(!predictor %in% c("kelp_annual_25", "kelp_annual_50", "kelp_annual_100"))
 
@@ -197,10 +187,7 @@ rock_site_corr <- plot_site_corr(site_table = rock, predictor_list = rock_predic
 
 # Generate combinations independent of scale for the depth and kelp, using hard only
 
-
 # Add soft and aquatic vegetation bed
-
-
 
 # Test adding "|soft" (Feb 19) to see if made more sense to have either hard or soft bottom as 
 # the substrate predictor, but made more confusing when interpreting output because some still
@@ -222,101 +209,3 @@ rock_site_corr <- plot_site_corr(site_table = rock, predictor_list = rock_predic
 # Dropped the 25m scale for kelp forest predictors on Feb 26 after looking more closely at the
 # distribution of the variable - was almost binary and causing fit challenges.
 
-
-# Include 3-way interactions ----
-
-get_3way_list <- function(predictors_df){
-  predictors_df <- predictors
-  predictors_df <- predictors_df %>% 
-    filter(pred_group %in% c("all", "combined")) %>% 
-    filter(!str_detect(predictor, "depth_sd")) %>% 
-    mutate(st = paste0(predictor, " * site_type"),
-           sta = paste0(predictor, " * site_type * age_at_survey"),
-           st_a = paste0(predictor, " * site_type + ", predictor, " * age_at_survey"),
-           a = paste0(predictor, " * age_at_survey"))
-  
-  hard_vars <- predictors_df %>% filter(str_detect(predictor, "hard"))
-  kelp_vars <- predictors_df %>% filter(str_detect(predictor, "kelp")) 
-  depth_vars <- predictors_df %>% filter(str_detect(predictor, "depth")) 
-  
-  # Version with both depths all scales
-  depth_comb <- expand.grid(depth_mean = c(depth_vars$predictor[str_detect(depth_vars$predictor, "depth_mean")],
-                                           depth_vars$st[str_detect(depth_vars$st, "depth_mean")], 
-                                           depth_vars$sta[str_detect(depth_vars$sta, "depth_mean")],
-                                           depth_vars$st_a[str_detect(depth_vars$st_a, "depth_mean")],
-                                           depth_vars$a[str_detect(depth_vars$a, "depth_mean")]),
-                            depth_cv = c(depth_vars$predictor[str_detect(depth_vars$predictor, "depth_cv")],
-                                         depth_vars$st[str_detect(depth_vars$st, "depth_cv")], 
-                                         depth_vars$sta[str_detect(depth_vars$sta, "depth_cv")],
-                                         depth_vars$st_a[str_detect(depth_vars$st_a, "depth_cv")],
-                                         depth_vars$a[str_detect(depth_vars$a, "depth_cv")])) %>%
-    unite("predictors", c(depth_mean, depth_cv), sep = " + ") %>% pull(predictors)
-  
-  # Extract interaction terms
-  hard_st       <- hard_vars %>% pull(st)
-  kelp_st       <- kelp_vars %>% pull(st)
-  depth_st      <- depth_vars %>% pull(st)
-  
-  hard_sta  <- hard_vars %>% pull(sta)
-  kelp_sta  <- kelp_vars %>% pull(sta)
-  depth_sta <- depth_vars %>% pull(sta)
-  
-  hard_st_a  <- hard_vars %>% pull(st_a)
-  kelp_st_a  <- kelp_vars %>% pull(st_a)
-  depth_st_a <- depth_vars %>% pull(st_a)
-  
-  hard_a <- hard_vars %>% pull(a)
-  kelp_a <- kelp_vars %>% pull(a)
-  depth_a <- depth_vars %>% pull(a)
-  
-  # Generate all models (all combinations of H, K, and D at any scale)
-  pred_list <- 
-    expand_grid(hard  = c(NA, hard_vars %>% pull(predictor), hard_st, hard_a, hard_st_a, hard_sta),
-                kelp  = c(NA, kelp_vars %>% pull(predictor), kelp_st, kelp_a, kelp_st_a, kelp_sta),
-                depth = c(NA, depth_vars %>% pull(predictor), depth_st, depth_a, depth_st_a, depth_sta, depth_comb)) %>% 
-    mutate(hard_scale  = str_extract(hard, "\\d+"),
-           kelp_scale  = str_extract(kelp, "\\d+"),
-           depth_scale = str_extract(depth, "\\d+"),
-           base_terms = "site_type * age_at_survey") %>% 
-    unite("predictors", c(hard, kelp, depth, base_terms), sep = " + ", na.rm = TRUE, remove = FALSE) %>% 
-    mutate(model_id = 
-             str_replace_all(predictors, "hard_bottom_(\\d+)", "H\\1") %>% 
-             str_replace_all("kelp_annual_(\\d+)", "K\\1") %>% 
-             str_replace_all("depth_mean_(\\d+)", "DM\\1") %>% 
-             str_replace_all("depth_sd_(\\d+)", "DSD\\1") %>% 
-             str_replace_all("depth_cv_(\\d+)", "DCV\\1") %>% 
-             str_replace_all("site_type", "ST") %>%
-             str_replace_all("age_at_survey", "A") %>% 
-             str_replace_all("\\s+", "")) %>% 
-    mutate(type = case_when(hard_scale == kelp_scale & kelp_scale == depth_scale &
-                              str_detect(model_id, "^H\\d+\\*ST\\*A\\+K\\d+\\*ST\\*A\\+DCV\\d+\\*ST\\*A\\+ST\\*A$") ~ "core_sta",
-                            hard_scale == kelp_scale & kelp_scale == depth_scale &
-                              str_detect(model_id, "^H\\d+\\*ST\\*A\\+K\\d+\\*ST\\*A\\+DM\\d+\\*ST\\*A\\+ST\\*A$") ~ "core_sta",
-                            hard_scale == kelp_scale & kelp_scale == depth_scale &
-                              str_detect(model_id, "^H\\d+\\*ST\\+H\\d+\\*A\\+K\\d+\\*ST\\+K\\d+\\*A\\+DCV\\d+\\*ST\\+DCV\\d+\\*A\\+ST\\*A$") ~ "core_st_a",
-                            hard_scale == kelp_scale & kelp_scale == depth_scale &
-                              str_detect(model_id, "^H\\d+\\*ST\\+H\\d+\\*A\\+K\\d+\\*ST\\+K\\d+\\*A\\+DM\\d+\\*ST\\+DM\\d+\\*A\\+ST\\*A$") ~ "core_st_a",
-                            hard_scale == kelp_scale & kelp_scale == depth_scale &
-                              str_detect(model_id, "^H\\d+\\*ST\\+K\\d+\\*ST\\+DCV\\d+\\*ST\\+ST\\*A$") ~ "core_st",
-                            hard_scale == kelp_scale & kelp_scale == depth_scale &
-                              str_detect(model_id, "^H\\d+\\*ST\\+K\\d+\\*ST\\+DM\\d+\\*ST\\+ST\\*A$") ~ "core_st",
-                            hard_scale == kelp_scale & kelp_scale == depth_scale &
-                              str_detect(model_id, "^H\\d+\\*A\\+K\\d+\\*A\\+DCV\\d+\\*A\\+ST\\*A$") ~ "core_a",
-                            hard_scale == kelp_scale & kelp_scale == depth_scale &
-                              str_detect(model_id, "^H\\d+\\*A\\+K\\d+\\*A\\+DM\\d+\\*A\\+ST\\*A$") ~ "core_a",
-                            predictors == "site_type * age_at_survey" ~ "base",
-                            T~NA)) %>% 
-    dplyr::select(predictors, type, model_id)
-  
-  return(pred_list)
-}
-
-kelp_list <- get_3way_list(kelp_predictors) # 
-rock_list <- get_3way_list(rock_predictors) # 
-surf_list <- get_3way_list(surf_predictors) # 
-deep_list <- get_3way_list(deep_predictors) #
-
-saveRDS(kelp_list, file.path("analyses/7habitat/intermediate_data", "kelp_predictors_interactions.Rds")) 
-saveRDS(rock_list, file.path("analyses/7habitat/intermediate_data", "rock_predictors_interactions.Rds")) 
-saveRDS(surf_list, file.path("analyses/7habitat/intermediate_data", "surf_predictors_interactions.Rds")) 
-saveRDS(deep_list, file.path("analyses/7habitat/intermediate_data", "deep_predictors_interactions.Rds")) 

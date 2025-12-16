@@ -17,7 +17,6 @@ ltm.dir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_
 
 sites <- readRDS(file.path("/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_2024",
                            "site_locations_corrected.Rds")) %>% 
-  filter(!habitat == "Deep reef") %>% 
   st_transform(., crs = 4326) %>% 
   mutate(lon_dd = round(st_coordinates(.)[, "X"], 3),
          lat_dd = round(st_coordinates(.)[, "Y"], 3)) %>% 
@@ -25,9 +24,7 @@ sites <- readRDS(file.path("/home/shares/ca-mpa/data/sync-data/monitoring/proces
 
 habitat <- readRDS(file.path(hab.dir, "buffers", "habitat_buffers_combined.Rds")) 
 
-habitat_bathy <- readRDS(file.path(ltm.dir, "site_depth_agg.Rds")) %>%  # drop agg for last version
-  mutate(site_type = if_else(site_type == "REF", "Reference", site_type)) %>% 
-  dplyr::select(site, site_type, depth_mean_25:tri_mean_500)
+habitat_bathy <- readRDS(file.path(ltm.dir, "site_depth_agg.Rds")) 
 
 habitat_depth <- habitat %>% # create identifier matching depth to the habitat_depth combined class
   distinct(habitat_class, habitat_depth, depth_zone)
@@ -69,8 +66,10 @@ habitat_combined <- habitat %>%
   dplyr::select(-c(habitat_class, buffer)) %>% 
   pivot_wider(names_from = habitat_buffer, values_from = area_m2) %>% 
   mutate_at(vars(grep("^(hard|soft|aq|sea)", names(.), value = TRUE)), ~ replace(., is.na(.), 0)) %>% 
-  left_join(habitat_bathy,  by = c("site", "site_type")) %>% 
-  left_join(sites)
+  left_join(habitat_bathy,  by = c("habitat", "site", "site_type")) %>% 
+  select(habitat, site, site_type, 
+         starts_with("hard"), starts_with("soft"), starts_with("aquatic_veg"), 
+         starts_with("depth_mean"), starts_with("depth_cv"), starts_with("tri"), starts_with("slope_mean"), starts_with("slope_sd"))
 
 saveRDS(habitat_combined, file.path(int.dir, "habitat_buffers_by_site_combined_v3.Rds")) 
 
