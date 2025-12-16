@@ -46,15 +46,9 @@ fit_habitat_models <- function(habitat, data_sp, response, focal_group, predicto
       tryCatch(
         {
           withCallingHandlers(
-            { m <- lmer(model_formula, data = data_sp, REML = FALSE, control = lmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 1e8)))
-              singular_status <- if (isSingular(m)) "Singular fit" else "OK"
-             
-            vc <- tryCatch(VarCorr(m), error = function(e) NULL)
-            singular_status <- if (is.null(vc)) {"Unknown"} 
-            else { 
-              vc_values <- unlist(lapply(vc$cond, function(x) attr(x, "stddev")))
-              if (any(vc_values < 1e-6)) "Singular (near-zero RE variance)" else "OK"
-              }
+            { m <- glmmTMB(model_formula, data = data_sp, family = gaussian(link = "log"))
+              singular_status <- if ("conv_code" %in% names(m$fit$optinfo$conv) &&
+                                     m$fit$optinfo$conv$conv_code != 0) "Convergence issue" else "OK"
               m
             },
             warning = function(w) {
