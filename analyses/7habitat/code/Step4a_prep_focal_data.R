@@ -19,19 +19,19 @@ prep_focal_data <- function(type, focal_group, drop_outliers, biomass_variable, 
     
   } else if (type == "target_status" & focal_group %in% c("targeted", "nontargeted")) {
     data1 <- data %>%
-      group_by(year, site, site_type, bioregion, region4, affiliated_mpa, size_km2, cluster_area_km2, age_at_survey,
-               target_status, across(matches("^hard|soft|depth|kelp|aquatic"))) %>%
+      group_by(year, site, site_type, bioregion, region4, affiliated_mpa, size_km2, age_at_survey,
+               target_status, across(matches("^hard|soft|depth|kelp|aquatic|tri"))) %>%
       summarize(biomass = sum(!!sym(biomass_variable), na.rm = T), .groups = 'drop') %>%
       filter(target_status == str_to_sentence(focal_group))
   } else if (type == "target_status" & focal_group == "all"){
     data1 <- data %>%
-      group_by(year, site, site_type, bioregion, region4, affiliated_mpa, size_km2, cluster_area_km2, age_at_survey,
+      group_by(year, site, site_type, bioregion, region4, affiliated_mpa, size_km2, age_at_survey,
                across(matches("^hard|soft|depth|kelp|aquatic"))) %>%
       summarize(biomass = sum(!!sym(biomass_variable), na.rm = T), .groups = 'drop')
   } else if (type == "targeted_vert"){
     data1 <- data %>%
-      group_by(year, site, site_type, bioregion, region4, affiliated_mpa, size_km2, cluster_area_km2, age_at_survey,
-               target_status, vertical_zonation, across(matches("^hard|soft|depth|kelp|aquatic"))) %>%
+      group_by(year, site, site_type, bioregion, region4, affiliated_mpa, size_km2, age_at_survey,
+               target_status, vertical_zonation, across(matches("^hard|soft|depth|kelp|aquatic|tri"))) %>%
       summarize(biomass = sum(!!sym(biomass_variable), na.rm = T), .groups = 'drop') %>%
       filter(target_status == "Targeted") %>% 
       filter(vertical_zonation %in% focal_group)
@@ -42,8 +42,8 @@ prep_focal_data <- function(type, focal_group, drop_outliers, biomass_variable, 
   
   # Scale the static variables at the site-level (e.g. don't weight based on obs. frequency)
   site_static <- data1 %>% 
-    distinct(site, across(all_of(grep("^hard|soft|depth|aquatic", names(.), value = TRUE)))) %>%
-    mutate_at(vars(grep("^hard|soft|depth|aquatic", names(.), value = TRUE)), scale)
+    distinct(site, across(all_of(grep("^hard|soft|depth|aquatic|tri", names(.), value = TRUE)))) %>%
+    mutate_at(vars(grep("^hard|soft|depth|aquatic|tri", names(.), value = TRUE)), scale)
   
   if (drop_outliers == "yes") {
     # Remove sites with extreme values in static vars (depth and hard bottom)
@@ -83,7 +83,7 @@ prep_focal_data <- function(type, focal_group, drop_outliers, biomass_variable, 
            region4 = as.factor(region4),
            affiliated_mpa = as.factor(affiliated_mpa)) %>% 
     # Drop un-scaled static variables
-    dplyr::select(!all_of(c(grep("^hard|soft|depth|aquatic", names(.), value = TRUE)))) %>% 
+    dplyr::select(!all_of(c(grep("^hard|soft|depth|aquatic|tri", names(.), value = TRUE)))) %>% 
     # Join the scaled static variables
     left_join(site_static, by = "site") %>% 
     # Scale age

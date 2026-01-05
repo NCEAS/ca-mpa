@@ -77,6 +77,87 @@ combine_sections(buffer = 100)
 combine_sections(buffer = 250)
 combine_sections(buffer = 500)
 
+# Fix the Anacapa kelp forest buffers ----------------------------------------------------------
+
+# Since the island is so narrow, the habitat buffer spans both sides of the island. 
+# Where the site is a Reference (on the South side of the island) we will mask the North side
+# Where the site is MPA site (on N side) we will mask the south side
+
+# Create polygon that will mask northern anacapa
+coords_n <- matrix(c(-119.450075, 34.015529,   # West Anacapa - west tip
+                     -119.407631, 34.005924,   # West Anacapa - east tip
+                     -119.391323, 34.004394,   # Middle Anacapa - center
+                     -119.378620, 34.011616,   # East Anacapa - west tip
+                     -119.349009, 34.018623,   # East Anacapa - east tip
+                     -119.340315, 34.054571,   # Northeast point 
+                     -119.455874, 34.054068,   # Northwest point
+                     -119.450075, 34.015529),   # close polygon),
+                   ncol = 2,
+                   byrow = TRUE)
+
+# Create polygon that will mask southern anacapa
+coords_s <- matrix(c(-119.450075, 34.015529,   # West Anacapa - west tip
+                     -119.407631, 34.005924,   # West Anacapa - east tip
+                     -119.391323, 34.004394,   # Middle Anacapa - center
+                     -119.378620, 34.011616,   # East Anacapa - west tip
+                     -119.349009, 34.018623,   # East Anacapa - east tip
+                     -119.339303, 33.988147,   # Southeast pt
+                     -119.453904, 33.990107,   # Southwest pt
+                     -119.450075, 34.015529),   # close polygon),
+                   ncol = 2,
+                   byrow = TRUE) 
+
+poly_n <- st_polygon(list(coords_n)) %>% st_sfc(crs = 4326) %>% st_transform(., crs = 26910) 
+poly_s <- st_polygon(list(coords_s)) %>% st_sfc(crs = 4326) %>% st_transform(., crs = 26910)
+
+st_write(poly_s, file.path(com.dir, "anacapa_south_mask.shp"))
+st_write(poly_n, file.path(com.dir, "anacapa_north_mask.shp"))
+
+fix_anacapa <- function(buffer) {
+  
+  df <- readRDS(file.path(com.dir, "buffers", paste0("habitat_buffers_", buffer, "m.Rds")))
+  
+  # Split into anacapa vs everything else
+  anacapa <- df %>% filter(str_detect(site, "ANACAPA"))
+  other <- df %>% filter(!str_detect(site, "ANACAPA"))
+  
+  # Apply geometric differences based on site type
+  refs <-  anacapa %>% 
+    filter(site_type == "Reference") 
+  
+  refs_diff <- st_difference(refs, poly_n)
+
+  refs_fixed <- refs_diff %>% 
+    group_by(habitat, site, site_type, habitat_class, depth_zone) %>% 
+    summarize(geometry = st_union(geometry), .groups = 'drop') %>% # Merge those that span across sections
+    mutate(area_m2 = as.numeric(st_area(geometry))) %>% 
+    mutate(buffer = buffer)
+  
+  mpas <- anacapa %>% 
+    filter(site_type == "MPA") 
+  
+  mpas_diff <- st_difference(mpas, poly_s)
+  
+  mpas_fixed <- mpas_diff %>%
+    group_by(habitat, site, site_type, habitat_class, depth_zone) %>% 
+    summarize(geometry = st_union(geometry), .groups = 'drop') %>% # Merge those that span across sections
+    mutate(area_m2 = as.numeric(st_area(geometry))) %>% 
+    mutate(buffer = buffer)
+  
+  # Recombine with non-anacapa rows
+  df_fixed <- bind_rows(other, refs_fixed, mpas_fixed)
+  
+  # Save
+  saveRDS(df_fixed, file.path(com.dir, "buffers", paste0("habitat_buffers_", buffer, "m.Rds")))
+  
+}
+
+fix_anacapa(buffer = 25)
+fix_anacapa(buffer = 50)
+fix_anacapa(buffer = 100)
+fix_anacapa(buffer = 250)
+fix_anacapa(buffer = 500)
+
 
 # Read the dfs and combine all without geometries ---------------------------------
 buffer_results <- map_df(buffers, function(buffer){
@@ -94,18 +175,5 @@ buffer_df <- buffer_results %>%
 
 # Save the combined dataframe
 saveRDS(buffer_df, file.path(com.dir, "buffers", "habitat_buffers_combined.Rds"))
-
-
-# Area for each site shows that there are some surf zone sites that only have landward
-# -- Likely due to the location GPS point, so will keep in mind for those
-site_area <- buffer_df %>% # calculate total area of each site
-  group_by(habitat, site, site_type, buffer) %>% 
-  summarize(area_site_m2 = sum(area_m2),
-            types =  paste(unique(habitat_class), collapse = ", "),
-            depths = paste(unique(depth_zone), collapse = ", "), .groups = 'drop')
-
-site_depth_area <- buffer_df %>% # calculate total area for each depth zone
-  group_by(habitat, site, site_type, buffer, depth_zone) %>% 
-  summarize(area_depth_m2 = sum(area_m2), .groups = 'drop') 
 
 

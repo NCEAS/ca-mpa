@@ -12,7 +12,7 @@ data.dir <- "/home/shares/ca-mpa/data/sync-data/monitoring"
 
 # Build ---------------------------------------------------------------------------
 ## Rocky Reef ---------------------
-ccfrp_sites <- read.csv(file.path(data.dir, "monitoring_ccfrp/CCFRP_derived_data_tables_DataONE/CCFRP_location_table.csv")) %>% clean_names()
+ccfrp_sites <- read.csv(file.path(data.dir, "monitoring_ccfrp/update_2024/MLPA_ccfrp_10.31.2024/CCFRP_location_table.csv")) %>% clean_names()
 
 ccfrp <- ccfrp_sites %>% 
   distinct(grid_cell_id, mpa_status, lat_center_point_dd, lon_center_point_dd) %>% 
@@ -118,33 +118,9 @@ surf <- surf_sites %>%
   distinct(habitat, site, site_type, lat_dd, lon_dd)
 
 
-## Deep Reef -------------
-deep_sites <- readRDS(file.path(data.dir,"processed_data/update_2024/deep_reef_transect_metadata.Rds"))
-
-deep <- deep_sites %>% 
-  mutate(habitat = "Deep reef") %>% 
-  mutate(designation = str_sub(transect_id_desig, -3)) %>% 
-  mutate(site_type = if_else(designation == "ref", "Reference", "MPA")) %>% 
-  dplyr::select(habitat, site = transect_id_desig, site_type, lat_dd = avg_lat, lon_dd = avg_lon) %>% 
-  distinct() 
-  
-
-## Rocky process ------------------------
-# rocky_sites <- read.csv(file.path(data_path,  "/monitoring_rocky-intertidal/CA_MPA_sites_20210907b.csv"))
-# rocky <- rocky_sites %>%
-#   mutate(group="rocky",
-#          mpa_class=mpa_designation)%>%
-#   select(group, affiliated_mpa=mpa_name, mpa_class,
-#                         mpa_designation, site=marine_site_name, lat=latitude, lon=longitude)
-# rocky_process$mpa_designation <- recode_factor(rocky_process$mpa_designation, "NONE"="ref")
-# rocky_process$mpa_designation <- tolower(rocky_process$mpa_designation)
-# rocky_process$affiliated_mpa <- tolower(rocky_process$affiliated_mpa)
-# rocky_process$mpa_class <- tolower(rocky_process$mpa_class)
-# rocky_data <- rocky_process
-
 
 # Join --------------------------------------------------------------------
-site_locations <- bind_rows(ccfrp, kelp, surf, deep)
+site_locations <- bind_rows(ccfrp, kelp, surf)
 
 # Export
 saveRDS(site_locations, file.path("/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_2024", "site_locations.Rds"))

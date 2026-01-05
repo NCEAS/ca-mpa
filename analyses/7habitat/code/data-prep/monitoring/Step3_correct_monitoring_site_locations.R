@@ -21,7 +21,8 @@ gis.dir <- "/home/shares/ca-mpa/data/sync-data/gis_data/processed"
 # The smaller sized buffers are excluded (expect b/c no overlap due to the given
 # lat/lon of the site) so will examine the smallest one available
 habitat <- readRDS(file.path(hab.dir, "combined/buffers", paste0("habitat_buffers_", 500, "m.Rds"))) %>% 
-  filter(depth_zone != "landward")
+  #filter(depth_zone != "landward") %>% 
+  mutate(habitat_class = factor(habitat_class, levels = c("Soft Bottom", "Hard Bottom", "Aquatic Vegeetation Bed", "Aquatic Vascular Vegetation", "Seagrass")))
 
 # Load the cleaned monitoring site table
 sites <- readRDS(file.path("/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_2024", "site_locations.Rds")) %>% 
@@ -31,7 +32,7 @@ sites <- readRDS(file.path("/home/shares/ca-mpa/data/sync-data/monitoring/proces
 # Load the state waters polygon
 state_waters_poly <- readRDS(file.path(gis.dir, "CA_state_waters_polygons.Rds")) %>% 
   st_transform(., crs = 26910) %>% 
-  st_buffer(., dist = -5) # shrink to ensure sites are a litle ofshore/line up with habitat edges
+  st_buffer(., dist = -10) # shrink to ensure sites are a litle ofshore/line up with habitat edges
 
 # Load the site table with the errors
 # sites_review <- readRDS(file.path(hab.dir, "review", "sites_review.Rds"))
@@ -39,25 +40,49 @@ coast <- sf::st_read(file.path("/home/shares/ca-mpa/data/sync-data/gis_data/raw"
   st_union() %>% 
   st_transform(., crs = 26910)
 
-# Check which site points are not within state waters (on land)
-# inside_indices <- st_within(sites, state_waters_poly)  
-# inside_logical <- lengths(inside_indices) > 0  
-# sites_outside <- sites[!inside_logical, ] %>% 
-#   filter(!habitat %in% c("Deep reef", "Rocky reef", "Kelp forest")) # these are outside state waters but still in the actual water
-
 
 # Fix Surf Sites ----------------------------------------------------------------------------
-# Treat all surf sites as equal, moving points to set distance from shore then snapping to available habitat
-sites_surf <- sites %>% 
-  filter(habitat == "Surf zone")
+# Fix the updated points after discussion with JD, MM, SH:
+# Those involved with monitoring confirmed that these coordinates better reflect
+# the center of the seining, and that otherwise the process below yields a good fit:
+new_coordinates <- tibble::tribble(
+  ~site, ~lon_dd, ~lat_dd,
+  "Ano Nuevo MPA", -122.3112, 37.1174, 
+  "Greyhound Rock Reference", -122.2642, 37.0773,
+  "Four Mile MPA", -122.1222, 36.9657,
+  "Twin Lakes Reference", -121.9950, 36.9602,
+  "Carmel Beach Reference", -121.9326, 36.5589,
+  "Spanish Bay MPA", -121.9483, 36.6104,
+  "Whalers Cove MPA", -121.9375, 36.5192,
+  "Stillwater Cove Reference", -121.9410, 36.5657) %>% 
+  sf::st_as_sf(coords = c("lon_dd", "lat_dd"), crs = 4326, remove = F) %>% 
+  mutate(habitat = "Surf zone",
+         site_type = if_else(str_detect(site, "MPA"), "MPA", "Reference")) %>% 
+  dplyr::select(habitat, site, site_type, lat_dd, lon_dd) %>% 
+  st_transform(., crs(sites))
 
+# Add those new surf zone sites to the dataset
+sites <- sites %>% 
+  filter(!site %in% new_coordinates$site) %>% 
+  bind_rows(new_coordinates)
+
+# Check which site points are not within state waters (on land)
+inside_indices <- st_within(sites, state_waters_poly)
+inside_logical <- lengths(inside_indices) > 0
+sites_outside <- sites[!inside_logical, ] %>%
+  filter(!habitat %in% c("Rocky reef", "Kelp forest")) # these are outside state waters but still in the actual water
+
+# Treat all surf sites as equal, moving points to set distance from shore then snapping to available habitat
 # Create a list to store plots and a dataframe to store corrected points
+sites_surf_onshore <- sites %>% 
+  filter(habitat == "Surf zone" & site %in% sites_outside$site)
+
 plots <- list()
 corrected_points_list <- list()
-my_site <- sites_surf$site[21]
+my_site <- sites_surf$site[23]
 
 # Process each site
-for (my_site in unique(sites_surf$site)) {
+for (my_site in unique(sites_surf_onshore$site)) {
   
   # Filter for the current site
   site_point <- sites %>% filter(site == !!my_site)
@@ -69,7 +94,7 @@ for (my_site in unique(sites_surf$site)) {
   # Get the boundary (edges) of the water polygon
   water_boundary <- st_cast(state_waters_poly, "MULTILINESTRING")
   
-  # Move to the nearest point 5m from MHW line
+  # Move to the nearest point 10m from MHW line
   nearest_lines <- st_nearest_points(site_point, water_boundary)
   
   # Extract the nearest edge point
@@ -100,57 +125,43 @@ for (my_site in unique(sites_surf$site)) {
   } else {
     corrected_points_list[[my_site]] <- site_point_corrected
   }
+  
+  # Create 25m buffer for comparison
+  site_buffer_25 <- st_buffer(corrected_points_list[[my_site]], dist = 25)
 
   # Create the plot
   plot <- ggplot() +
     geom_sf(data = coast, color = "blue", lwd = 0.6) +
     geom_sf(data = state_waters_poly, fill = "lightblue", alpha = 0.5) +
-    geom_sf(data = habitat_df, aes(fill = habitat_class), show.legend = F) +
-    geom_sf(data = site_point_corrected, color = "red", size = 2) +
-    geom_sf(data = site_point_corrected2, color = "orange", size = 2) +
+    geom_sf(data = habitat_df, aes(fill = habitat_class), color = "grey20", show.legend = F) +
+    geom_sf(data = corrected_points_list[[my_site]], color = "red", size = 2) +
     geom_sf(data = site_point, color = "black", size = 2) +
-    coord_sf(
-      xlim = c(site_bbox["xmin"], site_bbox["xmax"]),
-      ylim = c(site_bbox["ymin"], site_bbox["ymax"])
-    ) +
+    geom_sf(data = site_buffer_25, color = "red", fill = NA) +
+    coord_sf(xlim = c(site_bbox["xmin"], site_bbox["xmax"]),
+             ylim = c(site_bbox["ymin"], site_bbox["ymax"])) +
     labs(fill = NULL) +
-    ggtitle(paste("Site:", my_site)) +
+    ggtitle(paste(my_site)) +
     theme_minimal() +
-    scale_fill_manual(
-      values = c(
-        "Soft Bottom" = "tan",
-        "Hard Bottom" = "saddlebrown",
-        "Aquatic Vegetation Bed" = "lightgreen",
-        "Aquatic Vascular Vegetation" = "darkgreen",
-        "Seagrass" = "darkgreen"
-      )
-    ) +
-    theme(title = element_text(size = 8),
-          axis.text.x = element_text(size = 8))
+    scale_fill_manual(values = c("Soft Bottom" = "tan",
+                                 "Hard Bottom" = "saddlebrown",
+                                 "Aquatic Vegetation Bed" = "lightgreen",
+                                 "Aquatic Vascular Vegetation" = "darkgreen",
+                                 "Seagrass" = "darkgreen")) +
+    theme(plot.background = element_rect(fill = "white", color = NA),
+          title = element_text(size = 6),
+          axis.text = element_text(size = 6))
   
   # Store the plot
   plots[[my_site]] <- plot
   
+  ggsave(filename = paste0("~/ca-mpa/analyses/7habitat/figures/site-plots/surf-corrections/", my_site, ".png"), plot = plot, width = 6, height = 6, units = "in", dpi = 300)
   
   }
 
 
-wrap_plots(plots, ncol = 5)
-
-# Combine all corrected points into a single dataframe
-corrected_points_df <- bind_rows(corrected_points_list)
-
-# Merge corrected points back into the original sites dataframe
-sites_updated <- sites %>%
-  filter(!site %in% sites_surf$site) %>% 
-  bind_rows(corrected_points_df)
-
-
-
-## 1. Sites that are too far offshore --------------------------------------------------------
+## Adjust sites that are offshore --------------------------------------------------------
 sites_surf_offshore <- sites %>% 
   filter(habitat == "Surf zone" & !(site %in% sites_outside$site))
-
 
 # Process each site
 for (my_site in unique(sites_surf_offshore$site)) {
@@ -165,7 +176,7 @@ for (my_site in unique(sites_surf_offshore$site)) {
   # Get the boundary (edges) of the water polygon
   water_boundary <- st_cast(state_waters_poly, "MULTILINESTRING")
   
-  # Move to the nearest point 5m from MHW line
+  # Move to the nearest point 10m from MHW line
   nearest_lines <- st_nearest_points(site_point, water_boundary)
   
   # Extract the nearest edge point
@@ -175,53 +186,74 @@ for (my_site in unique(sites_surf_offshore$site)) {
   site_point_corrected <- site_point %>%
     mutate(geometry = nearest_edge_point)
   
-  # Append corrected points to the list
-  corrected_points_list[[my_site]] <- site_point_corrected
+  # Some sites are still completely outside the habitat data
+  point_in_habitat <- st_within(site_point_corrected, habitat_poly, sparse = FALSE)[1, 1]
+  
+  if (isFALSE(point_in_habitat)) {
+    # If the new point is outside the 500m habitat_poly buffer, move it to the nearest edge 
+    nearest_lines <- st_nearest_points(site_point_corrected, habitat_poly)
+    nearest_edge_point <- st_cast(nearest_lines, "POINT")[2]
+    
+    site_point_corrected2 <- site_point %>%
+      mutate(geometry = nearest_edge_point)
+    
+    corrected_points_list[[my_site]] <- site_point_corrected2
+    
+  } else {
+    corrected_points_list[[my_site]] <- site_point_corrected
+  }
+  
   
   # Create a bounding box around the site and corrected points
   site_bbox <- st_bbox(st_buffer(st_union(st_geometry(habitat_df), st_geometry(site_point_corrected)), dist = 100)) 
+  
+  # Create 25m buffer for comparison
+  site_buffer_25 <- st_buffer(corrected_points_list[[my_site]], dist = 25)
   
   # Create the plot
   plot <- ggplot() +
     geom_sf(data = coast, color = "blue", lwd = 0.6) +
     geom_sf(data = state_waters_poly, fill = "lightblue", alpha = 0.5) +
-    geom_sf(data = habitat_df, aes(fill = habitat_class)) +
-    geom_sf(data = site_point_corrected, color = "red", size = 2) +
+    geom_sf(data = habitat_df, aes(fill = habitat_class), show.legend = F) +
+    geom_sf(data = corrected_points_list[[my_site]], color = "red", size = 2) +
     geom_sf(data = site_point, color = "black", size = 2) +
-    coord_sf(
-      xlim = c(site_bbox["xmin"], site_bbox["xmax"]),
-      ylim = c(site_bbox["ymin"], site_bbox["ymax"])
-    ) +
+    geom_sf(data = site_buffer_25, color = "red", fill = NA) +
+    coord_sf(xlim = c(site_bbox["xmin"], site_bbox["xmax"]),
+             ylim = c(site_bbox["ymin"], site_bbox["ymax"])) +
     labs(fill = NULL) +
-    ggtitle(paste("Site:", my_site)) +
+    ggtitle(paste(my_site)) +
     theme_minimal() +
-    scale_fill_manual(
-      values = c(
-        "Soft Bottom" = "tan",
-        "Hard Bottom" = "saddlebrown",
-        "Aquatic Vegetation Bed" = "lightgreen",
-        "Aquatic Vascular Vegetation" = "darkgreen",
-        "Seagrass" = "darkgreen"
-      )
-    )
+    scale_fill_manual(values = c("Soft Bottom" = "tan",
+                                 "Hard Bottom" = "saddlebrown",
+                                 "Aquatic Vegetation Bed" = "lightgreen",
+                                 "Aquatic Vascular Vegetation" = "darkgreen",
+                                 "Seagrass" = "darkgreen")) +
+    theme(plot.background = element_rect(fill = "white", color = NA),
+          title = element_text(size = 6),
+          axis.text = element_text(size = 6))
+  
+  plot
+  
   
   # Store the plot
   plots[[my_site]] <- plot
   
   
+  ggsave(filename = paste0("~/ca-mpa/analyses/7habitat/figures/site-plots/surf-corrections/", my_site, ".png"), plot = plot, width = 5, height = 5, units = "in", dpi = 300)
   
   
 }
 
-wrap_plots(plots, ncol = 4)
 
 # Combine all corrected points into a single dataframe
 corrected_points_df <- bind_rows(corrected_points_list)
 
+
 # Merge corrected points back into the original sites dataframe
 sites_updated <- sites %>%
-  filter(!site %in% sites_surf_offshore$site) %>% 
+  filter(!site %in% corrected_points_df$site) %>% 
   bind_rows(corrected_points_df)
+
 
 saveRDS(sites_updated,
         file.path("/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_2024", "site_locations_corrected.Rds")) 

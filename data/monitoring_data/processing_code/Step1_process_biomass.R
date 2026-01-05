@@ -153,10 +153,10 @@ surf_biomass1 <- surf_biomass
                   #so we will retain them here. see: https://caseagrant.ucsd.edu/sites/default/files/importedFiles/FinalMPAReportBeachesSurfZonesJan2022.pdf
 
 # Write to csv ----------------------------------------------------------------
-write.csv(surf_biomass1, row.names = F, file.path(datadir,"/biomass_processed/surf_zone_fish_biomass_updated.csv"))  #last write 22 Oct 2024 
-write.csv(kelp_biomass1, row.names = F, file.path(datadir,"/biomass_processed/kelpforest_fish_biomass_updated.csv")) #last write 22 Oct 2024 
-write.csv(ccfrp_biomass1, row.names = F, file.path(datadir,"/biomass_processed/ccfrp_fish_biomass_updated.csv")) #last write 22 Oct 2024 
-write.csv(deep_biomass1, row.names = F, file.path(datadir,"/biomass_processed/deep_reef_fish_biomass_updated.csv")) #last write 22 Oct 2024 
+write.csv(surf_biomass1, row.names = F, file.path(datadir,"/biomass_processed/surf_zone_fish_biomass_updated.csv"))  #last write Nov 9 2025
+write.csv(kelp_biomass1, row.names = F, file.path(datadir,"/biomass_processed/kelpforest_fish_biomass_updated.csv"))
+write.csv(ccfrp_biomass1, row.names = F, file.path(datadir,"/biomass_processed/ccfrp_fish_biomass_updated.csv")) 
+write.csv(deep_biomass1, row.names = F, file.path(datadir,"/biomass_processed/deep_reef_fish_biomass_updated.csv")) 
 
 # IN PROGRESS: Explore everything that's going wrong -----------------------------------
 

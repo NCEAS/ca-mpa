@@ -37,7 +37,7 @@ lw_orig <- read.csv(file.path(datadir, "species_lw_parameters_from_fishbase_full
   rename(sciname = species)
 
 # Read species key (cleaned taxonomy data for all habitats)
-spp_orig <- read.csv(file.path(datadir, "species_key.csv"), as.is=T) %>% 
+spp_orig <- read.csv(file.path(datadir, "species_key_2025.csv"), as.is=T) %>% 
   clean_names()
 
 # Get taxa from fishbase and sealife base ------------------------------------------
@@ -178,7 +178,8 @@ data <- spp_fish %>%
 #write.csv(data, file=file.path(datadir, "fishbase_lw_parameters.csv"), row.names = F)
 # last write Oct 19 2023
 
-
+write.csv(data, file=file.path(datadir, "fishbase_lw_parameters_2025.csv"), row.names = F)
+# last write Nov 9 2025
 
 
 

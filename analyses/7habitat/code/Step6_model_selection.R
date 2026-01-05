@@ -47,9 +47,9 @@ list2env(list(habitat = "rock_filtered",
               model_type = "lmer",
               delta_threshold = 2), envir = .GlobalEnv)
 
-list2env(list(habitat = "surf_filtered", 
+list2env(list(habitat = "surf", 
               focal_group = "targeted",
-              re_string = "m", 
+              re_string = "r", 
               model_type = "lmer",
               delta_threshold = 2), envir = .GlobalEnv)
 
@@ -61,7 +61,7 @@ model_selection <- function(results_file, delta_threshold, focal_group, habitat,
   print(paste(results_file))
   
   # Read model fit results and data_sp used
-  results <- readRDS(file.path("~/ca-mpa/analyses/7habitat/output/models", "3way", results_file))
+  results <- readRDS(file.path("~/ca-mpa/analyses/7habitat/output/models", results_file)) # others in 3way
   models_df <- results$models_df
   data_sp <- results$data_sp
   
@@ -93,9 +93,8 @@ model_selection <- function(results_file, delta_threshold, focal_group, habitat,
   aicc_full <- model.sel(top_models$model)
   
   if (length(top_names) > 1) {
-   # nested <- check_nested_models(top_models) 
     nested <- evaluate_nested_models(top_models$model, delta_threshold = delta_threshold, alpha = 0.05)
-    top_names <- nested$candidates
+    top_names <- if(length(nested$candidates) > 0) nested$candidates else top_names[1]
     top_models <- top_models$model[top_names]
     print(paste("      Top models:", length(top_names)))
     print(paste("      ", paste(top_names)))
@@ -105,28 +104,12 @@ model_selection <- function(results_file, delta_threshold, focal_group, habitat,
 
   # If there are multiple, get the model average. 
   # If there are not, get importance estimates from the top model.
-  if (length(top_names) > 1) {
-    model_avg <- model.avg(top_models_sel, fit = TRUE)
-    coef_table <- data.frame(coefTable(model_avg)) %>%
-      rownames_to_column("term") %>% 
-      filter(!term == "(Intercept)") %>% 
-      janitor::clean_names() %>% 
-      dplyr::select(-df) %>%
-      mutate(term       = str_replace(term, "typeMPA", "type"),
-             conf_low   = estimate - 1.96 * std_error,
-             conf_high  = estimate + 1.96 * std_error,
-             importance_abs_t = abs(estimate/std_error),
-             importance_relative = importance_abs_t / max(importance_abs_t, na.rm = TRUE),  # Scale max = 1
-             importance_sw = sw(model_avg)[term]) %>% 
-      arrange(desc(importance_abs_t))
-  } else {
-    coef_table <- tidy(top_models[[1]], conf.int = TRUE, effect = "fixed") %>%
-      mutate(term = str_replace(term, "typeMPA", "type"),
-             importance_abs_t = abs(estimate/std.error),
-             importance_relative = importance_abs_t / max(importance_abs_t, na.rm = TRUE),  # Scale max = 1
-             importance_sw = 1) %>% 
-      janitor::clean_names()
-  } 
+  coef_table <- tidy(top_models[[1]], conf.int = TRUE, effect = "fixed") %>%
+    mutate(term = str_replace(term, "typeMPA", "type"),
+           importance_abs_t = abs(estimate/std.error),
+           importance_relative = importance_abs_t / max(importance_abs_t, na.rm = TRUE),  # Scale max = 1
+           importance_sw = 1) %>% 
+    janitor::clean_names()
   
   # Create df with the results from the top models
   top_results <- coef_table %>%
@@ -142,6 +125,8 @@ model_selection <- function(results_file, delta_threshold, focal_group, habitat,
            response = str_trim(str_extract(formula, "^[^~]+")),
            random_effects = case_when(re_string == "rmy" ~ "region4/affiliated_mpa, year",
                                       re_string == "rmsy" ~ "region4/affiliated_mpa/site, year",
+                                      re_string == "rm" ~ "region4/affiliated_mpa",
+                                      re_string == "r" ~ "region4",
                                       re_string == "m" ~ "affiliated_mpa",
                                       re_string == "my" ~ "affiliated_mpa, year",
                                       re_string == "msy" ~ "affiliated_mpa/site, year",
@@ -162,11 +147,11 @@ model_selection <- function(results_file, delta_threshold, focal_group, habitat,
                   nested_results = nested_results_table)
   
   # Export the results
-  saveRDS(results, file = file.path("~/ca-mpa/analyses/7habitat/output/results", "3way",
+  saveRDS(results, file = file.path("~/ca-mpa/analyses/7habitat/output/results", 
                            paste(habitat, focal_group, re_string, "selection_results.rds", sep = "_")))
   
   # Export the data used for the models (will refer to this a bunch)
-  saveRDS(data_sp, file = file.path("~/ca-mpa/analyses/7habitat/output/data", "3way",
+  saveRDS(data_sp, file = file.path("~/ca-mpa/analyses/7habitat/output/data", 
                                     paste(habitat, focal_group, re_string, "data.rds", sep = "_")))
   
 }
@@ -185,9 +170,9 @@ model_selection(habitat = "kelp_filtered",
                 delta_threshold = 2)
 
 
-model_selection(habitat = "surf_filtered", 
+model_selection(habitat = "surf", 
                 focal_group = "targeted",
-                re_string = "m", 
+                re_string = "rm", 
                 model_type = "lmer",
                 delta_threshold = 2)
 

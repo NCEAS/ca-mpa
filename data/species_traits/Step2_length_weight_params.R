@@ -23,7 +23,7 @@ rm(list = ls())
 # Packages
 library(tidyverse)
 library(rfishbase)
-library(freeR)
+# library(freeR)
 
 # Directories
 #basedir <- "/Volumes/GoogleDrive/.shortcut-targets-by-id/1kCsF8rkm1yhpjh2_VMzf8ukSPf9d4tqO/MPA Network Assessment: Working Group Shared Folder/data/sync-data"
@@ -31,7 +31,7 @@ basedir <- "/home/shares/ca-mpa/data/sync-data/" #Josh
 datadir <- file.path(basedir, "species_traits/processed") 
 
 # Read data
-spp_orig <- read.csv(file.path(datadir, "full_taxon_table_new.csv"), na = c("", "NA", "N/A"))
+spp_orig <- read.csv(file.path(datadir, "full_taxon_table_2025.csv"), na = c("", "NA", "N/A"))
 
 # Read taxa from fishbase and sealifebase
 sp_fb <- rfishbase::load_taxa("fishbase") %>% 
@@ -56,7 +56,7 @@ genus_fix <- spp_orig %>%
   filter(!is.na(Genus)) %>% 
   filter(grepl("\\s|[^A-Za-z0-9]", Genus) |
            !(Genus %in% fb_all$Genus)) %>% distinct(Genus, Species, habitat)
-# Note: currently 8 obs
+# Note: currently 9 obs
 
 # 2. Species should be one word to pull from FishBase. Identify Species entries
 #    that contain special characters or are not in the FB/SLB list
@@ -82,6 +82,7 @@ spp <- spp_orig %>%
                           "Haemulon californiensis" = "Brachygenys californiensis", #https://www.fishbase.se/summary/3570
                           "Hermosilla azurea" = "Kyphosus azureus", #https://www.fishbase.se/summary/Kyphosus-azureus
                           "Kyphosus azurea" = "Kyphosus azureus", #https://www.fishbase.se/summary/Kyphosus-azureus
+                          "Leptasterias aequalis" = "Leptasterias hexactis", # https://marinespecies.org/aphia.php?p=taxdetails&id=369177
                           "Lithopoma undosum" = "Megastraea undosa", #https://www.marinespecies.org/aphia.php?p=taxdetails&id=528084
                           "Okenia rosacea" = "Hopkinsia rosacea", # https://www.sealifebase.se/summary/Okenia-rosacea.html
                           "Raja binoculata" = "Beringraja binoculata",
@@ -96,6 +97,10 @@ spp <- spp_orig %>%
                           "Xenistius californiensis" = "Brachygenys californiensis" #https://www.fishbase.se/summary/3570
                           )) %>% 
   mutate(Family = recode(Family,
+                         "Bleniidae" = "Blenniidae",
+                         "Blepharipodidae" = "Albuneidae",
+                         "Gasterostidae" = "Gasterosteidae",
+                         "Pyrosomatinae" = "Pyrosomatidae",
                          "Scopalinidae" = "Esperiopsidae",
                          "Cottidae/Gobiesocidae" = "Cottidae",
                          "Onuphidae, Chaetopteridae" = "Onuphidae"))
@@ -104,31 +109,34 @@ spp <- spp_orig %>%
 check_names <- spp %>% 
   filter(Kingdom == "Animalia"|is.na(Kingdom)) %>% 
   filter(!str_detect(sciname, "spp")) %>% 
-  filter(!(sciname %in% fb_all$Species))%>% 
+  filter(!(sciname %in% fb_all$Species)) %>% 
   distinct(sciname, Family, Genus, Species, habitat) %>% 
   arrange(sciname)
 
 ## These names come up as incorrect but were validated as the correct name on 25 Aug 2023 (CL)
+##  Caliraja inornata https://www.fishbase.se/summary/2558
+##  Callianax biplicata https://marinespecies.org/aphia.php?p=taxdetails&id=1424883
 ##  Cribrinopsis albopunctata https://www.marinespecies.org/aphia.php?p=taxdetails&id=240769
 ##  Diaperoforma californica https://www.marinespecies.org/aphia.php?p=taxdetails&id=472584
 ##  Epitonium tinctum https://www.marinespecies.org/aphia.php?p=taxdetails&id=524008
 ##  Evasterias troschelii https://www.marinespecies.org/aphia.php?p=taxdetails&id=255040
 ##  Heteropolypus ritteri (corrected above; still not found)
+##  Hormiphora californensis # https://www.marinespecies.org/aphia.php?p=taxdetails&id=559444
 ##  Lirobittium munitum https://www.marinespecies.org/aphia.php?p=taxdetails&id=580440
+##  Lontra canadensis # https://marinespecies.org/aphia.php?p=taxdetails&id=159017
 ##  Mexacanthina lugubris https://www.marinespecies.org/aphia.php?p=taxdetails&id=404505
-##  Neobernaya spadicea
+##  Neobernaya spadicea # https://marinespecies.org/aphia.php?p=taxdetails&id=580674
 ##  Peltodoris nobilis https://www.marinespecies.org/aphia.php?p=taxdetails&id=594422
 ##  Pugettia foliata https://www.marinespecies.org/aphia.php?p=taxdetails&id=851288
 ##  Sebastes crocotulus 
-##  Caliraja inornata https://www.fishbase.se/summary/2558
 
 # Check for incorrect families -- should be 0
 check_family <- spp %>% 
   filter(Kingdom == "Animalia"|is.na(Kingdom)) %>% # dont bother with algae (sorry algae friends)
-  distinct(Family, Genus, Species, sciname, habitat) %>% 
+  distinct(Phylum, Class, Family, Genus, Species, sciname, habitat) %>% 
   filter(!(Family %in% fb_all$Family))
 
-# Check for incorrect genus -- 8 obs here confirmed OK
+# Check for incorrect genus -- 9 obs here confirmed OK
 check_genus <- spp %>% 
   filter(Kingdom == "Animalia"|is.na(Kingdom)) %>% # dont bother with algae (sorry algae friends)
   distinct(Family, Genus, Species, sciname, habitat) %>% 
@@ -172,10 +180,10 @@ taxa_match <- spp %>%
          Order, Order.x, Order.y, Order.match,
          Class, Class.x, Class.y, Class.match) 
 
-match_class <- taxa_match %>% filter(!Class.match) # 277 will update
-match_family <- taxa_match %>% filter(!Family.match) # 43 will update
-match_genus <- taxa_match %>% filter(!Genus.match)  # 16 will update
-match_order <- taxa_match %>% filter(!Order.match) # 155 will update
+match_class <- taxa_match %>% filter(!Class.match) # 277 will update -- 313
+match_family <- taxa_match %>% filter(!Family.match) # 43 will update -- 47
+match_genus <- taxa_match %>% filter(!Genus.match)  # 16 will update -- 15
+match_order <- taxa_match %>% filter(!Order.match) # 155 will update -- 162
 
 ## Fix corrections -- any changes beyond are reflected above
 spp_corrected <- spp %>% 
@@ -199,9 +207,9 @@ spp_na <- spp %>%
 # Update species key to include standardized target status -----------------------------
 target_list <- spp_corrected %>% 
   mutate(target_status = str_to_lower(target_status)) %>% 
-  distinct(sciname, target_status)
+  distinct(sciname, target_status) %>% 
   mutate(value = if_else(is.na(target_status), NA, 1)) %>% 
-  pivot_wider(names_from = target_status, values_from = value) %>% 
+  pivot_wider(names_from = "target_status", values_from = "value") %>% 
   mutate(target_status_standardized = case_when(targeted == 1 & nontargeted == 1 ~ "targeted",
                                                 targeted == 1 & is.na(nontargeted) ~ "targeted",
                                                 is.na(targeted) & nontargeted == 1 ~ "nontargeted",
@@ -219,10 +227,12 @@ spp_corrected <- spp_corrected %>%
 #write.csv(spp_corrected, file=file.path(datadir, "species_key.csv"), row.names = F)
 # last write Feb 15, 2024
 
+write.csv(spp_corrected, file=file.path(datadir, "species_key_2025.csv"), row.names = F)
+# last write Nov 9, 2025
+
 
 
 # Get length weight data -----------------------------------------------------------
-# This is now happening in the next script.
 
 # Get length weight tables from fishbase
 lw_fb <-  rfishbase::length_weight(server = "fishbase") %>%
@@ -238,11 +248,11 @@ lw <- plyr::rbind.fill(lw_fb, lw_slb) %>%
   left_join(fb_all, by = c("database", "SpecCode")) %>%
   arrange(Species) %>%
   # Filter for only the family, genus, species in our data
-  filter(Family %in% spp$Family |
-           Genus %in% spp$Genus |
-           Species %in% spp$sciname) %>%
+  filter(Family %in% spp_corrected$Family |
+           Genus %in% spp_corrected$Genus |
+           Species %in% spp_corrected$sciname) %>%
   select(database, Class, Order, Family, Genus, Species, everything())
 
 # Write length weight parameters to csv ----------------------------------------------------------
-#write.csv(lw, file=file.path(datadir, "species_lw_parameters_from_fishbase_full_new.csv"), row.names = F)
-# last write Oct 19, 2023
+write.csv(lw, file=file.path(datadir, "species_lw_parameters_from_fishbase_full_new.csv"), row.names = F)
+# last write Nov 9, 2025

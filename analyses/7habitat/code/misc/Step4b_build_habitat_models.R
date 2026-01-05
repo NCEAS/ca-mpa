@@ -31,11 +31,7 @@
 
 
 fit_habitat_models <- function(habitat, data_sp, response, focal_group, predictors_df, random_effects, re_string, path) {
-  
 
-  ## 2. Fit Models -----------------------------------------------------------------------
-  # models <- list()
-  
   models_df <- map_dfr(seq_len(nrow(predictors_df)), function(i) {
     predictors <- predictors_df$predictors[i]
     model_id <- predictors_df$model_id[i]
@@ -50,15 +46,9 @@ fit_habitat_models <- function(habitat, data_sp, response, focal_group, predicto
       tryCatch(
         {
           withCallingHandlers(
-            { m <- lmer(model_formula, data = data_sp, REML = FALSE, control = lmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 1e8)))
-              singular_status <- if (isSingular(m)) "Singular fit" else "OK"
-             
-            vc <- tryCatch(VarCorr(m), error = function(e) NULL)
-            singular_status <- if (is.null(vc)) {"Unknown"} 
-            else { 
-              vc_values <- unlist(lapply(vc$cond, function(x) attr(x, "stddev")))
-              if (any(vc_values < 1e-6)) "Singular (near-zero RE variance)" else "OK"
-              }
+            { m <- glmmTMB(model_formula, data = data_sp, family = gaussian(link = "log"))
+              singular_status <- if ("conv_code" %in% names(m$fit$optinfo$conv) &&
+                                     m$fit$optinfo$conv$conv_code != 0) "Convergence issue" else "OK"
               m
             },
             warning = function(w) {
@@ -103,25 +93,6 @@ fit_habitat_models <- function(habitat, data_sp, response, focal_group, predicto
     mutate(messages = if_else(messages == "", NA, messages))
   
   print("  Models complete. Starting extraction.")
-  
-  # Extract the base model and full models for each scale
-  # core_model_names <- predictors_df %>%
-  #   filter(type == "base" | str_starts(type, "core")) %>%
-  #   pull(model_id)
-
-  # Extract the top models within deltaAICc of 10 
-  # top_model_names <- models_df %>%
-  #   filter(delta_AICc <= 6) %>%
-  #   pull(model_id)
-
-  # Extract the model objects for the core + top models
-  #models <- models[unique(c(top_model_names, core_model_names))]
-
-  # Define the top, core, and full models (but save entire df for debug)
-  # models_df <- models_df %>%
-  #   mutate(type = case_when(model_id %in% top_model_names ~ "top",
-  #                           predictors == "site_type * age_at_survey" ~ "base",
-  #                           model_id %in% core_model_names ~ "core"))
   
   # Find those that did not converge or had other issues
   problems <- models_df %>% 

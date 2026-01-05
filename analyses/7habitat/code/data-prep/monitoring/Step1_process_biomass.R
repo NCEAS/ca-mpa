@@ -49,16 +49,15 @@ traitsdir <- "/home/shares/ca-mpa/data/sync-data/species_traits/processed"
 datadir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data"
 
 # Read monitoring data
-surf  <- read_csv(file.path(datadir, "update_2024/surf_zone_processed.csv")) %>% clean_names()
-deep  <- read_csv(file.path(datadir, "update_2024/deep_reef_processed.csv")) 
+surf  <- read_csv(file.path(datadir, "update_2024/surf_zone_processed.csv")) 
 ccfrp <- read_csv(file.path(datadir, "update_2024/ccfrp_processed.2024.csv")) # updated CL 
 kelp  <- read_csv(file.path(datadir, "update_2024/kelp_processed.6.csv"))  # updated CL
 
 # Read length-weight parameters
-params <- read_csv(file.path(traitsdir, "lw_parameters_fish.csv"))
+params <- read_csv(file.path(traitsdir, "lw_parameters_fish_2025.csv")) %>% select(!level)
 
 # Read species key
-species_key <- read.csv(file.path(traitsdir, "species_key.csv")) %>%
+species_key <- read.csv(file.path(traitsdir, "species_key_2025.csv")) %>%
   clean_names() %>% 
   #reassign target_status_standardized for downstream code
   dplyr::select(-target_status)%>%
@@ -106,12 +105,9 @@ bio_fun <- function(params, data) {
 
 ccfrp_biomass <- bio_fun(params, ccfrp)
 
-deep_biomass <- bio_fun(params, deep)
-
 kelp_biomass <- bio_fun(params, kelp)
 
 surf_biomass <- bio_fun(params, surf)
-
 
 # Drop pelagics species and large 'biomass buster' sharks ----------------------
 
@@ -126,16 +122,6 @@ ccfrp_biomass1 <- ccfrp_biomass %>%
                           "Oncorhynchus tshawytscha", 
                           "Sardinops sagax"))) %>% 
   filter(!species_code == "BID") # drop bc only 3 fish, unclear if blue or something else
-
-
-
-deep_biomass1 <- deep_biomass %>%
-  filter(!(sciname %in% c("Entosphenus tridentatus", 
-                          "Hexanchus griseus", 
-                          "Mola mola",
-                          "Apristurus brunneus"))) %>% 
-  filter(!species_code == "RFYOY")
-
 
 kelp_biomass1 <- kelp_biomass %>%
   filter(!(sciname %in% c("Alopias vulpinus", 
@@ -161,10 +147,9 @@ surf_biomass1 <- surf_biomass
 
 
 # Write to csv ----------------------------------------------------------------
-write.csv(surf_biomass1, row.names = F,  file.path(datadir,"/update_2024/surf_zone_fish_biomass_updated.csv"))  #last write 7 Jan 2025
-write.csv(kelp_biomass1, row.names = F,  file.path(datadir,"/update_2024/kelpforest_fish_biomass_updated.6.csv")) #last write 13 Mar 2025
-write.csv(ccfrp_biomass1, row.names = F, file.path(datadir,"/update_2024/ccfrp_fish_biomass_updated.2024.csv")) #last write  2 Mar 2025
-write.csv(deep_biomass1, row.names = F,  file.path(datadir,"/update_2024/deep_reef_fish_biomass_updated.csv")) #last write  3 Mar 2025
+write.csv(surf_biomass1, row.names = F,  file.path(datadir,"/update_2024/surf_zone_fish_biomass_updated.csv"))  
+write.csv(kelp_biomass1, row.names = F,  file.path(datadir,"/update_2024/kelpforest_fish_biomass_updated.6.csv")) 
+write.csv(ccfrp_biomass1, row.names = F, file.path(datadir,"/update_2024/ccfrp_fish_biomass_updated.2024.csv")) 
 
 # IN PROGRESS: Explore everything that's going wrong -----------------------------------
 

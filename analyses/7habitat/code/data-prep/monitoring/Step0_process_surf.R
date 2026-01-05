@@ -16,9 +16,6 @@
 # - Some of the lengths seem to be already converted to centimeters -8/31/23 used tl_mm instead (not fish_length) -JGS
 # - There are some taxa that don't match fully (mostly higher groupings) - 8/31/23 added these to taxon table -JGS
 
-# NOTE: THIS IS IN THE PROCESS 2024 VERSIONS FOLDER, BUT THERE IS NO UPDATED DATA JUST YET.
-# THE ONLY CHANGE FOR THE HABITAT ANALYSES IS ADDING BACK THE SITE NAME TO FIGURE OUT WHAT
-# SITE THE DATA ARE FROM.
 
 # Setup --------------------------------------------------------------------------------
 rm(list=ls())
@@ -33,16 +30,16 @@ datadir <- "/home/shares/ca-mpa/data/sync-data/monitoring/"
 outdir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data"
 
 # Read surf monitoring data
-surf_zone_raw <- read.csv(file.path(datadir, "monitoring_sandy-beach/surf_zone_fish_seine_data.csv")) %>%
-  clean_names()
+# surf_zone_raw <- read.csv(file.path(datadir, "monitoring_sandy-beach/surf_zone_fish_seine_data.csv")) %>%
+#   clean_names()
 
-surf_zone_raw2 <- read.csv("/home/shares/ca-mpa/data/sync-data/monitoring/monitoring_sandy-beach/update_2024/seine_fish_19_24.csv", na.strings = c("", "NA")) %>% 
+surf_zone_raw <- read.csv("/home/shares/ca-mpa/data/sync-data/monitoring/monitoring_sandy-beach/update_2024/seine_fish_19_24.csv", na.strings = c("", "NA")) %>% 
   clean_names() %>% 
   rename(site_type = mpa_status,
          mpa_name_short = ca_mpa_name_short) 
 
 # Read taxonomy lookup table
-taxon_tab <- read.csv("/home/shares/ca-mpa/data/sync-data/species_traits/processed/species_key.csv") %>% 
+taxon_tab <- read.csv("/home/shares/ca-mpa/data/sync-data/species_traits/processed/species_key_2025.csv") %>% 
   clean_names()%>%
   #reassign target_status_standardized for downstream code
   dplyr::select(-target_status)%>%
@@ -64,14 +61,14 @@ defacto_smr_surf <- readxl::read_excel("/home/shares/ca-mpa/data/sync-data/mpa_t
 # Process Data ------------------------------------------------------------------------
 
 # Identify paired mpa-reference sites
-pair_key <- surf_zone_raw2 %>% 
+pair_key <- surf_zone_raw %>% 
   distinct(site_type, mpa_name_short, site_pair) %>% 
   filter(site_type == "MPA") %>% 
   mutate(affiliated_mpa = mpa_name_short) %>% 
   select(site_pair, affiliated_mpa)
 
 # Surf zone used an alphabetic naming convention ('site_pair') to identify matched pairs (inside vs. out)
-pairs <- surf_zone_raw2 %>% 
+pairs <- surf_zone_raw %>% 
   dplyr::select(site_type, site_name, mpa_name_short, site_pair) %>% # site_code, affiliated_mpa,  mpa_status,  mpa_type
   distinct() %>%
   left_join(pair_key) %>% 
@@ -82,7 +79,7 @@ pairs <- surf_zone_raw2 %>%
   mutate(ref_is_mpa = if_else(site_type == "Reference" & !is.na(mpa_name_short), "yes", "no"))
 
 
-data <- surf_zone_raw2 %>% 
+data <- surf_zone_raw %>% 
   # Add paired mpa-reference sites
   left_join(pairs) %>% 
   rename(weight_g = fish_weight_individual,
@@ -104,7 +101,9 @@ data <- surf_zone_raw2 %>%
                 tl_cm,sl_cm, weight_g, total_weight_g, 
                 count, total_weight_kg) %>%
   # Change "NOSP" to "NO_ORG" to match other habitats
-  mutate(species_code = recode(species_code, "NOSP" = "NO_ORG")) %>% 
+  mutate(species_code = recode(species_code, 
+                               "NOSP" = "NO_ORG", 
+                               "GLIN" = "GELI")) %>% 
   mutate(total_weight_g = ifelse(species_code == "NO_ORG", 0, total_weight_g),
          total_weight_kg = ifelse(species_code == "NO_ORG", 0, total_weight_kg)) %>% 
   # Add taxa info from surf taxon table
@@ -112,64 +111,62 @@ data <- surf_zone_raw2 %>%
   # Change unidentified to match other habitats
   mutate(species_code = case_when(species_code %in% c("unspecified", "FFUN") ~ "UNKNOWN",
                                   is.na(species_code) & count > 0 ~ "UNKNOWN", # length data but missing species data
-                                  T~species_code))
+                                  T~species_code)) %>% 
+  filter(!species_code %in% c("UNKNOWN", "YOY", "RFYOY")) %>% 
+  # Drop a few observations with no count data
+  filter(!is.na(count)) %>% 
+  # Temporarily set count = 1 for NO_ORG to retain those when uncounting:
+  mutate(count = if_else(species_code == "NO_ORG", 1, count)) %>% 
+  # Uncount so each row is a fish
+  uncount(weights = count, .remove = F) %>% # duplicates based on number in count col but retains that count value
+  # Reset count = 0 for NO_ORG:
+  mutate(count = if_else(species_code == "NO_ORG", 0, count)) 
 
 
 # estimate tl_cm for schooling fishes ------------------------------------------
 
-# Step 1 - Filter the subsampled schooling fishes 
-sub_fish <- data %>%
-  filter(habitat_specific_spp_name %in% c("Seriphus politus", "Atherinops affinis"))
+data <- data %>% mutate(.row = row_number())
 
-#find the known size frequency distribution at the MPA-year level. i.e., counts per size
-size_distribution <- sub_fish %>%
+site_keys <- c("year","month","day","bioregion","region4","affiliated_mpa", "site_name",
+               "mpa_state_class","mpa_state_designation","mpa_defacto_class",
+               "mpa_defacto_designation","species_code")
+
+sub_fish_sp <- data %>% filter(count > 1) %>% distinct(species_code)
+sub_fish <- data %>% filter(species_code %in% sub_fish_sp$species_code)
+
+size_dist_site <- sub_fish %>%
   filter(!is.na(tl_cm)) %>%
-  group_by(year, month, day, bioregion, region4, affiliated_mpa, mpa_state_class, mpa_state_designation, mpa_defacto_class, mpa_defacto_designation, tl_cm) %>%
-  summarize(n = n()) %>%
-  ungroup()
+  group_by(across(all_of(site_keys)), tl_cm) %>%
+  summarise(n = n(), .groups = "drop_last") %>%
+  group_by(across(all_of(site_keys))) %>%
+  summarise(sizes = list(tl_cm), probs = list(n / sum(n)), .groups = "drop")
 
-
-# Step 2 - Estimate size distribution for rows with NA in tl_cm
 na_rows <- sub_fish %>% filter(is.na(tl_cm))
 
-inferred_tl_cm <- data.frame()
+na_with_dist <- na_rows %>%
+  left_join(size_dist_site, by = site_keys) %>%
+  mutate(sizes_use = sizes, probs_use = probs)
+
 set.seed(1985)
-for (i in 1:nrow(na_rows)) {
-  row <- na_rows[i, ]
-  # Match the row to the size distribution
-  matching_distribution <- size_distribution %>%
-    filter(year == row$year, month == row$month, day == row$day, bioregion == row$bioregion, 
-           region4 == row$region4, affiliated_mpa == row$affiliated_mpa, mpa_state_class == row$mpa_state_class, 
-           mpa_state_designation == row$mpa_state_designation, mpa_defacto_class == row$mpa_defacto_class, 
-           mpa_defacto_designation == row$mpa_defacto_designation)
-  
-  # Sample a size value from the matching distribution
-  sampled_size <- sample(matching_distribution$tl_cm, size = 1, prob = matching_distribution$n) 
-  #matching_distribution$tl_cm extracts the tl_cm from matching_distribution which contains the known sizes at the MPA year level
-  #size = 1 samples one value from the distribution
-  #prob sets the sampling distribution from the known distribution
-  
-  # Create a new row with the inferred size
-  inferred_row <- row
-  inferred_row$tl_cm <- sampled_size
-  
-  # Add the inferred row to the result
-  inferred_tl_cm <- rbind(inferred_tl_cm, inferred_row)
-}
+inferred_tl_cm <- na_with_dist %>%
+  mutate(tl_cm_inferred = map2_dbl(sizes_use, probs_use, ~ {
+    if(is.null(.x) || length(.x) == 0) return(NA_real_)
+    sample(.x, size = 1, prob = .y)
+  })) %>%
+  select(.row, tl_cm_inferred)
 
-# Step 3-  Update the original data frame with the inferred tl_cm
-inferred_size <- rbind(
-  data %>%
-    filter(!(habitat_specific_spp_name %in% c("Seriphus politus", "Atherinops affinis") & is.na(tl_cm))),
-  inferred_tl_cm
-)
+data2 <- data %>%
+  left_join(inferred_tl_cm, by = ".row") %>%
+  mutate(tl_cm = coalesce(tl_cm, tl_cm_inferred)) %>%
+  select(-tl_cm_inferred, - .row) %>% 
+  # Adjust so each count is 1
+  mutate(count = if_else(species_code != "NO_ORG", 1, count)) %>% 
+  clean_names() %>% 
+  dplyr::select(!c(weight_g, total_weight_g, total_weight_kg)) # drop other weight cols
 
-#check that it worked
-nrow(inferred_size)
-nrow(data)
 
 #new dist
-ggplot(inferred_size %>% filter(habitat_specific_spp_name %in% c("Seriphus politus", "Atherinops affinis")), aes(x = tl_cm)) +
+ggplot(data2 %>% filter(habitat_specific_spp_name %in% c("Seriphus politus", "Atherinops affinis")), aes(x = tl_cm)) +
   geom_histogram(binwidth = 1) +
   facet_wrap(~ habitat_specific_spp_name, scales = "free_x") 
 
@@ -179,37 +176,13 @@ ggplot(data %>% filter(habitat_specific_spp_name %in% c("Seriphus politus", "Ath
   facet_wrap(~ habitat_specific_spp_name, scales = "free_x") 
 
 
-# Check taxa NAs
-taxa_na <- #data %>% #old
-  inferred_size %>%
-  filter(is.na(sciname) & !(species_code == "NO_ORG"))
-
-# Test for matching taxa
-taxa_match <- #data %>% #old
-  inferred_size %>%
-  distinct(species_code) %>% 
-  filter(!is.na(species_code)) %>% 
-  filter(!(species_code == "NO_ORG")) %>% 
-  filter(!(species_code %in% taxon_tab$habitat_specific_code))
-
-## Note: There are still 4 with no taxonomic info that need to be updated in 
-## the main species_key if we want to include beyond tracking effort (e.g. 
-## manually fill in appropriate taxa information across columns when processing
-## surf zone taxon table)
-
-#added above to surf zone taxon table on 8/31/23 -JGS
-# Unspecified, HALI, RFYOY, FFUN
-
-
 # Write data ------------------------------------------------------------------------
 #write.csv(data, row.names = FALSE, file.path(outdir, "surf_zone_fish_processed.csv"))
 # last write 13 Sept 2023
 
-
 #write.csv(inferred_size, row.names = FALSE, file.path(outdir, "surf_zone_processed.csv"))
 #last export 16 Feb 2024
 
-# outdir <-  "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_2024"
-# write.csv(inferred_size, row.names = FALSE, file.path(outdir, "surf_zone_processed.csv"))
-#last export 18 NOV 2024
+outdir <-  "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_2024"
+write.csv(data2, row.names = FALSE, file.path(outdir, "surf_zone_processed.csv"))
 

@@ -9,6 +9,7 @@ library(tidyverse)
 
 kelp.dir <- "/home/shares/ca-mpa/data/sync-data/kelpwatch/2024/processed"
 ltm.dir  <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_2024"
+kelp2024.dir <- "/home/shares/ca-mpa/data/sync-data/kelpwatch/2025/processed"
 
 # Read Data --------------------------------------------------------------------
 # Read the LTM sites (these are ones incldued in the habitat analyses)
@@ -75,3 +76,30 @@ kelp <- all_kelp_results %>%
 
 # Save the consolidated results
 saveRDS(kelp, file.path(kelp.dir, "kelp_site_buffers.Rds"))
+
+
+# Add the 2024 data
+# Read the consolidated results
+kelp <- readRDS(file.path(kelp.dir, "kelp_site_buffers.Rds"))
+
+buffers <- c(25, 50, 100, 250, 500)
+year <- "2024"
+new_kelp_results <- data.frame()
+
+kelp_raster <- terra::rast(file.path(kelp2024.dir, paste0("kelp_canopy_", year, ".tif")))
+  
+for (buffer in buffers) {
+    print(paste("  Buffer:", buffer, "m"))
+    kelp_results <- calculate_kelp_buffer(kelp_raster, sites, buffer, year)
+    new_kelp_results <- bind_rows(new_kelp_results, kelp_results)
+  }
+  
+kelp_new <- new_kelp_results %>% 
+  mutate(habitat_buffer = paste0("kelp_annual_", buffer)) %>% 
+  dplyr::select(-ID, -buffer) %>% 
+  pivot_wider(names_from = habitat_buffer, values_from = kelp_area_m2)
+
+kelp_update <- rbind(kelp, kelp_new)
+
+saveRDS(kelp_update, file.path(kelp.dir, "kelp_site_buffers.Rds"))
+

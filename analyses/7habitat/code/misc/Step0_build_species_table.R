@@ -14,16 +14,16 @@ sync.dir <- "/home/shares/ca-mpa/data/sync-data/"
 out.dir <- "/home/shares/ca-mpa/data/sync-data/species_traits/processed"
 
 # Read the final authoritative species table
-mlpa_sp <- read_csv(file.path(sync.dir, "species_traits/processed/species_key.csv")) %>% 
+mlpa_sp <- read_csv(file.path(sync.dir, "species_traits/processed/species_key_2025.csv")) %>% 
   clean_names() %>% 
   filter(kingdom == "Animalia" & phylum == "Chordata") %>% 
   select(family, genus, sciname, level, target_status = target_status_standardized) %>% 
   distinct() %>% 
-  filter(!is.na(target_status)) %>% 
+ # filter(!is.na(target_status)) %>% 
   filter(!is.na(sciname))
 
 # Read the length-weight table (contains the lw parameters where they exist)
-mlpa_lw <- read_csv(file.path(sync.dir, "species_traits/processed/lw_parameters_fish.csv")) %>% 
+mlpa_lw <- read_csv(file.path(sync.dir, "species_traits/processed/lw_parameters_fish_2025.csv")) %>% 
   mutate(level = case_when(is.na(level) & is.na(genus) ~ "family",
                            is.na(level) & str_detect(sciname, "spp") ~ "genus",
                            is.na(level) ~ "species",
@@ -35,11 +35,11 @@ pmep_sp <- readRDS(file.path(sync.dir, "habitat_pmep/processed/pmep_species_proc
 
 # Build --------------------------------------------------------------------------------
 
-# Only 6 species from the MLPA species list are missing from the PMEP list
-# missing_pmep <- mlpa_sp %>% 
-#   filter(!sciname %in% pmep_sp$species) %>% 
-#   rename(species = sciname) %>% 
-#   filter(level == "species") 
+# 12 species from the MLPA species list are missing from the PMEP list
+missing_pmep <- mlpa_sp %>%
+  filter(!sciname %in% pmep_sp$species) %>%
+  rename(species = sciname) %>%
+  filter(level == "species")
 
 # Create full list 
 sp <- mlpa_sp %>% 
@@ -62,6 +62,6 @@ sp <- mlpa_sp %>%
            
 # To do: change Kelp Bass to Hard Bottom Biotic re chat with JC (no info in table)
 
-saveRDS(sp, file.path(out.dir, "species_lw_habitat.Rds"))
+saveRDS(sp, file.path(out.dir, "species_lw_habitat2.Rds"))
 
 mismatch <- anti_join(mlpa_sp, pmep_sp, by = c("genus", "sciname" = "species"))
