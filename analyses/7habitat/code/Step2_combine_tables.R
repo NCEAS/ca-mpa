@@ -24,7 +24,7 @@ habitat_combined <- readRDS(file.path(int.dir, "habitat_buffers_by_site_combined
 
 # Annual kelp canopy cover
 habitat_kelp <- readRDS(file.path(kw.dir, "kelp_site_buffers.Rds")) %>% 
-  dplyr::select(-habitat, -site_id) %>% 
+  dplyr::select(-habitat) %>% 
   distinct() %>% 
   mutate(year = as.numeric(year))
 
@@ -289,7 +289,6 @@ ggsave(file.path(fig.dir, "si-fig2-rock.png"),
 
 
 # Surf zone (seines) ----------------------------------------------------------------------------------------------
-
 surf_raw <- readRDS(file.path(ltm.dir, "surf_biomass_subset.Rds")) 
 
 surf <- surf_raw %>% 
@@ -354,7 +353,6 @@ saveRDS(rock2, file.path(ltm.dir, "combine_tables/ccfrp_full.Rds"))
 
 
 # Build table for sites that are removed from kelp and surf zone
-
 kelp_removed  <- kelp_trim$removed_details %>% mutate(habitat = "Kelp forest")
 surf_removed  <- surf_violations %>% mutate(habitat = "Surf zone (none removed)") %>% select(!c(MPA, Reference, excess))
 rock_removed  <- rock_trim$removed_details  %>% mutate(habitat = "Shallow reef")
