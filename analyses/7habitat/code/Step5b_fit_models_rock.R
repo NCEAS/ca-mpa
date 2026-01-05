@@ -23,14 +23,13 @@ source("analyses/7habitat/code/Step4b_build_habitat_models.R")  # Load the funct
 
 
 # Read Data --------------------------------------------------------------------
-ltm.dir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_2024"
+ltm.dir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_2024/2025"
 fig.dir <- "analyses/7habitat/figures/3way-figures"
 pred_rock <- readRDS(file.path("analyses/7habitat/intermediate_data/rock_predictors.Rds")) %>% filter(pred_group %in% c("all", "combined")) %>% filter(!str_detect(predictor, "aquatic_vegetation|soft_bottom"))
-#pred_rock_2way <- readRDS(file.path("analyses/7habitat/intermediate_data/rock_predictors_2way.Rds")) %>% filter(!str_detect(predictors, "aquatic_vegetation"))
 
 data_rock <- readRDS(file.path(ltm.dir, "combine_tables/ccfrp_full.Rds")) %>% 
   mutate(site_type = factor(site_type, levels = c("Reference", "MPA"))) %>% 
-  dplyr::select(year:affiliated_mpa, size_km2, cluster_area_km2, age_at_survey,
+  dplyr::select(year:affiliated_mpa, size_km2,  age_at_survey,
                 species_code:target_status, assemblage_new, weight_kg,
                 all_of(pred_rock$predictor)) %>% 
   # Remove sites that do not fit criteria
@@ -40,8 +39,8 @@ data_rock <- readRDS(file.path(ltm.dir, "combine_tables/ccfrp_full.Rds")) %>%
 
 # Provide some of the global variables
 habitat <- "rock"
-re_string <- "rmy"
-random_effects <- c("region4/affiliated_mpa", "year")
+re_string <- "rmsy"
+random_effects <- c("region4/affiliated_mpa/site", "year")
 regions <- c("North", "Central", "N. Channel Islands", "South")
 print(paste0("Starting: ", habitat))
 print(paste0("RE Structure: ", paste(random_effects, collapse = ", ")))
@@ -133,7 +132,4 @@ models_df <- bind_rows(results_list) %>%
 
 
 saveRDS(list(models_df = models_df, data_sp = data_sp),
-        file.path("analyses/7habitat/output/models", "3way", # remove 3way for 2way options
-                  paste(habitat, "filtered", focal_group, re_string, "models.rds", sep = "_")))
-
-
+        file.path("analyses/7habitat/output/models", paste(habitat, focal_group, re_string, "models.rds", sep = "_")))
