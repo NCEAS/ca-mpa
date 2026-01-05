@@ -52,9 +52,9 @@ kelp_fish_sites <- read_csv(file.path(data.dir, "monitoring_kelp/update_2024/MLP
 
 # Site centroids were provided by MLPA monitoring groups but does not cover all sites in data
 kelp_centroids <- read_sf("/home/shares/ca-mpa/data/sync-data/gis_data/raw/MLPA_AM_site_centroids") %>% clean_names() %>% 
-  dplyr::select(site_sd, campus, mpa_status:geometry) %>% 
-  mutate(across(where(is.character), ~ trimws(.))) %>% 
   filter(!campus == "RCCA") %>% 
+  dplyr::select(site_sd, mpa_status, campus, x, y, geometry) %>% 
+  mutate(across(where(is.character), ~ trimws(.))) %>% 
   # Many sites are listed as the old names. Create new column that's the screaming snake case version of the name:
   mutate(site = snakecase::to_screaming_snake_case(site_sd)) %>% 
   # Reclassify the original site name as the old names
@@ -70,40 +70,33 @@ kelp_centroids <- read_sf("/home/shares/ca-mpa/data/sync-data/gis_data/raw/MLPA_
                        "PYRAMIND_POINT_2" = "PYRAMID_POINT_2",
                        "LEO_CARILLO" = "LEO_CARRILLO",
                        "DEEP_HOLE_E" = "DEEP_HOLE_EAST",
-                       "SCAI_LIONS_HEAD" = "SCAI_LION_HEAD")) %>% 
+                       "SCAI_LIONS_HEAD" = "SCAI_LION_HEAD",
+                       "3_PALMS_E" = "3_PALMS_EAST")) %>% 
+  dplyr::select(site, geometry) %>% 
   group_by(site) %>% 
   summarize(geometry = st_centroid(st_union(geometry)), .groups = 'drop')
+
+# Transform kelp site table to match 4326:
+kelp_centroids <- st_transform(kelp_centroids, 4326)
+
+# Create point geometry for site table:
+kelp_site_table <- kelp_site_table %>% 
+  st_as_sf(coords = c("lon_dd", "lat_dd"), crs = 4326, remove = T, sf_column_name = "geometry") 
   
-kelp <- kelp_fish_sites %>% 
-  # Start by matching by the available centroids
-  left_join(kelp_centroids, by = c("site")) %>% 
-  # Where not available, use the points from the site table
-  full_join(kelp_site_table) %>% 
-  dplyr::select(site, site_type, lat_dd, lon_dd, centroid = geometry) %>% 
-  filter(!is.na(lat_dd)) %>% # three sites with no centroid or lat/lon info
-  st_as_sf(coords = c("lon_dd", "lat_dd"), crs = 4326, remove = F, sf_column_name = "new_point") %>%
-  st_transform(st_crs(kelp_centroids)) # new point becomes sticky here
+# Determine which centroids are matches for the fish data:
+pick_centroid <- kelp_centroids %>% 
+  filter(site %in% kelp_fish_sites$site)
 
-# # Create two sf objects from different geometry columns
-# centroids_sf <- kelp %>% st_set_geometry("centroid")
-# new_points_sf <- kelp %>% st_set_geometry("new_point")
-# 
-# # Plot them together
-# tm_shape(new_points_sf) +  # Base layer with new points
-#   tm_dots(fill = "black") +
-#   tm_text("site", size = 1) +
-#   tm_shape(centroids_sf) +  # Centroids in red
-#   tm_dots(fill = "red")
+pick_site_table <- kelp_site_table %>% 
+  filter(site %in% kelp_fish_sites$site) %>% 
+  filter(!site %in% pick_centroid$site) %>% 
+  select(site, geometry)
 
-# Bridge the two together - pick centroid where available, otherwise the point
-kelp <- kelp %>% 
-  # Create a new column prioritizing centroid and using site info where centroid missing
-  mutate(geometry = if_else(st_is_empty(centroid), new_point, centroid)) %>%   
+# Create full site dataset:
+kelp <- bind_rows(pick_centroid, pick_site_table) %>% 
   st_set_geometry("geometry") %>% 
-  dplyr::select(site, site_type, geometry) %>% 
-  st_transform(crs = 4326) %>% 
-  # Use the new geometry column to extract the lat/lon points
-  mutate(lon_dd = st_coordinates(geometry)[,1], 
+  left_join(kelp_site_table %>% select(site, site_type) %>% st_drop_geometry()) %>% 
+  mutate(lon_dd = st_coordinates(geometry)[,1],
          lat_dd = st_coordinates(geometry)[,2]) %>% 
   mutate(habitat = "Kelp forest") %>% 
   dplyr::select(habitat, site, site_type, lat_dd, lon_dd) %>% st_drop_geometry()
