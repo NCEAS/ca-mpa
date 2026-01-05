@@ -20,13 +20,13 @@ list2env(list(habitat = "rock_filtered",
               focal_group = "targeted",
               re_string = "rmy"), envir = .GlobalEnv)
 
-list2env(list(habitat = "kelp_filtered",
+list2env(list(habitat = "kelp",
               focal_group = "targeted",
-              re_string = "my"), envir = .GlobalEnv)
+              re_string = "msy"), envir = .GlobalEnv)
 
 list2env(list(habitat = "surf",
               focal_group = "targeted",
-              re_string = "r"), envir = .GlobalEnv)
+              re_string = "rm"), envir = .GlobalEnv)
   
 process_final_models <- function(habitat, focal_group, re_string){
   
@@ -135,7 +135,8 @@ process_final_models <- function(habitat, focal_group, re_string){
              str_replace_all(":", " x ") %>% 
              str_replace_all("hard", "Hard") %>% 
              str_replace_all("kelp", "Kelp") %>% 
-             str_replace_all("soft", "Soft")) %>% 
+             str_replace_all("soft", "Soft") %>% 
+             str_replace_all("depth", "Depth")) %>% 
     gt() %>%
     tab_header(title = paste0("Model results: ", str_remove(str_to_sentence(habitat), "_filtered"), ", ", focal_group, " fish biomass")) %>% 
     cols_label(term_revised = "Term",
@@ -152,7 +153,6 @@ process_final_models <- function(habitat, focal_group, re_string){
     tab_options(heading.align = "left") %>%
     cols_align(align = "center", columns = everything()) %>% 
     tab_row_group(label = "Base Model", rows = key == "Base Model") %>%
- #  tab_row_group(label = "Simple Model", rows = key == "Simple Model") %>%
     tab_row_group(label = "Top Model", rows = key == "Top Model") %>% 
     cols_hide(key) %>% 
     tab_source_note(source_note = paste0("Random effects: ", str_replace_all(paste(random_effects, collapse = ", "), "_", " "))) %>% 

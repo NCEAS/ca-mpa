@@ -18,7 +18,7 @@ gc()
 
 # Begin ------------------------------------------------------------------------
 
-fig.dir <- "~/ca-mpa/analyses/7habitat/figures/3way-figures"
+fig.dir <- "~/ca-mpa/analyses/7habitat/figures"
 
 my_theme <- theme_minimal(base_family = "Arial") + 
   theme(plot.title = element_text(size = 10, face = "bold"),
@@ -40,9 +40,9 @@ my_theme <- theme_minimal(base_family = "Arial") +
 
 mpa_colors <- c("Reference" = "#6d55aa", "MPA" = "#c42119")
 
-list2env(list(habitat = "rock_filtered", 
+list2env(list(habitat = "surf", 
               focal_group = "targeted",
-              re_string = "rmy"), envir = .GlobalEnv)
+              re_string = "rm"), envir = .GlobalEnv)
 
 
 auto_xlevels <- function(focal_model, data_sp,
@@ -72,8 +72,8 @@ auto_xlevels <- function(focal_model, data_sp,
 
 make_effects_plots <- function(habitat, focal_group, re_string){
   
-  results <- readRDS(file.path("~/ca-mpa/analyses/7habitat/output/effects", "3way", paste(habitat, focal_group, re_string, "effects.rds", sep = "_")))
-  data_sp <- readRDS(file.path("~/ca-mpa/analyses/7habitat/output/data", "3way", paste(habitat, focal_group, re_string, "data.rds", sep = "_")))
+  results <- readRDS(file.path("~/ca-mpa/analyses/7habitat/output/effects", paste(habitat, focal_group, re_string, "effects.rds", sep = "_")))
+  data_sp <- readRDS(file.path("~/ca-mpa/analyses/7habitat/output/data", paste(habitat, focal_group, re_string, "data.rds", sep = "_")))
   
   focal_model <- results$models$top
   xlevels_auto  <- auto_xlevels(focal_model, data_sp)
@@ -238,13 +238,13 @@ make_effects_plots <- function(habitat, focal_group, re_string){
   effect_plots[[paste0(habitat, "_overall")]] <- age
   
   saveRDS(effect_plots,
-          file.path("~/ca-mpa/analyses/7habitat/output/effects/3way", paste(habitat, focal_group, re_string, "effects_plots.rds", sep = "_")))
+          file.path("~/ca-mpa/analyses/7habitat/output/effects", paste(habitat, focal_group, re_string, "effects_plots.rds", sep = "_")))
   
   return(effect_plots)
   
 }
 
-(guide_area() / wrap_plots(effect_plots[3:4], axis_titles = "collect_x", ncol = 1)) + 
+(guide_area() / wrap_plots(effect_plots[1:length(effect_plots)], axis_titles = "collect_x", ncol = 1)) + 
   plot_layout(guides = "collect", heights = unit(c(0.4, 1), c("cm", "null"))) + 
   theme(legend.position = "top")
 
@@ -252,7 +252,7 @@ make_effects_plots <- function(habitat, focal_group, re_string){
 # This will both save the plots (via functions above) and keep them in the environment
 kelp <- make_effects_plots("kelp_filtered", "targeted", "my")
 rock <- make_effects_plots("rock_filtered", "targeted", "rmy")
-surf <- make_effects_plots("surf_filtered", "targeted", "m")
+surf <- make_effects_plots("surf", "targeted", "m")
 
 
 # Combine all three into one plot with panels

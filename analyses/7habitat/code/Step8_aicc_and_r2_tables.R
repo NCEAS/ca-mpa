@@ -22,7 +22,7 @@ fig.dir <- "~/ca-mpa/analyses/7habitat/figures/3way-figures"
 get_tables <- function(habitat, focal_group, re_string){
   
   results_file <- paste(habitat, focal_group, re_string, "selection_results.rds", sep = "_")
-  results <- readRDS(file.path("~/ca-mpa/analyses/7habitat/output/results/3way", results_file)) 
+  results <- readRDS(file.path("~/ca-mpa/analyses/7habitat/output/results", results_file)) 
   
   return(list(aicc_table = results$aicc_table,
               aicc_table_full = results$aicc_table_full,
@@ -31,7 +31,7 @@ get_tables <- function(habitat, focal_group, re_string){
 
 rock <- get_tables("rock_filtered", "targeted", "rmy")
 kelp <- get_tables("kelp_filtered", "targeted", "my")
-surf <- get_tables("surf_filtered", "targeted", "m")
+surf <- get_tables("surf", "targeted", "rm")
 
 rock_nest <- rock$nested_results %>% mutate(larger = str_remove_all(larger, "\\+ST\\*A")) %>% mutate(smaller = str_remove_all(smaller, "\\+ST\\*A"))
 kelp_nest <- kelp$nested_results %>% mutate(larger = str_remove_all(larger, "\\+ST\\*A")) %>% mutate(smaller = str_remove_all(smaller, "\\+ST\\*A"))
@@ -163,7 +163,7 @@ gtsave(combined_nest, file.path(fig.dir, "tableSX_nest_results.png"),  vwidth = 
 get_models <- function(habitat, focal_group, re_string){
   
   effects_file <- paste(habitat, focal_group, re_string, "effects.rds", sep = "_")
-  effects <- readRDS(file.path("~/ca-mpa/analyses/7habitat/output/effects/3way", effects_file)) 
+  effects <- readRDS(file.path("~/ca-mpa/analyses/7habitat/output/effects", effects_file)) 
   
   return(list(models = effects$models,
               results = effects$results))
@@ -171,7 +171,7 @@ get_models <- function(habitat, focal_group, re_string){
 
 rock <- get_models("rock_filtered", "targeted", "rmy")
 kelp <- get_models("kelp_filtered", "targeted", "my")
-surf <- get_models("surf_filtered", "targeted", "m")
+surf <- get_models("surf", "targeted", "rm")
 
 rock_results <- rock$results
 kelp_results <- kelp$results

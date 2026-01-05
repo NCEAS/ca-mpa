@@ -8,19 +8,9 @@
 #   -- models_df: dataframe with summary of model results, including model_id, 
 #         predictor string and other specifications used in model fitting, AICc
 #         and other fit results (singular status, warnings), and the "type" of the
-#         model (base, top, or core == full). *if base model was top model, == top
-#   -- models: the model fit objects from above df, identified by the model_id
+#         model (base, top, or core == full). 
 #   -- data_sp: the data used to fit the model
 
-# 1. Process top models:
-#     If there are multiple top models, calculate the model average
-#         and extract the weighted estimates and importance scores for each predictor
-#     If there is only one top model, we will still re-fit it with REML.
-#
-# 2. Process full and base model:
-#     Extract the estimates and errors for each of the full models (at each scale) 
-#     and the base model (site * age)
-# 3. Combine results into a single dataframe and export
 
 library(tidyverse)
 library(MuMIn) # for model averaging
@@ -35,9 +25,8 @@ gc()
 
 source("analyses/7habitat/code/Step0_helper_functions.R")  
 
-list2env(list(habitat = "kelp_filtered", # without _filtered means all scales were run
-              focal_group = "targeted",
-              re_string = "my", 
+list2env(list(habitat = "kelp",
+              re_string = "rmsy", 
               model_type = "lmer",
               delta_threshold = 2), envir = .GlobalEnv)
 
@@ -49,35 +38,26 @@ list2env(list(habitat = "rock_filtered",
 
 list2env(list(habitat = "surf", 
               focal_group = "targeted",
-              re_string = "r", 
+              re_string = "rm", 
               model_type = "lmer",
               delta_threshold = 2), envir = .GlobalEnv)
 
 # Analyze Focal Models ----------------------------------------------------------------------------
 
-model_selection <- function(results_file, delta_threshold, focal_group, habitat, re_string, model_type){
+model_selection <- function(results_file, delta_threshold, habitat, re_string, model_type){
   
-  results_file <- paste(habitat, focal_group, re_string, "models.rds", sep = "_")
+  results_file <- paste(habitat,  re_string, "models.rds", sep = "_")
   print(paste(results_file))
   
   # Read model fit results and data_sp used
-  results <- readRDS(file.path("~/ca-mpa/analyses/7habitat/output/models", results_file)) # others in 3way
+  results <- readRDS(file.path("~/ca-mpa/analyses/7habitat/output/model-comparison", results_file)) 
   models_df <- results$models_df
   data_sp <- results$data_sp
   
   # Subset the models within the AICc threshold
   top_models_df <- models_df %>% 
     filter(delta_AICc <= delta_threshold | model_id == "ST*A") 
-  
-  # If any are singular, they are likely over-fitting (remove to avoid bias)
-  if (sum(top_models_df$singular_status != "OK") > 0){
-    print(paste("  Top models:", length(top_models_df$model_id)))
-    print(paste("  Removed singular:", sum(top_models_df$singular_status != "OK")))
-    
-    top_models_df <- top_models_df %>% 
-      filter(singular_status == "OK")
-  }
-  
+
   print(paste("  Top models:", length(top_models_df$model_id)))
   
   # Refit the top models
@@ -102,8 +82,7 @@ model_selection <- function(results_file, delta_threshold, focal_group, habitat,
   
   nested_results_table <- nested$nested_results 
 
-  # If there are multiple, get the model average. 
-  # If there are not, get importance estimates from the top model.
+  # Get importance estimates from the top model.
   coef_table <- tidy(top_models[[1]], conf.int = TRUE, effect = "fixed") %>%
     mutate(term = str_replace(term, "typeMPA", "type"),
            importance_abs_t = abs(estimate/std.error),
