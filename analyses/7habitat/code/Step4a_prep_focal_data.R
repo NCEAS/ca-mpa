@@ -4,53 +4,28 @@
 
 # This splits the data prep and the modeling piece into two parts
 
-prep_focal_data <- function(type, focal_group, drop_outliers, biomass_variable, data, regions){
+prep_focal_data <- function(focal_group, drop_outliers, biomass_variable, data, regions){
   
   print(paste("Starting:", focal_group))
   
   ## 1. Process Data -----------------------------------------------------------------------------
   
   # Filter to the groups interest, convert RE to factors
-  if (type == "species") {
-    data1 <- data %>%
-      filter(species_code == focal_group) %>% 
-      filter(region4 %in% regions) %>% 
-      rename(biomass = biomass_variable)
-    
-  } else if (type == "target_status" & focal_group %in% c("targeted", "nontargeted")) {
-    data1 <- data %>%
-      group_by(year, site, site_type, bioregion, region4, affiliated_mpa, size_km2, age_at_survey,
-               target_status, across(matches("^hard|soft|depth|kelp|aquatic|tri"))) %>%
-      summarize(biomass = sum(!!sym(biomass_variable), na.rm = T), .groups = 'drop') %>%
-      filter(target_status == str_to_sentence(focal_group))
-  } else if (type == "target_status" & focal_group == "all"){
-    data1 <- data %>%
-      group_by(year, site, site_type, bioregion, region4, affiliated_mpa, size_km2, age_at_survey,
-               across(matches("^hard|soft|depth|kelp|aquatic"))) %>%
-      summarize(biomass = sum(!!sym(biomass_variable), na.rm = T), .groups = 'drop')
-  } else if (type == "targeted_vert"){
-    data1 <- data %>%
-      group_by(year, site, site_type, bioregion, region4, affiliated_mpa, size_km2, age_at_survey,
-               target_status, vertical_zonation, across(matches("^hard|soft|depth|kelp|aquatic|tri"))) %>%
-      summarize(biomass = sum(!!sym(biomass_variable), na.rm = T), .groups = 'drop') %>%
-      filter(target_status == "Targeted") %>% 
-      filter(vertical_zonation %in% focal_group)
-    
-  } else {
-    stop("Error in focal group or type.")
-  }
+  data1 <- data %>%
+    group_by(year, site, site_type, bioregion, region4, affiliated_mpa, size_km2, age_at_survey,
+             target_status, across(matches("^hard|soft|depth|kelp|aquatic|tri|slope"))) %>%
+    summarize(biomass = sum(!!sym(biomass_variable), na.rm = T), .groups = 'drop') %>%
+    filter(target_status == str_to_sentence(focal_group))
   
   # Scale the static variables at the site-level (e.g. don't weight based on obs. frequency)
   site_static <- data1 %>% 
-    distinct(site, across(all_of(grep("^hard|soft|depth|aquatic|tri", names(.), value = TRUE)))) %>%
-    mutate_at(vars(grep("^hard|soft|depth|aquatic|tri", names(.), value = TRUE)), scale)
+    distinct(site, across(all_of(grep("^hard|soft|depth|aquatic|tri|slope", names(.), value = TRUE)))) %>%
+    mutate_at(vars(grep("^hard|soft|depth|aquatic|tri|slope", names(.), value = TRUE)), scale)
   
   if (drop_outliers == "yes") {
     # Remove sites with extreme values in static vars (depth and hard bottom)
     extreme_site <- site_static %>% 
       pivot_longer(cols = depth_cv_100:hard_bottom_500, names_to = "variable", values_to = "value") %>% 
-      filter(!str_detect(variable, "depth_sd")) %>% 
-      filter(!str_detect(variable, "depth_cv_25")) %>% 
       filter(!between(value, -3.5, 3.5)) %>% 
       pivot_wider(names_from = variable, values_from = value)
     
@@ -83,7 +58,7 @@ prep_focal_data <- function(type, focal_group, drop_outliers, biomass_variable, 
            region4 = as.factor(region4),
            affiliated_mpa = as.factor(affiliated_mpa)) %>% 
     # Drop un-scaled static variables
-    dplyr::select(!all_of(c(grep("^hard|soft|depth|aquatic|tri", names(.), value = TRUE)))) %>% 
+    dplyr::select(!all_of(c(grep("^hard|soft|depth|aquatic|tri|slope", names(.), value = TRUE)))) %>% 
     # Join the scaled static variables
     left_join(site_static, by = "site") %>% 
     # Scale age
@@ -99,7 +74,9 @@ prep_focal_data <- function(type, focal_group, drop_outliers, biomass_variable, 
   
   # Add a small constant, defined as the minimum value for that species
   const <- if_else(min(data_sp$biomass) > 0, 0, min(data_sp$biomass[data_sp$biomass > 0], na.rm = TRUE))
-  data_sp <- data_sp %>% mutate(log_c_biomass = log(biomass + const))
+  data_sp <- data_sp %>% 
+    mutate(c_biomass = biomass + const,
+           log_c_biomass = log(biomass + const))
   
   print("  Data prep complete.")
   return(data_sp)
