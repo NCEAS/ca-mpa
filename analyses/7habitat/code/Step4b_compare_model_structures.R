@@ -43,7 +43,7 @@ rm(data2)
 prepare_for_comparison <- function(dat) {
   const <- if_else(min(dat$biomass) > 0, 0, min(dat$biomass[dat$biomass > 0]/2, na.rm = TRUE))
   dat <- dat %>% mutate(
-    biomass_gamma = ifelse(biomass == 0, 1e-4, biomass),
+    biomass_gamma = ifelse(biomass == 0, const, biomass),
     biomass_log = log(biomass + 1e-4))
   dat
 }
@@ -71,6 +71,17 @@ wrap_plots(wrap_elements(full = r),
            wrap_elements(full = s),
            nrow = 3)
 
+check_distribution(data_rock$biomass)
+check_distribution(data_rock$log_c_biomass)
+check_distribution(data_rock$biomass_gamma)
+
+check_distribution(data_kelp$biomass)
+check_distribution(data_kelp$log_c_biomass)
+check_distribution(data_kelp$biomass_gamma)
+
+check_distribution(data_surf$biomass)
+check_distribution(data_surf$log_c_biomass)
+check_distribution(data_surf$biomass_gamma)
 
 # Evaluate supported random effect structure ------------------------------------
 re_cands <- list(
@@ -91,18 +102,52 @@ re_cands <- list(
 
 # Compare RE structures for specified response variable (RE comparison done with REML)
 compare_re <- function(dat, response_var) {
-  results <- map_dfr(names(re_cands), function(nm) {
+  re_names <- c("site:(affiliated_mpa:region4)", "affiliated_mpa:region4", "region4", "affiliated_mpa", "site:affiliated_mpa", "site", "year")
+  
+  results <- purrr::map_dfr(names(re_cands), function(nm) {
     re_str <- re_cands[[nm]]
     frm_fixed <- reformulate("site_type * age_at_survey", response = response_var)
     frm_full  <- as.formula(paste0(deparse(frm_fixed), " + ", re_str))
-    fit <- try(lmer(frm_full, data = dat, REML = TRUE), silent = TRUE)
-    if(inherits(fit, "try-error")) {
-      return(tibble(name = nm, re = re_str, AICc = NA_real_, singular = NA, any_near_zero = NA, varcorr = list(NA)))
+    fit <- lme4::lmer(frm_full, data = dat, REML = TRUE)
+    
+    re_values <- setNames(rep(NA_real_, length(re_names)), re_names)     # default NA values for the RE columns
+    
+    tib <- tibble(name = nm,
+                  re = re_str,
+                  AICc = NA_real_,
+                  singular = NA,
+                  any_near_zero = NA)
+    
+    vc_df <- as.data.frame(lme4::VarCorr(fit))
+    
+    # fill re_values for groups that match our expected RE names
+    if(nrow(vc_df) > 0) {
+      matches <- vc_df$grp %in% re_names
+      if(any(matches)) {
+        for(i in which(matches)) {
+          grp <- vc_df$grp[i]
+          re_values[[grp]] <- vc_df$vcov[i]
+        }
+      }
+      vc <- vc_df$vcov
+    } else {
+      vc <- numeric(0)
     }
-    vc <- as.data.frame(VarCorr(fit))$vcov
-    near_zero <- vc < 1e-6 | (vc / sum(vc)) < 1e-3
-    tibble(name = nm, re = re_str, AICc = MuMIn::AICc(fit), singular = isSingular(fit, tol = 1e-4), any_near_zero = any(near_zero), varcorr = list(vc))
-  })
+    
+    near_zero <- if(length(vc) == 0) FALSE else (vc < 1e-6 | (vc / sum(vc)) < 1e-3)
+    
+    tib <- tibble(name = nm,
+                  re = re_str,
+                  AICc = MuMIn::AICc(fit),
+                  singular = isSingular(fit, tol = 1e-4),
+                  any_near_zero = any(near_zero))
+    tib <- bind_cols(tib, as_tibble(as.list(re_values))) %>% 
+      mutate(site = coalesce(`site:(affiliated_mpa:region4)`, `site:affiliated_mpa`, site),
+             affiliated_mpa = coalesce(`affiliated_mpa:region4`, affiliated_mpa)) %>% 
+      select(!c(`site:(affiliated_mpa:region4)`, `site:affiliated_mpa`, `affiliated_mpa:region4`))
+    tib
+    })
+  
   # pick best non-singular non-near-zero if possible
   best_name <- results %>% 
     filter(!isTRUE(singular)) %>% 
@@ -116,23 +161,17 @@ compare_re <- function(dat, response_var) {
   list(table = results, best = best_re)
 }
 
-# Sensitivity: get best RE for both log_c_biomass and log_biomass_cv
-compare_re_sensitivity <- function(dat) {
-  out_logc <- compare_re(dat, "log_c_biomass")
-  out_log <- compare_re(dat, "biomass_log")
-  list(logc = out_logc, log = out_log)
-}
 
+# Compare RE and get best supported structure using gaussian LMM (with LMER):
+re_kelp <- compare_re(data_kelp, "log_c_biomass")
+re_rock <- compare_re(data_rock, "log_c_biomass")
+re_surf <- compare_re(data_surf, "log_c_biomass")
 
-kelp_re <- compare_re_sensitivity(data_kelp)
-rock_re <- compare_re_sensitivity(data_rock)
-surf_re <- compare_re_sensitivity(data_surf)
+re_kelp$table # somewhat minimal support for region, likely especially when combined with habitat variables
+re_rock$table # all supported
+re_surf$table # no support for year; all others ok
 
-kelp_re$log
-rock_re$log
-surf_re$log
-
-# Groupelog# Grouped CV helper (folds by site to avoid leakage)
+# Grouped CV helper (folds by site to avoid leakage)
 make_grouped_folds <- function(df, group_var = "site", k = 5, seed = 42) {
   set.seed(seed)
   groups <- unique(df[[group_var]])
@@ -231,29 +270,19 @@ compare_families <- function(dat, re_str, group_var = "site",
 
 
 # Run for each ecosystem 
-kelp_results <- compare_families(data_kelp, kelp_re$log$best, group_var = "site", k = 5, seed = 42)
-rock_results <- compare_families(data_rock, rock_re$log$best, group_var = "site", k = 5, seed = 42)
-surf_results <- compare_families(data_surf, surf_re$log$best, group_var = "site", k = 5, seed = 42)
+kelp_results <- compare_families(data_kelp, re_kelp$best, group_var = "site", k = 5, seed = 42)
+rock_results <- compare_families(data_rock, re_rock$best, group_var = "site", k = 5, seed = 42)
+surf_results <- compare_families(data_surf, re_surf$best, group_var = "site", k = 5, seed = 42)
 
 
 # Inspect
 kelp_results$table
 rock_results$table
+surf_results$table
 
-rock_results # biggest issues across the board
-surf_results
+kelp_results$plots$gaussian_log$pearson_response + kelp_results$plots$tweedie$pearson_response +  kelp_results$plots$gamma$pearson_response
 
+rock_results$plots$gaussian_log$pearson_response + rock_results$plots$tweedie$pearson_response +  rock_results$plots$gamma$pearson_response
 
+surf_results$plots$gaussian_log$pearson_response + surf_results$plots$tweedie$pearson_response +  surf_results$plots$gamma$pearson_response
 
-# Inspect
-
-m <- glmmTMB(formula = as.formula(paste0("biomass ~ site_type * age_at_survey + ", rock_re$log$best)), 
-             data = data_rock, family = tweedie("log"))
-
-dh <- simulateResiduals(m, n = 2000, quantreg = T)
-plot(dh)
-disp <- testDispersion(dh)$p.value
-zinf <- testZeroInflation(dh)
-performance::r2_nakagawa(m)
-outl <- testOutliers(m)
-outl
