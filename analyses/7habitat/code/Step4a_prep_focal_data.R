@@ -73,7 +73,7 @@ prep_focal_data <- function(focal_group, drop_outliers, biomass_variable, data, 
   rm(data1, data2, data3)
   
   # Add a small constant, defined as the minimum value for that species
-  const <- if_else(min(data_sp$biomass) > 0, 0, min(data_sp$biomass[data_sp$biomass > 0], na.rm = TRUE))
+  const <- if_else(min(data_sp$biomass) > 0, 0, min(data_sp$biomass[data_sp$biomass > 0]/2, na.rm = TRUE))
   data_sp <- data_sp %>% 
     mutate(c_biomass = biomass + const,
            log_c_biomass = log(biomass + const))
