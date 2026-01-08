@@ -15,6 +15,7 @@ library(furrr)
 library(parallel)
 library(gt)
 library(corrr)
+library(glmmTMB)
 
 rm(list = ls())
 gc()
@@ -46,8 +47,8 @@ pred_kelp <- data.frame(predictor = grep("^(hard|kelp|depth|tri|slope)", names(d
 
 # Provide some of the global variables
 habitat <- "kelp"
-re_string <- "rmsy"
-random_effects <- c("region4/affiliated_mpa/site", "year")
+re_string <- "msy"
+random_effects <- c("affiliated_mpa/site", "year")
 regions <- c("North", "Central", "N. Channel Islands", "South")
 
 # Prep the data for the given analysis
@@ -62,9 +63,9 @@ data_sp <- prep_focal_data(
 # Run univariate scale selection
 scale_selection <- select_scales(data_sp, 
                                  pred_list = pred_kelp,
-                                 response = "log_c_biomass", 
+                                 response = "biomass", # log c biomass for gauss_log
                                  intx.terms = "* site_type",
-                                 random_effects = random_effects) # include site here to account for other habitat differences
+                                 random_effects = random_effects) 
 
 scale_table <- scale_selection$formatted_table
 scale_table
@@ -106,8 +107,7 @@ predictors_df <- generate_simple_3way(pred_kelp %>% filter(predictor %in% top_sc
 
 # Run The Models -------------------------------------------------------------------------------------
 
-n_workers <- round(parallel::detectCores()/5)
-n_workers <- 5
+n_workers <- round(parallel::detectCores()/10)
 plan(multisession, workers = n_workers)
 batch_size <- round(length(predictors_df$model_id)/n_workers)
 batches <- split(predictors_df, (seq_len(nrow(predictors_df)) - 1) %/% batch_size)
@@ -124,11 +124,12 @@ fit_batch <- function(batch_df, data_sp, response, random_effects) {
       model <- suppressMessages(suppressWarnings(lmer(formula,
                                                       data = data_sp, REML = FALSE,
                                                       control = lmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 1e8)))))
-     # model <- suppressMessages(suppressWarnings(glmmTMB(as.formula(formula), data = data_sp, family = Gamma(link = "log"))))
-      
-       singular <- if (isSingular(model)) "Singular fit" else "OK"
-      #conv_code <- model$fit$optinfo$conv$conv_code
-     # singular  <- if (!is.null(conv_code) && conv_code != 0) "Convergence issue" else "OK"
+      # model <- suppressMessages(suppressWarnings(glmmTMB(as.formula(formula), data = data_sp, 
+      #                                                    family = tweedie(link = "log"),
+      #                                                    control = glmmTMBControl(optCtrl = list(iter.max = 1e8, eval.max = 1e8)))))
+      singular <- if (isSingular(model)) "Singular fit" else "OK"
+      # conv_ok <- if (!is.null(model$sdr)) isTRUE(model$sdr$pdHess) else FALSE
+      # singular  <- if (!conv_ok) "Convergence issue" else "OK"
       
       tibble(model_id = model_id,
              formula = paste(deparse(formula), collapse = ""),
@@ -151,6 +152,7 @@ fit_batch <- function(batch_df, data_sp, response, random_effects) {
   })
 }
 
+
 results_list <- future_map(batches, 
                            ~fit_batch(.x,  data_sp, 
                                       response = "log_c_biomass", 
@@ -169,18 +171,18 @@ saveRDS(list(models_df = models_df, data_sp = data_sp),
 
 
 
-m <-   lmer(log_c_biomass ~ depth_cv_100 * site_type * age_at_survey +  (1 | region4/affiliated_mpa/site) + (1 |     year),
-            data = data2, control = lmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 1e8)), REML = T)
+m1 <-   lmer(log_c_biomass ~ hard_bottom_250 + kelp_annual_100 + depth_mean_500 +     depth_cv_100 * site_type * age_at_survey + site_type * age_at_survey +     (1 | affiliated_mpa/site) + (1 | year),
+            data = data_sp, control = lmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 1e8)), REML = T)
 
-summary(m)
-plot(allEffects(m), multiline = T)
+m2 <-   glmmTMB(biomass ~ hard_bottom_250 + kelp_annual_100 + depth_mean_500 +     depth_cv_100 * site_type * age_at_survey + site_type * age_at_survey +     (1 | affiliated_mpa/site) + (1 | year),
+               data = data_sp, 
+            family = tweedie(link = "log"))
 
-m <-   glmmTMB(c_biomass ~ hard_bottom_250 + kelp_annual_100 + depth_mean_500 + depth_cv_100 * site_type * age_at_survey +
-                 (1 | region4/affiliated_mpa/site) + (1 | year),
-            data = data_sp, 
-            family = Gamma(link = "log"))
+plot(simulateResiduals(m1))
+plot(simulateResiduals(m2))
 
-dh <- simulateResiduals(m)
+library(DHARMa)
+dh <- simulateResiduals(m1)
 plot(dh)
 plot(dh, form = data_sp$depth_cv_100)
 plot(dh, form = data_sp$hard_bottom_250)
