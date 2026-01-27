@@ -9,7 +9,6 @@ library(lme4)
 library(MuMIn)
 library(dplyr)
 library(purrr)
-library(tidymodels)
 library(lmerTest)
 library(furrr)
 library(parallel)
@@ -21,7 +20,7 @@ rm(list = ls())
 gc()
 
 source("analyses/7habitat/code/Step0_helper_functions.R") 
-source("analyses/7habitat/code/Step4a_prep_focal_data.R") 
+source("analyses/7habitat/code/Step3_prep_focal_data.R") 
 
 ltm.dir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_2024/2025"
 fig.dir <- "analyses/7habitat/figures"
@@ -34,22 +33,16 @@ data_kelp <- readRDS(file.path(ltm.dir, "combine_tables/kelp_full.Rds")) %>%
   dplyr::select(year:affiliated_mpa, size_km2, age_at_survey, 
                 species_code:target_status, assemblage_new, vertical_zonation, name, common_name, weight_kg:count_per_m2, kg_per_100m2,
                 starts_with("hard"), starts_with("kelp"), starts_with("depth"),
-                starts_with("tri"), starts_with("slope")) 
+                starts_with("tri"), starts_with("slope"), starts_with("relief")) 
 
 # Define predictors and scales
-pred_kelp <- data.frame(predictor = grep("^(hard|kelp|depth|tri|slope)", names(data_kelp),  value = TRUE)) %>%  
+pred_kelp <- data.frame(predictor = grep("^(hard|kelp|depth|tri|slope|relief)", names(data_kelp),  value = TRUE)) %>%  
   mutate(scale = sub("_", "", str_sub(predictor, -3, -1))) %>% 
   # Drop TRI because correlated with CV, drop slope SD because not seeming more useful than CV:
   filter(!str_detect(predictor, "tri")) %>% 
-  filter(!str_detect(predictor, "slope"))
+  filter(!str_detect(predictor, "slope_mean"))
 
 # Build Data -------------------------------------------------------------------
-
-# Provide some of the global variables
-habitat <- "kelp"
-re_string <- "msy"
-random_effects <- c("affiliated_mpa/site", "year")
-regions <- c("North", "Central", "N. Channel Islands", "South")
 
 # Prep the data for the given analysis
 data_sp <- prep_focal_data(
@@ -60,12 +53,16 @@ data_sp <- prep_focal_data(
   regions = c("North", "Central", "N. Channel Islands", "South")
 )
 
+# Provide some of the global variables
+random_effects <- c("region4/affiliated_mpa", "year")
+re_string <- create_re_string(random_effects)
+
 # Run univariate scale selection
 scale_selection <- select_scales(data_sp, 
                                  pred_list = pred_kelp,
-                                 response = "biomass", # log c biomass for gauss_log
-                                 intx.terms = "* site_type",
-                                 random_effects = random_effects) 
+                                 response = "log_c_biomass", # log c biomass for gauss_log
+                                 intx.terms = "",
+                                 random_effects = c("region4/affiliated_mpa", "year")) 
 
 scale_table <- scale_selection$formatted_table
 scale_table
@@ -105,114 +102,53 @@ ggplot(data = data_corr, aes(x = x, y = y, fill = r)) +
 
 predictors_df <- generate_simple_3way(pred_kelp %>% filter(predictor %in% top_scales))
 
+predictors_df <- predictors_df %>% 
+  # Only allow one structural complexity measure (b/c correlation > 0.5
+  filter(rowSums(!is.na(across(c("depc", "trim", "slsd", "reli", "deps")))) <= 1) %>% 
+  # Depth is correlated with SSD and Relief:
+  filter(is.na(depm) | (is.na(slsd) & is.na(reli)))
+
 # Run The Models -------------------------------------------------------------------------------------
 
-n_workers <- round(parallel::detectCores()/10)
-plan(multisession, workers = n_workers)
-batch_size <- round(length(predictors_df$model_id)/n_workers)
-batches <- split(predictors_df, (seq_len(nrow(predictors_df)) - 1) %/% batch_size)
+plan(multisession, workers = max(1, parallel::detectCores() %/% 10))
+lmer_ctrl <- lmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 1e8))
 
-fit_batch <- function(batch_df, data_sp, response, random_effects) {
-  purrr::map_dfr(seq_len(nrow(batch_df)), function(i) {
-    predictors <- batch_df$predictors[i]
-    model_id   <- batch_df$model_id[i]
-    fixed      <- paste(response, "~", predictors)
-    random     <- paste0("(1 | ", random_effects, ")", collapse = " + ")
-    formula    <- as.formula(paste(fixed, "+", random))
-    
-    out <- tryCatch({
-      model <- suppressMessages(suppressWarnings(lmer(formula,
-                                                      data = data_sp, REML = FALSE,
-                                                      control = lmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 1e8)))))
-      # model <- suppressMessages(suppressWarnings(glmmTMB(as.formula(formula), data = data_sp, 
-      #                                                    family = tweedie(link = "log"),
-      #                                                    control = glmmTMBControl(optCtrl = list(iter.max = 1e8, eval.max = 1e8)))))
-      singular <- if (isSingular(model)) "Singular fit" else "OK"
-      # conv_ok <- if (!is.null(model$sdr)) isTRUE(model$sdr$pdHess) else FALSE
-      # singular  <- if (!conv_ok) "Convergence issue" else "OK"
-      
-      tibble(model_id = model_id,
-             formula = paste(deparse(formula), collapse = ""),
-             AICc = AICc(model),
-             logLik = as.numeric(logLik(model)),
-             n = nobs(model),
-             singular_status = singular,
-             error = NA_character_)
-    }, error = function(e) {
-      tibble(model_id = model_id,
-             formula = paste(deparse(formula), collapse = ""),
-             AICc = NA_real_,
-             logLik = NA_real_,
-             n = NA_integer_,
-             singular_status = NA_character_,
-             error = conditionMessage(e))
-    })
-    
-    out
-  })
+fit_model <- function(row, data_sp, response, random_effects) {
+  predictors <- row$predictors[[1]]
+  model_id   <- row$model_id[[1]]
+  formula <- reformulate(c(predictors, paste0("(1 | ", random_effects, ")")), response)
+  
+  model <- suppressMessages(suppressWarnings(
+    lmer(formula, data = data_sp, REML = FALSE, control = lmer_ctrl)
+  ))
+  
+  tibble::tibble(
+    model_id = model_id,
+    formula = paste(deparse(formula), collapse = ""),
+    AICc = AICc(model),
+    logLik = as.numeric(logLik(model)),
+    n = nobs(model),
+    singular_status = if (isSingular(model)) "Singular fit" else "OK",
+    error = NA_character_
+  )
 }
 
-
-results_list <- future_map(batches, 
-                           ~fit_batch(.x,  data_sp, 
-                                      response = "log_c_biomass", 
-                                      random_effects = random_effects),
-                           .options = furrr_options(seed = TRUE))
-
-models_df <- bind_rows(results_list) %>%
+results <- future_map_dfr(seq_len(nrow(predictors_df)),
+                          ~ fit_model(predictors_df[.x, , drop = FALSE], data_sp, "log_c_biomass", random_effects),
+                          .options = furrr::furrr_options(seed = TRUE)) %>% 
   mutate(delta_AICc = AICc - min(AICc, na.rm = TRUE)) %>%
   arrange(delta_AICc)
 
 
-saveRDS(list(models_df = models_df, data_sp = data_sp),
-        file.path("analyses/7habitat/output/model-comparison", 
+
+saveRDS(list(models_df = results, data_sp = data_sp),
+        file.path("analyses/7habitat/output/model-set", 
                   paste(habitat, re_string, "models.rds", sep = "_")))
 
+m <- lmer(log_c_biomass ~ hard_bottom_250 + kelp_annual_100 + depth_mean_500 +     depth_cv_100 * site_type * age_at_survey + site_type * age_at_survey +     (1 | region4/affiliated_mpa/site) + (1 | year),
+          data = data_sp, REML = T)
 
+eff <- effects::predictorEffects(m, partial.residuals = T)
 
-
-m1 <-   lmer(log_c_biomass ~ hard_bottom_250 + kelp_annual_100 + depth_mean_500 +     depth_cv_100 * site_type * age_at_survey + site_type * age_at_survey +     (1 | affiliated_mpa/site) + (1 | year),
-            data = data_sp, control = lmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 1e8)), REML = T)
-
-m2 <-   glmmTMB(biomass ~ hard_bottom_250 + kelp_annual_100 + depth_mean_500 +     depth_cv_100 * site_type * age_at_survey + site_type * age_at_survey +     (1 | affiliated_mpa/site) + (1 | year),
-               data = data_sp, 
-            family = tweedie(link = "log"))
-
-plot(simulateResiduals(m1))
-plot(simulateResiduals(m2))
-
-library(DHARMa)
-dh <- simulateResiduals(m1)
-plot(dh)
-plot(dh, form = data_sp$depth_cv_100)
-plot(dh, form = data_sp$hard_bottom_250)
-plot(dh, form = data_sp$site_type)
-plot(dh, form = data_sp$age_at_survey)
-plot(dh, form = data_sp$kelp_annual_100)
-testDispersion(dh)
-testQuantiles(dh)
-testOutliers(dh)
-
-oneway.test(depth_cv_100 ~ region4, data = data_sp)
-kruskal.test(depth_cv_100 ~ region4, data = data_sp)
-
-data2 %>%
-  ggplot(aes(x = region4, y = depth_cv_100)) +
-  geom_boxplot(outlier.alpha = 0.3) +
-  geom_jitter(width = 0.15, alpha = 0.2) +
-  labs(x = "Region", y = "Depth CV (100 m)") +
-  theme_bw()
-
-m_icc <- lmer(depth_cv_100 ~ 1 + (1 | region4), data = data_sp)
-VarCorr(m_icc)
-
-data_sp %>%
-  group_by(region4) %>%
-  summarise(
-    n = n(),
-    mean = mean(depth_cv_100, na.rm = TRUE),
-    sd = sd(depth_cv_100, na.rm = TRUE),
-    min = min(depth_cv_100, na.rm = TRUE),
-    max = max(depth_cv_100, na.rm = TRUE),
-    range = max - min
-  )
+plot(eff)
+plot(eff, multiline = T, confint = list(style = 'auto'))

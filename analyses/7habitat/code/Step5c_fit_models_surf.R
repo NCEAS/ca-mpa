@@ -21,7 +21,7 @@ rm(list = ls())
 gc()
 
 source("analyses/7habitat/code/Step0_helper_functions.R") 
-source("analyses/7habitat/code/Step4a_prep_focal_data.R") 
+source("analyses/7habitat/code/Step3_prep_focal_data.R") 
 
 # Read Data --------------------------------------------------------------------
 ltm.dir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_2024/2025"
@@ -33,27 +33,22 @@ data_surf <- readRDS(file.path(ltm.dir, "combine_tables/surf_full.Rds")) %>%
   dplyr::select(year:affiliated_mpa, size_km2, age_at_survey,species_code:target_status, 
                 assemblage_new, weight_kg, count, kg_per_haul, 
                 starts_with("hard"), starts_with("soft"), starts_with("kelp"),starts_with("aquatic"), starts_with("depth"),
-                starts_with("tri"), starts_with("slope")) %>% 
+                starts_with("tri"), starts_with("slope"), starts_with("relief")) %>% 
   filter(!affiliated_mpa == "ten mile smr")
 
 # Define predictors and scales
-pred_surf <- data.frame(predictor = grep("^(hard|soft|kelp|depth|aquatic_vegetation|tri|slope)", names(data_surf),  value = TRUE)) %>%  
+pred_surf <- data.frame(predictor = grep("^(hard|soft|kelp|depth|aquatic_vegetation|tri|slope|relief)", names(data_surf),  value = TRUE)) %>%  
   mutate(scale = sub("_", "", str_sub(predictor, -3, -1))) %>% 
   filter(!predictor %in% c("kelp_annual_25", "kelp_annual_50", "kelp_annual_100", "kelp_annual_250", 
                            "hard_bottom_25", "hard_bottom_50", "aquatic_vegetation_bed_25")) %>% 
   # Drop TRI because highly correlated with cv:
   filter(!str_detect(predictor, "tri")) %>% 
-  filter(!str_detect(predictor, "slope"))
+  filter(!str_detect(predictor, "slope_mean"))
 
 # Build Data --------------------------------------------------------------------------
-# Provide some of the global variables
-habitat <- "surf"
-regions <- c("North", "Central", "N. Channel Islands", "South")
-print(paste0("Starting: ", habitat))
-focal_group <- "targeted"
 
 data_sp <- prep_focal_data(
-  focal_group = focal_group, 
+  focal_group = "targeted", 
   drop_outliers = "no",
   biomass_variable = "kg_per_haul",
   data = data_surf,
@@ -107,57 +102,39 @@ ggplot(data = data_corr, aes(x = x, y = y, fill = r)) +
 
 predictors_df <- generate_surf_3way(pred_surf %>% filter(predictor %in% top_scales)) 
 
-# Run The Models -------------------------------------------------------------------------------------
-n_workers <- round(parallel::detectCores()/3)
-plan(multisession, workers = n_workers)
-batch_size <- round(length(predictors_df$model_id)/n_workers)
-batches <- split(predictors_df, (seq_len(nrow(predictors_df)) - 1) %/% batch_size)
+predictors_df <- predictors_df %>% 
+  filter(is.na(depm) | is.na(depc))
+  filter(is.na(slsd) | is.na(slsd)) %>% 
+  filter(is.na(reli) | is.na(depm))
+  
 
-fit_batch <- function(batch_df, data_sp, response, random_effects) {
-  purrr::map_dfr(seq_len(nrow(batch_df)), function(i) {
-    predictors <- batch_df$predictors[i]
-    model_id   <- batch_df$model_id[i]
-    fixed      <- paste(response, "~", predictors)
-    random     <- paste0("(1 | ", random_effects, ")", collapse = " + ")
-    formula    <- as.formula(paste(fixed, " + ", random))
-    
-    out <- tryCatch({
-      model <- suppressMessages(suppressWarnings(lmer(formula,
-                                                      data = data_sp, REML = FALSE)))
-                                                      #control = lmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 1e8)))))
-      # model <- suppressMessages(suppressWarnings(glmmTMB(as.formula(formula), data = data_sp, family = Gamma(link = "log"))))
-      
-      singular <- if (isSingular(model)) "Singular fit" else "OK"
-      #conv_code <- model$fit$optinfo$conv$conv_code
-      # singular  <- if (!is.null(conv_code) && conv_code != 0) "Convergence issue" else "OK"
-      
-      tibble(model_id = model_id,
-        formula = paste(deparse(formula), collapse = ""),
-        AICc = AICc(model),
-        logLik = as.numeric(logLik(model)),
-        n = nobs(model),
-        singular_status = singular,
-        error = NA_character_)
-    }, error = function(e) {
-      tibble(model_id = model_id,
-        formula = paste(deparse(formula), collapse = ""),
-        AICc = NA_real_,
-        logLik = NA_real_,
-        n = NA_integer_,
-        singular_status = NA_character_,
-        error = conditionMessage(e))
-    })
-    out
-  })
+# Run The Models -------------------------------------------------------------------------------------
+plan(multisession, workers = max(1, parallel::detectCores() %/% 10))
+lmer_ctrl <- lmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 1e8))
+
+fit_model <- function(row, data_sp, response, random_effects) {
+  predictors <- row$predictors[[1]]
+  model_id   <- row$model_id[[1]]
+  formula <- reformulate(c(predictors, paste0("(1 | ", random_effects, ")")), response)
+  
+  model <- suppressMessages(suppressWarnings(
+    lmer(formula, data = data_sp, REML = FALSE, control = lmer_ctrl)
+  ))
+  
+  tibble::tibble(
+    model_id = model_id,
+    formula = paste(deparse(formula), collapse = ""),
+    AICc = AICc(model),
+    logLik = as.numeric(logLik(model)),
+    n = nobs(model),
+    singular_status = if (isSingular(model)) "Singular fit" else "OK",
+    error = NA_character_
+  )
 }
 
-results_list <- future_map(batches, ~fit_batch(.x, 
-                                               data_sp, 
-                                               response = "log_c_biomass", 
-                                               random_effects = random_effects),
-                           .options = furrr_options(seed = TRUE))
-
-models_df <- bind_rows(results_list) %>%
+results <- future_map_dfr(seq_len(nrow(predictors_df)),
+                          ~ fit_model(predictors_df[.x, , drop = FALSE], data_sp, "log_c_biomass", random_effects),
+                          .options = furrr::furrr_options(seed = TRUE)) %>% 
   mutate(delta_AICc = AICc - min(AICc, na.rm = TRUE)) %>%
   arrange(delta_AICc)
 
