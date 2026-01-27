@@ -15,10 +15,12 @@ select_scales <- function(data, pred_list, intx.terms, response, random_effects)
     soft_bottom = pred_list$predictor[str_detect(pred_list$predictor, "soft_bottom")],
     depth_mean = pred_list$predictor[str_detect(pred_list$predictor, "depth_mean")],
     depth_cv = pred_list$predictor[str_detect(pred_list$predictor, "depth_cv")],
+    depth_sd = pred_list$predictor[str_detect(pred_list$predictor, "depth_sd")],
     kelp_annual = pred_list$predictor[str_detect(pred_list$predictor, "kelp_annual")],
     aquatic_vegetation = pred_list$predictor[str_detect(pred_list$predictor, "aquatic_vegetation")],
     tri = pred_list$predictor[str_detect(pred_list$predictor, "tri")],
-    slope_sd = pred_list$predictor[str_detect(pred_list$predictor, "slope_sd")]) %>% compact()
+    slope_sd = pred_list$predictor[str_detect(pred_list$predictor, "slope_sd")],
+    relief = pred_list$predictor[str_detect(pred_list$predictor, "relief")]) %>% compact()
   
   fixed <- "site_type * age_at_survey"
   
@@ -57,9 +59,13 @@ select_scales <- function(data, pred_list, intx.terms, response, random_effects)
            Feature = str_to_sentence(str_replace_all(Feature, "_", " "))) %>% 
     mutate(Model = str_replace_all(Model, "Aquatic vegetation bed", "Max biotic extent") %>% 
              str_replace_all("cv", "CV") %>% 
+             str_replace_all("sd", "SD") %>% 
+             str_replace_all("relief", "Vertical relief") %>% 
              str_replace_all("Tri_mean", "TRI")) %>% 
     mutate(Feature = str_replace_all(Feature,"Aquatic vegetation", "Max biotic extent") %>% 
              str_replace_all("cv", "CV") %>% 
+             str_replace_all("sd", "SD") %>% 
+             str_replace_all("relief", "Vertical relief") %>% 
              str_replace_all("Tri_mean", "TRI")) %>% 
     gt(groupname_col = "Feature") %>% 
     cols_label(delta = "ΔAICc",
@@ -226,6 +232,11 @@ generate_simple_3way <- function(pred_top) {
                                     pred$intx[str_detect(pred$predictor, "depth_cv")],
                                     pred$intx2[str_detect(pred$predictor, "depth_cv")],
                                     pred$intx3[str_detect(pred$predictor, "depth_cv")]), 
+                           deps = c(NA, 
+                                    pred$predictor[str_detect(pred$predictor, "depth_sd")], 
+                                    pred$intx[str_detect(pred$predictor, "depth_sd")],
+                                    pred$intx2[str_detect(pred$predictor, "depth_sd")],
+                                    pred$intx3[str_detect(pred$predictor, "depth_sd")]), 
                            trim = c(NA, 
                                     pred$predictor[str_detect(pred$predictor, "tri_mean")], 
                                     pred$intx[str_detect(pred$predictor, "tri_mean")],
@@ -236,9 +247,14 @@ generate_simple_3way <- function(pred_top) {
                                     pred$intx[str_detect(pred$predictor, "slope_sd")],
                                     pred$intx2[str_detect(pred$predictor, "slope_sd")],
                                     pred$intx3[str_detect(pred$predictor, "slope_sd")]),
+                           reli = c(NA, 
+                                    pred$predictor[str_detect(pred$predictor, "relief")], 
+                                    pred$intx[str_detect(pred$predictor, "relief")],
+                                    pred$intx2[str_detect(pred$predictor, "relief")],
+                                    pred$intx3[str_detect(pred$predictor, "relief")]),
                            stringsAsFactors = F) %>% 
     mutate(base = "site_type * age_at_survey") %>% 
-    unite("predictors", c(hard, kelp, depm, depc, trim, slsd, base), sep = " + ", na.rm = TRUE, remove = FALSE) %>% 
+    unite("predictors", c(hard, kelp, depm, depc, deps, trim, slsd, reli, base), sep = " + ", na.rm = TRUE, remove = FALSE) %>% 
     mutate(model_id = 
              str_replace_all(predictors, "hard_bottom_(\\d+)", "H\\1") %>% 
              str_replace_all("soft_bottom_(\\d+)", "S\\1") %>% 
@@ -248,6 +264,7 @@ generate_simple_3way <- function(pred_top) {
              str_replace_all("depth_cv_(\\d+)", "DCV\\1") %>% 
              str_replace_all("tri_mean_(\\d+)", "TRI\\1") %>% 
              str_replace_all("slope_sd_(\\d+)", "SSD\\1") %>% 
+             str_replace_all("relief_(\\d+)", "VR\\1") %>% 
              str_replace_all("site_type", "ST") %>%
              str_replace_all("age_at_survey", "A") %>% 
              str_replace_all("aquatic_vegetation_bed_(\\d+)", "AV\\1") %>% 
@@ -289,6 +306,11 @@ generate_surf_3way <- function(pred_top) {
                                     pred$intx[str_detect(pred$predictor, "depth_cv")],
                                     pred$intx2[str_detect(pred$predictor, "depth_cv")],
                                     pred$intx3[str_detect(pred$predictor, "depth_cv")]),
+                           deps = c(NA, 
+                                    pred$predictor[str_detect(pred$predictor, "depth_sd")], 
+                                    pred$intx[str_detect(pred$predictor, "depth_sd")],
+                                    pred$intx2[str_detect(pred$predictor, "depth_sd")],
+                                    pred$intx3[str_detect(pred$predictor, "depth_sd")]), 
                            trim = c(NA, 
                                     pred$predictor[str_detect(pred$predictor, "tri_mean")], 
                                     pred$intx[str_detect(pred$predictor, "tri_mean")],
@@ -299,6 +321,11 @@ generate_surf_3way <- function(pred_top) {
                                     pred$intx[str_detect(pred$predictor, "slope_sd")],
                                     pred$intx2[str_detect(pred$predictor, "slope_sd")],
                                     pred$intx3[str_detect(pred$predictor, "slope_sd")]),
+                           reli = c(NA, 
+                                    pred$predictor[str_detect(pred$predictor, "relief")], 
+                                    pred$intx[str_detect(pred$predictor, "relief")],
+                                    pred$intx2[str_detect(pred$predictor, "relief")],
+                                    pred$intx3[str_detect(pred$predictor, "relief")]),
                            aquv = c(NA, 
                                     pred$predictor[str_detect(pred$predictor, "aquatic")], 
                                     pred$intx[str_detect(pred$predictor, "aquatic")],
@@ -306,7 +333,7 @@ generate_surf_3way <- function(pred_top) {
                                     pred$intx3[str_detect(pred$predictor, "aquatic")]), stringsAsFactors = F) %>% 
     mutate(base = "site_type * age_at_survey") %>% 
     filter(!(!is.na(hard) & !is.na(soft))) %>% 
-    unite("predictors", c(hard, soft, kelp, depm, depc, trim, slsd, aquv, base), sep = " + ", na.rm = TRUE, remove = FALSE) %>% 
+    unite("predictors", c(hard, soft, kelp, depm, depc, deps, trim, slsd, reli, aquv, base), sep = " + ", na.rm = TRUE, remove = FALSE) %>% 
     mutate(model_id = 
              str_replace_all(predictors, "hard_bottom_(\\d+)", "H\\1") %>% 
              str_replace_all("soft_bottom_(\\d+)", "S\\1") %>% 
@@ -316,6 +343,7 @@ generate_surf_3way <- function(pred_top) {
              str_replace_all("depth_cv_(\\d+)", "DCV\\1") %>% 
              str_replace_all("tri_mean_(\\d+)", "TRI\\1") %>% 
              str_replace_all("slope_sd_(\\d+)", "SSD\\1") %>% 
+             str_replace_all("relief_(\\d+)", "VR\\1") %>% 
              str_replace_all("site_type", "ST") %>%
              str_replace_all("age_at_survey", "A") %>% 
              str_replace_all("aquatic_vegetation_bed_(\\d+)", "AV\\1") %>% 
@@ -323,4 +351,17 @@ generate_surf_3way <- function(pred_top) {
   
   return(pred_3way)
   
+}
+
+create_re_string <- function(random_effects){
+  re_string <- data.frame(random_effects = random_effects) %>% 
+    mutate(re_string = str_replace_all(random_effects, "region4", "r") %>% 
+             str_replace_all(., "affiliated_mpa", "m") %>% 
+             str_replace_all(., "site", "s") %>% 
+             str_replace_all(., "year", "y") %>% 
+             str_replace_all(., "/", "")) 
+  
+  re_string <- paste(re_string$re_string, collapse = "")
+  
+  return(re_string)
 }
