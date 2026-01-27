@@ -10,6 +10,8 @@
 #         and other fit results (singular status, warnings), and the "type" of the
 #         model (base, top, or core == full). 
 #   -- data_sp: the data used to fit the model
+# The files are stored here:
+# -- /analyses/7habitat/output/model-comparison
 
 
 library(tidyverse)
@@ -26,11 +28,11 @@ gc()
 source("analyses/7habitat/code/Step0_helper_functions.R")  
 
 list2env(list(habitat = "kelp",
-              re_string = "rmsy", 
+              re_string = "rmy", 
               model_type = "lmer",
               delta_threshold = 2), envir = .GlobalEnv)
 
-list2env(list(habitat = "rock_filtered", 
+list2env(list(habitat = "rock", 
               focal_group = "targeted",
               re_string = "rmy", 
               model_type = "lmer",

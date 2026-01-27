@@ -18,7 +18,7 @@ rm(list = ls()); gc()
 ltm.dir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_2024/2025"
 
 source("analyses/7habitat/code/Step0_helper_functions.R") 
-source("analyses/7habitat/code/Step4a_prep_focal_data.R") 
+source("analyses/7habitat/code/Step3_prep_focal_data.R") 
 
 # Read data --------------------------------------------------------------------
 data_surf <- readRDS(file.path(ltm.dir, "combine_tables/surf_full.Rds")) %>% 
@@ -54,16 +54,16 @@ data_surf <- prepare_for_comparison(data_surf)
 
 
 # Plot the distribution of biomass (response var) and with log-transformation
-k1 <- ggplot(data_kelp, aes(x = biomass)) + geom_histogram() + theme_minimal() + labs(x = "biomass (kg per m2)")
-k2 <- ggplot(data_kelp, aes(x = log_c_biomass))+ geom_histogram() + theme_minimal() + labs(x = "log-transformed biomass (kg per m2)")
+k1 <- ggplot(data_kelp, aes(x = biomass)) + geom_histogram() + theme_minimal() + labs(x = "Biomass (kg per m2)", y = "Count (# of obs.)")
+k2 <- ggplot(data_kelp, aes(x = log_c_biomass))+ geom_histogram() + theme_minimal() + labs(x = "Log-transformed biomass (kg per m2)", y = "Count (# of obs.)")
 k <- k1 + k2 + plot_annotation("Kelp forest")
 
-r1 <- ggplot(data_rock, aes(x = biomass)) + geom_histogram() + theme_minimal() + labs(x = "biomass (kg per angler hour)")
-r2 <- ggplot(data_rock, aes(x = log_c_biomass))+ geom_histogram() + theme_minimal() + labs(x = "log-transformed biomass (kg per angler hour)")
+r1 <- ggplot(data_rock, aes(x = biomass)) + geom_histogram() + theme_minimal() + labs(x = "Biomass (kg per angler hour)", y = "Count (# of obs.)")
+r2 <- ggplot(data_rock, aes(x = log_c_biomass))+ geom_histogram() + theme_minimal() + labs(x = "Log-transformed biomass (kg per angler hour)", y = "Count (# of obs.)")
 r <- r1 + r2 + plot_annotation("Shallow reef")
 
-s1 <- ggplot(data_surf, aes(x = biomass)) + geom_histogram() + theme_minimal() + labs(x = "biomass (kg per haul)")
-s2 <- ggplot(data_surf, aes(x = log_c_biomass))+ geom_histogram() + theme_minimal() + labs(x = "log-transformed biomass (kg per haul)")
+s1 <- ggplot(data_surf, aes(x = biomass)) + geom_histogram() + theme_minimal() + labs(x = "Biomass (kg per haul)", y = "Count (# of obs.)")
+s2 <- ggplot(data_surf, aes(x = log_c_biomass))+ geom_histogram() + theme_minimal() + labs(x = "Log-transformed biomass (kg per haul)", y = "Count (# of obs.)")
 s <- s1 + s2 + plot_annotation("Surf zone")
 
 wrap_plots(wrap_elements(full = r),
@@ -106,7 +106,7 @@ compare_re <- function(dat, response_var) {
   
   results <- purrr::map_dfr(names(re_cands), function(nm) {
     re_str <- re_cands[[nm]]
-    frm_fixed <- reformulate("site_type * age_at_survey", response = response_var)
+    frm_fixed <- reformulate("hard_bottom_100 * site_type * age_at_survey+ kelp_annual_100 * site_type * age_at_survey + depth_mean_100 * site_type * age_at_survey + depth_cv_100 * site_type * age_at_survey + site_type * age_at_survey", response = response_var)
     frm_full  <- as.formula(paste0(deparse(frm_fixed), " + ", re_str))
     fit <- lme4::lmer(frm_full, data = dat, REML = TRUE)
     
