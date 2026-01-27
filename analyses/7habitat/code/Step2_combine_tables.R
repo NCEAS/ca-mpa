@@ -71,16 +71,17 @@ format_for_graph <- function(df){
                                           str_detect(habitat_var, "depth_mean") ~ "Depth mean",
                                           str_detect(habitat_var, "depth_cv") ~ "Depth CV",
                                           str_detect(habitat_var, "slope_mean") ~ "Slope mean",
-                                          str_detect(habitat_var, "slope_sd") ~ "Slope sd",
+                                          str_detect(habitat_var, "slope_sd") ~ "Slope SD",
+                                          str_detect(habitat_var, "relief") ~ "Vertical relief",
                                           str_detect(habitat_var, "kelp") ~ "Kelp extent (mean)",
                                           str_detect(habitat_var, "aquatic") ~ "Max biotic extent",
                                           T~habitat_var), 
-                                levels = c("Hard bottom", "Soft bottom", "Depth mean", "Depth CV", "Kelp extent (mean)", "Max biotic extent", "TRI", "Slope mean", "Slope sd")))
+                                levels = c("Hard bottom", "Soft bottom", "Depth mean", "Depth CV", "Kelp extent (mean)", "Max biotic extent", "TRI", "Slope mean", "Slope SD", "Vertical relief")))
 }
 
 
 # Build function that will iteratively remove sites that exceed the threshold -------
-iterative_trim <- function(dat_long, threshold = 30) {
+iterative_trim <- function(dat_long, threshold) {
   
   # Calculate the range for MPA and Reference, and flag whether they are within threshold
   compute_ranges <- function(df) {
@@ -175,18 +176,19 @@ iterative_trim <- function(dat_long, threshold = 30) {
   )
 }
 
-format_table <- function(df){
+format_table <- function(df, threshold){
   # Format removal table
   df %>% 
     mutate(habitat_var = str_replace_all(habitat_var, "_", " ") %>% 
              str_to_sentence() %>%   
              str_replace_all("cv", "CV") %>%  
+             str_replace_all("sd", "SD") %>%  
              str_replace_all("Tri", "TRI")) %>% 
     mutate(affiliated_mpa = str_to_title(affiliated_mpa) %>% 
              str_replace_all("Smr", "SMR") %>% 
              str_replace_all("Smca", "SMCA")) %>% 
     select(site, site_type, affiliated_mpa, habitat_var, value, pct_exceed, breaks_balance) %>% 
-    mutate(pct_exceed = pct_exceed + 30) %>% 
+    mutate(pct_exceed = pct_exceed + threshold) %>% 
     mutate(breaks_balance = case_when(!breaks_balance ~ "No",
                                       breaks_balance & !is.na(value) ~ "Yes",
                                       breaks_balance & is.na(value) ~ "Removed for balance")) %>% 
@@ -213,20 +215,21 @@ kelp <- kelp_raw %>%
 
 kelp_sites <- kelp %>% 
   dplyr::select(habitat, site, site_type, affiliated_mpa, all_of(names(habitat_combined))) %>% distinct() %>% 
-  pivot_longer(cols = hard_bottom_25:slope_sd_500, names_to = "habitat_var", values_to = "value") %>% 
-  filter(!str_detect(habitat_var, "aquatic|soft|tri|slope") & !is.na(site_type)) %>% 
+  pivot_longer(cols = hard_bottom_25:relief_500, names_to = "habitat_var", values_to = "value") %>% 
+  filter(!str_detect(habitat_var, "aquatic|soft|tri|slope_mean") & !is.na(site_type)) %>% 
   select(site, site_type, affiliated_mpa, habitat_var, value) 
 
-kelp_trim <- iterative_trim(kelp_sites, threshold = 30)
+kelp_trim <- iterative_trim(kelp_sites, threshold = 50)
 
 # Inspect output table
-kelp_trim$removed_details %>% format_table()
+kelp_trim$removed_details %>% format_table(., threshold = 50)
+length(unique(kelp_trim$removed_details$site))
 
 # Create subset and plot distributions
 kelp_subset <- kelp_sites %>% 
   filter(site %in% kelp_trim$remaining$site) %>% 
   format_for_graph() %>% 
-  filter(!str_detect(habitat_var, "aquatic|soft|tri|slope"))
+  filter(!str_detect(habitat_var, "aquatic|soft|tri|slope_mean"))
 
 ggplot(data = kelp_subset) +
   geom_density(aes(x = value, color = site_type, fill = site_type), alpha = 0.3) + 
@@ -256,13 +259,13 @@ rock <- rock_raw %>%
 rock_sites <- rock %>% 
   dplyr::select(habitat, site, site_type, affiliated_mpa, all_of(names(habitat_combined))) %>% distinct() %>% 
   pivot_longer(cols = hard_bottom_25:slope_sd_500, names_to = "habitat_var", values_to = "value") %>% 
-  filter(!str_detect(habitat_var, "aquatic|soft|tri|slope") & !is.na(site_type)) %>% 
+  filter(!str_detect(habitat_var, "aquatic|soft|tri|slope|relief") & !is.na(site_type)) %>% 
   select(site, site_type, affiliated_mpa, habitat_var, value) 
 
 rock_trim <- iterative_trim(rock_sites, threshold = 30)
 
 # Inspect
-rock_trim$removed_details %>% format_table()
+rock_trim$removed_details %>% format_table(., threshold = 30)
 
 # Create subset for plotting
 rock_subset <- rock_sites %>% 
@@ -318,7 +321,7 @@ surf_violations <- surf_sites %>%
          breaks_balance = NA) %>%
   filter(excess > 0) 
 
-surf_violations %>% format_table()
+surf_violations %>% format_table(., threshold = 30)
 
 surf_subset <- surf_sites %>% 
   format_for_graph() %>% 
@@ -342,8 +345,8 @@ ggsave(file.path(fig.dir, "si-fig3-surf.png"),
        width = 9, height = 9, dpi = 600, units = "in")
 
 # Save final subsets with sites removed
-kelp2 <- kelp %>% filter(site %in% kelp_trim$remaining$site)
-rock2 <- rock %>% filter(site %in% rock_trim$remaining$site)
+kelp2 <- kelp# %>% filter(site %in% kelp_trim$remaining$site)
+rock2 <- rock #%>% filter(site %in% rock_trim$remaining$site)
 surf2 <- surf # do not remove any
 
 # Export 

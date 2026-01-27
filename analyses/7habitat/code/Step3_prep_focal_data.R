@@ -13,14 +13,14 @@ prep_focal_data <- function(focal_group, drop_outliers, biomass_variable, data, 
   # Filter to the groups interest, convert RE to factors
   data1 <- data %>%
     group_by(year, site, site_type, bioregion, region4, affiliated_mpa, size_km2, age_at_survey,
-             target_status, across(matches("^hard|soft|depth|kelp|aquatic|tri|slope"))) %>%
+             target_status, across(matches("^hard|soft|depth|kelp|aquatic|tri|slope|relief"))) %>%
     summarize(biomass = sum(!!sym(biomass_variable), na.rm = T), .groups = 'drop') %>%
     filter(target_status == str_to_sentence(focal_group))
   
   # Scale the static variables at the site-level (e.g. don't weight based on obs. frequency)
   site_static <- data1 %>% 
-    distinct(site, across(all_of(grep("^hard|soft|depth|aquatic|tri|slope", names(.), value = TRUE)))) %>%
-    mutate_at(vars(grep("^hard|soft|depth|aquatic|tri|slope", names(.), value = TRUE)), scale)
+    distinct(site, across(all_of(grep("^hard|soft|depth|aquatic|tri|slope|relief", names(.), value = TRUE)))) %>%
+    mutate_at(vars(grep("^hard|soft|depth|aquatic|tri|slope|relief", names(.), value = TRUE)), scale)
   
   if (drop_outliers == "yes") {
     # Remove sites with extreme values in static vars (depth and hard bottom)
@@ -58,7 +58,7 @@ prep_focal_data <- function(focal_group, drop_outliers, biomass_variable, data, 
            region4 = as.factor(region4),
            affiliated_mpa = as.factor(affiliated_mpa)) %>% 
     # Drop un-scaled static variables
-    dplyr::select(!all_of(c(grep("^hard|soft|depth|aquatic|tri|slope", names(.), value = TRUE)))) %>% 
+    dplyr::select(!all_of(c(grep("^hard|soft|depth|aquatic|tri|slope|relief", names(.), value = TRUE)))) %>% 
     # Join the scaled static variables
     left_join(site_static, by = "site") %>% 
     # Scale age

@@ -69,7 +69,7 @@ habitat_combined <- habitat %>%
   left_join(habitat_bathy,  by = c("habitat", "site", "site_type")) %>% 
   select(habitat, site, site_type, 
          starts_with("hard"), starts_with("soft"), starts_with("aquatic_veg"), 
-         starts_with("depth_mean"), starts_with("depth_cv"), starts_with("tri"), starts_with("slope_mean"), starts_with("slope_sd"))
+         starts_with("depth_mean"), starts_with("depth_sd"), starts_with("depth_cv"), starts_with("tri"), starts_with("slope_mean"), starts_with("slope_sd"), starts_with("relief"))
 
 saveRDS(habitat_combined, file.path(int.dir, "habitat_buffers_by_site_combined_v3.Rds")) 
 
