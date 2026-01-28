@@ -54,7 +54,7 @@ data_sp <- prep_focal_data(
 )
 
 # Provide some of the global variables
-random_effects <- c("region4/affiliated_mpa", "year")
+random_effects <- c("region4/affiliated_mpa/site", "year")
 re_string <- create_re_string(random_effects)
 
 # Run univariate scale selection
@@ -62,7 +62,7 @@ scale_selection <- select_scales(data_sp,
                                  pred_list = pred_kelp,
                                  response = "log_c_biomass", # log c biomass for gauss_log
                                  intx.terms = "",
-                                 random_effects = c("region4/affiliated_mpa", "year")) 
+                                 random_effects = random_effects) 
 
 scale_table <- scale_selection$formatted_table
 scale_table
