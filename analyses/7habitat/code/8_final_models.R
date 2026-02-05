@@ -12,34 +12,27 @@ library(gt)
 rm(list = ls())
 gc()
 
-source("analyses/7habitat/code/Step0_helper_functions.R")  # Load the function from the file
+source("analyses/7habitat/code/helper_functions.R")  # Load the function from the file
 
 fig.dir <- "~/ca-mpa/analyses/7habitat/figures"
 
-list2env(list(habitat = "rock_filtered",
-              focal_group = "targeted",
-              re_string = "rmy"), envir = .GlobalEnv)
+list2env(list(habitat = "rock",
+              re_string = "my"), envir = .GlobalEnv)
 
 list2env(list(habitat = "kelp",
-              focal_group = "targeted",
               re_string = "msy"), envir = .GlobalEnv)
 
 list2env(list(habitat = "surf",
-              focal_group = "targeted",
-              re_string = "rm"), envir = .GlobalEnv)
+              re_string = "m"), envir = .GlobalEnv)
   
 process_final_models <- function(habitat, focal_group, re_string){
-  
-  results_file <- paste(habitat, focal_group, re_string, "selection_results.rds", sep = "_")
-  data_file <-  paste(habitat, focal_group, re_string, "data.rds", sep = "_")
-  print(paste(results_file))
-  
   # Read the model selection results
-  results <- readRDS(file.path("~/ca-mpa/analyses/7habitat/output/results", results_file)) 
-  names(results)
-  
+  results <- readRDS(file.path("~/ca-mpa/analyses/7habitat/output/results", 
+                               paste(habitat, re_string, "selection_results.rds", sep = "_"))) 
+
   # Read the data used to fit the models
-  data_sp <- readRDS(file.path("~/ca-mpa/analyses/7habitat/output/data", data_file)) 
+  data_sp <- readRDS(file.path("~/ca-mpa/analyses/7habitat/output/data", 
+                               paste(habitat, re_string, "data.rds", sep = "_"))) 
   
   # 1. Refit the top model with REML
   response <- unique(results$model_details$response)
@@ -53,38 +46,17 @@ process_final_models <- function(habitat, focal_group, re_string){
     mutate(term = str_replace(term, "typeMPA", "type"),
            importance = 1) %>% 
     janitor::clean_names() %>% 
-    clean_terms() %>%
+    clean_terms() %>% 
     add_significance() %>%
     mutate(key = "Top Model")
-  
-  # Drop the interactions
-  predictors_simple <- coef_table %>%
-    filter(!str_detect(term, ":") | term == "site_type:age_at_survey") %>% 
-    filter(term != "(Intercept)") %>% 
-    pull(term) %>%
-    paste(., collapse = " + ")
-  
-  # Fit the model without the interactions
-  model_formula_simple <- as.formula(paste(response, "~", predictors_simple, "+", paste0("(1 | ", random_effects, ")", collapse = " + ")))
 
-  m2 <- lmer(model_formula_simple, data = data_sp, REML = TRUE,
-             control = lmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 1e8)))
-
-  coef_table2 <- tidy(m2, conf.int = TRUE, effect = "fixed") %>%
-    mutate(term = str_replace(term, "typeMPA", "type"),
-           importance = 1) %>%
-    janitor::clean_names() %>%
-    clean_terms() %>%
-    add_significance() %>%
-    mutate(key = "Simple Model")
-  
   # Fit the base model
-  model_formula_base <- as.formula(paste(response, "~ site_type * age_at_survey +", paste0("(1 | ", random_effects, ")", collapse = " + ")))
+  model_formula_base <- as.formula(paste(response, "~ site_type * age_at_survey + region4 + ", paste0("(1 | ", random_effects, ")", collapse = " + ")))
   
-  m3 <- lmer(model_formula_base, data = data_sp, REML = TRUE,
+  m2 <- lmer(model_formula_base, data = data_sp, REML = TRUE,
              control = lmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 1e8)))
   
-  coef_table3 <- tidy(m3, conf.int = TRUE, effect = "fixed") %>%
+  coef_table2 <- tidy(m2, conf.int = TRUE, effect = "fixed") %>%
     mutate(term = str_replace(term, "typeMPA", "type"),
            importance = 1) %>% 
     janitor::clean_names() %>% 
@@ -95,50 +67,37 @@ process_final_models <- function(habitat, focal_group, re_string){
   # Calculate the effects 
   # For 3-way interactions, we do this in the next step to help with plotting
   #assign("data_sp", data_sp, envir = .GlobalEnv)
-  effects_list_top <- allEffects(m, data = data_sp, xlevels = 50, partial.residuals = TRUE)
+  # effects_list_top <- allEffects(m, data = data_sp, xlevels = 50, partial.residuals = TRUE)
   #effects_list_base <- allEffects(m3, data = data_sp, xlevels = 50, partial.residuals = TRUE)
   #effects_list_simple <- allEffects(m2, data = data_sp, xlevels = 50, partial.residuals = TRUE)
   
-  plot(effects_list_top, multiline = T, confint = list(style = 'auto'))
+  # plot(effects_list_top, multiline = T, confint = list(style = 'auto'))
   # plot(effects_list_base, multiline = T, confint = list(style = 'auto'))
   # plot(effects_list_simple, multiline = T, confint = list(style = 'auto'))
   
   # Add the refitted models and effects to the final output
-  models <- list(base = m3,
-                 # simple = m2,
-                 top = m
-                 # effects_list_top = effects_list_top,
-                 # effects_list_simple = effects_list_simple,
-                 # effects_list_base = effects_list_base
-                )
+  models <- list(base = m2,
+                 top = m)
 
   
   model_formulas <- list(model_formula_top = top_formula,
-                         #model_formula_simple = model_formula_simple,
                          model_formula_base = model_formula_base)
   
   # Combine the coefficient table results
-  all_results <- bind_rows(coef_table, #coef_table2,
-                           coef_table3) %>% 
+  all_results <- bind_rows(coef_table, coef_table2) %>% 
     dplyr::select(term_revised, scale = term_scale, estimate, std_error, statistic, df, p_value, significance, key)
+  
+  # Rename habitat
+  habitat_label <- case_when(habitat == "rock" ~ "Shallow reef",
+                             habitat == "kelp" ~ "Kelp forest",
+                             habitat == "surf" ~ "Surf zone")
   
   gt_table <- all_results %>% 
     filter(term_revised != "(Intercept)") %>% 
     mutate(p_value = case_when(p_value < 0.001 ~ "< 0.001", T~as.character(round(p_value, 3)))) %>%
     mutate(significance = if_else(significance == "NS", NA_character_, significance)) %>%
-    mutate(term_revised = str_replace_all(term_revised, "_", " ") %>% 
-             str_to_title() %>% 
-             str_replace_all(regex("depth cv", ignore_case = TRUE), "Depth CV")) %>% 
-    mutate(term_revised = if_else(term_revised == "Aquatic Vegetation Bed", "Max Biotic Extent", term_revised)) %>% 
-    mutate(term_revised = str_replace_all(term_revised,  regex("Site type", ignore_case = TRUE), "Protected Status") %>% 
-             str_replace_all(regex("age at survey", ignore_case = TRUE), "MPA Age") %>% 
-             str_replace_all(":", " x ") %>% 
-             str_replace_all("hard", "Hard") %>% 
-             str_replace_all("kelp", "Kelp") %>% 
-             str_replace_all("soft", "Soft") %>% 
-             str_replace_all("depth", "Depth")) %>% 
     gt() %>%
-    tab_header(title = paste0("Model results: ", str_remove(str_to_sentence(habitat), "_filtered"), ", ", focal_group, " fish biomass")) %>% 
+    tab_header(title = paste0("Model results: ", str_to_sentence(habitat_label), ", targeted fish biomass")) %>% 
     cols_label(term_revised = "Term",
                scale = "Scale (m)",
                estimate = "Estimate",
@@ -155,7 +114,10 @@ process_final_models <- function(habitat, focal_group, re_string){
     tab_row_group(label = "Base Model", rows = key == "Base Model") %>%
     tab_row_group(label = "Top Model", rows = key == "Top Model") %>% 
     cols_hide(key) %>% 
-    tab_source_note(source_note = paste0("Random effects: ", str_replace_all(paste(random_effects, collapse = ", "), "_", " "))) %>% 
+    tab_source_note(source_note = paste0("Random effects: ", 
+                                         str_replace_all(paste(random_effects, collapse = ", "), "_", " ") %>% 
+                                           str_replace_all("affiliated mpa", "MPA") %>% 
+                                           str_replace_all("site", "Site"))) %>% 
     tab_style(style = cell_text(font = "Arial", size = px(12)), 
               locations = cells_source_notes()) %>%
     tab_style(style = cell_text(font = "Arial", size = px(12)), 
@@ -176,22 +138,19 @@ process_final_models <- function(habitat, focal_group, re_string){
   gtsave(gt_table, file.path(fig.dir, paste("tableSX", habitat, re_string, "fit.png", sep = "-")),  vwidth = 1000, vheight = 1000)
   
   # Export 
-  saveRDS(list(results = all_results, models = models, formulas = model_formulas, predictors = predictors_simple), 
-          file = file.path("~/ca-mpa/analyses/7habitat/output/effects", paste(habitat, focal_group, re_string, "effects.rds", sep = "_")))
+  saveRDS(list(results = all_results, models = models, formulas = model_formulas), 
+          file = file.path("~/ca-mpa/analyses/7habitat/output/effects", paste(habitat, re_string, "effects.rds", sep = "_")))
   
 }
 
 process_final_models(habitat = "surf",
-                     focal_group = "targeted",
-                     re_string = "r")
+                     re_string = "m")
 
-process_final_models(habitat = "rock_filtered",
-                     focal_group = "targeted",
-                     re_string = "rmy")
-
-process_final_models(habitat = "kelp_filtered",
-                     focal_group = "targeted",
+process_final_models(habitat = "rock",
                      re_string = "my")
+
+process_final_models(habitat = "kelp",
+                     re_string = "msy")
 
 
 
