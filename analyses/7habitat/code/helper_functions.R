@@ -4,45 +4,73 @@
 
 # Helper Functions -------------------------------------------------------------
 
-clean_terms <- function(df) {df %>%
-    mutate(term = str_remove_all(term, "MPA") %>% 
-             if_else(str_detect(., ":site_type$"), str_replace(., "^(.*):site_type$", "site_type:\\1"), .)) %>% 
+clean_terms <- function(df) {
+  
+  term_levels <- c("region - North",
+                   "region - South",
+                   "region - N. Channel Islands",
+                   "region - Central",
+                   "(Intercept)",
+                   "site_type:age_at_survey:depth_mean",
+                   "site_type:age_at_survey:depth_sd",
+                   "site_type:age_at_survey:depth_cv",
+                   "site_type:age_at_survey:slope_sd",
+                   "site_type:age_at_survey:relief",
+                   "site_type:age_at_survey:kelp",
+                   "site_type:age_at_survey:hard_bottom",
+                   "age_at_survey:depth_mean",
+                   "age_at_survey:depth_sd",
+                   "age_at_survey:depth_cv",
+                   "age_at_survey:slope_sd",
+                   "age_at_survey:relief",
+                   "age_at_survey:hard_bottom",
+                   "age_at_survey:kelp",
+                   "site_type:depth_mean",
+                   "site_type:depth_sd",
+                   "site_type:depth_cv",
+                   "site_type:slope_sd",
+                   "site_type:relief",
+                   "site_type:soft_bottom",
+                   "site_type:hard_bottom",
+                   "site_type:kelp",
+                   "site_type:max_biotic_extent",
+                   "site_type:age_at_survey",
+                   "site_type",
+                   "age_at_survey",
+                   "depth_mean",
+                   "depth_sd",
+                   "depth_cv",
+                   "slope_sd",
+                   "relief",
+                   "soft_bottom",
+                   "hard_bottom",
+                   "kelp",
+                   "max_biotic_extent")
+  
+  df %>%
+    #   mutate(term = str_remove_all(term, "MPA") %>% 
+    #            if_else(str_detect(., ":site_type$"), str_replace(., "^(.*):site_type$", "site_type:\\1"), .)) %>% 
     mutate(term_revised = str_remove_all(term, "MPA") %>% 
-             str_remove_all("_annual_250|_annual_500|_annual_100|_annual_50|_annual_25") %>% 
-             str_remove_all("_250|_500|_100|_25|_50") %>% 
+             str_remove_all("_500|_400|_300|_250|_200|_150|_100|_50|_25|_annual") %>% 
              if_else(str_detect(., ":age_at_survey$"), str_replace(., "^(.*):age_at_survey$", "age_at_survey:\\1"), .) %>% 
              if_else(str_detect(., ":site_type$"), str_replace(., "^(.*):site_type$", "site_type:\\1"), .) %>% 
              if_else(str_detect(., ":site_type:"), str_replace(., "^(.*?):(site_type):(.*?)$", "\\2:\\3:\\1"), .) %>% 
              str_replace_all("site_type:(.*?):age_at_survey", "site_type:age_at_survey:\\1") %>% 
-             factor(levels = c("(Intercept)",
-                               "site_type:age_at_survey:depth_mean",
-                               "site_type:age_at_survey:depth_sd",
-                               "site_type:age_at_survey:depth_cv",
-                               "site_type:age_at_survey:kelp",
-                               "site_type:age_at_survey:hard_bottom",
-                               "age_at_survey:depth_mean",
-                               "age_at_survey:depth_sd",
-                               "age_at_survey:depth_cv",
-                               "age_at_survey:hard_bottom",
-                               "age_at_survey:kelp",
-                               "site_type:depth_mean",
-                               "site_type:depth_sd",
-                               "site_type:depth_cv",
-                               "site_type:soft_bottom",
-                               "site_type:hard_bottom",
-                               "site_type:kelp",
-                               "site_type:aquatic_vegetation_bed",
-                               "site_type:age_at_survey",
-                               "site_type",
-                               "age_at_survey",
-                               "depth_mean",
-                               "depth_sd",
-                               "depth_cv",
-                               "soft_bottom",
-                               "hard_bottom",
-                               "kelp",
-                               "aquatic_vegetation_bed"))) %>% 
-    mutate(term_scale = str_extract(term, "\\d+"))}
+             str_replace_all("4", " - ") %>% 
+             str_replace_all("aquatic_vegetation_bed", "max_biotic_extent") %>% 
+             str_replace_all("_", " ") %>% 
+             str_to_title() %>% 
+             str_replace_all(":", " x ") %>% 
+             str_replace_all(regex("depth cv", ignore_case = TRUE), "Depth CV") %>% 
+             str_replace_all(regex("slope sd", ignore_case = TRUE), "Slope SD") %>% 
+             str_replace_all(regex("site type", ignore_case = TRUE), "Protected Status") %>% 
+             str_replace_all(regex("age at survey", ignore_case = TRUE), "MPA Age") %>%
+             str_replace_all("hard", "Hard") %>% 
+             str_replace_all("kelp", "Kelp") %>% 
+             str_replace_all("soft", "Soft") %>% 
+             str_replace_all("depth", "Depth")) %>% 
+    mutate(term_scale = if_else(!str_detect(term, "region"), str_extract(term, "\\d+"), NA)) 
+}
 
 add_significance <- function(df) {df %>%
     mutate(significance = factor(case_when(p_value < 0.001 ~ "***",
@@ -102,20 +130,22 @@ evaluate_nested_models <- function(models, delta_threshold, alpha) {
   )
 }
 
-predictors_to_model_id <- function(predictor_df){
-  predictor_df <- predictor_df %>% 
-    mutate(model_id = 
-           str_replace_all(predictors, "hard_bottom_(\\d+)", "H\\1") %>% 
-           str_replace_all("soft_bottom_(\\d+)", "S\\1") %>% 
-           str_replace_all("kelp_annual_(\\d+)", "K\\1") %>% 
-           str_replace_all("depth_mean_(\\d+)", "DM\\1") %>% 
-           str_replace_all("depth_sd_(\\d+)", "DSD\\1") %>% 
-           str_replace_all("depth_cv_(\\d+)", "DCV\\1") %>% 
-           str_replace_all("site_type", "ST") %>%
-           str_replace_all("age_at_survey", "A") %>% 
-           str_replace_all("aquatic_vegetation_bed_(\\d+)", "AV\\1") %>% 
-           str_replace_all("\\s+", "")) 
-  return(predictor_df)
+condense_terms <- function(predictors){
+  predictors <- 
+    str_replace_all(predictors, "hard_bottom_(\\d+)", "H\\1") %>% 
+    str_replace_all("soft_bottom_(\\d+)", "S\\1") %>% 
+    str_replace_all("kelp_annual_(\\d+)", "K\\1") %>% 
+    str_replace_all("depth_mean_(\\d+)", "DM\\1") %>% 
+    str_replace_all("depth_sd_(\\d+)", "DSD\\1") %>% 
+    str_replace_all("depth_cv_(\\d+)", "DCV\\1") %>% 
+    str_replace_all("tri_mean_(\\d+)", "TRI\\1") %>% 
+    str_replace_all("slope_sd_(\\d+)", "SSD\\1") %>% 
+    str_replace_all("relief_(\\d+)", "VR\\1") %>% 
+    str_replace_all("site_type", "ST") %>%
+    str_replace_all("age_at_survey", "A") %>% 
+    str_replace_all("aquatic_vegetation_bed_(\\d+)", "AV\\1") %>% 
+    str_replace_all("\\s+", "")
+  return(predictors)
 }
 
 generate_simple_3way <- function(pred_top) {
@@ -168,20 +198,7 @@ generate_simple_3way <- function(pred_top) {
                            stringsAsFactors = F) %>% 
     mutate(base = "site_type * age_at_survey") %>% 
     unite("predictors", c(hard, kelp, depm, depc, deps, trim, slsd, reli, base), sep = " + ", na.rm = TRUE, remove = FALSE) %>% 
-    mutate(model_id = 
-             str_replace_all(predictors, "hard_bottom_(\\d+)", "H\\1") %>% 
-             str_replace_all("soft_bottom_(\\d+)", "S\\1") %>% 
-             str_replace_all("kelp_annual_(\\d+)", "K\\1") %>% 
-             str_replace_all("depth_mean_(\\d+)", "DM\\1") %>% 
-             str_replace_all("depth_sd_(\\d+)", "DSD\\1") %>% 
-             str_replace_all("depth_cv_(\\d+)", "DCV\\1") %>% 
-             str_replace_all("tri_mean_(\\d+)", "TRI\\1") %>% 
-             str_replace_all("slope_sd_(\\d+)", "SSD\\1") %>% 
-             str_replace_all("relief_(\\d+)", "VR\\1") %>% 
-             str_replace_all("site_type", "ST") %>%
-             str_replace_all("age_at_survey", "A") %>% 
-             str_replace_all("aquatic_vegetation_bed_(\\d+)", "AV\\1") %>% 
-             str_replace_all("\\s+", "")) 
+    mutate(model_id = condense_terms(predictors))
   
   return(pred_3way)
   
@@ -247,20 +264,7 @@ generate_surf_3way <- function(pred_top) {
     mutate(base = "site_type * age_at_survey") %>% 
     filter(!(!is.na(hard) & !is.na(soft))) %>% 
     unite("predictors", c(hard, soft, kelp, depm, depc, deps, trim, slsd, reli, aquv, base), sep = " + ", na.rm = TRUE, remove = FALSE) %>% 
-    mutate(model_id = 
-             str_replace_all(predictors, "hard_bottom_(\\d+)", "H\\1") %>% 
-             str_replace_all("soft_bottom_(\\d+)", "S\\1") %>% 
-             str_replace_all("kelp_annual_(\\d+)", "K\\1") %>% 
-             str_replace_all("depth_mean_(\\d+)", "DM\\1") %>% 
-             str_replace_all("depth_sd_(\\d+)", "DSD\\1") %>% 
-             str_replace_all("depth_cv_(\\d+)", "DCV\\1") %>% 
-             str_replace_all("tri_mean_(\\d+)", "TRI\\1") %>% 
-             str_replace_all("slope_sd_(\\d+)", "SSD\\1") %>% 
-             str_replace_all("relief_(\\d+)", "VR\\1") %>% 
-             str_replace_all("site_type", "ST") %>%
-             str_replace_all("age_at_survey", "A") %>% 
-             str_replace_all("aquatic_vegetation_bed_(\\d+)", "AV\\1") %>% 
-             str_replace_all("\\s+", "")) 
+    mutate(model_id = condense_terms(predictors))
   
   return(pred_3way)
   

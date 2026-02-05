@@ -29,10 +29,7 @@ select_scales <- function(data, pred_list, intx.terms, response, random_effects)
                            var, intx.terms, " + ", paste0("(1 | ", random_effects, ")", collapse = " + ")) 
       lmer(as.formula(formula_str), data = data,
            control = lmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 1e8)), REML = FALSE)
-      # glmmTMB(as.formula(formula_str), data = data,
-      #         family = tweedie(link = "log"),
-      #         control = glmmTMBControl(optCtrl = list(iter.max = 1e8, eval.max = 1e8)))
-    })
+     })
     names(models) <- habitat_vars
     model_tbl <- tibble(Model = names(models), model_obj = models)
     
@@ -44,8 +41,7 @@ select_scales <- function(data, pred_list, intx.terms, response, random_effects)
       left_join(model_tbl, by = "Model")
     
     aicc_table$Converged <- map_lgl(models, ~ is.null(.x@optinfo$conv$lme4$messages))[aicc_table$Model] # for gauss
-    #aicc_table$Converged <- map_lgl(models, ~ isTRUE(.x$sdr$pdHess))[aicc_table$Model]
-    
+
     return(aicc_table)
     
   })
