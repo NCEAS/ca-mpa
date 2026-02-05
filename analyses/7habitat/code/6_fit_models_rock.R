@@ -14,16 +14,20 @@ library(parallel)
 library(glmmTMB)
 library(gt)
 library(lmerTest)
+library(corrr)
+
 
 rm(list = ls())
 gc()
 
-source("analyses/7habitat/code/Step0_helper_functions.R") 
-source("analyses/7habitat/code/Step3_prep_focal_data.R")  
+source("analyses/7habitat/code/helper_functions.R") 
+source("analyses/7habitat/code/5_scale_selection.R") 
+source("analyses/7habitat/code/3_prep_focal_data.R")  
 
 # Read Data --------------------------------------------------------------------
 ltm.dir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_2024/2025"
 fig.dir <- "analyses/7habitat/figures"
+habitat <- "rock"
 
 data_rock <- readRDS(file.path(ltm.dir, "combine_tables/ccfrp_full.Rds")) %>% 
   mutate(site_type = factor(site_type, levels = c("Reference", "MPA"))) %>% 
@@ -52,16 +56,15 @@ data_sp <- prep_focal_data(
   regions = c("North", "Central", "N. Channel Islands", "South")
 )
 
-
 # Provide some of the global variables
-random_effects <- c("region4/affiliated_mpa/site", "year")
+random_effects <- c("affiliated_mpa", "year")
 re_string <- create_re_string(random_effects)
 
 
 scale_selection <- select_scales(data_sp, 
                                  pred_list = pred_rock,
                                  "log_c_biomass", # log_c_biomass for gauss
-                                 intx.terms = "", # for the interaction with the habitat variable
+                                 intx.terms = "+ region4", # for the interaction with the habitat variable
                                  random_effects = random_effects)
 
 scale_table <- scale_selection$formatted_table
@@ -80,10 +83,11 @@ data_corr <- data_sp %>%
   correlate() %>% 
   stretch() %>% 
   filter(!x == y) %>% 
-  filter(as.character(x) <= as.character(y)) %>% 
-  mutate(across(where(is.character), ~ str_replace_all(.x, "_", " "))) 
+  filter(as.character(x) <= as.character(y)) 
 
-ggplot(data = data_corr, aes(x = x, y = y, fill = r)) +
+ggplot(data = data_corr %>% 
+         mutate(across(where(is.character), ~ str_replace_all(.x, "_", " "))), 
+       aes(x = x, y = y, fill = r)) +
   geom_tile(color = "white") +
   geom_label(aes(label = sprintf("%.2f", r)), fill = NA, label.size = 0) +
   scale_fill_gradient2(low = "blue", high = "red", mid = "white",
@@ -93,16 +97,16 @@ ggplot(data = data_corr, aes(x = x, y = y, fill = r)) +
   theme(axis.text.x = element_text(angle = 65, vjust = 1,   size = 10, hjust = 1)) +
   labs(x = NULL, y = NULL) 
 
+corr_terms <- data_corr %>% 
+  filter(!between(r, -0.5, 0.5)) %>% 
+  mutate(x = condense_terms(x),
+         y = condense_terms(y))
 
 predictors_df <- generate_simple_3way(pred_rock %>% filter(predictor %in% top_scales))
 
+# Reduce predictor set so that corrleated terms do not appear together
 predictors_df <- predictors_df %>% 
-  filter(is.na(slsd) | is.na(depc)) %>% # 0.57
-  filter(is.na(slsd) | is.na(deps)) %>% # 0.82
-  filter(is.na(slsd) | is.na(reli)) %>% # 0.85
-  filter(is.na(reli) | is.na(depc)) %>% # 0.79
-  filter(is.na(reli) | is.na(deps)) %>% # 0.96
-  filter(is.na(deps) | is.na(depc)) # 0.80
+  filter(!reduce(pmap(corr_terms, ~ str_detect(model_id, ..1) & str_detect(model_id, ..2)), `|`))
 
 
 # Run The Models -------------------------------------------------------------------------------------
@@ -113,7 +117,7 @@ lmer_ctrl <- lmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 1e8))
 fit_model <- function(row, data_sp, response, random_effects) {
   predictors <- row$predictors[[1]]
   model_id   <- row$model_id[[1]]
-  formula <- reformulate(c(predictors, paste0("(1 | ", random_effects, ")")), response)
+  formula <- reformulate(c(predictors, paste("region4"), paste0("(1 | ", random_effects, ")")), response)
   
   model <- suppressMessages(suppressWarnings(
     lmer(formula, data = data_sp, REML = FALSE, control = lmer_ctrl)
@@ -150,12 +154,18 @@ ggplot(data = data_sp, aes(x = depth_cv_100, y = biomass, color = site_type)) +
 ggplot(data = data_sp, aes(x = slope_sd_250, y = biomass, color = site_type)) + 
   geom_point() + geom_smooth(method = "lm") + scale_color_manual(values = c("Reference" = "#6d55aa", "MPA" = "#c42119")) + facet_wrap(~region4)
 
-m <- lmer(log_c_biomass ~ hard_bottom_500 * site_type * age_at_survey +     kelp_annual_500 * site_type * age_at_survey + depth_mean_500 *     site_type + slope_sd_250 * site_type * age_at_survey + site_type *     age_at_survey + (1 | region4/affiliated_mpa) + (1 | year),
+m <- lmer(log_c_biomass ~ hard_bottom_500 * site_type * age_at_survey +     depth_mean_500 + depth_cv_300 * site_type * age_at_survey +     site_type * age_at_survey + region4 + (1 | affiliated_mpa) +     (1 | year),
           data = data_sp)
 
 summary(m)
 
+plot(effects::allEffects(m), multiline = T, confint = list(style = 'auto'))
+
 eff <- effects::predictorEffects(m, partial.residuals = T)
 
+
 plot(eff, multiline = T, confint = list(style = 'auto'))
+
+plot(eff$hard_bottom_500, multiline = T, confint = list(style = 'auto'))
+plot(eff$hard_bottom_500, multiline = T, confint = list(style = 'auto'))
 

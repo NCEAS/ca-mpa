@@ -19,11 +19,13 @@ library(glmmTMB)
 rm(list = ls())
 gc()
 
-source("analyses/7habitat/code/Step0_helper_functions.R") 
-source("analyses/7habitat/code/Step3_prep_focal_data.R") 
+source("analyses/7habitat/code/helper_functions.R") 
+source("analyses/7habitat/code/3_prep_focal_data.R") 
+source("analyses/7habitat/code/5_scale_selection.R") 
 
 ltm.dir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_2024/2025"
 fig.dir <- "analyses/7habitat/figures"
+habitat <- "kelp"
 
 # Read Data --------------------------------------------------------------------
 
@@ -87,10 +89,11 @@ data_corr <- data_sp %>%
   correlate() %>% 
   stretch() %>% 
   filter(!x == y) %>% 
-  filter(as.character(x) <= as.character(y)) %>% 
-  mutate(across(where(is.character), ~ str_replace_all(.x, "_", " "))) 
+  filter(as.character(x) <= as.character(y))
 
-ggplot(data = data_corr, aes(x = x, y = y, fill = r)) +
+ggplot(data = data_corr  %>% 
+         mutate(across(where(is.character), ~ str_replace_all(.x, "_", " "))), 
+       aes(x = x, y = y, fill = r)) +
   geom_tile(color = "white") +
   geom_label(aes(label = sprintf("%.2f", r)), fill = NA, label.size = 0) +
   scale_fill_gradient2(low = "blue", high = "red", mid = "white",
@@ -100,23 +103,28 @@ ggplot(data = data_corr, aes(x = x, y = y, fill = r)) +
   theme(axis.text.x = element_text(angle = 65, vjust = 1,   size = 10, hjust = 1)) +
   labs(x = NULL, y = NULL) 
 
+corr_terms <- data_corr %>% 
+  filter(!between(r, -0.5, 0.5)) %>% 
+  mutate(x = condense_terms(x),
+         y = condense_terms(y))
+
 predictors_df <- generate_simple_3way(pred_kelp %>% filter(predictor %in% top_scales))
 
+# Reduce predictor set so that corrleated terms do not appear together
 predictors_df <- predictors_df %>% 
-  # Only allow one structural complexity measure (b/c correlation > 0.5
-  filter(rowSums(!is.na(across(c("depc", "trim", "slsd", "reli", "deps")))) <= 1) %>% 
-  # Depth is correlated with SSD and Relief:
-  filter(is.na(depm) | (is.na(slsd) & is.na(reli)))
+  filter(!reduce(pmap(corr_terms, ~ str_detect(model_id, ..1) & str_detect(model_id, ..2)), `|`))
+
 
 # Run The Models -------------------------------------------------------------------------------------
 
-plan(multisession, workers = max(1, parallel::detectCores() %/% 10))
+plan(multisession, workers = max(1, parallel::detectCores() %/% 5))
 lmer_ctrl <- lmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 1e8))
 
 fit_model <- function(row, data_sp, response, random_effects) {
   predictors <- row$predictors[[1]]
   model_id   <- row$model_id[[1]]
-  formula <- reformulate(c(predictors, paste0("(1 | ", random_effects, ")")), response)
+  formula <- reformulate(c(predictors, #paste("region4"), 
+                           paste0("(1 | ", random_effects, ")")), response)
   
   model <- suppressMessages(suppressWarnings(
     lmer(formula, data = data_sp, REML = FALSE, control = lmer_ctrl)
@@ -140,15 +148,14 @@ results <- future_map_dfr(seq_len(nrow(predictors_df)),
   arrange(delta_AICc)
 
 
-
 saveRDS(list(models_df = results, data_sp = data_sp),
         file.path("analyses/7habitat/output/model-set", 
                   paste(habitat, re_string, "models.rds", sep = "_")))
 
-m <- lmer(log_c_biomass ~ hard_bottom_250 + kelp_annual_100 + depth_mean_500 +     depth_cv_100 * site_type * age_at_survey + site_type * age_at_survey +     (1 | region4/affiliated_mpa/site) + (1 | year),
+m <- lmer(log_c_biomass ~ hard_bottom_300 + kelp_annual_100 + depth_mean_500 +     depth_cv_100 * site_type * age_at_survey + site_type * age_at_survey +     (1 | region4/affiliated_mpa/site) + (1 | year),
           data = data_sp, REML = T)
 
+summary(m)
 eff <- effects::predictorEffects(m, partial.residuals = T)
-
-plot(eff)
+eff <- effects::allEffects(m, partial.residuals = T)
 plot(eff, multiline = T, confint = list(style = 'auto'))
