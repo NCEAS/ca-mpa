@@ -47,7 +47,7 @@ calculate_buffers <- function(section, buffer) {
 
 # Create grid of all sections and buffers
 sections <- c(23, 30, 31, 32, 33, 40, 41)
-buffers <- c(25, 50, 100, 250, 500)
+buffers <- c(25, 50, 100, 150, 200, 250, 300, 400, 500)
 section_buffers <- expand.grid(section = sections, buffer = buffers)
 
 # Run function and combine all results
@@ -74,7 +74,11 @@ combine_sections <- function(buffer){
 combine_sections(buffer = 25)
 combine_sections(buffer = 50)
 combine_sections(buffer = 100)
+combine_sections(buffer = 150)
+combine_sections(buffer = 200)
 combine_sections(buffer = 250)
+combine_sections(buffer = 300)
+combine_sections(buffer = 400)
 combine_sections(buffer = 500)
 
 # Fix the Anacapa kelp forest buffers ----------------------------------------------------------
@@ -82,6 +86,8 @@ combine_sections(buffer = 500)
 # Since the island is so narrow, the habitat buffer spans both sides of the island. 
 # Where the site is a Reference (on the South side of the island) we will mask the North side
 # Where the site is MPA site (on N side) we will mask the south side
+
+print("Fix Anacapa buffers")
 
 # Create polygon that will mask northern anacapa
 coords_n <- matrix(c(-119.450075, 34.015529,   # West Anacapa - west tip
@@ -110,8 +116,8 @@ coords_s <- matrix(c(-119.450075, 34.015529,   # West Anacapa - west tip
 poly_n <- st_polygon(list(coords_n)) %>% st_sfc(crs = 4326) %>% st_transform(., crs = 26910) 
 poly_s <- st_polygon(list(coords_s)) %>% st_sfc(crs = 4326) %>% st_transform(., crs = 26910)
 
-st_write(poly_s, file.path(com.dir, "anacapa_south_mask.shp"))
-st_write(poly_n, file.path(com.dir, "anacapa_north_mask.shp"))
+#st_write(poly_s, file.path(com.dir, "anacapa_south_mask.shp")) # since exists
+#st_write(poly_n, file.path(com.dir, "anacapa_north_mask.shp")) # since exists
 
 fix_anacapa <- function(buffer) {
   
@@ -155,7 +161,11 @@ fix_anacapa <- function(buffer) {
 fix_anacapa(buffer = 25)
 fix_anacapa(buffer = 50)
 fix_anacapa(buffer = 100)
+fix_anacapa(buffer = 150)
+fix_anacapa(buffer = 200)
 fix_anacapa(buffer = 250)
+fix_anacapa(buffer = 300)
+fix_anacapa(buffer = 400)
 fix_anacapa(buffer = 500)
 
 

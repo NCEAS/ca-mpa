@@ -52,7 +52,7 @@ calculate_kelp_buffer <- function(kelp_raster, sites, buffer, year) {
 }
 
 # Details for function
-buffers <- c(25, 50, 100, 250, 500) 
+buffers <- c(25, 50, 100, 150, 200, 250, 300, 400, 500) 
 years <- seq(2000, 2024) 
 all_kelp_results <- data.frame() # empty df to store results
 

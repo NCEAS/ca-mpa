@@ -91,7 +91,7 @@ process_buffer <- function(buffer, raster_set) {
 }
 
 # Define buffers
-buffers <- c(25, 50, 100, 250, 500)
+buffers <- c(25, 50, 100, 150, 200, 250, 300, 400, 500)
 
 # Calculate depth variables for main sites
 depth_30m <- map_dfr(buffers, ~process_buffer(.x, terrain)) # fairly quick

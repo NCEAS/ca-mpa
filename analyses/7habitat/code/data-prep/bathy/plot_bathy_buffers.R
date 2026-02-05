@@ -124,7 +124,7 @@ coast_simple <- coast_simple[coast_simple$length >= 100]
 coast_simple <- st_union(coast_simple)
 
 # Pick a site
-my_site <- sites$site[[438]]
+my_site <- sites$site[[49]]
 
 # Filter for the current site
 site_point <- sites %>% filter(site == !!my_site)
@@ -182,14 +182,6 @@ ggplot(sample_pts, aes(x = dist_m, y = depth_m)) +
 
 
 
-# TEST
-
-library(sf)
-library(dplyr)
-library(purrr)
-library(terra)
-library(ggplot2)
-
 sample_transects <- function(my_site, sites_sf, coast_sf, terrain_raster) {
   
   # Filter for the current site
@@ -234,10 +226,11 @@ sample_transects <- function(my_site, sites_sf, coast_sf, terrain_raster) {
 
 my_sites <- sites$site[sites$habitat == "Surf zone"]  
 my_sites <- sites$site[sites$habitat == "Kelp forest"]
+my_sites <- sites$site[sites$habitat == "Rocky reef"]
 
 my_sites <- sites %>% 
-  filter(habitat == "Kelp forest") %>% 
-  filter(site %in% data_kelp$site) %>% 
+  filter(habitat == "Rocky reef") %>% 
+#  filter(site %in% data_kelp$site) %>% 
   sample_n(42) %>% 
   pull(site)
 
@@ -254,12 +247,12 @@ sample_depths2 <- sample_depths %>%
                                         "Whalers Cove MPA") ~ dist_m*-1,
                             T~dist_m)) %>% 
   left_join(sample_metrics) %>% 
-  mutate(site = fct_reorder(site, slope_sd_500))
+  mutate(site = fct_reorder(site, relief_500))
 
-ggplot(sample_depths2, aes(x = dist_m, y = depth_m)) +
+ggplot(sample_depths2 %>% 
+         filter(between(dist_m, -250, 250)), aes(x = dist_m, y = depth_m)) +
   geom_smooth(method = "loess", se = FALSE, span = 0.085, linewidth = 0.8, color = "black") +
   geom_point(data = filter(sample_depths2, dist_m == 0), aes(x = dist_m, y = depth_m), size = 2) +
-  scale_x_continuous(limits = c(NA, 250)) +
   scale_y_reverse() +
   theme_minimal() +
   labs(x = "Distance from site (m)", y = "Depth (m)") +
