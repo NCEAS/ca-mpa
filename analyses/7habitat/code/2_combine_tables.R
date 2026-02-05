@@ -60,9 +60,9 @@ format_for_graph <- function(df){
     mutate(habitat_var = factor(habitat_var, levels = unique(habitat_var))) %>% 
     mutate(habitat_label = paste0(str_replace_all(habitat_var, "_", " ") %>% str_to_sentence() %>% str_replace_all("cv", "CV") %>% str_replace_all("Tri", "TRI"), "m")) %>% 
     mutate(habitat_label = factor(habitat_label, levels = unique(habitat_label))) %>% 
-    dplyr::bind_rows(tibble(habitat_var = c("depth_cv_25", "tri_mean_25", "slope_mean_25", "slope_sd_25",
-                                            "depth_cv_50", "tri_mean_50", "slope_mean_50", "slope_sd_50"),
-                            scale       = c(25, 25, 25, 25, 50, 50, 50, 50),
+    dplyr::bind_rows(tibble(habitat_var = c("depth_cv_25", "depth_sd_25", "tri_mean_25", "slope_mean_25", "slope_sd_25",
+                                            "depth_cv_50", "depth_sd_50", "tri_mean_50", "slope_mean_50", "slope_sd_50"),
+                            scale       = c(25, 25, 25, 25, 25, 50, 50, 50, 50, 50),
                             value       = NA_real_,
                             site_type   = NA_character_)) %>% 
     mutate(habitat_cat = factor(case_when(str_detect(habitat_var, "tri") ~ "TRI",
@@ -70,13 +70,14 @@ format_for_graph <- function(df){
                                           str_detect(habitat_var, "soft") ~ "Soft bottom",
                                           str_detect(habitat_var, "depth_mean") ~ "Depth mean",
                                           str_detect(habitat_var, "depth_cv") ~ "Depth CV",
+                                          str_detect(habitat_var, "depth_sd") ~ "Depth SD",
                                           str_detect(habitat_var, "slope_mean") ~ "Slope mean",
                                           str_detect(habitat_var, "slope_sd") ~ "Slope SD",
                                           str_detect(habitat_var, "relief") ~ "Vertical relief",
                                           str_detect(habitat_var, "kelp") ~ "Kelp extent (mean)",
                                           str_detect(habitat_var, "aquatic") ~ "Max biotic extent",
                                           T~habitat_var), 
-                                levels = c("Hard bottom", "Soft bottom", "Depth mean", "Depth CV", "Kelp extent (mean)", "Max biotic extent", "TRI", "Slope mean", "Slope SD", "Vertical relief")))
+                                levels = c("Hard bottom", "Soft bottom", "Depth mean", "Depth CV", "Depth SD", "Kelp extent (mean)", "Max biotic extent", "TRI", "Slope mean", "Slope SD", "Vertical relief")))
 }
 
 
@@ -258,20 +259,20 @@ rock <- rock_raw %>%
 
 rock_sites <- rock %>% 
   dplyr::select(habitat, site, site_type, affiliated_mpa, all_of(names(habitat_combined))) %>% distinct() %>% 
-  pivot_longer(cols = hard_bottom_25:slope_sd_500, names_to = "habitat_var", values_to = "value") %>% 
-  filter(!str_detect(habitat_var, "aquatic|soft|tri|slope|relief") & !is.na(site_type)) %>% 
+  pivot_longer(cols = hard_bottom_25:relief_500, names_to = "habitat_var", values_to = "value") %>% 
+  filter(!str_detect(habitat_var, "aquatic|soft|tri|slope_mean") & !is.na(site_type)) %>% 
   select(site, site_type, affiliated_mpa, habitat_var, value) 
 
-rock_trim <- iterative_trim(rock_sites, threshold = 30)
+rock_trim <- iterative_trim(rock_sites, threshold = 50)
 
 # Inspect
-rock_trim$removed_details %>% format_table(., threshold = 30)
+rock_trim$removed_details %>% format_table(., threshold = 50)
 
 # Create subset for plotting
 rock_subset <- rock_sites %>% 
   filter(site %in% rock_trim$remaining$site) %>% 
   format_for_graph() %>% 
-  filter(!str_detect(habitat_var, "aquatic|soft|tri|slope"))
+  filter(!str_detect(habitat_var, "aquatic|soft|tri|slope_mean"))
 
 ggplot(data = rock_subset) +
   geom_density(aes(x = value, color = site_type, fill = site_type), alpha = 0.3) + 
@@ -300,8 +301,8 @@ surf <- surf_raw %>%
 
 surf_sites <- surf %>% 
   dplyr::select(habitat, site, site_type, affiliated_mpa, all_of(names(habitat_combined))) %>% distinct() %>% 
-  pivot_longer(cols = hard_bottom_25:slope_sd_500, names_to = "habitat_var", values_to = "value") %>% 
-  filter(!str_detect(habitat_var, "tri|slope") & !is.na(site_type)) %>% 
+  pivot_longer(cols = hard_bottom_25:relief_500, names_to = "habitat_var", values_to = "value") %>% 
+  filter(!str_detect(habitat_var, "tri|slope_mean") & !is.na(site_type)) %>% 
   select(site, site_type, affiliated_mpa, habitat_var, value) 
 
 # surf_trim <- iterative_trim(surf_sites, threshold = 30) # will break; removes all sites...
@@ -311,7 +312,7 @@ surf_ranges <- surf_sites %>%
     group_by(site_type, habitat_var) %>%
     summarise(maxval = max(value, na.rm = TRUE), .groups = "drop") %>%
     pivot_wider(names_from = site_type, values_from = maxval) %>%
-    mutate(allowed = pmin(MPA, Reference) * (1 + 30/100)) %>%
+    mutate(allowed = pmin(MPA, Reference) * (1 + 50/100)) %>%
     select(habitat_var, allowed, MPA, Reference) 
 
 surf_violations <- surf_sites %>% 
@@ -321,11 +322,11 @@ surf_violations <- surf_sites %>%
          breaks_balance = NA) %>%
   filter(excess > 0) 
 
-surf_violations %>% format_table(., threshold = 30)
+surf_violations %>% format_table(., threshold = 50)
 
 surf_subset <- surf_sites %>% 
   format_for_graph() %>% 
-  filter(!str_detect(habitat_var, "tri|slope"))
+  filter(!str_detect(habitat_var, "tri|slope_mean"))
 
 ggplot(data = surf_subset) +
   geom_density(aes(x = value, color = site_type, fill = site_type), alpha = 0.3) + 
@@ -345,8 +346,8 @@ ggsave(file.path(fig.dir, "si-fig3-surf.png"),
        width = 9, height = 9, dpi = 600, units = "in")
 
 # Save final subsets with sites removed
-kelp2 <- kelp# %>% filter(site %in% kelp_trim$remaining$site)
-rock2 <- rock #%>% filter(site %in% rock_trim$remaining$site)
+kelp2 <- kelp %>% filter(site %in% kelp_trim$remaining$site)
+rock2 <- rock %>% filter(site %in% rock_trim$remaining$site)
 surf2 <- surf # do not remove any
 
 # Export 
@@ -399,6 +400,7 @@ table <- all_removed %>%
             locations = cells_row_groups()) %>% 
   cols_align( align = "center", columns = 3:8)
 
+table
 gtsave(table, file.path(fig.dir, "si-table1-removals.png"),   vwidth = 1300, vheight = 1000)
 
 
