@@ -24,6 +24,7 @@ source("analyses/7habitat/code/helper_functions.R")
 source("analyses/7habitat/code/5_scale_selection.R") 
 source("analyses/7habitat/code/3_prep_focal_data.R")  
 
+
 # Read Data --------------------------------------------------------------------
 ltm.dir <- "/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_2024/2025"
 fig.dir <- "analyses/7habitat/figures"
@@ -36,14 +37,16 @@ data_rock <- readRDS(file.path(ltm.dir, "combine_tables/ccfrp_full.Rds")) %>%
                 starts_with("hard"), starts_with("kelp"), starts_with("depth"),
                 starts_with("tri"), starts_with("slope"), starts_with("relief")) %>% 
   select(-kelp_annual_25) %>% 
-  filter(!site == "SW14")
+  filter(!site %in% c("SW14", "PL06", "PL07")) # this is from iterative trim, just to test for now...
 
 # Define predictors and scales
 pred_rock <- data.frame(predictor = grep("^(hard|kelp|depth|tri|slope|relief)", names(data_rock),  value = TRUE)) %>%  
   mutate(scale = sub("_", "", str_sub(predictor, -3, -1))) %>% 
   # Drop TRI because correlated with CV, drop slope SD because not seeming more useful than CV:
   filter(!str_detect(predictor, "tri"))  %>% 
-  filter(!str_detect(predictor, "slope_mean"))
+  filter(!str_detect(predictor, "slope_mean")) %>% 
+  # Reduce number of scales (not helpful to expand)
+  filter(scale %in% c(25, 50, 100, 250, 500))
 
 # Build Data -------------------------------------------------------------------
 
@@ -57,20 +60,20 @@ data_sp <- prep_focal_data(
 )
 
 # Provide some of the global variables
-random_effects <- c("affiliated_mpa", "year")
+random_effects <- c("region4/affiliated_mpa/site", "year")
 re_string <- create_re_string(random_effects)
 
 
 scale_selection <- select_scales(data_sp, 
                                  pred_list = pred_rock,
                                  "log_c_biomass", # log_c_biomass for gauss
-                                 intx.terms = "+ region4", # for the interaction with the habitat variable
+                                 intx.terms = "* site_type", # for the interaction with the habitat variable
                                  random_effects = random_effects)
 
 scale_table <- scale_selection$formatted_table
 scale_table
 
-gtsave(scale_table, file.path(fig.dir, paste("tableSX", habitat, re_string, "habitat_scale.png", sep = "-")))
+# gtsave(scale_table, file.path(fig.dir, paste("tableSX", habitat, re_string, "habitat_scale.png", sep = "-")))
 
 # Only fit models with the top scales
 top_scales <- scale_selection$results %>% janitor::clean_names() %>% 
@@ -98,30 +101,40 @@ ggplot(data = data_corr %>%
   labs(x = NULL, y = NULL) 
 
 corr_terms <- data_corr %>% 
-  filter(!between(r, -0.5, 0.5)) %>% 
+  filter(!between(r, -0.7, 0.7)) %>% 
   mutate(x = condense_terms(x),
          y = condense_terms(y))
 
+# Generate predictor set from top scales
 predictors_df <- generate_simple_3way(pred_rock %>% filter(predictor %in% top_scales))
 
-# Reduce predictor set so that corrleated terms do not appear together
+# Reduce predictor set so that correlated terms do not appear together
 predictors_df <- predictors_df %>% 
-  filter(!reduce(pmap(corr_terms, ~ str_detect(model_id, ..1) & str_detect(model_id, ..2)), `|`))
+  filter(!reduce(pmap(corr_terms, ~ str_detect(model_id, ..1) & str_detect(model_id, ..2)), `|`)) %>% 
+  # Only select one structural complexity metric because they are highly correlated:
+  filter(rowSums(across(c("depc", "deps", "trim", "slsd", "reli"), ~!is.na(.))) <=1)
 
 
 # Run The Models -------------------------------------------------------------------------------------
 
 plan(multisession, workers = max(1, parallel::detectCores() %/% 10))
-lmer_ctrl <- lmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 1e8))
 
 fit_model <- function(row, data_sp, response, random_effects) {
   predictors <- row$predictors[[1]]
   model_id   <- row$model_id[[1]]
-  formula <- reformulate(c(predictors, paste("region4"), paste0("(1 | ", random_effects, ")")), response)
+  formula <- reformulate(c(predictors, paste0("(1 | ", random_effects, ")")), response)
+  lmer_control <- NA
   
   model <- suppressMessages(suppressWarnings(
-    lmer(formula, data = data_sp, REML = FALSE, control = lmer_ctrl)
+    lmer(formula, data = data_sp, REML = FALSE)
   ))
+  
+  # If there are convergence issues, fit with BOBYQA optimizer:
+  if (!is.null(model@optinfo$conv$lme4$messages)) {
+    lmer_control <- "bobyqa"
+    model <- lmer(formula, data = data_sp, REML = FALSE, 
+                  control = lmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 1e5)))
+  }
   
   tibble::tibble(
     model_id = model_id,
@@ -130,42 +143,41 @@ fit_model <- function(row, data_sp, response, random_effects) {
     logLik = as.numeric(logLik(model)),
     n = nobs(model),
     singular_status = if (isSingular(model)) "Singular fit" else "OK",
-    error = NA_character_
+    error = !is.null(model@optinfo$conv$lme4$messages),
+    lmer_control = lmer_control
   )
 }
 
-results <- future_map_dfr(seq_len(nrow(predictors_df)),
+models_df <- future_map_dfr(seq_len(nrow(predictors_df)),
                           ~ fit_model(predictors_df[.x, , drop = FALSE], data_sp, "log_c_biomass", random_effects),
                           .options = furrr::furrr_options(seed = TRUE)) %>% 
   mutate(delta_AICc = AICc - min(AICc, na.rm = TRUE)) %>%
   arrange(delta_AICc)
 
-
-saveRDS(list(models_df = results, data_sp = data_sp),
+# Save those model fitting results
+saveRDS(list(models_df = models_df, 
+             scale_selection = scale_selection,
+             data_sp = data_sp),
         file.path("analyses/7habitat/output/model-set", paste(habitat, re_string, "models.rds", sep = "_")))
 
 
-ggplot(data = data_sp, aes(x = hard_bottom_250, y = log_c_biomass, color = site_type)) + 
-  geom_point() + geom_smooth(method = "lm") + scale_color_manual(values = c("Reference" = "#6d55aa", "MPA" = "#c42119")) + facet_wrap(~region4)
+# Model Selection -------------------------------------------------------------------------------------
 
-ggplot(data = data_sp, aes(x = depth_cv_100, y = biomass, color = site_type)) + 
-  geom_point() + geom_smooth(method = "lm") + scale_color_manual(values = c("Reference" = "#6d55aa", "MPA" = "#c42119")) + facet_wrap(~region4)
+# Run the model selection 
+# This function is configured to:
+# 1. read the saved results above from model fitting,
+# 2. subset to the models within the AICc threshold and refit those with REML = F
+# 3. use model.sel and check_nested to compare nested models with LRTs
+# 4. extract details for the top model and base model
+# 5. refit those models with REML = T
 
-ggplot(data = data_sp, aes(x = slope_sd_250, y = biomass, color = site_type)) + 
-  geom_point() + geom_smooth(method = "lm") + scale_color_manual(values = c("Reference" = "#6d55aa", "MPA" = "#c42119")) + facet_wrap(~region4)
+rm(list = ls()) 
+gc()
 
-m <- lmer(log_c_biomass ~ hard_bottom_500 * site_type * age_at_survey +     depth_mean_500 + depth_cv_300 * site_type * age_at_survey +     site_type * age_at_survey + region4 + (1 | affiliated_mpa) +     (1 | year),
-          data = data_sp)
+source("analyses/7habitat/code/model_selection.R") 
 
-summary(m)
+selection_results <- model_selection(habitat = "rock",
+                                     re_string = "rmsy",
+                                     delta_threshold = 2)
 
-plot(effects::allEffects(m), multiline = T, confint = list(style = 'auto'))
-
-eff <- effects::predictorEffects(m, partial.residuals = T)
-
-
-plot(eff, multiline = T, confint = list(style = 'auto'))
-
-plot(eff$hard_bottom_500, multiline = T, confint = list(style = 'auto'))
-plot(eff$hard_bottom_500, multiline = T, confint = list(style = 'auto'))
 
