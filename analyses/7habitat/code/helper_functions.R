@@ -25,6 +25,7 @@ clean_terms <- function(df) {
                    "age_at_survey:relief",
                    "age_at_survey:hard_bottom",
                    "age_at_survey:kelp",
+                   "age_at_survey:max_biotic_extent",
                    "site_type:depth_mean",
                    "site_type:depth_sd",
                    "site_type:depth_cv",
@@ -67,6 +68,7 @@ clean_terms <- function(df) {
              str_replace_all(regex("age at survey", ignore_case = TRUE), "MPA Age") %>%
              str_replace_all("hard", "Hard") %>% 
              str_replace_all("kelp", "Kelp") %>% 
+             str_replace_all("max", "Max") %>% 
              str_replace_all("soft", "Soft") %>% 
              str_replace_all("depth", "Depth")) %>% 
     mutate(term_scale = if_else(!str_detect(term, "region"), str_extract(term, "\\d+"), NA)) 
