@@ -1,4 +1,4 @@
-# Next Piece
+# Fit final models for each ecosystem
 # Cori Lopazanski
 
 library(tidyverse)
@@ -9,21 +9,8 @@ library(effects)
 library(performance)
 library(gt)
 
-rm(list = ls())
-gc()
-
-source("analyses/7habitat/code/helper_functions.R")  # Load the function from the file
-
 fig.dir <- "~/ca-mpa/analyses/7habitat/figures"
 
-list2env(list(habitat = "rock",
-              re_string = "my"), envir = .GlobalEnv)
-
-list2env(list(habitat = "kelp",
-              re_string = "msy"), envir = .GlobalEnv)
-
-list2env(list(habitat = "surf",
-              re_string = "m"), envir = .GlobalEnv)
   
 process_final_models <- function(habitat, focal_group, re_string){
   # Read the model selection results
@@ -51,7 +38,7 @@ process_final_models <- function(habitat, focal_group, re_string){
     mutate(key = "Top Model")
 
   # Fit the base model
-  model_formula_base <- as.formula(paste(response, "~ site_type * age_at_survey + region4 + ", paste0("(1 | ", random_effects, ")", collapse = " + ")))
+  model_formula_base <- as.formula(paste(response, "~ site_type * age_at_survey + ", paste0("(1 | ", random_effects, ")", collapse = " + ")))
   
   m2 <- lmer(model_formula_base, data = data_sp, REML = TRUE,
              control = lmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 1e8)))
@@ -64,21 +51,10 @@ process_final_models <- function(habitat, focal_group, re_string){
     add_significance() %>%
     mutate(key = "Base Model")
 
-  # Calculate the effects 
-  # For 3-way interactions, we do this in the next step to help with plotting
-  #assign("data_sp", data_sp, envir = .GlobalEnv)
-  # effects_list_top <- allEffects(m, data = data_sp, xlevels = 50, partial.residuals = TRUE)
-  #effects_list_base <- allEffects(m3, data = data_sp, xlevels = 50, partial.residuals = TRUE)
-  #effects_list_simple <- allEffects(m2, data = data_sp, xlevels = 50, partial.residuals = TRUE)
   
-  # plot(effects_list_top, multiline = T, confint = list(style = 'auto'))
-  # plot(effects_list_base, multiline = T, confint = list(style = 'auto'))
-  # plot(effects_list_simple, multiline = T, confint = list(style = 'auto'))
-  
-  # Add the refitted models and effects to the final output
+  # Add the refitted models to the final output
   models <- list(base = m2,
                  top = m)
-
   
   model_formulas <- list(model_formula_top = top_formula,
                          model_formula_base = model_formula_base)
@@ -117,6 +93,7 @@ process_final_models <- function(habitat, focal_group, re_string){
     tab_source_note(source_note = paste0("Random effects: ", 
                                          str_replace_all(paste(random_effects, collapse = ", "), "_", " ") %>% 
                                            str_replace_all("affiliated mpa", "MPA") %>% 
+                                           str_replace_all("region4", "Region") %>% 
                                            str_replace_all("site", "Site"))) %>% 
     tab_style(style = cell_text(font = "Arial", size = px(12)), 
               locations = cells_source_notes()) %>%
@@ -143,14 +120,14 @@ process_final_models <- function(habitat, focal_group, re_string){
   
 }
 
-process_final_models(habitat = "surf",
-                     re_string = "m")
-
-process_final_models(habitat = "rock",
-                     re_string = "my")
-
-process_final_models(habitat = "kelp",
-                     re_string = "msy")
+# process_final_models(habitat = "surf",
+#                      re_string = "rm")
+# 
+# process_final_models(habitat = "rock",
+#                      re_string = "rmy")
+# 
+# process_final_models(habitat = "kelp",
+#                      re_string = "rmsy")
 
 
 
