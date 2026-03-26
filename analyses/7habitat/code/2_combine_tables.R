@@ -28,6 +28,42 @@ habitat_kelp <- readRDS(file.path(kw.dir, "kelp_site_buffers.Rds")) %>%
   distinct() %>% 
   mutate(year = as.numeric(year))
 
+
+
+# Kelp -------------------------------------------------------------------------------------------------------------------
+
+kelp_raw <- readRDS(file.path(ltm.dir, "kelp_biomass_subset.Rds")) 
+
+kelp <- kelp_raw %>%
+  left_join(habitat_combined, by = c("site", "site_type")) %>% 
+  left_join(habitat_kelp, by = c("year", "site", "site_type")) 
+
+# Export 
+saveRDS(kelp, file.path(ltm.dir, "combine_tables/kelp_full.Rds")) 
+
+
+# Rock (CCFRP) ----------------------------------------------------------------------------------------------
+rock_raw <- readRDS(file.path(ltm.dir, "rock_biomass_subset.Rds")) 
+
+rock <- rock_raw %>% 
+  left_join(habitat_combined) %>% 
+  left_join(habitat_kelp, by = c("year", "site", "site_type"))
+
+saveRDS(rock, file.path(ltm.dir, "combine_tables/ccfrp_full.Rds")) 
+
+
+
+# Surf zone (seines) ----------------------------------------------------------------------------------------------
+surf_raw <- readRDS(file.path(ltm.dir, "surf_biomass_subset.Rds")) 
+
+surf <- surf_raw %>% 
+  left_join(habitat_combined) %>% 
+  left_join(habitat_kelp, by = c("year", "site", "site_type")) 
+
+saveRDS(surf, file.path(ltm.dir, "combine_tables/surf_full.Rds")) 
+
+
+
 # Add plotting details
 fig.dir <- "~/ca-mpa/analyses/7habitat/figures"
 
@@ -169,7 +205,7 @@ iterative_trim <- function(dat_long, threshold) {
     
     current <- current %>% filter(!(site %in% removal_sites))
   }
-
+  
   
   list(
     removed_details = removed,
@@ -206,14 +242,8 @@ format_table <- function(df, threshold){
 }
 
 
-# Kelp -------------------------------------------------------------------------------------------------------------------
 
-kelp_raw <- readRDS(file.path(ltm.dir, "kelp_biomass_subset.Rds")) 
-
-kelp <- kelp_raw %>%
-  left_join(habitat_combined, by = c("site", "site_type")) %>% 
-  left_join(habitat_kelp, by = c("year", "site", "site_type")) 
-
+# Prepare site table for iterative trim 
 kelp_sites <- kelp %>% 
   dplyr::select(habitat, site, site_type, affiliated_mpa, all_of(names(habitat_combined))) %>% distinct() %>% 
   pivot_longer(cols = hard_bottom_25:relief_500, names_to = "habitat_var", values_to = "value") %>% 
@@ -247,16 +277,11 @@ ggplot(data = kelp_subset) +
     scales = "free")
 
 ggsave(file.path(fig.dir, "si-fig1-kelp.png"), 
-       width = 9, height = 6, dpi = 600, units = "in")
+       width = 15, height = 11, dpi = 600, units = "in")
 
 
-# Rock (CCFRP) ----------------------------------------------------------------------------------------------
-rock_raw <- readRDS(file.path(ltm.dir, "rock_biomass_subset.Rds")) 
 
-rock <- rock_raw %>% 
-  left_join(habitat_combined) %>% 
-  left_join(habitat_kelp, by = c("year", "site", "site_type"))
-
+# Prepare site table for iterative trim 
 rock_sites <- rock %>% 
   dplyr::select(habitat, site, site_type, affiliated_mpa, all_of(names(habitat_combined))) %>% distinct() %>% 
   pivot_longer(cols = hard_bottom_25:relief_500, names_to = "habitat_var", values_to = "value") %>% 
@@ -289,15 +314,9 @@ ggplot(data = rock_subset) +
              scales = "free")
 
 ggsave(file.path(fig.dir, "si-fig2-rock.png"), 
-       width = 9, height = 7, dpi = 600, units = "in")
+       width = 15, height = 11, dpi = 600, units = "in")
 
 
-# Surf zone (seines) ----------------------------------------------------------------------------------------------
-surf_raw <- readRDS(file.path(ltm.dir, "surf_biomass_subset.Rds")) 
-
-surf <- surf_raw %>% 
-  left_join(habitat_combined) %>% 
-  left_join(habitat_kelp, by = c("year", "site", "site_type")) 
 
 surf_sites <- surf %>% 
   dplyr::select(habitat, site, site_type, affiliated_mpa, all_of(names(habitat_combined))) %>% distinct() %>% 
@@ -343,7 +362,7 @@ ggplot(data = surf_subset) +
              scales = "free")
 
 ggsave(file.path(fig.dir, "si-fig3-surf.png"), 
-       width = 9, height = 9, dpi = 600, units = "in")
+       width = 15, height = 15, dpi = 600, units = "in")
 
 # Save final subsets with sites removed
 kelp2 <- kelp %>% filter(site %in% kelp_trim$remaining$site)
