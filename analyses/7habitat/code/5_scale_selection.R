@@ -10,11 +10,11 @@ select_scales <- function(data, pred_list, intx.terms, response, random_effects)
   scale_inputs <- list(
     hard_bottom = pred_list$predictor[str_detect(pred_list$predictor, "hard_bottom")],
     soft_bottom = pred_list$predictor[str_detect(pred_list$predictor, "soft_bottom")],
+    kelp_annual = pred_list$predictor[str_detect(pred_list$predictor, "kelp_annual")],
+    aquatic_vegetation = pred_list$predictor[str_detect(pred_list$predictor, "aquatic_vegetation")],
     depth_mean = pred_list$predictor[str_detect(pred_list$predictor, "depth_mean")],
     depth_cv = pred_list$predictor[str_detect(pred_list$predictor, "depth_cv")],
     depth_sd = pred_list$predictor[str_detect(pred_list$predictor, "depth_sd")],
-    kelp_annual = pred_list$predictor[str_detect(pred_list$predictor, "kelp_annual")],
-    aquatic_vegetation = pred_list$predictor[str_detect(pred_list$predictor, "aquatic_vegetation")],
     tri = pred_list$predictor[str_detect(pred_list$predictor, "tri")],
     slope_sd = pred_list$predictor[str_detect(pred_list$predictor, "slope_sd")],
     relief = pred_list$predictor[str_detect(pred_list$predictor, "relief")]) %>% compact()
@@ -27,9 +27,20 @@ select_scales <- function(data, pred_list, intx.terms, response, random_effects)
     models <- lapply(habitat_vars, function(var) {
       formula_str <- paste(response, "~", fixed, "+", 
                            var, intx.terms, " + ", paste0("(1 | ", random_effects, ")", collapse = " + ")) 
-      lmer(as.formula(formula_str), data = data,
-           control = lmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 1e8)), REML = FALSE)
+      
+      m <- lmer(as.formula(formula_str), data = data, REML = FALSE)
+      
+      msgs <- m@optinfo$conv$lme4$messages
+      
+      if (!is.null(msgs) && !any(grepl("singular", msgs))) {
+        print("fitting with bobyqa")
+        m <- lmer(formula_str, data = data, REML = FALSE, control = lmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 1e6)))
+      }
+      
+      return(m)
+      
      })
+    
     names(models) <- habitat_vars
     model_tbl <- tibble(Model = names(models), model_obj = models)
     
@@ -40,14 +51,20 @@ select_scales <- function(data, pred_list, intx.terms, response, random_effects)
       dplyr::select(Feature, Model, df, logLik, AICc, delta, weight) %>%
       left_join(model_tbl, by = "Model")
     
-    aicc_table$Converged <- map_lgl(models, ~ is.null(.x@optinfo$conv$lme4$messages))[aicc_table$Model] # for gauss
-
+    aicc_table$msgs <- purrr::map_chr(
+      models,
+      ~ {
+        msgs <- .x@optinfo$conv$lme4$messages
+        if (is.null(msgs)) NA_character_ else paste(msgs, collapse = "; ")
+      }
+    )[aicc_table$Model]
+    
     return(aicc_table)
     
   })
   
   formatted_table <- all_results %>% 
-    dplyr::select(!c(Converged, model_obj)) %>% 
+    dplyr::select(!c(msgs, model_obj)) %>% 
     mutate(Model = str_to_sentence(str_replace_all(Model, "_", " ")),
            Feature = str_to_sentence(str_replace_all(Feature, "_", " "))) %>% 
     mutate(Model = str_replace_all(Model, "Aquatic vegetation bed", "Max biotic extent") %>% 
