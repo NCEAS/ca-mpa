@@ -12,7 +12,7 @@ library(gt)
 fig.dir <- "~/ca-mpa/analyses/7habitat/figures"
 
   
-process_final_models <- function(habitat, focal_group, re_string){
+process_final_models <- function(habitat, re_string){
   # Read the model selection results
   results <- readRDS(file.path("~/ca-mpa/analyses/7habitat/output/results", 
                                paste(habitat, re_string, "selection_results.rds", sep = "_"))) 
@@ -22,14 +22,11 @@ process_final_models <- function(habitat, focal_group, re_string){
                                paste(habitat, re_string, "data.rds", sep = "_"))) 
   
   # 1. Refit the top model with REML
-  response <- unique(results$model_details$response)
-  random_effects <- unlist(str_split(unique(results$model_details$random_effects), ", "))
   top_formula <- as.formula(results$model_details$formula[1])   # top model is #1, base model is #2
   
-  m <- lmer(top_formula, data = data_sp, REML = TRUE,
-            control = lmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 1e8)))
+  m <- lmer(top_formula, data = data_sp, REML = TRUE)
   
-  coef_table <- tidy(m, conf.int = TRUE, effect = "fixed") %>%
+  coef_table_top <- tidy(m, conf.int = TRUE, effect = "fixed") %>%
     mutate(term = str_replace(term, "typeMPA", "type"),
            importance = 1) %>% 
     janitor::clean_names() %>% 
@@ -37,13 +34,12 @@ process_final_models <- function(habitat, focal_group, re_string){
     add_significance() %>%
     mutate(key = "Top Model")
 
-  # Fit the base model
-  model_formula_base <- as.formula(paste(response, "~ site_type * age_at_survey + ", paste0("(1 | ", random_effects, ")", collapse = " + ")))
+  # 2. Fit the base model
+  base_formula <-  as.formula(results$model_details$formula[2])
   
-  m2 <- lmer(model_formula_base, data = data_sp, REML = TRUE,
-             control = lmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 1e8)))
+  m2 <- lmer(base_formula , data = data_sp, REML = TRUE)
   
-  coef_table2 <- tidy(m2, conf.int = TRUE, effect = "fixed") %>%
+  coef_table_base <- tidy(m2, conf.int = TRUE, effect = "fixed") %>%
     mutate(term = str_replace(term, "typeMPA", "type"),
            importance = 1) %>% 
     janitor::clean_names() %>% 
@@ -112,12 +108,15 @@ process_final_models <- function(habitat, focal_group, re_string){
                 row_group.padding = px(6))
   
   gt_table
-  gtsave(gt_table, file.path(fig.dir, paste("tableSX", habitat, re_string, "fit.png", sep = "-")),  vwidth = 1000, vheight = 1000)
+  # gtsave(gt_table, file.path(fig.dir, paste("tableSX", habitat, re_string, "fit.png", sep = "-")),  vwidth = 1000, vheight = 1000)
   
   # Export 
-  saveRDS(list(results = all_results, models = models, formulas = model_formulas), 
+  final_fit_results <- list(results = all_results, models = models, formulas = model_formulas)
+  
+  saveRDS(final_fit_results, 
           file = file.path("~/ca-mpa/analyses/7habitat/output/effects", paste(habitat, re_string, "effects.rds", sep = "_")))
   
+  return(final_fit_results)
 }
 
 # process_final_models(habitat = "surf",
