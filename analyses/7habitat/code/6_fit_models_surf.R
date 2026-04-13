@@ -5,13 +5,10 @@
 # This script will fit the surf zone models.
 
 library(tidyverse)
-library(tidymodels)
 library(lme4)
 library(MuMIn)
-library(dplyr)
 library(purrr)
 library(lmerTest)
-library(future)
 library(furrr)
 library(parallel)
 library(corrr)
@@ -45,7 +42,9 @@ pred_surf <- data.frame(predictor = grep("^(hard|soft|kelp|depth|aquatic_vegetat
   filter(!predictor %in% c("kelp_annual_25", "kelp_annual_50", "kelp_annual_100", # these have many NAs 
                            "hard_bottom_25", # NAs and zeroes
                            "relief_25", "relief_50")) %>% # not enough variability at these scales
-  filter(!str_detect(predictor, "tri|slope_mean")) # not included in latest version
+  filter(!str_detect(predictor, "tri|slope_mean|depth_sd")) %>% # not included in latest version
+  # Reduce number of scales (not helpful to expand)
+  filter(scale %in% c(25, 50, 100, 250, 500))
 
 # Build Data --------------------------------------------------------------------------
 
@@ -57,20 +56,19 @@ data_sp <- prep_focal_data(
   regions = c("North", "Central", "N. Channel Islands", "South")
 )
 
-random_effects <- c("affiliated_mpa")
+random_effects <- c("region4/affiliated_mpa")
 re_string <- create_re_string(random_effects)
 
 scale_selection <- select_scales(data_sp, 
                                  pred_list = pred_surf,
                                  "log_c_biomass", 
-                                 intx.terms = " + region4", 
+                                 intx.terms = "", 
                                  random_effects = random_effects)
 
 # No difference in top scales if add *ST interaction
 # Some differences in top scales if add *ST*A
-scale_table <- scale_selection$formatted_table
-scale_table
-gtsave(scale_table, file.path(fig.dir, paste("tableSX", habitat, re_string, "habitat-scale.png", sep = "-")))
+scale_selection$formatted_table
+# gtsave(scale_selection$formatted_table, file.path(fig.dir, paste("tableSX", habitat, re_string, "habitat-scale.png", sep = "-")))
 
 
 # Only fit models with the top scales
@@ -99,24 +97,41 @@ ggplot(data = data_corr %>%
   theme(axis.text.x = element_text(angle = 65, vjust = 1,   size = 10, hjust = 1)) +
   labs(x = NULL, y = NULL) 
 
+corr_terms <- data_corr %>% 
+  filter(!between(r, -0.7, 0.7)) %>% 
+  mutate(x = condense_terms(x),
+         y = condense_terms(y))
+
 predictors_df <- generate_surf_3way(pred_surf %>% filter(predictor %in% top_scales)) 
 
 predictors_df <- predictors_df %>% 
+  # Either kelp or aquatic vegetation since they are redundant
+  filter(rowSums(across(c("kelp", "aquv"), ~!is.na(.))) <=1) %>% 
   # Only select one structural complexity metric because they are highly correlated:
-  filter(rowSums(across(c("depc", "deps", "trim", "slsd", "reli"), ~!is.na(.))) <=1)
+  filter(rowSums(across(c("depc", "deps", "trim", "slsd", "reli"), ~!is.na(.))) <=1) %>% 
+  # Reduce predictor set so that correlated terms do not appear together
+  filter(!reduce(pmap(corr_terms, ~ str_detect(model_id, ..1) & str_detect(model_id, ..2)), `|`))
 
 # Run The Models -------------------------------------------------------------------------------------
 plan(multisession, workers = max(1, parallel::detectCores() %/% 5))
-lmer_ctrl <- lmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 1e8))
 
 fit_model <- function(row, data_sp, response, random_effects) {
   predictors <- row$predictors[[1]]
   model_id   <- row$model_id[[1]]
-  formula <- reformulate(c(predictors, paste("region4"), paste0("(1 | ", random_effects, ")")), response)
+  formula <- reformulate(c(predictors, paste0("(1 | ", random_effects, ")")), response)
+  lmer_control <- NA
   
   model <- suppressMessages(suppressWarnings(
-    lmer(formula, data = data_sp, REML = FALSE, control = lmer_ctrl)
+    lmer(formula, data = data_sp, REML = FALSE)
   ))
+  
+  # If there are convergence issues, fit with BOBYQA optimizer:
+  msgs <- model@optinfo$conv$lme4$messages
+  
+  if (!is.null(msgs) && !any(grepl("singular", msgs))) {
+    lmer_control <- "bobyqa"
+    model <- lmer(formula, data = data_sp, REML = FALSE, control = lmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 1e5)))
+  }
   
   tibble::tibble(
     model_id = model_id,
@@ -125,47 +140,50 @@ fit_model <- function(row, data_sp, response, random_effects) {
     logLik = as.numeric(logLik(model)),
     n = nobs(model),
     singular_status = if (isSingular(model)) "Singular fit" else "OK",
-    error = NA_character_
+    error = !is.null(model@optinfo$conv$lme4$messages),
+    lmer_control = lmer_control
   )
 }
 
-results <- future_map_dfr(seq_len(nrow(predictors_df)),
+
+models_df <- future_map_dfr(seq_len(nrow(predictors_df)),
                           ~ fit_model(predictors_df[.x, , drop = FALSE], data_sp, "log_c_biomass", random_effects),
                           .options = furrr::furrr_options(seed = TRUE)) %>% 
   mutate(delta_AICc = AICc - min(AICc, na.rm = TRUE)) %>%
   arrange(delta_AICc)
 
-saveRDS(list(models_df = results, data_sp = data_sp),
-        file.path("analyses/7habitat/output/model-set",
-                  paste(habitat, re_string, "models.rds", sep = "_")))
+saveRDS(list(models_df = models_df, 
+             scale_selection = scale_selection,
+             data_sp = data_sp),
+        file.path("analyses/7habitat/output/model-set", paste(habitat, re_string, "models.rds", sep = "_")))
  
-m <- lmer(log_c_biomass ~ kelp_annual_300 + depth_mean_25 * site_type +     depth_sd_500 + slope_sd_150 * age_at_survey + site_type *     age_at_survey + region4 + (1 | affiliated_mpa),
-          data = data_sp, REML = T)
-summary(m)
-plot(allEffects(m, partial.residuals = T), multiline = T, confint = list(style = 'auto'))
-car::vif(m)
 
-performance::check_model(m)
+# Model Selection -------------------------------------------------------------------------------------
 
-simres <- simulateResiduals(m)
-plot(simres)
+# Read those results for inspection 
+results <- readRDS(file.path("analyses/7habitat/output/model-set", 
+                             paste("surf", "rm", "models.rds", sep = "_")))
 
-
-plotQQunif(simres) # left plot in plot.DHARMa()
-plotResiduals(simres) # right plot in plot.DHARMa()
-testOutliers(simres) 
+models_df <- results$models_df %>% filter(!str_detect(model_id, "SSD")) %>% filter(!str_detect(model_id, "DSD"))
+data_sp <- results$data_sp
+scale_selection <- results$scale_selection
 
 
-outliers <- data_sp[outliers(simres), ]
+# Run the model selection 
+# This function is configured to:
+# 1. read the saved results above from model fitting,
+# 2. subset to the models within the AICc threshold and refit those with REML = F
+# 3. use model.sel and check_nested to compare nested models with LRTs
+# 4. extract details for the top model and base model
+# 5. refit those models with REML = T
 
-data_sp$.res <- resid(m, type = "pearson") # , type = "pearson"
-data_sp$.fit <- fitted(m)
+rm(list = ls()) 
+gc()
 
-ggplot(data_sp, aes(.fit, .res, color = region4)) +
-  geom_point(alpha = 0.6) +
-  geom_hline(yintercept = 0, linetype = 2) +
-  labs(x = "Fitted", y = "Residuals", color = "MPA") +
-  theme_minimal()
+source("analyses/7habitat/code/model_selection.R") 
+
+selection_results <- model_selection(habitat = "surf",
+                                     re_string = "rm",
+                                     delta_threshold = 2)
 
 
-ggplot(data = data2) + geom_density(aes(x = aquatic_vegetation_bed_50))

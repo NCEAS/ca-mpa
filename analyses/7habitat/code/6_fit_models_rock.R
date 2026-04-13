@@ -44,7 +44,7 @@ pred_rock <- data.frame(predictor = grep("^(hard|kelp|depth|tri|slope|relief)", 
   mutate(scale = sub("_", "", str_sub(predictor, -3, -1))) %>% 
   # Drop TRI because correlated with CV, drop slope SD because not seeming more useful than CV:
   filter(!str_detect(predictor, "tri"))  %>% 
-  filter(!str_detect(predictor, "slope_mean")) %>% 
+  filter(!str_detect(predictor, "slope_mean|depth_sd")) %>% 
   # Reduce number of scales (not helpful to expand)
   filter(scale %in% c(25, 50, 100, 250, 500))
 
@@ -67,13 +67,11 @@ re_string <- create_re_string(random_effects)
 scale_selection <- select_scales(data_sp, 
                                  pred_list = pred_rock,
                                  "log_c_biomass", # log_c_biomass for gauss
-                                 intx.terms = "* site_type", # for the interaction with the habitat variable
+                                 intx.terms = "", # for the interaction with the habitat variable
                                  random_effects = random_effects)
 
-scale_table <- scale_selection$formatted_table
-scale_table
-
-# gtsave(scale_table, file.path(fig.dir, paste("tableSX", habitat, re_string, "habitat_scale.png", sep = "-")))
+scale_selection$formatted_table # inspect
+# gtsave(scale_selection$formatted_table , file.path(fig.dir, paste("tableSX", habitat, re_string, "habitat_scale.png", sep = "-")))
 
 # Only fit models with the top scales
 top_scales <- scale_selection$results %>% janitor::clean_names() %>% 
@@ -110,9 +108,7 @@ predictors_df <- generate_simple_3way(pred_rock %>% filter(predictor %in% top_sc
 
 # Reduce predictor set so that correlated terms do not appear together
 predictors_df <- predictors_df %>% 
-  filter(!reduce(pmap(corr_terms, ~ str_detect(model_id, ..1) & str_detect(model_id, ..2)), `|`)) %>% 
-  # Only select one structural complexity metric because they are highly correlated:
-  filter(rowSums(across(c("depc", "deps", "trim", "slsd", "reli"), ~!is.na(.))) <=1)
+  filter(!reduce(pmap(corr_terms, ~ str_detect(model_id, ..1) & str_detect(model_id, ..2)), `|`)) 
 
 
 # Run The Models -------------------------------------------------------------------------------------
@@ -130,10 +126,11 @@ fit_model <- function(row, data_sp, response, random_effects) {
   ))
   
   # If there are convergence issues, fit with BOBYQA optimizer:
-  if (!is.null(model@optinfo$conv$lme4$messages)) {
+  msgs <- model@optinfo$conv$lme4$messages
+  
+  if (!is.null(msgs) && !any(grepl("singular", msgs))) {
     lmer_control <- "bobyqa"
-    model <- lmer(formula, data = data_sp, REML = FALSE, 
-                  control = lmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 1e5)))
+    model <- lmer(formula, data = data_sp, REML = FALSE, control = lmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 1e5)))
   }
   
   tibble::tibble(
@@ -160,6 +157,13 @@ saveRDS(list(models_df = models_df,
              data_sp = data_sp),
         file.path("analyses/7habitat/output/model-set", paste(habitat, re_string, "models.rds", sep = "_")))
 
+# Read those results for inspection 
+results <- readRDS(file.path("analyses/7habitat/output/model-set", 
+                             paste("rock", "rmsy", "models.rds", sep = "_")))
+
+models_df <- results$models_df %>% filter(!str_detect(model_id, "SSD")) %>% filter(!str_detect(model_id, "DSD"))
+data_sp <- results$data_sp
+scale_selection <- results$scale_selection
 
 # Model Selection -------------------------------------------------------------------------------------
 

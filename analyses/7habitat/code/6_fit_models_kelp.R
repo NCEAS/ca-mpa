@@ -42,7 +42,10 @@ pred_kelp <- data.frame(predictor = grep("^(hard|kelp|depth|tri|slope|relief)", 
   mutate(scale = sub("_", "", str_sub(predictor, -3, -1))) %>% 
   # Drop TRI because correlated with CV, drop slope SD because not seeming more useful than CV:
   filter(!str_detect(predictor, "tri")) %>% 
-  filter(!str_detect(predictor, "slope_mean"))
+  filter(!str_detect(predictor, "slope_mean")) %>% 
+  filter(!str_detect(predictor, "depth_sd")) %>% 
+  # Reduce number of scales (not helpful to expand)
+  filter(scale %in% c(25, 50, 100, 250, 500))
 
 # Build Data -------------------------------------------------------------------
 
@@ -59,15 +62,14 @@ data_sp <- prep_focal_data(
 random_effects <- c("region4/affiliated_mpa/site", "year")
 re_string <- create_re_string(random_effects)
 
-# Run univariate scale selection
+# Run scale selection
 scale_selection <- select_scales(data_sp, 
                                  pred_list = pred_kelp,
                                  response = "log_c_biomass", # log c biomass for gauss_log
                                  intx.terms = "",
                                  random_effects = random_effects) 
 
-scale_table <- scale_selection$formatted_table
-scale_table
+scale_selection$formatted_table
 
 # This yields singular fits for the bathy variables for region - likely
 # because REML = F and there is some correlation between depth + region
@@ -75,8 +77,7 @@ scale_table
 
 # Decide to keep region as random effect because we want to differentiate the habitat
 # effects from the region-specific differences.
-
-gtsave(scale_table, file.path(fig.dir, paste("tableSX", habitat, re_string, "habitat_scale.png", sep = "-")))
+# gtsave(scale_selection$formatted_table, file.path(fig.dir, paste("tableSX", habitat, re_string, "habitat_scale.png", sep = "-")))
 
 # Only fit models with the top scales
 top_scales <- scale_selection$results %>% janitor::clean_names() %>% 
@@ -104,31 +105,40 @@ ggplot(data = data_corr  %>%
   labs(x = NULL, y = NULL) 
 
 corr_terms <- data_corr %>% 
-  filter(!between(r, -0.5, 0.5)) %>% 
+  filter(!between(r, -0.7, 0.7)) %>% 
   mutate(x = condense_terms(x),
          y = condense_terms(y))
 
 predictors_df <- generate_simple_3way(pred_kelp %>% filter(predictor %in% top_scales))
 
-# Reduce predictor set so that corrleated terms do not appear together
 predictors_df <- predictors_df %>% 
-  filter(!reduce(pmap(corr_terms, ~ str_detect(model_id, ..1) & str_detect(model_id, ..2)), `|`))
+  # Reduce predictor set so that corrleated terms do not appear together
+  filter(!reduce(pmap(corr_terms, ~ str_detect(model_id, ..1) & str_detect(model_id, ..2)), `|`)) %>% 
+  # Reduce predictor set so that only one structural complexity metric is included at one time
+  filter(rowSums(across(c("depc", "deps", "trim", "slsd", "reli"), ~!is.na(.))) <=1)
 
 
 # Run The Models -------------------------------------------------------------------------------------
 
 plan(multisession, workers = max(1, parallel::detectCores() %/% 5))
-lmer_ctrl <- lmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 1e8))
 
 fit_model <- function(row, data_sp, response, random_effects) {
   predictors <- row$predictors[[1]]
   model_id   <- row$model_id[[1]]
-  formula <- reformulate(c(predictors, #paste("region4"), 
-                           paste0("(1 | ", random_effects, ")")), response)
+  formula <- reformulate(c(predictors, paste0("(1 | ", random_effects, ")")), response)
+  lmer_control <- NA
   
   model <- suppressMessages(suppressWarnings(
-    lmer(formula, data = data_sp, REML = FALSE, control = lmer_ctrl)
+    lmer(formula, data = data_sp, REML = FALSE)
   ))
+  
+  # If there are convergence issues, fit with BOBYQA optimizer:
+  msgs <- model@optinfo$conv$lme4$messages
+  
+  if (!is.null(msgs) && !any(grepl("singular", msgs))) {
+    lmer_control <- "bobyqa"
+    model <- lmer(formula, data = data_sp, REML = FALSE, control = lmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 1e5)))
+  }
   
   tibble::tibble(
     model_id = model_id,
@@ -137,25 +147,49 @@ fit_model <- function(row, data_sp, response, random_effects) {
     logLik = as.numeric(logLik(model)),
     n = nobs(model),
     singular_status = if (isSingular(model)) "Singular fit" else "OK",
-    error = NA_character_
+    error = !is.null(model@optinfo$conv$lme4$messages),
+    lmer_control = lmer_control
   )
 }
 
-results <- future_map_dfr(seq_len(nrow(predictors_df)),
+
+models_df  <- future_map_dfr(seq_len(nrow(predictors_df)),
                           ~ fit_model(predictors_df[.x, , drop = FALSE], data_sp, "log_c_biomass", random_effects),
                           .options = furrr::furrr_options(seed = TRUE)) %>% 
   mutate(delta_AICc = AICc - min(AICc, na.rm = TRUE)) %>%
   arrange(delta_AICc)
 
 
-saveRDS(list(models_df = results, data_sp = data_sp),
-        file.path("analyses/7habitat/output/model-set", 
-                  paste(habitat, re_string, "models.rds", sep = "_")))
+saveRDS(list(models_df = models_df, 
+             scale_selection = scale_selection,
+             data_sp = data_sp),
+        file.path("analyses/7habitat/output/model-set", paste(habitat, re_string, "models.rds", sep = "_")))
 
-m <- lmer(log_c_biomass ~ hard_bottom_300 + kelp_annual_100 + depth_mean_500 +     depth_cv_100 * site_type * age_at_survey + site_type * age_at_survey +     (1 | region4/affiliated_mpa/site) + (1 | year),
-          data = data_sp, REML = T)
 
-summary(m)
-eff <- effects::predictorEffects(m, partial.residuals = T)
-eff <- effects::allEffects(m, partial.residuals = T)
-plot(eff, multiline = T, confint = list(style = 'auto'))
+# Read those results for inspection 
+results <- readRDS(file.path("analyses/7habitat/output/model-set", 
+                             paste("kelp", "rmsy", "models.rds", sep = "_")))
+
+models_df <- results$models_df
+data_sp <- results$data_sp
+
+# Model Selection -------------------------------------------------------------------------------------
+
+# Run the model selection 
+# This function is configured to:
+# 1. read the saved results above from model fitting,
+# 2. subset to the models within the AICc threshold and refit those with REML = F
+# 3. use model.sel and check_nested to compare nested models with LRTs
+# 4. extract details for the top model and base model
+# 5. refit those models with REML = T
+
+rm(list = ls()) 
+gc()
+
+source("analyses/7habitat/code/model_selection.R") 
+
+selection_results <- model_selection(habitat = "kelp",
+                                     re_string = "rmsy",
+                                     delta_threshold = 2)
+
+
