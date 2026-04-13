@@ -132,6 +132,77 @@ evaluate_nested_models <- function(models, delta_threshold, alpha) {
   )
 }
 
+apply_nesting_rule <- function(models) {
+  library(MuMIn)
+  
+  ms <- model.sel(models)
+
+  # This wil reorder interaction terms so they appear in alph. order in the matrix
+  standardize_term <- function(term) {
+    if (str_detect(term, ":")) {
+      vars <- str_split(term, ":")[[1]]
+      paste(sort(vars), collapse = ":")
+    } else {
+      term
+    }
+  }
+  
+  # Expand the model_id so each term is listed including the main effects 
+  # from interaction terms:
+  expand_ms <- ms %>%
+    as.data.frame() %>%
+    select(delta) %>% 
+    rownames_to_column("model_id") %>%
+    mutate(terms = map(model_id, ~ {
+      raw_terms <- attr(terms(as.formula(paste("~", .x))), "term.labels")
+      map_chr(raw_terms, standardize_term)
+    }))
+  
+  # Unnest and widen the dataframe into a matrix
+  term_matrix <- expand_ms %>%
+    unnest(terms) %>% 
+    mutate(present = 1) %>%
+    pivot_wider(names_from = terms, values_from = present, values_fill = 0) %>% 
+    column_to_rownames("model_id")
+  
+  terms_only <- term_matrix %>% select(!delta)
+  delta <- term_matrix$delta
+  names(delta) <- rownames(term_matrix)
+  models <- rownames(term_matrix)
+  
+  # Apply logic: All terms in model i are contained in model j
+  # Resulting matrix each row is a potential smaller model and each column is a potential larger model
+  # Column TRUE: “all models that are nested inside this model”
+  # Row TRUE: all models that this model is nested within
+  
+  nested_mat <- outer(models, models, Vectorize(function(i, j) {
+    if (i == j) return(FALSE)
+    all(terms_only[i, ] <= terms_only[j, ]) &&
+      any(terms_only[i, ] < terms_only[j, ])
+  }))
+  
+  # Apply the model_id names to the rows and columns
+  rownames(nested_mat) <- models
+  colnames(nested_mat) <- models
+  
+ 
+  # Apply Richards rule: 
+  drop <- unique(colnames(nested_mat)[
+    sapply(colnames(nested_mat), function(j) {
+      any( # if at least one exists then drop j
+        nested_mat[, j] & # which models i are nested within j **AND**
+          (delta[rownames(nested_mat)] < delta[j]) # which models have better AICc (lower delta)
+      )
+    })
+  ])
+  
+  # Export list of candidates
+  candidates <- setdiff(models, drop)
+  return(candidates)
+  
+  }
+
+
 condense_terms <- function(predictors){
   predictors <- 
     str_replace_all(predictors, "hard_bottom_(\\d+)", "H\\1") %>% 
