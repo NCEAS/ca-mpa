@@ -3,6 +3,14 @@
 # lopazanski@bren.ucsb.edu
 # Dec 2024
 
+# 1. Load top model and associated analysis dataset
+# 2. Join site coordinates
+# 3. Extract model residuals
+# 4. Aggregate residuals to the site level
+# 5. Test for spatial structure with spline correlograms and Moran's I
+# 6. Map local Moran's I to identify clustered sites
+# 7. Optionally refit after removing sparsely sampled sites
+
 # Setup ------------------------------------------------------------------------
 
 library(sf)
@@ -18,31 +26,181 @@ library(gt)
 rm(list = ls())
 gc()
 
-# Load site locations and model results
+# Load Results & Tables --------------------------------------------------------
+
 sites <- readRDS(file.path("/home/shares/ca-mpa/data/sync-data/monitoring/processed_data/update_2024", "site_locations_corrected.Rds")) %>% 
   dplyr::select(site, geometry)
 
-# Read the top models 
-path <- "~/ca-mpa/analyses/7habitat/output"
-id <- "rock_filtered_targeted_rmsy"
-id <- "kelp_filtered_targeted_msy"
-id <- "surf_filtered_targeted_m"
+get_results <- function(habitat, re_string){
+  results_file <- paste(habitat, re_string, "selection_results.rds", sep = "_")
+  results <- readRDS(file.path("~/ca-mpa/analyses/7habitat/output/results", results_file)) 
+  data_sp <- readRDS(file.path("~/ca-mpa/analyses/7habitat/output/data", paste(habitat, re_string, "data.rds", sep = "_"))) %>% left_join(sites, by = "site")
+  results <- c(results, list(data_sp = data_sp))
+  return(results)
+}
 
-#id <- "kelp_targeted_my"
 
-top_effects <- readRDS(file.path(path, "effects", paste0(id, "_effects.rds")))
-top_models <- top_effects$models
+#rock <- get_results("rock", "rmsy")
+#kelp <- get_results("kelp", "rmsy")
+#surf <- get_results("surf", "rm")
 
-data_sp <- readRDS(file.path(path, "data", paste0(id, "_data.rds"))) %>% 
-  left_join(sites)
+run_correlogs <- function(habitat, re_string){
+  
+  # Get the results - pull out the top models and data
+  habitat_results <- get_results(habitat, re_string)
+
+  # Add residuals from top model to the data
+  data_sf <- st_as_sf(habitat_results$data_sp)
+  data_sf$resid <- residuals(habitat_results$models$top)
+  
+  # Extract coordinates
+  coords <- st_coordinates(data_sf)
+  
+  # Bind coordinates to the data
+  data_sf <- data_sf %>%
+    mutate(x = coords[,1],
+           y = coords[,2])
+  
+  # Examine distances between sites associated with each MPA/Ref pair
+  dists_mpa <- data_sf %>% 
+    st_drop_geometry() %>% 
+    group_by(affiliated_mpa) %>% 
+    group_map(~ dist(cbind(.x$x, .x$y))) %>% 
+    unlist()
+  
+  # Use that upper range to set the max distance
+  print("Quantile distance: ")
+  print(quantile(dists_mpa, probs = c(0.5, 0.75, 0.9)))
+  
+  # Function to get spline corellogram within each year
+  run_correlog <- function(df) {
+    
+    if(nrow(df) < 10) return(NULL)
+    
+    q <- quantile(dists_mpa, 0.9)
+    
+    spline.correlog(
+      x = df$x,
+      y = df$y,
+      z = df$resid,
+      xmax = 20000,
+      resamp = 100
+    )
+  }
+  
+  # Run spline correlograms for each year
+  cor_list <- data_sf %>%
+    st_drop_geometry() %>%
+    group_split(year) %>% 
+    lapply(run_correlog)
+  
+  # Append year as name for each one
+  years <- data_sf %>% distinct(year) %>% pull(year)
+  names(cor_list) <- years
+  
+  # Plot the correlograms
+  par(mfrow = c(ceiling(sqrt(length(cor_list))),
+                ceiling(length(cor_list)/ceiling(sqrt(length(cor_list))))))
+  
+  for (i in seq_along(cor_list)) {
+    plot(cor_list[[i]],
+         main = names(cor_list)[i],
+         xlab = "Distance (m)",
+         ylab = "Spatial Correlation")
+  }
+  
+  extract_summary <- function(cor_obj) {
+    if (is.null(cor_obj)) return(NULL)
+    
+    s <- summary(cor_obj)
+    
+    data.frame(
+      est_cor = s$estimate[3],
+      
+      q025_cor = s$quantiles["0.025", "y"],
+      q50_cor  = s$quantiles["0.5", "y"],
+      q975_cor = s$quantiles["0.975", "y"],
+      
+      q025_dist = s$quantiles["0.025", "x"],
+      q50_dist  = s$quantiles["0.5", "x"],
+      q975_dist = s$quantiles["0.975", "x"]
+    )
+  }
+  
+  cor_summary <- do.call(rbind, lapply(cor_list, extract_summary))
+
+  return(list(cor_list = cor_list,
+              cor_summary = cor_summary))
+  }
+
+
+
+rock_spline <- run_correlogs("rock", "rmsy")
+rock_spline$cor_summary
+
+
+kelp_spline <- run_correlogs("kelp", "rmsy")
+kelp_spline$cor_summary
+
+surf_spline <- run_correlogs("surf", "rm")
+# Doesn't work - look at average residuals across years; no one flagged that as concerning...
+
+
+run_correlogs <- function(habitat, re_string){
+  
+  # Get the results - pull out the top models and data
+  habitat_results <- get_results(habitat, re_string)
+  
+  # Add residuals from top model to the data
+  data_sf <- st_as_sf(habitat_results$data_sp)
+  data_sf$resid <- residuals(habitat_results$models$top)
+  
+  # Extract coordinates
+  coords <- st_coordinates(data_sf)
+  
+  # Bind coordinates to the data
+  data_site <- data_sf %>%
+    mutate(x = coords[,1],
+           y = coords[,2]) %>% 
+    st_drop_geometry() %>%
+    group_by(site) %>%
+    summarise(resid = mean(resid, na.rm = TRUE),
+              x = first(x),
+              y = first(y))
+  
+  spline_cor <- spline.correlog(
+    x = data_site$x,
+    y = data_site$y,
+    z = data_site$resid,
+    resamp = 100,
+    xmax = 30000)
+  
+ 
+  return(spline_cor)
+}
+
+
+rock_spline <- run_correlogs("rock", "rmsy")
+plot(rock_spline)
+summary(rock_spline)
+
+
+kelp_spline <- run_correlogs("kelp", "rmsy")
+plot(kelp_spline)
+summary(kelp_spline)
+
+surf_spline <- run_correlogs("surf", "rm")
+plot(surf_spline)
+summary(surf_spline)
+
+
 
 # Convert to an sf object and add residuals and a time column
 data_sf <- st_as_sf(data_sp)
 data_sf$resid <- residuals(top_models$top)
 data_sf$time <- as.POSIXct(paste0(data_sf$year, "-01-01"), tz = "UTC")
 
-
-# Aggregate residuals by site (replace 'site_id' with your unique site identifier)
+# Aggregate residuals by site
 data_site <- data_sf %>%
   group_by(site) %>%
   summarise(avg_resid = mean(resid, na.rm = TRUE),
@@ -54,15 +212,15 @@ set.seed('123')
 coords <- st_coordinates(data_site)
 hist(dist(coords), breaks = 1000, main = "Pairwise Distances", xlab = "Distance (m)")
 
-if (id == "surf_filtered_targeted_m"){
+if (habitat == "surf"){
   spline_cor <- spline.correlog(x = coords[,1],
                                 y = coords[,2],
                                 z = data_site$avg_resid,
                                 resamp = 100,
-                                xmax = 600000)
+                                xmax = 70000) # why?
 } else {
   
-  max.dist <- 30000
+  max.dist <- 20000
   spline_cor <- spline.correlog(x = coords[,1],
                                 y = coords[,2],
                                 z = data_site$avg_resid,
